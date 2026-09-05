@@ -181,6 +181,13 @@ export interface TillServerOptions {
   printers?: Printer[];
   /** The dishes the stop-list screen shows. */
   stopList?: StopListItem[];
+  /** This counter sells the goods it bought — a shop rather than a kitchen. */
+  sellsGoods?: boolean;
+  /** Guests sit down here. ⚠️ Defaults to true, exactly as the branch response
+   *  does when the field is absent. */
+  hasTables?: boolean;
+  /** What the scanner finds, by the code that was typed into it. */
+  barcodes?: Record<string, { name: string; kg?: number }>;
 }
 
 /** What a printer can be asked to print — the server's list, mirrored here so
@@ -207,6 +214,11 @@ export function createTillServer(opts: TillServerOptions = {}) {
     deviceRejected = false,
     soldOut = [] as string[],
     paymentMethods = ["cash", "card", "transfer", "debt"],
+    sellsGoods = false,
+    // ⚠️ True by default and independent of `sellsGoods`, because the two are
+    // separate questions: a fast food scans nothing and seats nobody.
+    hasTables = true,
+    barcodes = {} as Record<string, { name: string; kg?: number }>,
   } = opts;
 
   // Whether the provider has confirmed the outstanding payment. A test flips
@@ -225,6 +237,9 @@ export function createTillServer(opts: TillServerOptions = {}) {
    *  wire. */
   const calls = {
     unlock: [] as string[],
+    /** Every code the counter sent, in order — a scan that opens a check and
+     *  a scan that adds to one look identical from the screen. */
+    scan: [] as string[],
     savePrinters: [] as Printer[][],
     setLimit: [] as { menuItemId: string; limit: number }[],
     /** ⚠️ The hold is on the wire, not in component state: the screen's whole
@@ -405,6 +420,8 @@ export function createTillServer(opts: TillServerOptions = {}) {
       name: "Maracanda",
       currency: "UZS",
       servicePercent,
+      sellsGoods,
+      hasTables,
       booking: {
         tables: TABLES,
         zones: ZONES,
@@ -431,6 +448,18 @@ export function createTillServer(opts: TillServerOptions = {}) {
     tillChecks: async (mine = false) => {
       calls.checksMine.push(mine);
       return { checks: [...checks.values()] };
+    },
+    // What the scanner read, resolved by the server — the shop counter's one
+    // call. An unknown code is a state, not an error, exactly as in production.
+    tillScan: async (code: string) => {
+      calls.scan.push(code);
+      const hit = barcodes[code];
+      if (!hit) return { found: false, code };
+      const item = MENU.flatMap((g) => g.items).find((i) => i.name === hit.name);
+      if (!item) return { found: false, code };
+      return hit.kg
+        ? { found: true, item, weighed: true, kg: hit.kg }
+        : { found: true, item };
     },
     tillOpenCheck: async (body: { tableId?: string; guests?: number }) => {
       calls.openCheck.push(body);

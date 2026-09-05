@@ -36,7 +36,6 @@ type Scanned = {
 
 export default function ScanPanel({
   onAdd,
-  weighs,
   scalePort,
 }: {
   /** Put this on the check. ⚠️ The panel never writes to the check itself: the
@@ -45,7 +44,6 @@ export default function ScanPanel({
   onAdd: (item: MenuItem, qty: number) => Promise<void>;
   /** Whether a manual weight box is worth offering. A shop with no scales
    *  never wants one. */
-  weighs: boolean;
   /** The serial port a counter scale is wired to, if any. */
   scalePort?: string;
 }) {
@@ -110,7 +108,12 @@ export default function ScanPanel({
       // failure.** It happens when the goods are picked from the shelf and
       // weighed at the counter, or when a connected scale has not been wired up
       // yet. Asking is the honest answer; guessing one kilogram is not.
-      if (weighs && byWeight(res.item)) {
+      // ⚠️ **Asked whenever the catalogue says the packet is weighed**, and
+      // not gated on the branch's scale settings. Those describe the equipment;
+      // this describes the goods. A shop whose scales are not set up yet would
+      // otherwise ring a kilogram of anything as one — quietly, on the receipt,
+      // at the price of one unit.
+      if (byWeight(res.item)) {
         setAsking(res.item);
         setKg("");
         return;

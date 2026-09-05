@@ -4207,9 +4207,10 @@ export const api = {
        *  whether to open on a scanner, not the difference between a pharmacy and
        *  a flower shop. */
       sellsGoods?: boolean;
+      /** Whether guests sit down. ⚠️ Absent means yes: every till today is a
+       *  restaurant's, and a server that predates the field must not be read
+       *  as taking the floor plan away. */
       hasTables?: boolean;
-      /** Whether a manual weight box is worth offering at all. */
-      weighs?: boolean;
       /** The serial port a counter scale is wired to, if any. */
       scalePort?: string;
       /** The room's service rate. ⚠️ Needed on the device, not only on the

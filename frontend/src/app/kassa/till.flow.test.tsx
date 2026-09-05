@@ -1408,3 +1408,73 @@ describe("the daily limit", () => {
     ).toBeDisabled();
   });
 });
+
+/**
+ * A shop's counter, which is the same till with one pane swapped.
+ *
+ * ⚠️ **These exist because the screen was written and could not be reached.**
+ * The pane, the endpoint and the settings were all finished and correct, and
+ * `sellsGoods` was never sent by the server — so every shop got a restaurant's
+ * floor plan and nothing on the counter ever appeared. Nothing failed: no test,
+ * no type, no build. The lesson is that a capability flag is only real once
+ * something asserts the screen it unlocks.
+ */
+describe("the counter of a shop", () => {
+  it("opens on the scanner, with no room to walk into", async () => {
+    server = installTillServer({ sellsGoods: true, hasTables: false });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    // The scanner is what loads, without anybody navigating to it.
+    expect(
+      await screen.findByPlaceholderText(t.till.barcodePlaceholder),
+    ).toBeInTheDocument();
+    // ⚠️ And the floor is gone rather than grey: a shop has no tables and
+    // never will, so a permanently disabled first destination would be the
+    // cashier's first impression of the till.
+    expect(screen.queryByText(t.till.tables)).not.toBeInTheDocument();
+  });
+
+  it("starts the sale on the first scan, with nothing open", async () => {
+    server = installTillServer({
+      sellsGoods: true,
+      hasTables: false,
+      barcodes: { "4780000000001": { name: PLAIN_DISH } },
+    });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    const box = await screen.findByPlaceholderText(t.till.barcodePlaceholder);
+    await user.type(box, "4780000000001{Enter}");
+
+    // ⚠️ The check opened itself: no table, one guest. A dialog asking a shop
+    // cashier how many people are in their party would be answered three
+    // hundred times a day and wrongly once.
+    await waitFor(() => expect(server.calls.openCheck).toHaveLength(1));
+    expect(server.calls.openCheck[0].tableId).toBeFalsy();
+    // And the packet landed on it, in the same action.
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+    // ⚠️ `getAllBy…`: the packet is on the screen twice on purpose — once as
+    // the large "last scanned" card the cashier glances at without aiming, and
+    // once as a line on the bill. A single-match query here would fail for the
+    // wrong reason.
+    await waitFor(() =>
+      expect(screen.getAllByText(PLAIN_DISH).length).toBeGreaterThan(0),
+    );
+  });
+
+  it("keeps the room for a server that has never heard of shops", async () => {
+    // ⚠️ The rollout case: the branch response has no `hasTables` at all. Read
+    // as `=== true` this is what would have taken the floor plan away from
+    // twelve working restaurants for as long as the deploy took.
+    server = installTillServer();
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    await waitForFloor();
+    expect(screen.getByText(t.till.tables)).toBeInTheDocument();
+  });
+});

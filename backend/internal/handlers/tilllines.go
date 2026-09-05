@@ -705,6 +705,7 @@ func (h *Handler) StaffBranch(w http.ResponseWriter, r *http.Request) {
 		rest.Currency != "" {
 		currency = rest.Currency
 	}
+	biz := h.businessOf(r.Context(), branch)
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"id":       branch.ID.Hex(),
 		"name":     branch.Name,
@@ -716,7 +717,42 @@ func (h *Handler) StaffBranch(w http.ResponseWriter, r *http.Request) {
 		// depending on the wifi — and the guest who paid less is the one who
 		// never finds out.
 		"servicePercent": servicePercentOf(branch),
+		// ⚠️ **Capabilities, not a business type.** The till needs to know
+		// whether to open on a scanner and whether there is a room to draw; it
+		// does not need to know the difference between a pharmacy and a flower
+		// shop, and a screen that switched on the type itself would need
+		// editing every time a type is added.
+		//
+		// ⚠️ **Read live, unlike `Defaults()`.** What a brand *offers* is a
+		// preference and is copied onto it once, so an owner can change it.
+		// What a counter *is* — scanned or tapped, with a floor plan or without
+		// — is a description of the business rather than a preference, and a
+		// stored copy of it would be a second answer that can go stale.
+		"sellsGoods": biz.ScansToSell(),
+		"hasTables":  biz.HasTables(),
+		// ⚠️ **Only the port reaches the device.** The label layout is decoded
+		// on the server (see tillbarcode.go), so a till that reads it here
+		// would be a second decoder — and two decoders eventually disagree
+		// about how many grams a packet holds.
+		"scalePort": branch.Scale.Port,
 	})
+}
+
+// businessOf reports what kind of business a branch belongs to.
+//
+// ⚠️ **Missing brand means restaurant**, which is what an install that predates
+// brands is. A branch whose brand has been deleted must not lose its floor
+// plan — a till that silently turns into a shop counter is a restaurant that
+// cannot open a table.
+func (h *Handler) businessOf(ctx context.Context, branch *models.Branch) models.BusinessType {
+	if branch.BrandID.IsZero() {
+		return models.BizRestaurant
+	}
+	var b models.Brand
+	if err := h.Store.Brands.FindOne(ctx, bson.M{"_id": branch.BrandID}).Decode(&b); err != nil {
+		return models.BizRestaurant
+	}
+	return b.BusinessType
 }
 
 // ---- Today's bookings, from the till ----

@@ -226,7 +226,10 @@ export default function TillPage() {
    *  kitchen. ⚠️ False until the branch has answered, so a slow network opens
    *  on the familiar screen rather than flashing a scanner at a waiter. */
   const [sellsGoods, setSellsGoods] = useState(false);
-  const [weighs, setWeighs] = useState(false);
+  // ⚠️ **Starts true**, like the branch response's absent field: the floor plan
+  // is what a till has unless it is told otherwise, and a flicker that removes
+  // the room for a moment on every boot is a waiter's tap landing on nothing.
+  const [hasTables, setHasTables] = useState(true);
   const [scalePort, setScalePort] = useState("");
   const [checks, setChecks] = useState<Check[]>([]);
   // ⚠️ **Checks this device owns.** They were opened while the server was not
@@ -433,8 +436,18 @@ export default function TillPage() {
         // screen that switched on the business type would need editing every
         // time a type is added.
         setSellsGoods(branch.sellsGoods === true);
-        setWeighs(branch.weighs === true);
+        // ⚠️ **Absent means yes.** Every till that exists today is a
+        // restaurant's, and a server that has not been updated yet sends no
+        // such field — read as `=== true` it would take the floor plan away
+        // from a working dining room during a rollout.
+        setHasTables(branch.hasTables !== false);
         setScalePort(branch.scalePort ?? "");
+        // ⚠️ **The counter opens on itself in a shop.** The room-first rule is
+        // a restaurant's, and it exists because a line has to belong to a
+        // table; in a shop the first action is a scan, and a cashier who has to
+        // navigate to it before every sale would navigate to it three hundred
+        // times a day.
+        if (branch.sellsGoods === true) setView("order");
       } catch {
         // The menu failing is worth saying out loud — a till with no dishes on
         // it looks like a restaurant with no menu, and the cashier's next move
@@ -685,7 +698,14 @@ export default function TillPage() {
     }
   }
 
-  async function openCheck(tableId: string, guests: number) {
+  // ⚠️ **Returns the check rather than only storing it.** A shop's first scan
+  // opens the sale and adds a line in one action, and the line cannot wait for
+  // a state update that lands after this function returns — that race put the
+  // first scanned packet of every sale on nothing at all.
+  async function openCheck(
+    tableId: string,
+    guests: number,
+  ): Promise<Check | null> {
     setOpening(false);
     setGuest(0);
     setCourse(0);
@@ -695,6 +715,7 @@ export default function TillPage() {
       setActive(check);
       setView("order");
       await refreshChecks();
+      return check;
     } catch (err) {
       // ⚠️ **A table is opened locally rather than refused.** The guests are
       // sitting down; a till that cannot start their order over a wifi drop is
@@ -718,14 +739,23 @@ export default function TillPage() {
           // check is local — a banner saying the same thing at the top is the
           // same warning twice, and the one that can be dismissed teaches
           // people to dismiss the one that cannot.
-          return;
+          return check;
         }
         setError(t.till.offlineNoStore);
-        return;
+        return null;
       }
       setError(err instanceof ApiError ? err.message : t.till.retry);
     }
+    return null;
   }
+
+  /** The sale a shop's counter starts by scanning.
+   *
+   *  ⚠️ **No table and one guest, deliberately.** A counter sale is the case
+   *  `StaffOpenCheck` already allows without a table; a dialog asking a shop
+   *  cashier how many people are in their party would be asked three hundred
+   *  times a day and answered wrongly once. */
+  const openCounterCheck = () => openCheck("", 1);
 
   async function addDish(
     item: MenuItem,
@@ -734,7 +764,12 @@ export default function TillPage() {
     markCode?: string,
     portion?: number,
   ) {
-    if (!active) return;
+    // ⚠️ **A shop's check opens itself on the first scan.** There is no table
+    // to tap and no party to count, so requiring an open check would make the
+    // opening move of every sale a step the cashier performs on a screen that
+    // has nothing else on it. A restaurant is unchanged: no check, no line.
+    const check = active ?? (sellsGoods ? await openCounterCheck() : null);
+    if (!check) return;
     // ⚠️ **The scan is asked for here rather than at the tile**, because this is
     // the one path every way of adding a dish goes through — a plain tap, a tap
     // that opened the option dialog, and a repeat of a line. A check at the
@@ -745,11 +780,11 @@ export default function TillPage() {
       return;
     }
     // A check this device owns is edited here; there is nothing to ask.
-    if (isLocal(active)) {
+    if (isLocal(check)) {
       setAdding(true);
       try {
         const next = await addLocalLine(
-          active as LocalCheck,
+          check as LocalCheck,
           item,
           qty,
           options,
@@ -771,7 +806,7 @@ export default function TillPage() {
       // Optimism is wrong here: the price, the sold-out list and the brand check
       // all live on the server, and a line that appears and then vanishes is
       // worse than one that takes 200ms to appear.
-      const next = await api.tillAddLines(active.id, [
+      const next = await api.tillAddLines(check.id, [
         {
           menuItemId: item.id,
           qty,
@@ -979,14 +1014,25 @@ export default function TillPage() {
             and that is how a round of drinks lands on the wrong bill. */}
         <TillNav
           items={[
-            {
-              id: "tables",
-              icon: <LuLayoutGrid />,
-              label: t.till.tables,
-              // Somewhere in the room a check has lines the kitchen has not
-              // been told about — the one thing that goes quietly wrong.
-              dot: checks.some((c) => c.unfired > 0),
-            },
+            // ⚠️ **Removed rather than disabled where there is no room.** The
+            // rule elsewhere on this screen is the opposite — a control that
+            // vanishes is a control people hunt for — but that rule is about
+            // things that are temporarily unavailable. A shop has no floor
+            // plan and never will, and a permanently grey first destination is
+            // a shop cashier's first impression of the till.
+            ...(hasTables
+              ? [
+                  {
+                    id: "tables",
+                    icon: <LuLayoutGrid />,
+                    label: t.till.tables,
+                    // Somewhere in the room a check has lines the kitchen has
+                    // not been told about — the one thing that goes quietly
+                    // wrong.
+                    dot: checks.some((c) => c.unfired > 0),
+                  },
+                ]
+              : []),
             {
               id: "order",
               icon: <LuUtensils />,
@@ -994,7 +1040,11 @@ export default function TillPage() {
               // ⚠️ Disabled rather than hidden: a menu with nothing to add a
               // dish to is a screen that answers every tap with silence, and a
               // control that vanishes is a control people hunt for.
-              disabled: !active,
+              //
+              // ⚠️ **Never disabled in a shop**, where this is not a menu but
+              // the counter itself: the scan opens its own check, so there is
+              // nothing to wait for and nothing to disable it against.
+              disabled: !active && !sellsGoods,
             },
             {
               // ⚠️ **Not behind `canCashier`.** The person told that lag'mon
@@ -1219,7 +1269,6 @@ export default function TillPage() {
               tapped from a grid, or scanned. */}
           {view === "order" && sellsGoods && (
             <ScanPanel
-              weighs={weighs}
               scalePort={scalePort}
               onAdd={async (item, qty) => {
                 await addDish(item, undefined, qty);
