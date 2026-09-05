@@ -94,6 +94,12 @@ export default defineConfig({
       // this control, and two readings of "2 hours" in one product is how a
       // restaurant ends up unable to say which screen is wrong.
       "src/lib/stopHold.test.ts",
+      // One card per model on the website. Here because the rule is shared by
+      // the grid, the search index and the category counts, and because the
+      // case that matters is the one with no variants in it at all: a grouping
+      // rule that swallowed an ordinary dish would empty every restaurant's
+      // menu page, and every menu ever written is that case.
+      "src/lib/variants.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

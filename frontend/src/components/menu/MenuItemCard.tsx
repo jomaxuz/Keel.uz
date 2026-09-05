@@ -23,7 +23,13 @@ export default function MenuItemCard({
   const img = imageUrl(item.imageUrl, 600);
   // Dishes with option groups cannot be added in one tap — the customer picks
   // the variant on the dish page. Without options the line id is just the id.
-  const hasOptions = (item.options ?? []).some((g) => g.choices?.length);
+  // ⚠️ **A variant always sends the guest to the page, never straight to the
+  // cart.** Adding "M" from a grid of one card is choosing a size without
+  // seeing which sizes exist — and the one that arrives is the one the shop
+  // happened to generate first. The page lists them all with their prices.
+  const hasOptions =
+    (item.options ?? []).some((g) => g.choices?.length) ||
+    (item.variant?.length ?? 0) > 0;
 
   // The cart is read from localStorage, so the server has no idea what is in
   // it: it always renders the "add" button, while the browser may already know

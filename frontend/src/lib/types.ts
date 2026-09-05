@@ -4930,3 +4930,24 @@ export interface ExpiringRow {
   at: string;
   supplier?: string;
 }
+
+/** One card per model: the first variant stands for the rest.
+ *
+ *  ⚠️ **A guest browsing a clothes shop should see shirts, not sizes.** Twelve
+ *  cards of the same photograph is a catalogue nobody scrolls, and the choice
+ *  between them cannot be made from a grid anyway — it is made on the page,
+ *  where every size is listed with its own price and its own stock.
+ *
+ *  ⚠️ **The first variant is a complete card on its own.** Variants are copied
+ *  from their model when they are generated, so the name, the photograph, the
+ *  description and the price are already on it — which is why this needs no
+ *  model row and no second request. */
+export function oneCardPerModel(items: MenuItem[]): MenuItem[] {
+  const seen = new Set<string>();
+  return items.filter((m) => {
+    if (!m.variantOf) return true;
+    if (seen.has(m.variantOf)) return false;
+    seen.add(m.variantOf);
+    return true;
+  });
+}

@@ -8,7 +8,7 @@ import AddToCartControl from "@/components/menu/AddToCartControl";
 import Recommendations from "@/components/menu/Recommendations";
 import { getTranslations } from "@/lib/i18n/server";
 import { contentDescription, contentName } from "@/lib/i18n/content";
-import type { MenuItem, RestaurantResponse } from "@/lib/types";
+import type { MenuGroup, MenuItem, RestaurantResponse } from "@/lib/types";
 
 export async function generateMetadata({
   params,
@@ -46,15 +46,32 @@ export default async function MenuItemPage({
 
   let item: MenuItem;
   let rest: RestaurantResponse | null = null;
+  // ⚠️ **The whole catalogue, for the sizes.** A variant knows which model it
+  // belongs to and nothing about its siblings, and the guest needs all of them
+  // on one screen — choosing a size is the decision this page exists for in a
+  // clothes shop. The menu is cached for a minute and this page is already
+  // fetching two things; a third endpoint answering "the other sizes" would be
+  // a second place the grouping rule lives.
+  let catalogue: MenuGroup[] = [];
   try {
-    [item, rest] = await Promise.all([
+    const scope = await getSiteScope();
+    [item, rest, catalogue] = await Promise.all([
       api.getMenuItem(id),
-      api.getRestaurant(await getSiteScope()).catch(() => null),
+      api.getRestaurant(scope).catch(() => null),
+      api.getMenu(scope).catch(() => [] as MenuGroup[]),
     ]);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
   }
+
+  // The sizes and colours of this model, this one included. Empty for anything
+  // that is not a variant, which is every dish ever written.
+  const siblings = item.variantOf
+    ? catalogue
+        .flatMap((g) => g.items)
+        .filter((m) => m.variantOf === item.variantOf)
+    : [];
 
   const currency = rest?.restaurant.currency ?? "UZS";
   const img = imageUrl(item.imageUrl, 1200);
@@ -138,6 +155,39 @@ export default async function MenuItemPage({
                   {t}
                 </span>
               ))}
+            </div>
+          )}
+
+          {/* ⚠️ **Every size on one screen, and the current one marked.** A
+              clothes shop's guest is not choosing a shirt, they are choosing
+              M/black — and a page that shows one variant with no way to reach
+              the others is a page that sells the wrong size or nothing at all.
+              Links rather than a client-side picker: each variant is a real
+              product with its own price, its own photo and its own stock, so
+              its page is a real page. */}
+          {siblings.length > 1 && (
+            <div className="mt-6">
+              <p className="text-sm font-semibold">{t.item.pickVariant}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {siblings.map((v) => {
+                  const label = (v.variant ?? []).join(" / ");
+                  const on = v.id === item.id;
+                  return (
+                    <Link
+                      key={v.id}
+                      href={`/menu/${v.id}`}
+                      aria-current={on ? "true" : undefined}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                        on
+                          ? "border-brand bg-brand text-white"
+                          : "border-line hover:border-brand"
+                      }`}
+                    >
+                      {label}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           )}
 

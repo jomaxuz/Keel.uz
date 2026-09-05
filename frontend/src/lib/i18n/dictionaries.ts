@@ -176,6 +176,8 @@ const uz = {
     // Combo: what the set saves against buying the dishes separately.
     comboSaving: (amount: string) => `${amount} tejaysiz`,
     comboContents: "To'plam tarkibi",
+    // ⚠️ Bitta ekranda hamma o'lcham: mehmon ko'ylakni emas, M/qorani tanlaydi.
+    pickVariant: "O'lchamni tanlang",
     unavailable: "Hozircha yo'q",
     // The dish is on the menu but this branch has run out of it today.
     soldOut: "Bugun tugadi",
@@ -702,6 +704,7 @@ const ru: Dict = {
     discount: "Скидка",
     comboSaving: (amount: string) => `Экономия ${amount}`,
     comboContents: "Состав набора",
+    pickVariant: "Выберите размер",
     unavailable: "Нет в наличии",
     soldOut: "Сегодня закончилось",
     addToCart: "В корзину",
@@ -1203,6 +1206,7 @@ const en: Dict = {
     discount: "Discount",
     comboSaving: (amount: string) => `Save ${amount}`,
     comboContents: "What's in the set",
+    pickVariant: "Choose a size",
     unavailable: "Unavailable",
     soldOut: "Sold out today",
     addToCart: "Add to cart",

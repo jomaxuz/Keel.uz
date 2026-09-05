@@ -34,9 +34,10 @@ import {
   type MenuSort,
 } from "@/lib/search";
 import type { MenuGroup } from "@/lib/types";
+import { oneCardPerModel } from "@/lib/types";
 
 export default function MenuBrowser({
-  groups,
+  groups: allItems,
   currency,
   initialQuery = "",
 }: {
@@ -45,6 +46,17 @@ export default function MenuBrowser({
   /** What the home page's box was asked for, carried in `?q=`. */
   initialQuery?: string;
 }) {
+  // ⚠️ **One card per model, before anything else reads the list.** A guest
+  // browsing a clothes shop should see shirts, not sizes: twelve cards of one
+  // photograph is a catalogue nobody scrolls, and the choice between them is
+  // made on the page anyway, where every size has its own price and its own
+  // stock. Grouped here rather than in each grid so the search index, the
+  // facets and the category counts all agree about what a card is.
+  const groups = useMemo(
+    () =>
+      allItems.map((g) => ({ ...g, items: oneCardPerModel(g.items) })),
+    [allItems],
+  );
   const { lang, t } = useI18n();
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<MenuFilters>(NO_FILTERS);
