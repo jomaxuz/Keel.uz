@@ -53,6 +53,9 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		r.Get("/blog", h.BlogList)
 		r.Get("/blog/{slug}", h.BlogRead)
 		r.Get("/blog/image/{id}", h.BlogImage)
+		// One reading, told by the reader's browser — see blog.go for why it
+		// is not part of the read itself.
+		r.Post("/blog/{slug}/view", h.BlogCountView)
 
 		r.Get("/resolve", h.Resolve)
 		r.Get("/tls-ask", h.TLSAsk)

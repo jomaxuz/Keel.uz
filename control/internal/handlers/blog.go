@@ -15,7 +15,6 @@ package handlers
 // `![](…)` into a picture; everything else is paragraphs.
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"regexp"
@@ -103,16 +102,6 @@ func (h *Handler) BlogRead(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// ⚠️ **Counted after the post is found and without blocking the answer.**
-	// A reader waiting on a write to Mongo before the words appear is a slower
-	// page for a number nobody reads in real time; and counting before the
-	// lookup would count every wrong address anybody ever typed.
-	go func(id primitive.ObjectID) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_, _ = h.Store.Blog.UpdateByID(ctx, id, bson.M{"$inc": bson.M{"views": 1}})
-	}(p.ID)
-
 	httpx.JSON(w, http.StatusOK, blogFull{
 		blogCard: blogCard{
 			Slug: p.Slug, Cover: p.Cover, Title: t.Title, Excerpt: t.Excerpt,
@@ -121,6 +110,35 @@ func (h *Handler) BlogRead(w http.ResponseWriter, r *http.Request) {
 		Body:  t.Body,
 		Langs: langs,
 	})
+}
+
+// BlogCountView records one reading.
+//
+// ⚠️ **Its own call, because reading the post is not reading the post.** The
+// counter used to sit inside the read — and the page fetches itself twice on
+// every render (once to build the title and description, once to draw the
+// words), so a single visit counted two, and switching language counted three.
+// The number was wrong from the first day and wrong in the flattering
+// direction, which is the kind nobody questions.
+//
+// ⚠️ **Fired by the reader's browser, once per page.** That is also what keeps
+// a crawler, a link preview and a sitemap fetch out of it: they take the words
+// and never run the script. It costs the reader with JavaScript turned off,
+// who is not counted at all — an honest undercount against a flattering
+// overcount, and this figure only ever compares posts with each other.
+func (h *Handler) BlogCountView(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimSpace(chi.URLParam(r, "slug"))
+	if slug == "" {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	// ⚠️ Published only. An unpublished draft is opened by whoever is writing
+	// it, repeatedly, and a counter that learned to include that would report
+	// the author's own afternoon as an audience.
+	_, _ = h.Store.Blog.UpdateOne(r.Context(),
+		bson.M{"slug": slug, "published": true},
+		bson.M{"$inc": bson.M{"views": 1}})
+	httpx.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 // BlogImage serves a picture out of the database.

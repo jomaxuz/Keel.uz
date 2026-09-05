@@ -6,6 +6,8 @@
 // same reason: this is a call to a neighbouring container, and anything slower
 // is broken rather than slow.
 
+import { cache } from "react";
+
 import { CONTROL, INTERNAL } from "@/lib/partners";
 
 const TIMEOUT_MS = 2000;
@@ -43,7 +45,14 @@ export async function getPosts(lang: string): Promise<BlogCard[]> {
   }
 }
 
-export async function getPost(
+/** One post.
+ *
+ *  ⚠️ **Wrapped in `cache` because the page asks twice.** Next builds the title
+ *  and description from `generateMetadata` and then draws the words, and both
+ *  need the post — two calls to the control plane for one reader. `cache`
+ *  collapses them within the request. It used to be worse than an extra
+ *  request: the read counted a view, so a single visit counted two. */
+export const getPost = cache(async function getPost(
   slug: string,
   lang: string,
 ): Promise<BlogFull | null> {
@@ -51,10 +60,10 @@ export async function getPost(
     const res = await fetch(
       `${CONTROL}${INTERNAL}/blog/${encodeURIComponent(slug)}?lang=${lang}`,
       {
-        // ⚠️ **Not cached.** The read is what counts the view; a cached page is
-        // a post that stops being counted the moment it becomes popular, which
-        // is exactly backwards.
-        cache: "no-store",
+        // ⚠️ **Cacheable again**, because reading no longer counts anything:
+        // the reader's browser says it read (see components/blog/CountView).
+        // A minute, like the list — a post changes when somebody edits it.
+        next: { revalidate: 60 },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       },
     );
@@ -63,4 +72,4 @@ export async function getPost(
   } catch {
     return null;
   }
-}
+});

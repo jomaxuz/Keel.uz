@@ -45,6 +45,7 @@ export default function ConsoleBlog() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const file = useRef<HTMLInputElement>(null);
+  const coverFile = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const load = useCallback(() => {
@@ -67,6 +68,24 @@ export default function ConsoleBlog() {
       setError(e instanceof Error ? e.message : t.dash.loadFailed);
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** The picture at the top of the post and on its card. */
+  async function uploadCover(f: File) {
+    if (!draft) return;
+    setBusy(true);
+    setError("");
+    try {
+      const { url } = await blogUpload(f);
+      setDraft({ ...draft, cover: url });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.dash.loadFailed);
+    } finally {
+      setBusy(false);
+      // ⚠️ Cleared, or choosing the same file twice fires no change event and
+      // the button looks broken to the person who just used it.
+      if (coverFile.current) coverFile.current.value = "";
     }
   }
 
@@ -132,15 +151,55 @@ export default function ConsoleBlog() {
                 {t.blogAdmin.slugHint}
               </span>
             </label>
-            <label className="block text-sm">
+            {/* ⚠️ **Chosen from the computer, not typed.** A cover was an
+                address box, and the only address that works is one this editor
+                produced a minute earlier — so the field asked the writer to go
+                and find it, and the honest answer to "where do I get that" was
+                "upload it somewhere else first". */}
+            <div className="block text-sm">
               <span className="font-medium">{t.blogAdmin.cover}</span>
-              <input
-                className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2"
-                value={draft.cover ?? ""}
-                placeholder="/blog-image/…"
-                onChange={(e) => setDraft({ ...draft, cover: e.target.value })}
-              />
-            </label>
+              <div className="mt-1 flex items-center gap-3">
+                {draft.cover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={draft.cover}
+                    alt=""
+                    className="h-16 w-28 rounded-lg border border-line object-cover"
+                  />
+                ) : (
+                  <div className="grid h-16 w-28 place-items-center rounded-lg border border-dashed border-line text-xs text-ink-muted">
+                    {t.blogAdmin.noCover}
+                  </div>
+                )}
+                <input
+                  ref={coverFile}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadCover(f);
+                  }}
+                />
+                <button
+                  type="button"
+                  className="rounded-lg border border-line px-3 py-2 text-sm font-semibold"
+                  disabled={busy}
+                  onClick={() => coverFile.current?.click()}
+                >
+                  {draft.cover ? t.blogAdmin.coverChange : t.blogAdmin.coverPick}
+                </button>
+                {draft.cover && (
+                  <button
+                    type="button"
+                    className="text-sm text-ink-muted underline"
+                    onClick={() => setDraft({ ...draft, cover: "" })}
+                  >
+                    {t.blogAdmin.coverClear}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* ⚠️ **A tab per language, and each one is written.** Nothing here

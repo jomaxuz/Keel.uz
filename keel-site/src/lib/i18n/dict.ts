@@ -779,6 +779,10 @@ export const uz = {
     slugHint:
       "Havolada shu ko'rinadi. Chop etilgandan keyin o'zgartirmang — ulashilgan har bir havola ishlamay qoladi.",
     cover: "Muqova rasmi",
+    coverPick: "Rasm tanlash",
+    coverChange: "Almashtirish",
+    coverClear: "Olib tashlash",
+    noCover: "rasm yo'q",
     postTitle: "Sarlavha",
     excerpt: "Qisqacha (kartada ko'rinadi)",
     body: "Matn",
@@ -1979,6 +1983,10 @@ export const ru: Dict = {
     slugHint:
       "Виден в ссылке. После публикации не меняйте — каждая отправленная ссылка перестанет работать.",
     cover: "Обложка",
+    coverPick: "Выбрать картинку",
+    coverChange: "Заменить",
+    coverClear: "Убрать",
+    noCover: "нет картинки",
     postTitle: "Заголовок",
     excerpt: "Кратко (видно на карточке)",
     body: "Текст",
@@ -3160,6 +3168,10 @@ export const en: Dict = {
     slugHint:
       "This is what appears in the link. Do not change it after publishing — every link anybody shared stops working.",
     cover: "Cover image",
+    coverPick: "Choose a picture",
+    coverChange: "Replace",
+    coverClear: "Remove",
+    noCover: "no picture",
     postTitle: "Title",
     excerpt: "Summary (shown on the card)",
     body: "Body",

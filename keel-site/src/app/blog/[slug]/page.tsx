@@ -1,8 +1,9 @@
 // One article.
 //
-// ⚠️ **Not cached, because the read is what counts the view.** A page served
-// from a cache is a post that stops being counted the moment it becomes
-// popular, which is exactly backwards — see lib/blog.ts.
+// ⚠️ **The reading is counted by the reader, not by this render.** The page is
+// rendered more than once per visit — the title and description are built in
+// their own pass — so a counter here counted two for one reader and three when
+// somebody switched language. See components/blog/CountView.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Article from "@/components/blog/Article";
 import { BlogPostJsonLd } from "@/components/blog/BlogJsonLd";
+import CountView from "@/components/blog/CountView";
 import { getPost } from "@/lib/blog";
 import { getLang, getPath } from "@/lib/i18n/server";
 import { dicts } from "@/lib/i18n/dict";
@@ -55,6 +57,7 @@ export default async function BlogArticle({
   return (
     <>
       <BlogPostJsonLd lang={lang} blogTitle={t.title} post={post} />
+      <CountView slug={post.slug} />
       <Header />
       <main className="container-page py-14 sm:py-20">
         <Link
