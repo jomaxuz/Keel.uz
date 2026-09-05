@@ -57,10 +57,17 @@ data class StatsPeriod(
 
 @Serializable
 data class StatsDish(
-    val id: String = "",
     val name: String = "",
     val qty: Int = 0,
-    val revenue: Double = 0.0,
+    /** What that dish took in over the period.
+     *
+     *  ⚠️ **`total`, which is the server's own name for it** — see
+     *  `handlers/adminstats.go`. It was `revenue` here, and every price in the
+     *  best-sellers list read 0 so'm: kotlinx cannot know the name is wrong, it
+     *  fills the default and the screen draws a confident zero. That is the
+     *  failure mode this whole file is a warning about, arriving in the one
+     *  place an owner reads for money. */
+    val total: Double = 0.0,
 )
 
 @Serializable
@@ -139,15 +146,25 @@ data class OrderItemRow(
     val price: Double = 0.0,
 )
 
+/** Who the order is for. ⚠️ **Nested, because the server nests it.** Flattened
+ *  to `customerName` here it was not a wrong value but a decode failure: the
+ *  key is present and holds an object, and the list refused to open at all. */
+@Serializable
+data class OrderCustomer(val name: String = "", val phone: String = "")
+
+/** Where it goes. ⚠️ An object for the same reason, and a delivery order always
+ *  carries one — `text` is the line a person reads. */
+@Serializable
+data class OrderAddress(val text: String = "", val comment: String = "")
+
 @Serializable
 data class Order(
     val id: String = "",
     val number: String = "",
     val status: String = "",
     val type: String = "",
-    val customerName: String = "",
-    val phone: String = "",
-    val address: String = "",
+    val customer: OrderCustomer = OrderCustomer(),
+    val address: OrderAddress = OrderAddress(),
     val total: Double = 0.0,
     val createdAt: String = "",
     val items: List<OrderItemRow> = emptyList(),
@@ -238,14 +255,23 @@ data class PayrollResponse(
 @Serializable
 data class ShoppingLine(
     val name: String = "",
-    val need: Double = 0.0,
     val unit: String = "",
+    /** How much short of its minimum the shelf is.
+     *
+     *  ⚠️ **`suggested`, the server's name, and a quantity — not money.** It
+     *  was read as `need` and drawn through the money formatter, so a shelf
+     *  three kilos short would have read "0 so'm kg" twice over: wrong name,
+     *  wrong unit. */
+    val suggested: Double = 0.0,
 )
 
 @Serializable
 data class ShoppingGroup(
-    val supplier: String = "",
-    val lines: List<ShoppingLine> = emptyList(),
+    /** The supplier's name. ⚠️ `name` on the wire — grouping is by who you
+     *  ring, and the group carries that person's name, not a field called
+     *  "supplier". */
+    val name: String = "",
+    val rows: List<ShoppingLine> = emptyList(),
 )
 
 @Serializable

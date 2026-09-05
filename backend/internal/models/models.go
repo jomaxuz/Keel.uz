@@ -493,8 +493,11 @@ type Reservation struct {
 	// Why the restaurant cancelled it — shown to the guest, like an order.
 	CancelReason  string             `bson:"cancelReason,omitempty" json:"cancelReason,omitempty"`
 	StatusHistory []ReservationEvent `bson:"statusHistory" json:"statusHistory"`
-	CreatedAt     time.Time          `bson:"createdAt" json:"createdAt"`
-	UpdatedAt     time.Time          `bson:"updatedAt" json:"updatedAt"`
+	// When the owner's phone was told nobody had answered this booking. ⚠️ Same
+	// rule as an order's — said once, never returned to the browser.
+	NudgedAt  *time.Time `bson:"nudgedAt,omitempty" json:"-"`
+	CreatedAt time.Time  `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time  `bson:"updatedAt" json:"updatedAt"`
 }
 
 // ReservationEvent records when a booking reached a status (same idea as an
@@ -1752,6 +1755,17 @@ type Order struct {
 	// kitchen is called to a bill that may never be paid — and is *not* called
 	// when the money finally lands, because by then the order is minutes old.
 	QueuedAt *time.Time `bson:"queuedAt,omitempty" json:"queuedAt,omitempty"`
+	// When the owner's phone was told this order had been waiting too long.
+	//
+	// ⚠️ **A stamp so it is said once.** The condition persists — an order
+	// nobody accepted at eleven is still unaccepted at midnight — and a watcher
+	// that re-read the condition every tick would buzz every tick. The second
+	// message is what gets an app muted, and a muted app is the one that misses
+	// the next one. Same reasoning as `cash_shift.overdueAt`.
+	//
+	// ⚠️ **Never returned to the browser**: it says nothing about the order, it
+	// records something about us.
+	NudgedAt *time.Time `bson:"nudgedAt,omitempty" json:"-"`
 	// When the guest asked for it. Nil on an ordinary order, which is "now" and
 	// always has been — the field only exists for the ones that are not.
 	//

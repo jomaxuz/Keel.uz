@@ -368,6 +368,21 @@ var messages = map[string]pair{
 		"Новый заказ",
 		"A new order",
 	},
+	// Sent by the queue watch, minutes after "Yangi buyurtma" — deliberately
+	// different sentences, because they report the opposite fact: not that the
+	// order arrived, but that nobody has touched it since.
+	"Buyurtma kutmoqda": {
+		"Заказ ждёт",
+		"An order is waiting",
+	},
+	"Oldindan buyurtma vaqti keldi": {
+		"Время предзаказа наступило",
+		"A pre-order is due now",
+	},
+	"Bron javobsiz": {
+		"Бронь без ответа",
+		"A booking nobody answered",
+	},
 	"Zal ekrani": {
 		"Экран зала",
 		"The dining-room screen",

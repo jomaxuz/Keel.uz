@@ -29,6 +29,7 @@ import uz.keel.design.MoneyStyle
 import uz.keel.design.ScreenHeader
 import uz.keel.design.glass
 import uz.keel.design.money
+import uz.keel.design.qty
 import uz.keel.owner.LocalPrefs
 import uz.keel.owner.data.AdminStats
 import uz.keel.owner.data.ApiError
@@ -129,7 +130,7 @@ fun ReportsScreen(api: KeelApi, bottomInset: PaddingValues) {
                     Text(t.reports.topDishes, style = MaterialTheme.typography.titleMedium, color = c.ink)
                     Card {
                         top.take(8).forEach { d ->
-                            Line("${d.qty} × ${d.name}", money(d.revenue))
+                            Line("${d.qty} × ${d.name}", money(d.total))
                         }
                     }
                 }
@@ -148,7 +149,7 @@ fun ReportsScreen(api: KeelApi, bottomInset: PaddingValues) {
                 shopping?.let { s ->
                     Text(t.reports.stock, style = MaterialTheme.typography.titleMedium, color = c.ink)
                     Card {
-                        val lines = s.groups.flatMap { it.lines }
+                        val lines = s.groups.flatMap { it.rows }
                         if (lines.isEmpty()) {
                             Text(
                                 t.reports.stockEmpty,
@@ -156,7 +157,10 @@ fun ReportsScreen(api: KeelApi, bottomInset: PaddingValues) {
                             )
                         }
                         lines.take(12).forEach { l ->
-                            Line(l.name, "${money(l.need)} ${l.unit}".trim())
+                            // ⚠️ **A quantity, not money.** Three kilos short is
+                            // three kilos; running it through the money
+                            // formatter printed a price nobody had quoted.
+                            Line(l.name, "${qty(l.suggested)} ${l.unit}".trim())
                         }
                     }
                 }

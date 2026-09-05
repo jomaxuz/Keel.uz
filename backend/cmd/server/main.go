@@ -188,6 +188,11 @@ func main() {
 	// writes a counted figure, and a count nobody made is the one thing that
 	// would make these numbers worse. See handlers/shiftwatch.go.
 	h.StartShiftWatch(syncCtx)
+	// Tells the owner about work standing still — an order nobody accepted, a
+	// pre-order falling due, a booking nobody answered. ⚠️ The panel's own bell
+	// only rings for somebody who already has it open; this is for the hours
+	// when nobody does. See handlers/queuewatch.go.
+	h.StartQueueWatch(syncCtx)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

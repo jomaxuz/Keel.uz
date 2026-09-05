@@ -88,3 +88,19 @@ fun money(n: Double): String {
     }
     return if (neg) "-$out" else out.toString()
 }
+
+/** A measured amount: kilos, litres, pieces.
+ *
+ *  ⚠️ **Separate from `money` because it keeps the fraction.** Three and a half
+ *  kilos is 3.5, and rounding it the way money is rounded turns "buy 0.4 kg of
+ *  saffron" into "buy nothing". Trailing zeros are dropped: a shelf short by
+ *  two whole crates should not read "2.00".
+ *
+ *  ⚠️ **Not a locale formatter**, for the reason `money` is not one — and here
+ *  it also fixes the decimal separator, so a quantity typed back into the panel
+ *  is the quantity the phone showed. */
+fun qty(n: Double): String {
+    val r = Math.round(n * 100.0) / 100.0
+    if (r == Math.floor(r)) return Math.round(r).toString()
+    return java.lang.String.format(java.util.Locale.US, "%.2f", r).trimEnd('0').trimEnd('.')
+}

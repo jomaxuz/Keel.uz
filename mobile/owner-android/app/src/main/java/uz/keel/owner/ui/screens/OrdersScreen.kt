@@ -147,7 +147,7 @@ fun OrdersScreen(api: KeelApi, bottomInset: PaddingValues) {
                     busy = busy == o.id,
                     onConfirm = { setStatus(o, "confirmed") },
                     onCancel = { cancelling = o },
-                    onCall = { ring(o.phone) },
+                    onCall = { ring(o.customer.phone) },
                 )
             }
             if (list.isEmpty()) {
@@ -202,14 +202,18 @@ private fun OrderCard(
                 style = MaterialTheme.typography.titleMedium.merge(MoneyStyle), color = c.ink,
             )
         }
-        if (order.customerName.isNotBlank() || order.phone.isNotBlank()) {
+        if (order.customer.name.isNotBlank() || order.customer.phone.isNotBlank()) {
             Text(
-                listOf(order.customerName, order.phone).filter { it.isNotBlank() }.joinToString(" · "),
+                listOf(order.customer.name, order.customer.phone)
+                    .filter { it.isNotBlank() }.joinToString(" · "),
                 style = MaterialTheme.typography.bodyMedium, color = c.inkSoft,
             )
         }
-        if (order.address.isNotBlank()) {
-            Text(order.address, style = MaterialTheme.typography.bodyMedium, color = c.muted)
+        if (order.address.text.isNotBlank()) {
+            Text(
+                order.address.text,
+                style = MaterialTheme.typography.bodyMedium, color = c.muted,
+            )
         }
         // ⚠️ The dishes are here because "accept or not" is sometimes answered
         // by what was ordered — a delivery of one drink to the next city is a
@@ -233,7 +237,7 @@ private fun OrderCard(
                     PrimaryButton(t.orders.confirm, enabled = !busy, busy = busy, onClick = onConfirm)
                 }
             }
-            if (order.phone.isNotBlank()) {
+            if (order.customer.phone.isNotBlank()) {
                 GhostButton(t.orders.call, icon = Icons.Rounded.Call, onClick = onCall)
             }
             GhostButton(t.orders.cancel, tint = c.danger, enabled = !busy, onClick = onCancel)
