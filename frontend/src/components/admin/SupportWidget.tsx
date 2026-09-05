@@ -22,7 +22,7 @@ import { LuHeadset, LuSend, LuX, LuChevronLeft } from "react-icons/lu";
 import { api, API_URL } from "@/lib/api";
 import { useI18n } from "@/lib/i18n/client";
 import { useAdminT } from "@/lib/i18n/admin";
-import { HELP, type HelpArticle } from "@/lib/help/articles";
+import { loadHelp, type HelpArticle } from "@/lib/help/articles";
 import { searchHelp } from "@/lib/help/search";
 import type { SupportMessage, SupportThread } from "@/lib/types";
 
@@ -38,7 +38,19 @@ export default function SupportWidget() {
   // way out of the help.
   const [ask, setAsk] = useState("");
   const [opened, setOpened] = useState<string | null>(null);
-  const articles = HELP[lang] ?? HELP.uz;
+  // ⚠️ Loaded once per language and held: the base does not change while the
+  // panel is open, and a fetch behind every keystroke of a help search is a
+  // control that stops feeling instant.
+  const [articles, setArticles] = useState<HelpArticle[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void loadHelp(lang).then((a) => {
+      if (alive) setArticles(a);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lang]);
   const hits = searchHelp(articles, ask);
   const [open, setOpen] = useState(false);
   const [threads, setThreads] = useState<SupportThread[] | null>(null);

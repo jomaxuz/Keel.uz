@@ -2551,6 +2551,17 @@ export const api = {
   /** Send a line. An empty `threadId` starts a new conversation — the screen
    *  decides, because only it knows whether the person pressed "new question"
    *  or typed into an open one. */
+  /** The help base this build ships with.
+   *
+   *  ⚠️ **Asked of the server rather than bundled**, so the panel and the
+   *  owner's native application read one copy — see `lib/help/articles.ts`. The
+   *  language travels in the query because the phone has no cookie to send. */
+  supportArticles: (lang: string) =>
+    request<{ articles: { id: string; cat: string; title: string; body: string; keys?: string[] }[] }>(
+      `/admin/support/articles?lang=${encodeURIComponent(lang)}`,
+      { auth: true },
+    ),
+
   supportAsk: (body: {
     threadId?: string;
     text: string;

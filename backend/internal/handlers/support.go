@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"restaurant-backend/internal/help"
 	"restaurant-backend/internal/httpx"
 
 	"github.com/gorilla/websocket"
@@ -422,3 +423,26 @@ func (h *Handler) AdminSupportSocket(w http.ResponseWriter, r *http.Request) {
 // than timing out here — a client-side timeout looks like an error and would
 // restart the loop every half minute for nothing.
 const supportWaitTimeout = 40 * time.Second
+
+// AdminSupportArticles hands over the help base this build ships with.
+//
+// ⚠️ **Served rather than bundled into each client, and that is what makes it
+// one copy.** The panel used to hold the only copy in its own TypeScript, which
+// the owner's native application cannot import — and a Kotlin copy for the phone
+// would be the copy that stops describing this build. Both read it from here.
+//
+// ⚠️ **Behind the admin session like the rest of this file.** These articles
+// describe the till's PIN lockout, the cash shift and the stop list; they are
+// not secret, but they are not the public site either, and an endpoint open to
+// the world is one more thing to reason about for no gain.
+func (h *Handler) AdminSupportArticles(w http.ResponseWriter, r *http.Request) {
+	// ⚠️ The language comes from the query, not from a cookie: a phone has no
+	// cookies, and the panel already sends its own on every other call here.
+	lang := strings.TrimSpace(r.URL.Query().Get("lang"))
+	if lang == "" {
+		lang = httpx.LangOf(w)
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"articles": help.For(lang),
+	})
+}

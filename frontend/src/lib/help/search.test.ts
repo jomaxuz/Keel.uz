@@ -1,7 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { HELP } from "./articles";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import type { HelpArticle } from "./articles";
 import { searchHelp } from "./search";
+
+// ⚠️ **Read from the server's copy, because that is now the only copy.** The
+// articles moved into `backend/internal/help/articles.json` so the panel and the
+// owner's native application read one base — and this test still has to cover
+// the content, not a fixture of it. Reading the file keeps it honest: a broken
+// article fails here rather than on somebody's phone.
+// ⚠️ Resolved from the working directory, not from `import.meta.url`: these run
+// under jsdom, where the module URL is not a `file:` one and `readFileSync`
+// refuses it.
+const HELP = JSON.parse(
+  readFileSync(
+    resolve(process.cwd(), "../backend/internal/help/articles.json"),
+    "utf8",
+  ),
+) as Record<string, HelpArticle[]>;
 
 const uz = HELP.uz;
 const ids = (q: string) => searchHelp(uz, q).map((h) => h.article.id);

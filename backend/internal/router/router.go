@@ -1163,6 +1163,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// owner is telephoned about it anyway.
 			r.Post("/admin/support/ask", h.AdminSupportAsk)
 			r.Get("/admin/support/threads", h.AdminSupportThreads)
+			// The help base this build ships with — read by the panel and by
+			// the owner's phone, so there is one copy of it.
+			r.Get("/admin/support/articles", h.AdminSupportArticles)
 			r.Get("/admin/support/thread", h.AdminSupportThread)
 			r.Post("/admin/support/ticket", h.AdminSupportTicket)
 
