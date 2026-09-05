@@ -39,6 +39,36 @@ type PurchaseLine struct {
 	// and the division would land in the price of everything the ingredient
 	// goes into.
 	Price int `bson:"price" json:"price"`
+
+	// ---- What a pharmacy is inspected on ----
+	//
+	// ⚠️ **On the delivery line, because that is where a date is actually
+	// known.** A shelf does not have an expiry date; a box that arrived on
+	// Tuesday does, and the same medicine delivered twice has two. Storing it
+	// on the ingredient would keep one date for a shelf holding two boxes, and
+	// the one it kept would be whichever was entered last.
+	//
+	// ⚠️ **Nothing subtracts against it, and no screen may pretend otherwise.**
+	// Consumption keys on the ingredient, not on the box — the rule the whole
+	// stockroom is built on and the one thing the shop work was told not to
+	// change. So this answers "what did we take in, and until when is it good",
+	// which is exactly what an invoice and a package say. A screen that read it
+	// as "what is on the shelf now" would be inventing a number, and a
+	// pharmacist who finds one stock figure wrong stops believing all of them.
+	ExpiresAt *time.Time `bson:"expiresAt,omitempty" json:"expiresAt,omitempty"`
+
+	// The manufacturer's batch number, as printed on the box.
+	//
+	// ⚠️ **Text, and never parsed.** It is a recall's only handle — an
+	// inspector or a supplier names a series and asks what you took in — and
+	// every manufacturer writes it differently. A format assumed here is a
+	// recall we cannot answer.
+	Series string `bson:"series,omitempty" json:"series,omitempty"`
+}
+
+// Expired reports whether this delivery's date has passed.
+func (l PurchaseLine) Expired(now time.Time) bool {
+	return l.ExpiresAt != nil && now.After(*l.ExpiresAt)
 }
 
 // Sum is what the line cost.

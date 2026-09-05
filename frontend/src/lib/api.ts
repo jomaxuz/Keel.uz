@@ -7,6 +7,7 @@ import type {
   AIQuota,
   AlertSettings,
   BriefingCard,
+  ExpiringRow,
   OnlineOrder,
   LossAlert,
   LossRow,
@@ -1287,6 +1288,17 @@ export const api = {
     request<{ created: number; total: number }>(
       `/admin/menu/${id}/variants`,
       { method: "POST", body: { axes }, auth: true },
+    ),
+  /** Deliveries that are past their date or close to it.
+   *
+   *  ⚠️ **Built from deliveries, not from balances.** Consumption keys on the
+   *  ingredient rather than on the box, so this cannot claim what is still on
+   *  the shelf — it answers what came in and until when it is good, which is
+   *  what the invoice and the package say. See handlers/expiry.go. */
+  adminExpiring: (days?: number) =>
+    request<{ rows: ExpiringRow[]; days: number; now: string }>(
+      `/admin/stock/expiring${days ? `?days=${days}` : ""}`,
+      { auth: true, cache: "no-store" },
     ),
   deleteMenuItem: (id: string) =>
     request<{ deleted: boolean }>(`/admin/menu/${id}`, {

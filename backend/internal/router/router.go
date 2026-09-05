@@ -629,6 +629,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ⚠️ What the low-stock warning was always missing: the action it
 			// implies. Grouped by supplier — see shoppinglist.go.
 			r.Get("/admin/stock/shopping-list", h.AdminShoppingList)
+			// What goes out of date. ⚠️ Built from deliveries rather than from
+			// balances, and it says so — see handlers/expiry.go.
+			r.Get("/admin/stock/expiring", h.AdminExpiring)
 			// ⚠️ How much of what sold the store can account for at all. Not
 			// the ABC report's cost coverage — a typed cost writes nothing off
 			// a shelf. See stockcoverage.go.

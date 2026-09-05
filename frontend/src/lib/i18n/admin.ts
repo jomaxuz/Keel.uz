@@ -96,6 +96,7 @@ export const adminUz = {
     suppliers: "Yetkazib beruvchilar",
     shopping: "Xarid ro'yxati",
     stocktake: "Inventarizatsiya",
+    expiring: "Muddati tugayapti",
     promotions: "Aksiyalar",
     feedback: "Fikrlar",
     vacancies: "Vakansiyalar",
@@ -1247,6 +1248,24 @@ export const adminUz = {
       "Yarim tayyor (sous, xamir, sushi guruchi) endi alohida bo'limda tuziladi:",
     madeMovedLink: "Texkartalar",
   },
+  expiring: {
+    title: "Muddati tugayapti",
+    intro:
+      "Qaysi partiya qachon yaroqsiz bo'ladi. Ro'yxat kirim hujjatlaridan quriladi — qutida yozilgani shu.",
+    window: (d: number) => `${d} kun`,
+    name: "Nomi",
+    series: "Partiya",
+    date: "Muddati",
+    left: "Qoldi",
+    qty: "Kelgan miqdor",
+    supplier: "Yetkazib beruvchi",
+    empty: "Bu muddat ichida tugaydigan partiya yo'q.",
+    daysLeft: (d: number) => `${d} kun`,
+    passed: (d: number) => `${d} kun o'tgan`,
+    // ⚠️ Ekran nima ekanini o'zi aytadi: bu javondagi qoldiq emas.
+    note:
+      "⚠️ «Kelgan miqdor» — kirimda yozilgani, javonda qolgani emas: sarf partiya bo'yicha emas, mahsulot bo'yicha hisoblanadi. Muddati o'tgan qatorni ko'rsangiz javonni tekshiring va kerak bo'lsa spisaniya qiling.",
+  },
   purchases: {
     title: "Kirim (yetkazib berish)",
     intro:
@@ -1267,6 +1286,10 @@ export const adminUz = {
     lowTitle: "Tugayapti:",
     qty: "miqdor",
     unitPrice: "birlik narxi",
+    // ⚠️ Yaroqlilik muddati qutida yozilgan — javonda emas: bir dori ikki marta
+    // kelsa, ikki muddati bo'ladi.
+    expiresAt: "Yaroqlilik muddati",
+    series: "Partiya",
     was: (p: string) => `oldin ${p}`,
     total: "Jami",
     linesCol: "Nimalar",
@@ -4722,6 +4745,7 @@ export const adminRu: AdminDict = {
     suppliers: "Поставщики",
     shopping: "Список закупки",
     stocktake: "Инвентаризация",
+    expiring: "Истекает срок",
     promotions: "Акции",
     feedback: "Отзывы",
     vacancies: "Вакансии",
@@ -5781,6 +5805,23 @@ export const adminRu: AdminDict = {
       "Полуфабрикаты (соус, тесто, рис для суши) теперь составляются в отдельном разделе:",
     madeMovedLink: "Техкарты",
   },
+  expiring: {
+    title: "Истекает срок",
+    intro:
+      "Какая серия когда станет непригодной. Список строится из документов прихода — то, что написано на коробке.",
+    window: (d: number) => `${d} дн.`,
+    name: "Название",
+    series: "Серия",
+    date: "Срок",
+    left: "Осталось",
+    qty: "Пришло",
+    supplier: "Поставщик",
+    empty: "В этот срок ничего не истекает.",
+    daysLeft: (d: number) => `${d} дн.`,
+    passed: (d: number) => `просрочено на ${d} дн.`,
+    note:
+      "⚠️ «Пришло» — это то, что записано в приходе, а не остаток на полке: расход считается по товару, а не по серии. Увидев просроченную строку, проверьте полку и при необходимости спишите.",
+  },
   purchases: {
     title: "Приход (поставки)",
     intro:
@@ -5801,6 +5842,8 @@ export const adminRu: AdminDict = {
     lowTitle: "Заканчивается:",
     qty: "кол-во",
     unitPrice: "цена за единицу",
+    expiresAt: "Срок годности",
+    series: "Серия",
     was: (p: string) => `было ${p}`,
     total: "Итого",
     linesCol: "Что",
@@ -8989,6 +9032,7 @@ export const adminEn: AdminDict = {
     suppliers: "Suppliers",
     shopping: "Shopping list",
     stocktake: "Stocktake",
+    expiring: "Expiring soon",
     promotions: "Campaigns",
     feedback: "Feedback",
     vacancies: "Vacancies",
@@ -10040,6 +10084,23 @@ export const adminEn: AdminDict = {
       "Preps (a sauce, a dough, sushi rice) are now written in a section of their own:",
     madeMovedLink: "Tech cards",
   },
+  expiring: {
+    title: "Expiring soon",
+    intro:
+      "Which batch stops being sellable, and when. Built from the deliveries — what is printed on the box.",
+    window: (d: number) => `${d} days`,
+    name: "Name",
+    series: "Batch",
+    date: "Expires",
+    left: "Left",
+    qty: "Delivered",
+    supplier: "Supplier",
+    empty: "Nothing expires in this window.",
+    daysLeft: (d: number) => `${d} days`,
+    passed: (d: number) => `${d} days ago`,
+    note:
+      "⚠️ \"Delivered\" is what the delivery recorded, not what is on the shelf: consumption is counted per product, not per batch. If you see an expired row, check the shelf and write it off if needed.",
+  },
   purchases: {
     title: "Deliveries",
     intro:
@@ -10060,6 +10121,8 @@ export const adminEn: AdminDict = {
     lowTitle: "Running out:",
     qty: "qty",
     unitPrice: "unit price",
+    expiresAt: "Expiry date",
+    series: "Batch",
     was: (p: string) => `was ${p}`,
     total: "Total",
     linesCol: "What",

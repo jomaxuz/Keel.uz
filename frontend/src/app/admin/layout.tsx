@@ -62,7 +62,7 @@ import AskProvider from "@/components/ui/Ask";
 import CrashReporter from "@/components/CrashReporter";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
-import { composes, hasKitchen, hasTables } from "@/lib/types";
+import { composes, hasKitchen, hasTables, sellsGoods } from "@/lib/types";
 import { homeFor } from "@/lib/panelRole";
 import { SubscriptionProvider, moduleForPath } from "@/lib/subscription";
 import UpgradeGate from "@/components/admin/UpgradeCta";
@@ -178,7 +178,7 @@ const ICONS: Record<string, IconType> = {
  *  ⚠️ **A brand new to this reads as a restaurant**, so a panel that has not
  *  loaded its brand yet — or one whose brand predates the field, which is every
  *  brand today — shows exactly what it showed before. */
-type Needs = "tables" | "kitchen" | "composes";
+type Needs = "tables" | "kitchen" | "composes" | "goods";
 
 function needsMet(need: Needs | undefined, brand: BrandLike): boolean {
   switch (need) {
@@ -188,6 +188,8 @@ function needsMet(need: Needs | undefined, brand: BrandLike): boolean {
       return hasKitchen(brand);
     case "composes":
       return composes(brand);
+    case "goods":
+      return sellsGoods(brand);
     default:
       return true;
   }
@@ -368,6 +370,12 @@ const NAV_GROUPS = [
       { href: "/admin/production", key: "production", needs: "composes" },
       // And the count that turns the difference between them into an answer.
       { href: "/admin/stocktake", key: "stocktake" },
+      // ⚠️ **A pharmacy is inspected on this and a grocery loses money to
+      // it.** A restaurant's kitchen cares too, but its dates live on a
+      // handful of dairy lines rather than on every box in the room — and two
+      // more columns on every delivery is a cost paid by every restaurant for
+      // a screen most of them would not open.
+      { href: "/admin/expiring", key: "expiring", needs: "goods" },
     ],
   },
   {

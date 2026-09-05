@@ -3992,6 +3992,16 @@ export interface PurchaseLine {
   ingredientId: string;
   qty: number;
   price: number;
+  /** Until when this box is good, as an ISO date.
+   *
+   *  ⚠️ **On the delivery line, because that is where a date is known.** A
+   *  shelf has no expiry date; a box that arrived on Tuesday does, and the same
+   *  medicine delivered twice has two. ⚠️ Nothing subtracts against it — see
+   *  handlers/expiry.go — so no screen may read it as "what is on the shelf". */
+  expiresAt?: string;
+  /** The manufacturer's batch number, exactly as printed. ⚠️ Never parsed: it
+   *  is a recall's only handle, and every manufacturer writes it differently. */
+  series?: string;
 }
 
 /** One delivery, as the invoice reads.
@@ -4899,4 +4909,24 @@ export interface TillPayee {
   kind: "staff" | "courier";
   name: string;
   position?: string;
+}
+
+/** One delivery line that runs out.
+ *
+ *  ⚠️ **`qty` is what was delivered, never what is left.** Nothing subtracts
+ *  against a box — consumption keys on the ingredient — so a screen that read
+ *  this as a shelf count would be inventing a number, and a pharmacist who
+ *  finds one stock figure wrong stops believing every other one. */
+export interface ExpiringRow {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  series?: string;
+  expiresAt: string;
+  /** Whole days from today; negative means it has already passed. */
+  daysLeft: number;
+  qty: number;
+  purchaseId: string;
+  at: string;
+  supplier?: string;
 }

@@ -33,6 +33,7 @@ import type {
   StaffRow,
   Supplier,
 } from "@/lib/types";
+import { sellsGoods } from "@/lib/types";
 import { qtyNumber } from "@/lib/qty";
 import { QtyInput } from "@/components/QtyInput";
 
@@ -45,6 +46,11 @@ function today() {
 export default function PurchasesPage() {
   const t = useAdminT();
   const scope = useAdminScope();
+  // ⚠️ Whether this business is inspected on expiry dates. A default, not a
+  // rule: a line that already carries a date keeps its boxes whatever kind of
+  // business this is.
+  const needsExpiry = sellsGoods(scope.brand);
+
   const [rows, setRows] = useState<Purchase[]>([]);
   const [spent, setSpent] = useState(0);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -245,6 +251,38 @@ export default function PurchasesPage() {
                     >
                       {t.purchases.was(formatPrice(was))}
                     </span>
+                  )}
+                  {/* ⚠️ **Shown to a shop, and to any line that already
+                      carries a date.** A pharmacy is inspected on this and a
+                      grocery loses money to it; a restaurant's delivery form
+                      does not need two more boxes on every line. Data wins over
+                      the type, here as everywhere: a date already entered keeps
+                      its field. */}
+                  {(needsExpiry || l.expiresAt || l.series) && (
+                    <>
+                      <input
+                        type="date"
+                        className="input w-36 py-1 text-xs"
+                        title={t.purchases.expiresAt}
+                        value={l.expiresAt ?? ""}
+                        onChange={(e) => {
+                          const next = lines.slice();
+                          next[i] = { ...l, expiresAt: e.target.value };
+                          setLines(next);
+                        }}
+                      />
+                      <input
+                        className="input w-24 py-1 text-xs"
+                        placeholder={t.purchases.series}
+                        title={t.purchases.series}
+                        value={l.series ?? ""}
+                        onChange={(e) => {
+                          const next = lines.slice();
+                          next[i] = { ...l, series: e.target.value };
+                          setLines(next);
+                        }}
+                      />
+                    </>
                   )}
                   <span className="w-28 text-right text-xs text-ink-muted tabular-nums">
                     {formatPrice(Math.round(l.price * l.qty))}
