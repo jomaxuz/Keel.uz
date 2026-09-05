@@ -50,6 +50,7 @@ import uz.keel.waiter.i18n.Lang
 import uz.keel.waiter.push.PushState
 import uz.keel.waiter.t
 import uz.keel.design.*
+import androidx.compose.material.icons.rounded.Settings
 
 // Language, appearance, and the two ways out.
 
@@ -93,26 +94,39 @@ fun SettingsScreen(
                 .padding(bottom = bottomInset.calculateBottomPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Section(t.settings.language, Icons.Rounded.Language) {
-                Lang.entries.forEach { l ->
-                    // ⚠️ Each language names itself, in itself. A list that said
-                    // "Russian" in Uzbek is a list a Russian speaker has to decode
-                    // before they can leave the language they cannot read.
-                    Choice(DICTS[l]!!.lang, on = prefs.lang.value == l) { prefs.setLang(l) }
+            // ⚠️ **Two rows, not six.** Chosen once in the life of a phone and
+            // read constantly — as permanent lists they took a third of the
+            // screen to say two words.
+            Section(t.settings.title, Icons.Rounded.Settings) {
+                PickerRow(
+                    label = t.settings.language,
+                    icon = Icons.Rounded.Language,
+                    // ⚠️ Each language names itself, in itself: a list that said
+                    // "Russian" in Uzbek is a list a Russian speaker has to
+                    // decode before they can leave the language they cannot read.
+                    options = Lang.entries.map { PickerOption(it.code, DICTS[it]!!.lang) },
+                    selected = prefs.lang.value.code,
+                ) { prefs.setLang(Lang.of(it)) }
+                PickerRow(
+                    label = t.settings.theme,
+                    icon = Icons.Rounded.DarkMode,
+                    options = listOf(
+                        PickerOption("system", t.settings.themeSystem, Icons.Rounded.PhoneAndroid),
+                        PickerOption("light", t.settings.themeLight, Icons.Rounded.LightMode),
+                        PickerOption("dark", t.settings.themeDark, Icons.Rounded.DarkMode),
+                    ),
+                    selected = prefs.theme.value.name.lowercase(),
+                ) {
+                    prefs.setTheme(
+                        when (it) {
+                            "light" -> ThemeChoice.Light
+                            "dark" -> ThemeChoice.Dark
+                            else -> ThemeChoice.System
+                        },
+                    )
                 }
             }
 
-            Section(t.settings.theme, Icons.Rounded.DarkMode) {
-                Choice(t.settings.themeSystem, Icons.Rounded.PhoneAndroid, prefs.theme.value == ThemeChoice.System) {
-                    prefs.setTheme(ThemeChoice.System)
-                }
-                Choice(t.settings.themeLight, Icons.Rounded.LightMode, prefs.theme.value == ThemeChoice.Light) {
-                    prefs.setTheme(ThemeChoice.Light)
-                }
-                Choice(t.settings.themeDark, Icons.Rounded.DarkMode, prefs.theme.value == ThemeChoice.Dark) {
-                    prefs.setTheme(ThemeChoice.Dark)
-                }
-            }
 
             Section(t.settings.notifications, Icons.Rounded.Notifications) {
                 val key = pushState.key

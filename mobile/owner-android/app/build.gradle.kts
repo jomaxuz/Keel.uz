@@ -19,9 +19,15 @@ plugins {
 // application, with nobody's installs and none of its reviews. So the file lives
 // in `~/keys`, this reads a path to it, and a checkout on another machine simply
 // builds unsigned rather than failing.
+// ⚠️ **This application's own key, not the waiter's.** Both are Keel's and one
+// key would have worked — Play separates applications by package name — but a
+// signing key cannot be rotated, so a single one makes the two applications one
+// blast radius: whatever forces a new key on one takes the other with it. They
+// are also released and handed over independently, and a key is easier to keep
+// apart than to pull apart later.
 val signingProps: Properties? = run {
     val path = System.getenv("KEEL_KEYSTORE_PROPERTIES")
-        ?: (System.getProperty("user.home") + "/keys/keel-waiter.properties")
+        ?: (System.getProperty("user.home") + "/keys/keel-owner.properties")
     val f = File(path)
     if (!f.exists()) return@run null
     val props = Properties()

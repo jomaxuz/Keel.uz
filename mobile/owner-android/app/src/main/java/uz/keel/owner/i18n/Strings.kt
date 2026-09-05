@@ -193,6 +193,11 @@ data class Dict(
     val answered: String,
     val closed: String,
     val failed: String,
+    /** ⚠️ The base could not be fetched — which is not "no answer exists".
+     *  Saying "nothing found" for that sends somebody away satisfied that
+     *  their question has no answer, when the truth is that this phone has
+     *  nothing to look in. */
+    val baseUnavailable: String,
     )
     data class Offline(
     val title: String,
@@ -385,6 +390,7 @@ val UZ = Dict(
         answered = "Javob berildi",
         closed = "Yopilgan",
         failed = "Yuborilmadi. Internetni tekshirib, qayta urining.",
+        baseUnavailable = "Bilim bazasi yuklanmadi — savolingizni operatorga yozing",
     ),
     offline = Dict.Offline(
         title = "Internet yo'q",
@@ -573,6 +579,7 @@ val RU = Dict(
         answered = "Ответ дан",
         closed = "Закрыт",
         failed = "Не отправилось. Проверьте интернет и повторите.",
+        baseUnavailable = "База знаний не загрузилась — напишите вопрос оператору",
     ),
     offline = Dict.Offline(
         title = "Нет интернета",
@@ -761,6 +768,7 @@ val EN = Dict(
         answered = "Answered",
         closed = "Closed",
         failed = "Not sent. Check your connection and try again.",
+        baseUnavailable = "The help base did not load — write your question to an operator",
     ),
     offline = Dict.Offline(
         title = "No internet",

@@ -47,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import uz.keel.design.KeelTheme
 import uz.keel.design.Lang
 import uz.keel.design.MoneyStyle
+import uz.keel.design.PickerOption
+import uz.keel.design.PickerRow
 import uz.keel.design.ScreenHeader
 import uz.keel.design.ThemeChoice
 import uz.keel.design.glass
@@ -112,24 +114,37 @@ fun SettingsScreen(
                 Icon(Icons.Rounded.ChevronRight, null, tint = c.muted, modifier = Modifier.size(18.dp))
             }
 
-            Section(t.settings.language, Icons.Rounded.Language) {
-                Lang.entries.forEach { l ->
+            // ⚠️ **Two rows, not six.** These are chosen once in the life of
+            // a phone and read constantly; as permanent lists they took a third
+            // of the screen to say two words, and pushed everything an owner
+            // actually opens this screen for below the fold.
+            Card {
+                PickerRow(
+                    label = t.settings.language,
+                    icon = Icons.Rounded.Language,
                     // ⚠️ Each language named in itself: a list that said
                     // "Ruscha" in Uzbek is a list a Russian speaker has to
                     // decode before they can leave the language they cannot read.
-                    Choice(DICTS[l]!!.lang, on = prefs.lang.value == l) { prefs.setLang(l) }
-                }
-            }
-
-            Section(t.settings.theme, Icons.Rounded.DarkMode) {
-                Choice(t.settings.themeSystem, Icons.Rounded.PhoneAndroid, prefs.theme.value == ThemeChoice.System) {
-                    prefs.setTheme(ThemeChoice.System)
-                }
-                Choice(t.settings.themeLight, Icons.Rounded.LightMode, prefs.theme.value == ThemeChoice.Light) {
-                    prefs.setTheme(ThemeChoice.Light)
-                }
-                Choice(t.settings.themeDark, Icons.Rounded.DarkMode, prefs.theme.value == ThemeChoice.Dark) {
-                    prefs.setTheme(ThemeChoice.Dark)
+                    options = Lang.entries.map { PickerOption(it.code, DICTS[it]!!.lang) },
+                    selected = prefs.lang.value.code,
+                ) { prefs.setLang(Lang.of(it)) }
+                PickerRow(
+                    label = t.settings.theme,
+                    icon = Icons.Rounded.DarkMode,
+                    options = listOf(
+                        PickerOption("system", t.settings.themeSystem, Icons.Rounded.PhoneAndroid),
+                        PickerOption("light", t.settings.themeLight, Icons.Rounded.LightMode),
+                        PickerOption("dark", t.settings.themeDark, Icons.Rounded.DarkMode),
+                    ),
+                    selected = prefs.theme.value.name.lowercase(),
+                ) {
+                    prefs.setTheme(
+                        when (it) {
+                            "light" -> ThemeChoice.Light
+                            "dark" -> ThemeChoice.Dark
+                            else -> ThemeChoice.System
+                        },
+                    )
                 }
             }
 
@@ -223,6 +238,15 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun Card(content: @Composable () -> Unit) {
+    val c = KeelTheme.colors
+    Column(
+        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) { content() }
 }
 
 @Composable

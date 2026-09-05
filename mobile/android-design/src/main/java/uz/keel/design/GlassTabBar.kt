@@ -68,8 +68,20 @@ fun GlassTabBar(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // ⚠️ **Past four destinations the words stop fitting, and a clipped
+        // word is worse than none.** Six tabs on a 320dp phone leave about 50dp
+        // each; "Sozlamalar" needs more than that at any legible size, so it
+        // arrived cut in half. The selected one keeps its label — that is the
+        // one somebody is reading — and the rest are their icons, which is how
+        // the pill was already drawing attention anyway.
+        val labelAll = items.size <= 4
         items.forEach { item ->
-            TabCell(item, item.key == selected, Modifier.weight(1f)) { onSelect(item.key) }
+            TabCell(
+                item = item,
+                on = item.key == selected,
+                showLabel = labelAll || item.key == selected,
+                modifier = Modifier.weight(1f),
+            ) { onSelect(item.key) }
         }
     }
 }
@@ -78,6 +90,7 @@ fun GlassTabBar(
 private fun TabCell(
     item: TabItem,
     on: Boolean,
+    showLabel: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
@@ -122,12 +135,23 @@ private fun TabCell(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Icon(item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(21.dp))
-            Text(
-                item.label,
-                color = tint,
-                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+            Icon(
+                item.icon,
+                // ⚠️ The label is the description when it is not drawn — an
+                // icon-only tab is unreachable to a screen reader otherwise.
+                contentDescription = if (showLabel) null else item.label,
+                tint = tint,
+                modifier = Modifier.size(21.dp),
             )
+            if (showLabel) {
+                Text(
+                    item.label,
+                    color = tint,
+                    style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
