@@ -62,6 +62,7 @@ import AskProvider from "@/components/ui/Ask";
 import CrashReporter from "@/components/CrashReporter";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
+import { hasKitchen, hasTables } from "@/lib/types";
 import { homeFor } from "@/lib/panelRole";
 import { SubscriptionProvider, moduleForPath } from "@/lib/subscription";
 import UpgradeGate from "@/components/admin/UpgradeCta";
@@ -172,7 +173,28 @@ const ICONS: Record<string, IconType> = {
  *  everything off its own list anyway; this exists so the panel does not draw
  *  twenty links that all answer forbidden, which reads as a broken account
  *  rather than as a boundary. */
-function navFor(role: string) {
+/** What a section needs the business to be, when it needs anything.
+ *
+ *  ⚠️ **A brand new to this reads as a restaurant**, so a panel that has not
+ *  loaded its brand yet — or one whose brand predates the field, which is every
+ *  brand today — shows exactly what it showed before. */
+type Needs = "tables" | "kitchen";
+
+function needsMet(need: Needs | undefined, brand: BrandLike): boolean {
+  if (!need) return true;
+  return need === "tables" ? hasTables(brand) : hasKitchen(brand);
+}
+
+type BrandLike = { businessType?: string } | null | undefined;
+
+/** The sections this role can see, narrowed to what this business is.
+ *
+ *  ⚠️ **`brand` is optional, and omitting it means "do not narrow".** The
+ *  redirect that decides whether somebody may stand on a page calls this
+ *  without one: hiding a row from a shop's sidebar is presentation, and
+ *  bouncing a person off a working page they typed the address of is not. A
+ *  shop that opens the booking screen finds a booking screen. */
+function navFor(role: string, brand?: BrandLike) {
   const groups =
     role === "stock"
       ? NAV_GROUPS.filter((g) => g.key === "stock")
@@ -192,7 +214,9 @@ function navFor(role: string) {
       .map((g) => ({
         ...g,
         items: g.items.filter(
-          (item) => !("ownerOnly" in item) || role === "owner",
+          (item) =>
+            (!("ownerOnly" in item) || role === "owner") &&
+            needsMet((item as { needs?: Needs }).needs, brand),
         ),
       }))
       // ⚠️ A group whose every entry is filtered out disappears with them: a
@@ -246,7 +270,10 @@ const NAV_GROUPS = [
       // and until this sat next to it the till's sales were on no panel screen
       // at all.
       { href: "/admin/checks", key: "checks" },
-      { href: "/admin/reservations", key: "reservations" },
+      // ⚠️ Bookings need tables to book. A shop cannot hold one and a fast
+      // food does not take them, so the row is not offered — the screen still
+      // answers if somebody types the address.
+      { href: "/admin/reservations", key: "reservations", needs: "tables" },
       // The call centre desk.
       //
       // ⚠️ **There is now a role for it**, and there deliberately was not: the
@@ -271,7 +298,8 @@ const NAV_GROUPS = [
       // Mapping our dishes to the till's products. Beside the menu because
       // that is what it is about: a dish added here is a dish to map there.
       { href: "/admin/pos", key: "pos" },
-      { href: "/admin/qr", key: "qr" },
+      // The QR code taped to a table, which needs a table.
+      { href: "/admin/qr", key: "qr", needs: "tables" },
     ],
   },
   {
@@ -302,7 +330,11 @@ const NAV_GROUPS = [
       // dish, and a prep's card was hidden inside the ingredient form, which is
       // why most restaurants never found the one piece that stops the same
       // tomatoes being listed in seven places.
-      { href: "/admin/tech-cards", key: "techCards" },
+      // ⚠️ **A card is a kitchen's document.** A shop's product owns a
+      // one-line card the server keeps in step with it; a screen inviting
+      // somebody to edit that by hand can only break the link between the
+      // packet and the shelf it comes off.
+      { href: "/admin/tech-cards", key: "techCards", needs: "kitchen" },
       // Where those prices come from: entering a delivery is how they stop
       // being retyped.
       { href: "/admin/purchases", key: "purchases" },
@@ -318,7 +350,9 @@ const NAV_GROUPS = [
       // travels in a chain: a batch is made in the central kitchen and then
       // moved to the branch that will sell it. A restaurant with one kitchen
       // opens this page once, reads that it is not for them, and never returns.
-      { href: "/admin/production", key: "production" },
+      // Batches made in a prep workshop — a kitchen turning inputs into
+      // outputs, which is the one thing a shop does not do.
+      { href: "/admin/production", key: "production", needs: "kitchen" },
       // And the count that turns the difference between them into an answer.
       { href: "/admin/stocktake", key: "stocktake" },
     ],
@@ -369,7 +403,8 @@ const NAV_GROUPS = [
       // The televisions on the walls. ⚠️ Here rather than under "Bugun": a
       // screen is paired once and then nobody touches it for months — the
       // section people open during service is the board it draws, not this.
-      { href: "/admin/tv", key: "tv" },
+      // The screen on the dining-room wall.
+      { href: "/admin/tv", key: "tv", needs: "tables" },
       // Handing out panel accounts and reading the activity log belong to the
       // owner — a manager cannot grant themselves rights or check the trail.
       { href: "/admin/admins", key: "admins", ownerOnly: true },
@@ -593,54 +628,13 @@ export default function AdminLayout({
                 nothing for a company with one of each. */}
                   <ScopeSwitcher className="mt-3" />
                 </div>
-                <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-                  {navFor(role).map((group) => {
-                    const items = group.items;
-                    const Icon = GROUP_ICONS[group.key];
-                    const on = group.key === openGroup;
-                    return (
-                      <div key={group.key}>
-                        <button
-                          type="button"
-                          onClick={() => setPicked(on ? "" : group.key)}
-                          aria-expanded={on}
-                          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${
-                            on ? "text-ink" : "text-ink-muted hover:bg-ink/5"
-                          }`}
-                        >
-                          {Icon && (
-                            <Icon
-                              className="h-[18px] w-[18px] shrink-0"
-                              aria-hidden
-                            />
-                          )}
-                          <span className="flex-1 text-left">
-                            {t.nav.groups[group.key]}
-                          </span>
-                          {/* Points down when open. A caret that never moves is
-                          decoration; this one is the only thing saying the
-                          heading can be closed again. */}
-                          <span
-                            aria-hidden
-                            className={`text-[10px] transition-transform ${on ? "rotate-90" : ""}`}
-                          >
-                            ▶
-                          </span>
-                        </button>
-                        {on && (
-                          <div className="mb-1 ml-3 space-y-0.5 border-l border-line pl-2">
-                            <GroupLinks
-                              group={group.key}
-                              role={role}
-                              pathname={pathname}
-                              t={t}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </nav>
+                <SidebarGroups
+                  role={role}
+                  openGroup={openGroup}
+                  onPick={setPicked}
+                  pathname={pathname}
+                  t={t}
+                />
                 <div className="space-y-1 border-t border-line p-2">
                   <SoundToggle />
                   <Link
@@ -754,6 +748,79 @@ export default function AdminLayout({
  *  of a twenty-two entry navigation is two lists that will disagree, and a
  *  section added to one and forgotten in the other is invisible on exactly the
  *  device where it is hardest to notice. */
+/** The sidebar's groups, narrowed to what this business actually is.
+ *
+ *  ⚠️ **Its own component so it can read the scope.** The layout renders the
+ *  provider, so the layout itself is outside it and cannot ask which brand is
+ *  selected — the sections belong on this side of that line. */
+function SidebarGroups({
+  role,
+  openGroup,
+  onPick,
+  pathname,
+  t,
+}: {
+  role: string;
+  openGroup: string;
+  onPick: (key: string) => void;
+  pathname: string;
+  t: AdminDict;
+}) {
+  const { brand } = useAdminScope();
+  const setPicked = onPick;
+  return (
+    <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+      {navFor(role, brand).map((group) => {
+                    const items = group.items;
+                    const Icon = GROUP_ICONS[group.key];
+                    const on = group.key === openGroup;
+                    return (
+                      <div key={group.key}>
+                        <button
+                          type="button"
+                          onClick={() => setPicked(on ? "" : group.key)}
+                          aria-expanded={on}
+                          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${
+                            on ? "text-ink" : "text-ink-muted hover:bg-ink/5"
+                          }`}
+                        >
+                          {Icon && (
+                            <Icon
+                              className="h-[18px] w-[18px] shrink-0"
+                              aria-hidden
+                            />
+                          )}
+                          <span className="flex-1 text-left">
+                            {t.nav.groups[group.key]}
+                          </span>
+                          {/* Points down when open. A caret that never moves is
+                          decoration; this one is the only thing saying the
+                          heading can be closed again. */}
+                          <span
+                            aria-hidden
+                            className={`text-[10px] transition-transform ${on ? "rotate-90" : ""}`}
+                          >
+                            ▶
+                          </span>
+                        </button>
+                        {on && (
+                          <div className="mb-1 ml-3 space-y-0.5 border-l border-line pl-2">
+                            <GroupLinks
+                              group={group.key}
+                              role={role}
+                              pathname={pathname}
+                              t={t}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+    </nav>
+  );
+}
+
 function GroupLinks({
   group,
   role,
@@ -765,7 +832,8 @@ function GroupLinks({
   pathname: string;
   t: AdminDict;
 }) {
-  const groups = navFor(role);
+  const { brand } = useAdminScope();
+  const groups = navFor(role, brand);
   const found = groups.find((g) => g.key === group) ?? groups[0];
   const items = found?.items ?? [];
   return (
@@ -819,9 +887,13 @@ function NavLinks({
   /** Called on every tap, so the phone's panel can close itself. */
   onNavigate?: () => void;
 }) {
+  // ⚠️ At the top, not inside the JSX: a hook read from an expression in the
+  // middle of a render is the same call today and a conditional one after the
+  // next edit wraps it.
+  const { brand } = useAdminScope();
   return (
     <>
-      {navFor(role).map((group) => {
+      {navFor(role, brand).map((group) => {
         const items = group.items;
         return (
           <div key={group.key} className="mb-4">

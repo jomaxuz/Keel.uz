@@ -1763,6 +1763,25 @@ export type BusinessType =
  *
  *  ⚠️ **Anything unrecognised is a restaurant.** A panel that met a business
  *  type from a newer console must not start offering barcodes to a kitchen. */
+export function hasTables(brand?: { businessType?: string } | null): boolean {
+  // ⚠️ Only a restaurant seats people. A fast food takes orders at a counter
+  // and a shop has no room at all — and both were being offered a floor plan,
+  // a booking list and a table QR code they can never use.
+  return !brand?.businessType;
+}
+
+/** Does anything here get cooked to order?
+ *
+ *  ⚠️ **A tech card is the test.** A kitchen turns inputs into outputs, so a
+ *  dish needs a recipe and a prep workshop needs batches. A shop sells the
+ *  object it bought: the server keeps its one-line card in step, and a screen
+ *  inviting somebody to edit that card by hand is a screen that can only break
+ *  it. */
+export function hasKitchen(brand?: { businessType?: string } | null): boolean {
+  const t = brand?.businessType;
+  return !t || t === "fastfood";
+}
+
 export function sellsGoods(brand?: { businessType?: string } | null): boolean {
   switch (brand?.businessType) {
     case "grocery":

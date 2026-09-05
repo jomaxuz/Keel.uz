@@ -63,6 +63,7 @@ import type {
 
 import CheckPanel from "./CheckPanel";
 import ScanPanel from "@/components/till/ScanPanel";
+import WeightDialog, { byWeight } from "@/components/till/WeightDialog";
 import UnfiledPanel from "./UnfiledPanel";
 import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
@@ -230,6 +231,9 @@ export default function TillPage() {
   // is what a till has unless it is told otherwise, and a flicker that removes
   // the room for a moment on every boot is a waiter's tap landing on nothing.
   const [hasTables, setHasTables] = useState(true);
+  // ⚠️ Starts true for the same reason, and asked separately: a fast food has
+  // a kitchen and no tables.
+  const [hasKitchen, setHasKitchen] = useState(true);
   const [scalePort, setScalePort] = useState("");
   const [checks, setChecks] = useState<Check[]>([]);
   // ⚠️ **Checks this device owns.** They were opened while the server was not
@@ -273,6 +277,8 @@ export default function TillPage() {
   // The dish waiting on an answer about its options. null = nothing is being
   // asked, which is the state a till spends almost all of its time in.
   const [picking, setPicking] = useState<MenuItem | null>(null);
+  /** A weighed product tapped from the grid, waiting for its weight. */
+  const [weighing, setWeighing] = useState<MenuItem | null>(null);
   // A marked dish waiting for its bottle to be scanned, with the choices
   // already made — the option dialog runs first, because what is being sold has
   // to be settled before the thing itself is identified.
@@ -441,6 +447,7 @@ export default function TillPage() {
         // such field — read as `=== true` it would take the floor plan away
         // from a working dining room during a rollout.
         setHasTables(branch.hasTables !== false);
+        setHasKitchen(branch.hasKitchen !== false);
         setScalePort(branch.scalePort ?? "");
         // ⚠️ **The counter opens on itself in a shop.** The room-first rule is
         // a restaurant's, and it exists because a line has to belong to a
@@ -837,6 +844,14 @@ export default function TillPage() {
    *  editing the line afterwards is a group the till cannot sell either — and
    *  the guest asked for it at the counter, not later. */
   function pick(item: MenuItem) {
+    // ⚠️ **A kilo is not a piece.** Tapped from the grid, a product measured by
+    // weight has no quantity yet — adding it as one would sell a kilo of
+    // anything for the price of one unit, on the receipt, silently. The scan
+    // path already asks; this is the same question asked from the other side.
+    if (sellsGoods && byWeight(item)) {
+      setWeighing(item);
+      return;
+    }
     // ⚠️ A dish that can be sold in parts asks the same question a dish with
     // options does — which one of these am I selling — so it opens the same
     // dialog. Without this the only way to sell half a loaf would be to add a
@@ -1267,6 +1282,12 @@ export default function TillPage() {
               shop as in a restaurant — a second till would be two of each, and
               two tills drift. What changes is how a line gets onto the check:
               tapped from a grid, or scanned. */}
+          {/* ⚠️ **The scanner does not replace the cards, it sits above
+              them.** A shop rings up by scanning, but a scanner that has
+              stopped reading is an ordinary morning — a cable, a dead battery,
+              a packet whose label has been rubbed off by the freezer — and a
+              counter with nothing but a dead input on it cannot sell anything
+              until somebody arrives with a new one. The same list, tapped. */}
           {view === "order" && sellsGoods && (
             <ScanPanel
               scalePort={scalePort}
@@ -1276,7 +1297,7 @@ export default function TillPage() {
             />
           )}
 
-          {view === "order" && !sellsGoods && (
+          {view === "order" && (
             <>
               <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
                 <input
@@ -1301,8 +1322,14 @@ export default function TillPage() {
                     anything for the branch next door. */}
                 {/* ⚠️ Beside the search rather than in the check: it belongs
                     to the dish about to be added, and a control for the next
-                    tap has to be where the next tap is. */}
-                <CourseTabs value={course} onPick={setCourse} />
+                    tap has to be where the next tap is.
+
+                    ⚠️ **A kitchen's idea, so it is absent from a shop.** A
+                    course is "bring this after that" said to a cook; nothing
+                    behind a shop counter is served in an order, and a control
+                    that cannot mean anything is a control somebody presses
+                    once and then distrusts the row it sits in. */}
+                {!sellsGoods && <CourseTabs value={course} onPick={setCourse} />}
                 <button
                   className="till-btn w-11 shrink-0 px-0 text-base"
                   onClick={() => setShowImages(!showImages)}
@@ -1320,7 +1347,9 @@ export default function TillPage() {
                 query={query}
                 showImages={showImages}
                 currency={currency}
-                disabled={!active}
+                // ⚠️ Never disabled in a shop: the tap opens its own check,
+                // exactly as the scan does.
+                disabled={!active && !sellsGoods}
                 onPick={pick}
               />
             </>
@@ -1433,6 +1462,11 @@ export default function TillPage() {
         {active && (
           <aside className="flex w-full shrink-0 border-t border-line bg-surface lg:w-[20rem] lg:border-l lg:border-t-0 xl:w-[23rem] 2xl:w-[28rem]">
             <CheckPanel
+              // ⚠️ **Without this a shop's counter offers to send packets to a
+              // kitchen.** Lines are "unfired" until somebody fires them, and
+              // nobody ever does behind a counter — so the button stayed, and
+              // the button that takes the money stayed grey behind it.
+              kitchen={hasKitchen}
               check={active}
               currency={currency}
               canCashier={canCashier}
@@ -1567,6 +1601,19 @@ export default function TillPage() {
               setMovingLines(false);
               setError(err instanceof ApiError ? err.message : t.till.retry);
             }
+          }}
+        />
+      )}
+
+      {weighing && (
+        <WeightDialog
+          item={weighing}
+          scalePort={scalePort}
+          onCancel={() => setWeighing(null)}
+          onConfirm={(kg) => {
+            const item = weighing;
+            setWeighing(null);
+            void addDish(item, undefined, kg);
           }}
         />
       )}

@@ -730,6 +730,11 @@ func (h *Handler) StaffBranch(w http.ResponseWriter, r *http.Request) {
 		// stored copy of it would be a second answer that can go stale.
 		"sellsGoods": biz.ScansToSell(),
 		"hasTables":  biz.HasTables(),
+		// ⚠️ **Its own question, not the opposite of the one above.** A fast
+		// food cooks and seats nobody; a shop does neither. Folded together,
+		// one of the two ends up with a screen it cannot use — which is how a
+		// counter selling packets came to show "send to the kitchen".
+		"hasKitchen": biz.HasKitchen(),
 		// ⚠️ **Only the port reaches the device.** The label layout is decoded
 		// on the server (see tillbarcode.go), so a till that reads it here
 		// would be a second decoder — and two decoders eventually disagree

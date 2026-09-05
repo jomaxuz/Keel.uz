@@ -186,8 +186,13 @@ export interface TillServerOptions {
   /** Guests sit down here. ⚠️ Defaults to true, exactly as the branch response
    *  does when the field is absent. */
   hasTables?: boolean;
+  /** Anything cooked to order here. ⚠️ Defaults to true and asked separately
+   *  from `hasTables`: a fast food cooks and seats nobody. */
+  hasKitchen?: boolean;
   /** What the scanner finds, by the code that was typed into it. */
   barcodes?: Record<string, { name: string; kg?: number }>;
+  /** Dishes sold by weight, by name, carrying their fiscal measure code. */
+  weighedDishes?: Record<string, number>;
 }
 
 /** What a printer can be asked to print — the server's list, mirrored here so
@@ -218,7 +223,9 @@ export function createTillServer(opts: TillServerOptions = {}) {
     // ⚠️ True by default and independent of `sellsGoods`, because the two are
     // separate questions: a fast food scans nothing and seats nobody.
     hasTables = true,
+    hasKitchen = true,
     barcodes = {} as Record<string, { name: string; kg?: number }>,
+    weighedDishes = {} as Record<string, number>,
   } = opts;
 
   // Whether the provider has confirmed the outstanding payment. A test flips
@@ -410,9 +417,13 @@ export function createTillServer(opts: TillServerOptions = {}) {
       // restaurant.
       MENU.map((g) => ({
         ...g,
-        items: g.items.map((i) =>
-          soldOut.includes(i.name) ? { ...i, soldOut: true } : i,
-        ),
+        items: g.items.map((i) => {
+          const item = soldOut.includes(i.name) ? { ...i, soldOut: true } : i;
+          // The measure code travels on the dish, as it does in production —
+          // it is the one place "is this weighed" is recorded.
+          const unitCode = weighedDishes[i.name];
+          return unitCode ? { ...item, unitCode } : item;
+        }),
       })),
     // The till reads its own branch, not the public profile.
     tillBranch: async () => ({
@@ -422,6 +433,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
       servicePercent,
       sellsGoods,
       hasTables,
+      hasKitchen,
       booking: {
         tables: TABLES,
         zones: ZONES,

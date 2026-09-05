@@ -19,7 +19,7 @@ import OptionsEditor, {
 import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
 import type { Category, ComboLine, Ingredient, MenuItem } from "@/lib/types";
-import { sellsGoods } from "@/lib/types";
+import { hasKitchen, sellsGoods } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
@@ -167,6 +167,9 @@ export default function AdminMenuPage() {
   // rule, and a restaurant that starts stocking bottled water only has to be
   // told what its type is.
   const brandSellsGoods = sellsGoods(scope.brand);
+  // ⚠️ Whether anything here is cooked to order. Separate from the question
+  // above, because a fast food is neither: it has a kitchen and sells no goods.
+  const brandHasKitchen = hasKitchen(scope.brand);
   // ⚠️ **The data wins over the type.** A dish that already carries a barcode
   // keeps its fields visible whatever kind of business this is — otherwise the
   // value is saved on every edit and can never be seen or removed, which is the
@@ -741,6 +744,13 @@ export default function AdminMenuPage() {
                 ⚠️ A link, not a second editor. Two forms writing one card is
                 the drift the cards exist to end — and this one is a whole
                 document replace, so the losing side would win silently. */}
+            {/* ⚠️ **A kitchen's document, so a shop is not shown it.** A
+                product that sells itself already has a one-line card the server
+                writes and keeps in step; a link inviting somebody to edit it by
+                hand can only break the tie between the packet and the shelf it
+                comes off. Shown anyway when a card already exists — data wins
+                over the type, here as everywhere on this page. */}
+            {(brandHasKitchen || draft.recipeLines > 0) && (
             <div className="block text-sm sm:col-span-2">
               <span className="font-medium">{t.recipe.title}</span>
               <div className="mt-1 rounded-xl bg-ink/[0.03] px-3 py-2">
@@ -772,6 +782,7 @@ export default function AdminMenuPage() {
                 )}
               </div>
             </div>
+            )}
 
             <label className="block text-sm sm:col-span-2">
               <span className="font-medium">{t.menu.tags}</span>
@@ -842,6 +853,11 @@ export default function AdminMenuPage() {
                 The price follows the part (half costs half, rounded to a
                 so'm) and so does the store: a half takes half the card off the
                 shelf. */}
+            {/* ⚠️ **Half a portion is a kitchen's idea.** A shop measures a
+                part of something by weighing it, and the packet's own measure
+                code already says so — offering "50%" of a bag of rice beside a
+                field that asks for kilograms is two answers to one question. */}
+            {(brandHasKitchen || draft.portions.length > 0) && (
             <div className="text-sm sm:col-span-2">
               <span className="font-medium">{t.menu.portions}</span>
               <div className="mt-1.5 flex flex-wrap gap-2">
@@ -874,6 +890,7 @@ export default function AdminMenuPage() {
                 {t.menu.portionsHint}
               </span>
             </div>
+            )}
 
             <label className="flex items-start gap-2 text-sm sm:col-span-2">
               <input

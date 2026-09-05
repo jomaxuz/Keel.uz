@@ -1478,3 +1478,115 @@ describe("the counter of a shop", () => {
     expect(screen.getByText(t.till.tables)).toBeInTheDocument();
   });
 });
+
+/**
+ * The counter when the scanner is dead.
+ *
+ * ⚠️ **This is the path that is only ever used on a bad morning**, which is
+ * exactly why it needs a test: a cable, a flat battery, a label the freezer
+ * rubbed off. A shop counter that can only scan stops selling until somebody
+ * arrives with new hardware, and the till was built that way for half a day.
+ */
+describe("a shop counter with no working scanner", () => {
+  it("keeps the products on cards, tappable", async () => {
+    server = installTillServer({ sellsGoods: true, hasTables: false });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    // The scanner is there, and so is the menu underneath it.
+    await screen.findByPlaceholderText(t.till.barcodePlaceholder);
+    await user.click(await dishTile(PLAIN_DISH));
+
+    // Tapped, with nothing open: the sale starts the same way a scan starts it.
+    await waitFor(() => expect(server.calls.openCheck).toHaveLength(1));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+    expect(server.calls.addLines[0].qty).toBe(1);
+  });
+
+  it("asks how much, rather than selling a kilo as one", async () => {
+    server = installTillServer({
+      sellsGoods: true,
+      hasTables: false,
+      // ⚠️ 11 is the fiscal code for kilogram — the same field the receipt and
+      // the scale read, so there is one answer to "is this weighed".
+      weighedDishes: { [PLAIN_DISH]: 11 },
+    });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await screen.findByPlaceholderText(t.till.barcodePlaceholder);
+
+    await user.click(await dishTile(PLAIN_DISH));
+
+    // ⚠️ Nothing was added on the tap. A kilo of meat rung up as one unit is a
+    // wrong price on a printed receipt, and nothing on the screen would say so.
+    expect(server.calls.addLines).toHaveLength(0);
+    const box = await screen.findByPlaceholderText(t.till.kgUnit);
+    await user.type(box, "1,5");
+    // ⚠️ Scoped to the dialog: the scan bar behind it carries a button with the
+    // same word, and the modal is what stops a thumb reaching it in the shop.
+    const dialog = box.closest(".card") as HTMLElement;
+    await user.click(
+      within(dialog).getByRole("button", { name: t.till.barcodeAdd }),
+    );
+
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+    // ⚠️ A comma is a decimal point on every keyboard in the country;
+    // `parseFloat("1,5")` is 1, which would sell half a kilo of meat for free.
+    expect(server.calls.addLines[0].qty).toBe(1.5);
+  });
+});
+
+/**
+ * What belongs to a kitchen, and what belongs to a counter.
+ *
+ * ⚠️ **The two were mixed on one screen and each looked plausible.** A shop's
+ * check carried "send to the kitchen" — lines are unfired until somebody fires
+ * them, and behind a counter nobody ever does — so the button never went away,
+ * and the button that takes the money stayed grey behind it for the whole day.
+ */
+describe("a counter with no kitchen behind it", () => {
+  it("offers nothing to send, and makes the money the accent", async () => {
+    server = installTillServer({
+      sellsGoods: true,
+      hasTables: false,
+      hasKitchen: false,
+      barcodes: { "4780000000001": { name: PLAIN_DISH } },
+    });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    const box = await screen.findByPlaceholderText(t.till.barcodePlaceholder);
+    await user.type(box, "4780000000001{Enter}");
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+
+    // The line is on the check and there is nowhere to send it.
+    expect(
+      screen.queryByText(t.till.fireCount.replace("{n}", "1")),
+    ).not.toBeInTheDocument();
+    // ⚠️ And a course picker, which is a kitchen's way of saying "after that".
+    expect(
+      screen.queryByLabelText(t.till.course),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still sends to the kitchen in a restaurant", async () => {
+    server = installTillServer();
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    // Table 7 is the one the fake floor draws; opening it needs the dialog's
+    // confirmation, exactly as it does in the room.
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await user.click(await dishTile(PLAIN_DISH));
+
+    expect(
+      await screen.findByText(t.till.fireCount.replace("{n}", "1")),
+    ).toBeInTheDocument();
+  });
+});

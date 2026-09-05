@@ -21,7 +21,7 @@ import { api, ApiError } from "@/lib/api";
 import type { MenuItem } from "@/lib/types";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatPrice } from "@/lib/format";
-import { canWeigh, weigh } from "@/lib/tillBridge";
+import WeightDialog, { byWeight } from "./WeightDialog";
 
 /** What one scan turned into, for the row the cashier reads back. */
 type Scanned = {
@@ -55,9 +55,6 @@ export default function ScanPanel({
   const [last, setLast] = useState<Scanned | null>(null);
   /** A weighed product that arrived without a weight — mode three. */
   const [asking, setAsking] = useState<MenuItem | null>(null);
-  const [kg, setKg] = useState("");
-  const [reading, setReading] = useState(false);
-  const [weighError, setWeighError] = useState("");
 
   // ⚠️ **The field takes the focus back, and this is not a nicety.** A cashier
   // who taps the check to correct a line leaves this input; the next scan then
@@ -115,7 +112,6 @@ export default function ScanPanel({
       // at the price of one unit.
       if (byWeight(res.item)) {
         setAsking(res.item);
-        setKg("");
         return;
       }
       await put({ item: res.item, qty: 1 });
@@ -132,8 +128,13 @@ export default function ScanPanel({
     setLast(s);
   }
 
+  // ⚠️ **A band across the top, not the whole pane.** The counter keeps the
+  // product cards underneath it: a scanner that has stopped reading is an
+  // ordinary morning — a cable, a dead battery, a label the freezer rubbed off
+  // — and a screen with nothing but a dead input on it is a shop that cannot
+  // sell anything until somebody arrives with a new one.
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex shrink-0 flex-col border-b border-line">
       <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
         <input
           ref={box}
@@ -165,9 +166,9 @@ export default function ScanPanel({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+      <div className="space-y-2 px-3 py-2">
         {error && (
-          <div className="rounded-2xl border border-warn/40 bg-warn/10 p-4 text-sm">
+          <div className="rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
             {error}
           </div>
         )}
@@ -177,8 +178,8 @@ export default function ScanPanel({
             was the right packet, and that glance has to land on a name and a
             number without being aimed. */}
         {last && !error && (
-          <div className="rounded-2xl border border-line bg-raised p-4">
-            <div className="text-base font-semibold">{last.item.name}</div>
+          <div className="rounded-xl border border-line bg-raised px-3 py-2">
+            <div className="text-sm font-semibold">{last.item.name}</div>
             <div className="text-ink-muted text-sm">
               {byWeight(last.item)
                 ? `${last.qty} ${t.till.kgUnit}`
@@ -190,111 +191,30 @@ export default function ScanPanel({
         )}
 
         {!last && !error && (
-          <p className="text-ink-muted p-6 text-center text-sm">
+          <p className="text-ink-muted text-center text-xs">
             {t.till.barcodeHint}
           </p>
         )}
       </div>
 
-      {/* Mode three: the goods are on the counter and somebody types the
-          weight. ⚠️ A number pad rather than a free field — this is entered
-          with a thumb, at speed, and a stray letter here is a line that cannot
-          be priced. */}
       {asking && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-6">
-          <div className="card w-full max-w-sm space-y-3 p-5">
-            <div className="text-base font-semibold">{asking.name}</div>
-            {/* ⚠️ **The reading is shown and confirmed, never added straight
-                to the check.** That is what makes a connected scale safe in a
-                way a printed label is not: a misread is caught by the person
-                holding the goods. The button fills the box; the cashier still
-                presses add. */}
-            {canWeigh() && !!scalePort && (
-              <button
-                className="till-btn w-full"
-                disabled={reading}
-                onClick={async () => {
-                  setReading(true);
-                  setWeighError("");
-                  try {
-                    const kg = await weigh(scalePort);
-                    setKg(String(kg));
-                  } catch (e) {
-                    // The binary's own words: "the scale did not answer",
-                    // "there is no weight on it" — each sends somebody
-                    // somewhere different.
-                    setWeighError(
-                      e instanceof Error ? e.message : t.till.barcodeFailed,
-                    );
-                  } finally {
-                    setReading(false);
-                  }
-                }}
-              >
-                {t.till.weighRead}
-              </button>
-            )}
-            {weighError && (
-              <p className="text-warn text-xs">{weighError}</p>
-            )}
-            <input
-              className="till-input h-12 w-full text-lg"
-              autoFocus
-              inputMode="decimal"
-              placeholder={t.till.kgUnit}
-              value={kg}
-              onChange={(e) => setKg(e.target.value.replace(/[^0-9.,]/g, ""))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") confirmWeight();
-              }}
-            />
-            <div className="flex gap-2">
-              <button
-                className="till-btn flex-1"
-                onClick={() => {
-                  setAsking(null);
-                  grab();
-                }}
-              >
-                {t.till.back}
-              </button>
-              <button
-                className="till-btn till-btn-primary flex-1"
-                disabled={!weightOf(kg)}
-                onClick={confirmWeight}
-              >
-                {t.till.barcodeAdd}
-              </button>
-            </div>
-          </div>
-        </div>
+        <WeightDialog
+          item={asking}
+          scalePort={scalePort}
+          onCancel={() => {
+            setAsking(null);
+            grab();
+          }}
+          onConfirm={(kg) => {
+            const item = asking;
+            setAsking(null);
+            void put({ item, qty: kg }).finally(grab);
+          }}
+        />
       )}
     </div>
   );
 
-  function confirmWeight() {
-    const n = weightOf(kg);
-    if (!asking || !n) return;
-    const item = asking;
-    setAsking(null);
-    void put({ item, qty: n }).finally(grab);
-  }
 }
 
-/** ⚠️ A comma is a decimal point here, and a keypad on an Uzbek phone sends
- *  one. Read as nothing, "1,5" becomes an empty weight and the cashier retypes
- *  it wondering what they did wrong. */
-function weightOf(raw: string): number {
-  const n = Number(raw.replace(",", "."));
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
 
-/** Whether this product is sold by weight.
- *
- *  ⚠️ Read from the fiscal measure code, which is the one place this is already
- *  recorded — a second flag would be a second answer to the same question, and
- *  the receipt would eventually disagree with the scale. 10 = gram,
- *  11 = kilogram, 41 = litre. */
-function byWeight(item: MenuItem): boolean {
-  return item.unitCode === 10 || item.unitCode === 11 || item.unitCode === 41;
-}

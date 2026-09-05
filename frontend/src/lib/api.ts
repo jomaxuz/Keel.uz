@@ -4211,6 +4211,10 @@ export const api = {
        *  restaurant's, and a server that predates the field must not be read
        *  as taking the floor plan away. */
       hasTables?: boolean;
+      /** Whether anything is cooked to order. ⚠️ Absent means yes, for the same
+       *  reason — and separate from `hasTables`, because a fast food cooks and
+       *  seats nobody. */
+      hasKitchen?: boolean;
       /** The serial port a counter scale is wired to, if any. */
       scalePort?: string;
       /** The room's service rate. ⚠️ Needed on the device, not only on the

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { formatPrice, weekdayName } from "@/lib/format";
-import { sellsGoods } from "@/lib/types";
+import { hasTables, sellsGoods } from "@/lib/types";
 import ScaleSettings from "@/components/admin/ScaleSettings";
 import ImageUpload from "@/components/admin/ImageUpload";
 import AddressMap, { type LatLng } from "@/components/map/AddressMap";
@@ -1118,7 +1118,14 @@ export default function AdminSettingsPage() {
           </Section>
         )}
 
-        {/* Table booking: the room is drawn here, guests book on it */}
+        {/* Table booking: the room is drawn here, guests book on it.
+
+            ⚠️ **Needs a room.** A shop has no tables to draw and a fast food
+            takes no bookings; the whole section — a floor plan editor included
+            — was being offered to both. Shown anyway where bookings are already
+            switched on, because a setting that is on but invisible cannot be
+            turned off. */}
+        {(hasTables(scope.brand) || booking.enabled) && (
         <Section
           title={t.booking.settingsTitle}
           group="hall"
@@ -1247,6 +1254,7 @@ export default function AdminSettingsPage() {
             />
           </div>
         </Section>
+        )}
 
         {/* Editable site copy */}
         {scope.isOwner && (

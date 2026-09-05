@@ -48,6 +48,7 @@ export default function CheckPanel({
   check,
   currency,
   canCashier,
+  kitchen,
   tables,
   busyTables,
   guest,
@@ -68,6 +69,13 @@ export default function CheckPanel({
   check: Check | null;
   currency: string;
   canCashier: boolean;
+  /** Whether anything on this check is cooked to order.
+   *
+   *  ⚠️ **A shop has no kitchen, so it has nothing to send to one.** Lines are
+   *  "unfired" until somebody fires them and behind a counter nobody ever does
+   *  — which left a permanent "send to the kitchen" button on a shop's check,
+   *  and kept the button that takes the money grey behind it all day. */
+  kitchen?: boolean;
   /** The room, for moving a party. */
   tables: FloorTable[];
   /** Tables that already have a check on them. */
@@ -535,7 +543,7 @@ export default function CheckPanel({
             {t.till.offlineKitchen}
           </p>
         )}
-        {check.unfired > 0 ? (
+        {kitchen !== false && check.unfired > 0 ? (
           <button
             className="till-btn-accent mt-2.5 min-h-[3.5rem] w-full text-[17px]"
             disabled={busy}
@@ -555,7 +563,7 @@ export default function CheckPanel({
             big button; courses are the exception, and the exception is exactly
             what must not be sent by accident — starters and mains arriving
             together is the failure the feature exists to prevent. */}
-        {waitingCourses.length > 1 && !offline && (
+        {kitchen !== false && waitingCourses.length > 1 && !offline && (
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {waitingCourses.map((c) => (
               <button
@@ -601,7 +609,11 @@ export default function CheckPanel({
               // languages, and "To'lash" matches nothing in the Russian run.
               data-help="pay"
               className={`mt-2 min-h-[3.5rem] w-full text-[17px] ${
-                check.unfired > 0 ? "till-btn" : "till-btn-accent"
+                // ⚠️ Where there is no kitchen the money is always the accent:
+                // nothing is waiting to be cooked, so nothing outranks it.
+                kitchen !== false && check.unfired > 0
+                  ? "till-btn"
+                  : "till-btn-accent"
               }`}
               disabled={busy || live.length === 0}
               onClick={() => setPaying(true)}
