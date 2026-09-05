@@ -198,3 +198,118 @@ func TestScreensArePricedOneByOne(t *testing.T) {
 		t.Error("no screens must cost nothing, and a negative is a typo")
 	}
 }
+
+// ---- The shop ladder ----
+
+// The same arithmetic the restaurant ladder is pinned by, and it matters more
+// here: a shop buys a second register to clear a queue at the door, and a rung
+// that makes the second one dearer than the first is a rung that keeps the
+// queue.
+func TestShopRegisterPriceNeverRises(t *testing.T) {
+	steps := []struct {
+		plan      string
+		registers int
+	}{
+		{PlanShopStart, 1}, {PlanShopStandard, 2},
+		{PlanShopPro, 3}, {PlanShopPro, 4}, {PlanShopPro, 5},
+	}
+	prevAvg, prevTotal := 1<<30, 0
+	for _, s := range steps {
+		p, ok := PlanByID(s.plan)
+		if !ok {
+			t.Fatalf("plan %q missing", s.plan)
+		}
+		total := TillMonthly(p, 1, nil, 0, 0)
+		if avg := total / s.registers; avg > prevAvg {
+			t.Errorf("%s at %d registers: %d each, up from %d",
+				s.plan, s.registers, avg, prevAvg)
+		} else {
+			prevAvg = avg
+		}
+		if marginal := total - prevTotal; marginal < 0 {
+			t.Errorf("%s: marginal price %d is negative", s.plan, marginal)
+		}
+		prevTotal = total
+	}
+}
+
+// ⚠️ **A shop that cannot open its balances cannot do the thing it bought
+// this for.** Stock is an add-on on the restaurant ladder because a café can
+// genuinely want a till and not want its food cost; there is no such shop. Sold
+// separately here it would be a till that cannot count what it sells.
+func TestEveryShopRungIncludesTheStockroom(t *testing.T) {
+	for _, p := range PlansFor("grocery") {
+		if !p.Includes(ModStock) {
+			t.Errorf("shop plan %q does not include the stockroom", p.ID)
+		}
+	}
+}
+
+// ⚠️ **The cheap ladder must stay behind the business type.** The shop rungs
+// are a third of the restaurant ones; a restaurant reaching them — through the
+// console's list or through a hand-written request — pays 149 000 for what was
+// agreed at 450 000, and every screen downstream agrees with the wrong number.
+func TestTheLaddersDoNotCross(t *testing.T) {
+	for _, biz := range []string{"", "fastfood", "restoran", "nonsense"} {
+		for _, p := range PlansFor(biz) {
+			if p.Kind == KindShop {
+				t.Errorf("business %q is offered shop plan %q", biz, p.ID)
+			}
+		}
+		shop, _ := PlanByID(PlanShopStart)
+		if PlanFitsBusiness(shop, biz) {
+			t.Errorf("business %q may be put on %q", biz, shop.ID)
+		}
+	}
+	for _, biz := range []string{"grocery", "clothing", "flowers", "pharmacy"} {
+		list := PlansFor(biz)
+		if len(list) == 0 {
+			t.Fatalf("business %q is offered no plans at all", biz)
+		}
+		for _, p := range list {
+			if p.Kind != KindShop {
+				t.Errorf("shop %q is offered restaurant plan %q", biz, p.ID)
+			}
+		}
+		start, _ := PlanByID(PlanStart)
+		if PlanFitsBusiness(start, biz) {
+			t.Errorf("shop %q may be put on the restaurant ladder", biz)
+		}
+	}
+}
+
+// ⚠️ **`sellsGoods` here is a copy of the tenant's own predicate**, because the
+// control plane does not import the restaurant's packages. The compiler cannot
+// join them, so this does: the list below is `models.BusinessType.SellsGoods`,
+// and a type added there and forgotten here is a shop quietly sold — and
+// billed — as a restaurant.
+func TestTheBusinessTypesMatchTheTenants(t *testing.T) {
+	goods := []string{"grocery", "clothing", "flowers", "pharmacy"}
+	notGoods := []string{"", "fastfood"}
+	for _, b := range goods {
+		if !sellsGoods(b) {
+			t.Errorf("%q sells goods on the tenant and not here", b)
+		}
+	}
+	for _, b := range notGoods {
+		if sellsGoods(b) {
+			t.Errorf("%q does not sell goods on the tenant but does here", b)
+		}
+	}
+	// Padding and case come from a form, not from a bug.
+	if !sellsGoods(" Grocery ") {
+		t.Error("a padded business type stopped being a shop")
+	}
+}
+
+// The number the whole ladder exists to hit: our entry price has to sit in the
+// band a shop actually shops in (REGOS 149 000, YesPOS 100 000, BILLZ 299 000).
+// Pinned because it is the one figure a later tidy-up would "round up".
+func TestTheShopEntryPriceStaysInTheMarket(t *testing.T) {
+	start, _ := PlanByID(PlanShopStart)
+	if start.Monthly > 199_000 {
+		t.Errorf("shop entry is %d — above the band a shop compares in, "+
+			"which does not make us expensive, it makes us unconsidered",
+			start.Monthly)
+	}
+}

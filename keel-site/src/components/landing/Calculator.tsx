@@ -59,7 +59,12 @@ export default function Calculator() {
   // honest output for it is a sentence rather than a total, and a select whose
   // last option empties the answer is a broken calculator. The note under the
   // result says where that conversation goes instead.
-  const plans = t.till.plans.slice(0, 3);
+  // ⚠️ **Which ladder the visitor is pricing.** The hero above now names two
+  // businesses and two entry prices; a calculator that silently answers with
+  // restaurant rungs would quote a grocery three times its real bill and lose
+  // it at the only screen where it was doing arithmetic about us.
+  const [shop, setShop] = useState(false);
+  const plans = (shop ? t.till.shopPlans : t.till.plans).slice(0, 3);
   const [plan, setPlan] = useState(1); // Standard: the middle of the table.
   const [branches, setBranches] = useState(1);
   const [stock, setStock] = useState(false);
@@ -70,7 +75,13 @@ export default function Calculator() {
   const sum = useMemo(() => {
     const till = plan < 0 ? 0 : num(plans[plan].price) * branchFactor(branches);
     // Pro carries the warehouse module; below it, only if asked for.
-    const stockIncluded = plan === 2;
+    //
+    // ⚠️ **Every shop rung carries it**, which is the one place the two
+    // ladders differ in kind rather than in price: what a shop sells is what is
+    // on its shelf, so a shop till that cannot count is not a cheaper product,
+    // it is a different one. Charging the add-on here would quote 149 000 plus
+    // 290 000 for something already included.
+    const stockIncluded = shop ? plan >= 0 : plan === 2;
     const stockCost = stockIncluded || !stock ? 0 : STOCK_ADDON;
     const band = BANDS.findIndex((max) => orders <= max);
     const rate = num(t.pricing.tiers[band]?.price ?? t.pricing.tiers[0].price);
@@ -82,12 +93,39 @@ export default function Calculator() {
       ordersCost: orders * rate,
       total: till + stockCost + orders * rate,
     };
-  }, [plan, plans, branches, stock, orders, t.pricing.tiers]);
+  }, [plan, plans, shop, branches, stock, orders, t.pricing.tiers]);
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[1.05fr_.95fr]">
       {/* ---- The knobs ---- */}
       <div className="rounded-3xl border border-line bg-surface p-6 sm:p-8">
+        {/* ⚠️ **The kind of business first**, because it changes every number
+            under it. Two tabs rather than a select: there are exactly two
+            ladders and both fit on a line. */}
+        <fieldset className="mb-7">
+          <legend className="text-sm font-semibold text-ink">{c.kind}</legend>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {[
+              { label: c.kindRestaurant, on: !shop },
+              { label: c.kindShop, on: shop },
+            ].map((k) => (
+              <button
+                key={k.label}
+                type="button"
+                onClick={() => setShop(k.label === c.kindShop)}
+                aria-pressed={k.on}
+                className={`rounded-xl border px-4 py-3 text-center font-display text-sm font-semibold transition ${
+                  k.on
+                    ? "border-signal-500 bg-signal-500/10 text-ink"
+                    : "border-line text-ink-muted hover:border-line-strong"
+                }`}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
         <fieldset>
           <legend className="text-sm font-semibold text-ink">{c.plan}</legend>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">

@@ -256,6 +256,55 @@ export default async function KassaPage() {
             ))}
           </div>
 
+          {/* ---- The shop ladder ----
+
+              ⚠️ **A second table on the same page, not a link to another
+              one.** A grocery comparing tills is reading REGOS at 149 000 and
+              BILLZ at 299 000; a page headlined 450 000 is a page it has
+              already left, and "shops are cheaper — ask us" is a sentence
+              nobody stays for. The rungs it will actually be sold are the rungs
+              it sees, at the moment it is deciding. */}
+          <div className="mt-16">
+            <h3 className="h-display text-2xl">{t.till.shopTitle}</h3>
+            <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-muted">
+              {t.till.shopLead}
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {t.till.shopPlans.map((p) => (
+                <div
+                  key={p.name}
+                  className={`relative flex flex-col rounded-3xl border bg-surface p-6 ${
+                    p.featured
+                      ? "border-signal-500/50 shadow-xl shadow-signal-500/10"
+                      : "border-line"
+                  }`}
+                >
+                  <p className="font-display text-lg font-semibold text-ink">
+                    {p.name}
+                  </p>
+                  {/* The unit on its own line, for the reason the table above
+                      keeps it there: four prices at three heights read as three
+                      kinds of number rather than one ladder. */}
+                  <div className="mt-4">
+                    <p className="h-display text-3xl leading-none">{p.price}</p>
+                    <p className="mt-1.5 text-sm text-ink-muted">
+                      {t.pricing.unit} / {t.till.thPrice.toLowerCase()}
+                    </p>
+                  </div>
+                  <p className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-lg bg-signal-500/12 px-2.5 py-1 text-xs font-semibold text-signal-600 dark:text-signal-400">
+                    {p.registers}
+                  </p>
+                  <p className="mt-4 text-sm leading-relaxed text-ink-muted">
+                    {p.includes}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-ink-muted">
+              {t.till.shopNote}
+            </p>
+          </div>
+
           {/* The two things the table cannot say without a footnote, given
               their own cards because both of them decide a sale: the small café
               that wants its food cost, and the chain doing arithmetic on

@@ -145,7 +145,7 @@ func (h *Handler) GetTenantTill(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "topilmadi")
 		return
 	}
-	httpx.JSON(w, http.StatusOK, tillViewOf(t.Till))
+	httpx.JSON(w, http.StatusOK, tillViewOf(t.Till, t.BusinessType))
 }
 
 // PutTenantTill switches the counter on, moves a customer between rungs, or
@@ -179,13 +179,23 @@ func (h *Handler) PutTenantTill(w http.ResponseWriter, r *http.Request) {
 			httpx.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		httpx.JSON(w, http.StatusOK, tillViewOf(next))
+		httpx.JSON(w, http.StatusOK, tillViewOf(next, t.BusinessType))
 		return
 	}
 
 	plan, ok := billing.PlanByID(req.Plan)
 	if !ok {
 		httpx.Error(w, http.StatusBadRequest, "tarif tanlanmagan")
+		return
+	}
+	// ⚠️ **The ladder has to match the business.** The shop rungs are a third
+	// of the restaurant ones because they are sold against a different market;
+	// a restaurant landed on one by a slip of the mouse pays 149 000 for what
+	// was agreed at 450 000, and nothing downstream can tell — the invoice, the
+	// mirrored entitlements and the owner's own screen would all agree with the
+	// wrong plan.
+	if !billing.PlanFitsBusiness(plan, t.BusinessType) {
+		httpx.Error(w, http.StatusBadRequest, "bu tarif boshqa biznes turi uchun")
 		return
 	}
 	if req.Branches < 1 {
@@ -231,7 +241,7 @@ func (h *Handler) PutTenantTill(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, tillViewOf(next))
+	httpx.JSON(w, http.StatusOK, tillViewOf(next, t.BusinessType))
 }
 
 // saveTill writes both halves: what we bill from, and what the restaurant
@@ -262,7 +272,7 @@ func (h *Handler) mirrorTill(ctx context.Context, t models.Tenant, till models.T
 		Addons:    []string{},
 		Branches:  till.Branches,
 		PaidUntil: till.PaidUntil,
-		Plans:     planViews(),
+		Plans:     planViews(t.BusinessType),
 		UpdatedAt: time.Now(),
 	}
 	if plan, ok := billing.PlanByID(till.Plan); ok && till.Enabled {
@@ -330,9 +340,17 @@ func cleanAddons(in []string) []string {
 	return out
 }
 
-func planViews() []tillPlanView {
+// planViews is the ladder this customer is sold, in display order.
+//
+// ⚠️ **Filtered by what kind of business this is.** Offering both ladders side
+// by side would put a 149 000 rung on a restaurant's screen next to the
+// 450 000 one it agreed to — and the operator picking the wrong row leaves an
+// invoice that is perfectly consistent with itself and a third of what was
+// agreed. The refusal in SetTill is the other half of this: a screen that only
+// offers the right rungs is not a rule until the write refuses the wrong ones.
+func planViews(businessType string) []tillPlanView {
 	out := []tillPlanView{}
-	for _, p := range billing.Plans() {
+	for _, p := range billing.PlansFor(businessType) {
 		mods := p.Modules
 		if mods == nil {
 			// ⚠️ An empty slice, not nil: Go marshals a nil slice as `null`,
@@ -348,8 +366,8 @@ func planViews() []tillPlanView {
 	return out
 }
 
-func tillViewOf(t models.TenantTill) tillView {
-	v := tillView{TenantTill: t, Plans: planViews()}
+func tillViewOf(t models.TenantTill, businessType string) tillView {
+	v := tillView{TenantTill: t, Plans: planViews(businessType)}
 	if t.Addons == nil {
 		v.Addons = []string{}
 	}

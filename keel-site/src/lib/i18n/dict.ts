@@ -24,12 +24,16 @@ export const uz = {
   hero: {
     eyebrow: "Restoran, kafe va do'konlar uchun",
     title: "Restoraningizni *bitta dasturdan* yuriting",
-    lead: "Kassa, zal, oshxona, ombor va tannarx. Sayt, yetkazish va Telegram bot ham shu menyudan ishlaydi. Oyiga 450 000 so'mdan.",
+    // ⚠️ **Both numbers, because the eyebrow above already says "va
+    // do'konlar".** One price on a page addressed to two kinds of business is
+    // a price that is wrong for one of them: a shop reading 450 000 leaves,
+    // and a restaurant reading 149 000 finds out otherwise on the next screen.
+    lead: "Kassa, zal, oshxona, ombor va tannarx. Sayt, yetkazish va Telegram bot ham shu menyudan ishlaydi. Restoranlar uchun oyiga 450 000, do'konlar uchun 149 000 so'mdan.",
     ctaPrimary: "Bepul boshlash",
     ctaSecondary: "Kassani ko'rish",
     note: "14 kun bepul · karta talab qilinmaydi · menyuni biz kiritamiz",
     stat1: "Kassa",
-    stat1v: "450 000 dan",
+    stat1v: "149 000 dan",
     stat2: "iiko'dan arzon",
     stat2v: "33–63%",
     stat3: "Ishga tushish",
@@ -280,6 +284,9 @@ export const uz = {
     title: "Oyiga qancha *to'laysiz*",
     lead: "Tarifni tanlang, filial sonini qo'ying, oyiga qancha buyurtma olishingizni belgilang. Raqamlar yuqoridagi jadvallardan olinadi — bu yerda yangi narx yo'q.",
     plan: "Kassa tarifi",
+    kind: "Biznes turi",
+    kindRestaurant: "Restoran / kafe",
+    kindShop: "Do'kon",
     planNone: "Kassa kerak emas",
     planNoneNote: "faqat sayt va buyurtmalar",
     branches: "Filiallar soni",
@@ -439,6 +446,45 @@ export const uz = {
         featured: false,
       },
     ],
+    // ⚠️ **A second table, not a footnote on the first.** A shop compares us
+    // against REGOS and BILLZ, not against a restaurant's price list, and a
+    // 450 000 headline with "shops are cheaper, ask us" underneath is a page
+    // the shop closes. The ladder it is actually sold is the ladder it sees.
+    shopTitle: "Do'konlar uchun alohida tarif",
+    shopLead:
+      "Do'kon restoranning yarmini ishlatmaydi — zal ham, oshxona ham, texkarta ham kerak emas. Shuning uchun narx ham boshqacha: skaner, tarozi va ombor. Ombor har uchala tarifga kiradi, chunki do'konda sotiladigan narsa — javondagi narsaning o'zi.",
+    shopPlans: [
+      {
+        name: "Start",
+        price: "149 000",
+        registers: "1 kassa",
+        includes: "Kassa, skaner, tarozi yorlig'i, ombor va qoldiqlar",
+        featured: false,
+      },
+      {
+        name: "Standard",
+        price: "290 000",
+        registers: "2 kassa",
+        includes: "Start bilan bir xil, ikkita kassa uchun",
+        featured: true,
+      },
+      {
+        name: "Pro",
+        price: "425 000",
+        registers: "3–5 kassa",
+        includes: "Standard + ko'p do'kon va brend, ko'chirish, tashqi kassa",
+        featured: false,
+      },
+      {
+        name: "Tarmoq",
+        price: "kelishiladi",
+        registers: "cheksiz",
+        includes: "Pro + franshiza boshqaruvi",
+        featured: false,
+      },
+    ],
+    shopNote:
+      "Foydalanuvchi soniga qarab pul olinmaydi: uch smenali uchta kassir ham, bittasi ham bir xil narx. Filial chegirmasi shu yerda ham ishlaydi.",
     addonTitle: "Ombor va tannarx — alohida ham olinadi",
     addonDesc:
       "Tannarxni bilish uchun Pro'ga o'tish shart emas: ombor moduli istalgan tarifga oyiga 290 000 so'mga qo'shiladi, Pro va yuqorisida esa narxga kiradi.",
@@ -1148,12 +1194,12 @@ export const ru: Dict = {
   hero: {
     eyebrow: "Для ресторанов, кафе и магазинов",
     title: "Управляйте рестораном *из одной программы*",
-    lead: "Касса, зал, кухня, склад и себестоимость. Сайт, доставка и Telegram-бот работают из того же меню. От 450 000 сум в месяц.",
+    lead: "Касса, зал, кухня, склад и себестоимость. Сайт, доставка и Telegram-бот работают из того же меню. От 450 000 сум для ресторанов и от 149 000 для магазинов.",
     ctaPrimary: "Начать бесплатно",
     ctaSecondary: "Посмотреть кассу",
     note: "14 дней бесплатно · карта не нужна · меню заводим мы",
     stat1: "Касса",
-    stat1v: "от 450 000",
+    stat1v: "от 149 000",
     stat2: "Дешевле iiko",
     stat2v: "33–63%",
     stat3: "Запуск",
@@ -1388,6 +1434,9 @@ export const ru: Dict = {
     title: "Сколько выйдет *в месяц*",
     lead: "Выберите тариф, поставьте число филиалов, задайте заказы за месяц. Цифры берутся из таблиц выше — новых цен здесь нет.",
     plan: "Тариф кассы",
+    kind: "Вид бизнеса",
+    kindRestaurant: "Ресторан / кафе",
+    kindShop: "Магазин",
     planNone: "Касса не нужна",
     planNoneNote: "только сайт и заказы",
     branches: "Филиалов",
@@ -1546,6 +1595,41 @@ export const ru: Dict = {
         featured: false,
       },
     ],
+    shopTitle: "Отдельный тариф для магазинов",
+    shopLead:
+      "Магазин не использует половину ресторана — ни зала, ни кухни, ни техкарт. Поэтому и цена другая: сканер, весы и склад. Склад входит во все три тарифа: в магазине то, что продаётся, и есть то, что лежит на полке.",
+    shopPlans: [
+      {
+        name: "Start",
+        price: "149 000",
+        registers: "1 касса",
+        includes: "Касса, сканер, весовая этикетка, склад и остатки",
+        featured: false,
+      },
+      {
+        name: "Standard",
+        price: "290 000",
+        registers: "2 кассы",
+        includes: "То же, что Start, но на две кассы",
+        featured: true,
+      },
+      {
+        name: "Pro",
+        price: "425 000",
+        registers: "3–5 касс",
+        includes: "Standard + несколько магазинов и брендов, перемещения, внешняя касса",
+        featured: false,
+      },
+      {
+        name: "Сеть",
+        price: "по договорённости",
+        registers: "без ограничений",
+        includes: "Pro + управление франшизой",
+        featured: false,
+      },
+    ],
+    shopNote:
+      "Мы не берём плату за пользователей: три кассира в три смены стоят столько же, сколько один. Скидка за филиалы работает и здесь.",
     addonTitle: "Склад и себестоимость — можно взять отдельно",
     addonDesc:
       "Чтобы знать себестоимость, переходить на Pro не обязательно: модуль склада добавляется к любому тарифу за 290 000 сум в месяц, а на Pro и выше уже входит в цену.",
@@ -2223,12 +2307,12 @@ export const en: Dict = {
   hero: {
     eyebrow: "For restaurants, cafés and shops",
     title: "Run your whole restaurant *from one program*",
-    lead: "Till, floor, kitchen, stock and cost price. The website, delivery and Telegram bot run off the same menu. From 450,000 so'm a month.",
+    lead: "Till, floor, kitchen, stock and cost price. The website, delivery and Telegram bot run off the same menu. From 450,000 so'm a month for restaurants, from 149,000 for shops.",
     ctaPrimary: "Start free",
     ctaSecondary: "See the till",
     note: "14 days free · no card · we enter your menu",
     stat1: "The till",
-    stat1v: "from 450,000",
+    stat1v: "from 149,000",
     stat2: "Against iiko",
     stat2v: "33–63%",
     stat3: "Live in",
@@ -2463,6 +2547,9 @@ export const en: Dict = {
     title: "What a *month* costs",
     lead: "Pick a plan, set the number of branches, say how many orders a month. Every figure comes from the tables above — there are no new prices down here.",
     plan: "Till plan",
+    kind: "Kind of business",
+    kindRestaurant: "Restaurant / café",
+    kindShop: "Shop",
     planNone: "No till needed",
     planNoneNote: "site and orders only",
     branches: "Branches",
@@ -2626,6 +2713,41 @@ export const en: Dict = {
         featured: false,
       },
     ],
+    shopTitle: "A separate ladder for shops",
+    shopLead:
+      "A shop does not use half of a restaurant — no dining room, no kitchen, no technical cards. So the price is different too: the scanner, the scale and the stockroom. Stock is in all three rungs, because in a shop what is sold is what is on the shelf.",
+    shopPlans: [
+      {
+        name: "Start",
+        price: "149 000",
+        registers: "1 register",
+        includes: "Till, scanner, scale labels, stock and balances",
+        featured: false,
+      },
+      {
+        name: "Standard",
+        price: "290 000",
+        registers: "2 registers",
+        includes: "The same as Start, for two registers",
+        featured: true,
+      },
+      {
+        name: "Pro",
+        price: "425 000",
+        registers: "3–5 registers",
+        includes: "Standard + several shops and brands, transfers, external till",
+        featured: false,
+      },
+      {
+        name: "Network",
+        price: "negotiated",
+        registers: "unlimited",
+        includes: "Pro + franchise management",
+        featured: false,
+      },
+    ],
+    shopNote:
+      "Nothing is charged per user: three cashiers on three shifts cost what one does. The branch discount applies here too.",
     addonTitle: "Stock and cost price can be bought on its own",
     addonDesc:
       "Knowing your food cost does not require moving to Pro: the stock module adds to any plan for 290,000 so'm a month, and on Pro and above it is already in the price.",

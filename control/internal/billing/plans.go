@@ -98,12 +98,34 @@ func TVMonthlyFor(screens int) int {
 // modules that genuinely belong to a counter.
 
 // Plan ids.
+//
+// ⚠️ **Two ladders, and the shop one is not a discount on the restaurant one.**
+// A restaurant's 450 000 buys a website, delivery, a kitchen and a dining room;
+// a shop uses about a third of that and compares us against REGOS at 149 000,
+// YesPOS at 100 000 and BILLZ at 299 000. Priced off the restaurant ladder we
+// are not expensive, we are simply not considered — the shop never reaches the
+// demo. The ids are separate strings rather than a modifier because they are
+// stored on the tenant and read back for the invoice: a plan whose price
+// depends on a *second* field is a plan that changes price when somebody edits
+// that field.
 const (
 	PlanStart      = "start"
 	PlanStandard   = "standard"
 	PlanPro        = "pro"
 	PlanEnterprise = "enterprise"
+
+	PlanShopStart      = "shop-start"
+	PlanShopStandard   = "shop-standard"
+	PlanShopPro        = "shop-pro"
+	PlanShopEnterprise = "shop-network"
 )
+
+// KindShop marks the ladder sold to shops.
+//
+// ⚠️ **Empty is a restaurant**, the same convention the business type itself
+// uses — every plan sold before this existed is a restaurant's, and no stored
+// document has to be rewritten for that to stay true.
+const KindShop = "shop"
 
 // Plan is one rung of the till ladder.
 //
@@ -125,6 +147,10 @@ type Plan struct {
 	Modules []string
 	// Whether the price is negotiated per customer rather than read from here.
 	Individual bool
+	// Which ladder this rung belongs to: "" for a restaurant, KindShop for a
+	// shop. ⚠️ Not a feature flag — it decides which plans the console offers,
+	// and nothing else reads it.
+	Kind string
 }
 
 // plans is the ladder, cheapest first. Order matters: it is the order the
@@ -159,6 +185,99 @@ var plans = []Plan{
 		},
 		Individual: true,
 	},
+
+	// ---- The shop ladder ----
+	//
+	// ⚠️ **Every rung includes the stockroom, and that is the difference from
+	// the restaurant ladder rather than an oversight.** For a restaurant stock
+	// is an add-on because a café can genuinely want a till and not want to
+	// know its food cost. A shop has no such case: what it sells *is* what is
+	// on the shelf, the products keep their own stock rows, and a shop that
+	// cannot open the balances screen cannot do the one thing it bought this
+	// for. Selling it separately would be selling a shop a till that cannot
+	// count.
+	//
+	// ⚠️ **The rungs differ by scale, not by withheld software** — the rule the
+	// restaurant ladder already follows between Start and Standard. Registers
+	// first, then more than one shop.
+	{
+		ID: PlanShopStart, Monthly: 149_000, Registers: 1,
+		Modules: []string{ModStock},
+		Kind:    KindShop,
+	},
+	{
+		ID: PlanShopStandard, Monthly: 290_000, Registers: 2,
+		Modules: []string{ModStock},
+		Kind:    KindShop,
+	},
+	{
+		// ⚠️ **425 000 rather than the 490 000 first drawn**, and the reason is
+		// arithmetic the price list hides: at 490 000 a shop's third register
+		// cost 163 000 against 145 000 for its second, so a counter with a
+		// queue would not buy the terminal that clears it. The same defect the
+		// restaurant ladder was redrawn to remove, reproduced from scratch on
+		// the second ladder — which is why it is a test and not a comment.
+		ID: PlanShopPro, Monthly: 425_000, Registers: 5,
+		Modules: []string{ModStock, ModMultiBranch, ModPOSIntegration},
+		Kind:    KindShop,
+	},
+	{
+		ID: PlanShopEnterprise, Monthly: 0, Registers: 0,
+		Modules: []string{
+			ModStock, ModMultiBranch, ModPOSIntegration, ModFranchise,
+		},
+		Individual: true,
+		Kind:       KindShop,
+	},
+}
+
+// PlansFor returns the ladder a business of this kind is sold.
+//
+// ⚠️ **The business type chooses the ladder, and the operator cannot cross
+// over.** Not tidiness: the shop rungs are a third of the price, so a
+// restaurant put on one by a slip of the mouse would pay 149 000 for what it
+// agreed 450 000 for — and nobody would notice, because the invoice would be
+// perfectly consistent with the plan stored on the tenant.
+func PlansFor(businessType string) []Plan {
+	kind := ""
+	if sellsGoods(businessType) {
+		kind = KindShop
+	}
+	out := []Plan{}
+	for _, p := range plans {
+		if p.Kind == kind {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// PlanFitsBusiness reports whether this rung may be sold to this business.
+//
+// ⚠️ **Checked at the write, not only drawn on the screen.** A console that
+// offers the right rungs is a convenience; a write that refuses the wrong one
+// is the rule. The console is not the only thing that posts here.
+func PlanFitsBusiness(p Plan, businessType string) bool {
+	want := ""
+	if sellsGoods(businessType) {
+		want = KindShop
+	}
+	return p.Kind == want
+}
+
+// sellsGoods mirrors models.BusinessType.SellsGoods on the tenant side.
+//
+// ⚠️ **A copy, and it has to be.** The control plane does not import the
+// restaurant's packages, and the two lists are joined by a test rather than by
+// the compiler — see plans_test.go. Anything unrecognised is a restaurant, so a
+// business type from a newer console cannot silently move a customer onto the
+// cheaper ladder.
+func sellsGoods(businessType string) bool {
+	switch strings.ToLower(strings.TrimSpace(businessType)) {
+	case "grocery", "clothing", "flowers", "pharmacy":
+		return true
+	}
+	return false
 }
 
 // Plans returns the ladder in display order.
