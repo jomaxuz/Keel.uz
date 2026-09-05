@@ -42,6 +42,19 @@ func (h *Handler) menuLine(
 		return models.OrderItem{}, http.StatusBadRequest,
 			errors.New(dbItem.Name + " hozircha mavjud emas")
 	}
+	// ⚠️ **A model is not a thing on the shelf.** A shirt that comes in five
+	// sizes has a row of its own to hang the photograph, the category and the
+	// name on; what is counted, scanned and carried out of the shop is always a
+	// size. Sold directly it would take money for a line no delivery ever
+	// stocked and no stocktake could ever find — and the receipt would say
+	// "Ko'ylak" with no size on it, which is unanswerable at a return.
+	//
+	// ⚠️ Refused **here**, in the one function the till, the website and the
+	// call centre all price through, rather than in each of them.
+	if len(dbItem.VariantAxes) > 0 {
+		return models.OrderItem{}, http.StatusBadRequest,
+			errors.New(dbItem.Name + ": o'lcham yoki rangni tanlang")
+	}
 	// One receipt, one brand. Taken from the dishes themselves rather than a
 	// field the client sends: the cart is per-brand by construction, so the
 	// menu is the honest source. Two kitchens cannot fill one receipt.

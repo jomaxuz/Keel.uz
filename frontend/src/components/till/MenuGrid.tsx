@@ -192,7 +192,13 @@ function Tile({
   // taps twice on a dish that was already waiting for an answer — then finds
   // two lines on the check, or none.
   const asks = (item.options?.length ?? 0) > 0;
-  const name = contentName(item, lang);
+  // ⚠️ **The size is part of the name on a tile.** Twelve tiles all reading
+  // "Ko'ylak" are twelve tiles a cashier cannot choose between, and choosing
+  // wrongly sells the wrong size — which is found out by the customer, at home.
+  const variant = (item.variant ?? []).join(" / ");
+  const name = variant
+    ? `${contentName(item, lang)} · ${variant}`
+    : contentName(item, lang);
 
   return (
     <button

@@ -784,6 +784,20 @@ export const adminUz = {
     sellsItself: "Tovarning o'zi sotiladi",
     sellsItselfHint:
       "Do'kon uchun: sotib olingan narsaning o'zi sotiladi. Texkarta shart emas — ombor qatorini tizim o'zi yuritadi.",
+    // ⚠️ A variant is a product, not an option: it has a barcode and a shelf.
+    variantTitle: "Variantlar (o'lcham, rang)",
+    variantAxisPh: "O'lcham",
+    variantValuesPh: "S, M, L, XL",
+    variantAddAxis: "O'lchov qo'shish",
+    variantGenerate: "Variantlarni yaratish",
+    variantHave: (n: number) => `${n} ta variant bor`,
+    variantMade: (n: number) =>
+      n > 0
+        ? `${n} ta yangi variant yaratildi`
+        : "Yangi variant yo'q — hammasi bor edi",
+    variantHint:
+      "Har variant alohida mahsulot: o'z shtrix-kodi va o'z qoldig'i bilan. Modelning o'zi sotilmaydi — kassada o'lcham tanlanadi. Yaratish hech nimani o'chirmaydi.",
+    variantOf: "Variant",
     add: "+ Taom",
     empty: "Menyu bo'sh",
     newTitle: "Yangi taom",
@@ -5363,6 +5377,17 @@ export const adminRu: AdminDict = {
     sellsItself: "Продаётся сам товар",
     sellsItselfHint:
       "Для магазина: продаётся то же, что закуплено. Техкарта не нужна — складскую строку ведёт система.",
+    variantTitle: "Варианты (размер, цвет)",
+    variantAxisPh: "Размер",
+    variantValuesPh: "S, M, L, XL",
+    variantAddAxis: "Добавить измерение",
+    variantGenerate: "Создать варианты",
+    variantHave: (n: number) => `${n} вариантов`,
+    variantMade: (n: number) =>
+      n > 0 ? `Создано вариантов: ${n}` : "Новых нет — все уже были",
+    variantHint:
+      "Каждый вариант — отдельный товар со своим штрихкодом и остатком. Сама модель не продаётся: на кассе выбирается размер. Создание ничего не удаляет.",
+    variantOf: "Вариант",
     add: "+ Блюдо",
     empty: "Меню пустое",
     newTitle: "Новое блюдо",
@@ -9612,6 +9637,17 @@ export const adminEn: AdminDict = {
     sellsItself: "Sells the goods themselves",
     sellsItselfHint:
       "For a shop: what is sold is what was bought. No tech card — the system keeps the stock row itself.",
+    variantTitle: "Variants (size, colour)",
+    variantAxisPh: "Size",
+    variantValuesPh: "S, M, L, XL",
+    variantAddAxis: "Add an axis",
+    variantGenerate: "Create the variants",
+    variantHave: (n: number) => `${n} variants`,
+    variantMade: (n: number) =>
+      n > 0 ? `${n} new variants created` : "Nothing new — they all existed",
+    variantHint:
+      "Each variant is its own product, with its own barcode and its own shelf count. The model itself is not sold: a size is chosen at the till. Generating never deletes.",
+    variantOf: "Variant",
     add: "+ Dish",
     empty: "The menu is empty",
     newTitle: "New dish",

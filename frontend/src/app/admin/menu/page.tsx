@@ -20,6 +20,7 @@ import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
 import type { Category, ComboLine, Ingredient, MenuItem } from "@/lib/types";
 import { composes, hasKitchen, sellsGoods } from "@/lib/types";
+import VariantsEditor from "@/components/admin/VariantsEditor";
 import { useAsk } from "@/components/ui/Ask";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
@@ -360,6 +361,37 @@ export default function AdminMenuPage() {
     (i) => !i.recipeCost && !i.cost && !i.comboContents?.length,
   );
   const shown = uncostedOnly ? uncosted : items;
+  /** One list in model order: each model followed by its own variants.
+   *
+   *  ⚠️ **Ordered rather than hidden.** Every variant needs a barcode typed
+   *  into it, so they have to stay reachable — but left to the sort order they
+   *  are twelve rows of the same word in twelve different places, and the one
+   *  with no barcode is the one nobody finds. */
+  function grouped(list: MenuItem[]): MenuItem[] {
+    const kids = new Map<string, MenuItem[]>();
+    for (const m of list) {
+      if (!m.variantOf) continue;
+      kids.set(m.variantOf, [...(kids.get(m.variantOf) ?? []), m]);
+    }
+    const out: MenuItem[] = [];
+    const placed = new Set<string>();
+    for (const m of list) {
+      if (m.variantOf) continue;
+      out.push(m);
+      placed.add(m.id);
+      for (const k of kids.get(m.id) ?? []) {
+        out.push(k);
+        placed.add(k.id);
+      }
+    }
+    // ⚠️ A variant whose model sits in another category — or has been deleted —
+    // still has stock behind it, so it must appear somewhere on this screen.
+    for (const m of list) {
+      if (!placed.has(m.id)) out.push(m);
+    }
+    return out;
+  }
+
   const byCat = cats.map((c) => ({
     category: c,
     items: shown.filter((i) => i.categoryId === c.id),
@@ -454,7 +486,7 @@ export default function AdminMenuPage() {
                   className="divide-y divide-line rounded-3xl border border-line bg-surface shadow-card"
                   max="max-h-[26rem]"
                 >
-                  {list.map((m) => (
+                  {grouped(list).map((m) => (
                     <MenuRow
                       key={m.id}
                       item={m}
@@ -482,7 +514,7 @@ export default function AdminMenuPage() {
                 className="divide-y divide-line rounded-3xl border border-line bg-surface shadow-card"
                 max="max-h-[26rem]"
               >
-                {orphans.map((m) => (
+                {grouped(orphans).map((m) => (
                   <MenuRow
                     key={m.id}
                     item={m}
@@ -1004,6 +1036,22 @@ export default function AdminMenuPage() {
                 </span>
               </div>
             </label>
+
+            {/* ⚠️ **Only on a saved product**, for the reason the technical
+                card link is: the variants are written against an id, and a
+                model that has not been saved has none. */}
+            {draft.id && (
+              <div className="block text-sm sm:col-span-2">
+                <span className="font-medium">{t.menu.variantTitle}</span>
+                <div className="mt-1">
+                  <VariantsEditor
+                    item={items.find((m) => m.id === draft.id) ?? ({ id: draft.id } as MenuItem)}
+                    variants={items.filter((m) => m.variantOf === draft.id)}
+                    onDone={load}
+                  />
+                </div>
+              </div>
+            )}
               </>
             )}
 

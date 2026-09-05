@@ -220,7 +220,19 @@ func (h *Handler) GetMenu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	itemOpts := options.Find().SetSort(bson.D{{Key: "sortOrder", Value: 1}})
-	itemCur, err := h.Store.Menu.Find(r.Context(), scope.brandFilter(bson.M{"isAvailable": true}), itemOpts)
+	// ⚠️ **A model row is not on this list, because it cannot be sold.** A shirt
+	// that comes in five sizes has a row of its own to hang the photograph, the
+	// name and the category on; what is counted, scanned and carried out of the
+	// shop is always a size, and `menuLine` refuses the model outright. Left in
+	// the catalogue it would be a card on the website and a tile on the till
+	// that answers every tap with a refusal — which is worse than an absent
+	// tile, because somebody tries it a second time.
+	//
+	// ⚠️ Refused **here**, in the one query the website, the till and the floor
+	// screen all read the menu from, rather than in each of them.
+	menuFilter := scope.brandFilter(bson.M{"isAvailable": true})
+	menuFilter["variantAxes"] = bson.M{"$in": []any{nil, []any{}}}
+	itemCur, err := h.Store.Menu.Find(r.Context(), menuFilter, itemOpts)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return

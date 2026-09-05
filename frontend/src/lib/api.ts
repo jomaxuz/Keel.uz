@@ -1278,6 +1278,16 @@ export const api = {
       body: { recipe },
       auth: true,
     }),
+  /** Fill out a model's matrix: every size against every colour, in one press.
+   *
+   *  ⚠️ **Creates, never deletes.** A variant dropped from the axes may still
+   *  be on a shelf, in a delivery and on last month's receipts — see
+   *  handlers/menuvariants.go. Pressing this twice adds only what is missing. */
+  generateVariants: (id: string, axes: { name: string; values: string[] }[]) =>
+    request<{ created: number; total: number }>(
+      `/admin/menu/${id}/variants`,
+      { method: "POST", body: { axes }, auth: true },
+    ),
   deleteMenuItem: (id: string) =>
     request<{ deleted: boolean }>(`/admin/menu/${id}`, {
       method: "DELETE",

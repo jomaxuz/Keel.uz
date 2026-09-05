@@ -686,6 +686,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// screen: "Ombor → Texkartalar". The dish form above no longer
 			// carries a recipe at all — see handlers/techcards.go.
 			r.Put("/admin/menu/{id}/recipe", h.AdminSaveDishCard)
+			// Every size and colour of one model, in one press. See
+			// handlers/menuvariants.go — a variant is a product, not an option.
+			r.Post("/admin/menu/{id}/variants", h.AdminGenerateVariants)
 			r.Delete("/admin/menu/{id}", h.DeleteMenuItem)
 
 			r.Post("/admin/upload", h.Upload)

@@ -605,10 +605,23 @@ export default function TillPage() {
     const pool: MenuItem[] = q
       ? menu.flatMap((g) => g.items)
       : (menu.find((g) => g.category.id === catID)?.items ?? []);
-    const visible = pool.filter((it) => it.isAvailable);
+    // ⚠️ **A model is not a thing on the shelf, so it is not a tile.** A shirt
+    // that comes in five sizes has a row of its own to hang the photograph and
+    // the name on; what is sold is always a size, and the server refuses the
+    // model outright (`menuLine`). Left on the grid it would be a tile that
+    // answers every tap with a refusal — which is worse than no tile, because
+    // the cashier tries it again.
+    const visible = pool.filter(
+      (it) => it.isAvailable && (it.variantAxes?.length ?? 0) === 0,
+    );
     if (!q) return visible;
     return visible.filter((it) =>
-      contentName(it, lang).toLowerCase().includes(q),
+      // ⚠️ The variant's own values are searched too: "qora" and "42" are what
+      // a cashier types when the scanner will not read the label, and a search
+      // over the model name alone answers with all twelve of them.
+      `${contentName(it, lang)} ${(it.variant ?? []).join(" ")}`
+        .toLowerCase()
+        .includes(q),
     );
   }, [menu, catID, query, lang]);
 

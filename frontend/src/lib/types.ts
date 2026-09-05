@@ -759,6 +759,22 @@ export interface MenuItem {
    *  and never will. Unique within a brand, not globally: two brands under one
    *  owner may genuinely stock the same EAN. */
   barcode?: string;
+  /** The axes this model varies along: ["O'lcham", "Rang"].
+   *
+   *  ⚠️ **Non-empty makes this row the model rather than a thing on the
+   *  shelf.** A shirt in five sizes has one row to hang the photograph, the
+   *  name and the category on; what is counted, scanned and carried out of the
+   *  shop is always a size. The server refuses to sell a row with axes — see
+   *  `menuLine` — and the screens must not offer it either. */
+  variantAxes?: string[];
+  /** The model this is one variant of. Empty on an ordinary product. */
+  variantOf?: string;
+  /** What distinguishes this one: ["M", "Qora"], in the model's axis order.
+   *
+   *  ⚠️ **Values, not a name.** "M / Qora" as a string reads the same and
+   *  cannot be filtered, grouped or regenerated — and "every black one" is the
+   *  first thing a clothes shop asks for. */
+  variant?: string[];
   /** Whether this is the object that was purchased, rather than something made
    *  from purchased things.
    *

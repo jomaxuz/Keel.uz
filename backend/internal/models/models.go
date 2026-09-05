@@ -1105,6 +1105,36 @@ type MenuItem struct {
 	// portion one the dish allows?), stored, and multiplied into money.
 	Portions []int `bson:"portions,omitempty" json:"portions,omitempty"`
 
+	// ---- One model, many things on the shelf ----
+	//
+	// ⚠️ **A clothes shop does not sell "a shirt", it sells M/black.** Each
+	// size and colour has its own barcode, its own count on the shelf and its
+	// own delivery — which is to say each one is a product in every sense the
+	// stockroom already understands. So a variant *is* a menu item, and these
+	// two fields are only the thread that ties them into one model on a screen.
+	//
+	// ⚠️ **Deliberately not an option group.** Options are modifiers priced at
+	// order time (`priceDelta`, resolved server-side — see DECISIONS, "Menyu
+	// variantlari"); they have no barcode and no stock row, and they never
+	// could without teaching the whole stockroom a second kind of key. A
+	// hundred models in five sizes and three colours is 1 500 rows either way;
+	// the difference is whether the shop types them or presses a button.
+	//
+	// The axes this model varies along: ["O'lcham", "Rang"]. Non-empty makes
+	// this row **the model rather than a thing on the shelf** — it is not sold,
+	// not scanned, and carries no barcode of its own.
+	VariantAxes []string `bson:"variantAxes,omitempty" json:"variantAxes,omitempty"`
+
+	// The model this is one variant of. Empty on an ordinary product.
+	VariantOf primitive.ObjectID `bson:"variantOf,omitempty" json:"variantOf,omitempty"`
+
+	// What distinguishes this one: ["M", "Qora"], in the model's axis order.
+	//
+	// ⚠️ **Values, not a name.** "M / Qora" as a string reads the same and
+	// cannot be filtered, grouped or regenerated — and the first thing a shop
+	// asks for is "every black one".
+	Variant []string `bson:"variant,omitempty" json:"variant,omitempty"`
+
 	// The barcode printed on the packet, as the scanner reads it.
 	//
 	// ⚠️ **A shop's counter begins here.** A restaurant is tapped; a shop is

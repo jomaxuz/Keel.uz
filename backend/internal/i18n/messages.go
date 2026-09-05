@@ -371,6 +371,32 @@ var messages = map[string]pair{
 	// Sent by the queue watch, minutes after "Yangi buyurtma" — deliberately
 	// different sentences, because they report the opposite fact: not that the
 	// order arrived, but that nobody has touched it since.
+	// A clothes shop's model row: the shirt exists, the size has not been
+	// chosen. Shown at the counter and on the website alike.
+	"%s: o'lcham yoki rangni tanlang": {
+		"%s: выберите размер или цвет",
+		"%s: choose a size or colour",
+	},
+	"variantning varianti bo'lmaydi": {
+		"вариант варианта не бывает",
+		"a variant cannot have variants",
+	},
+	"o'lcham yoki rang — nomsiz variant bo'lmaydi": {
+		"размер или цвет — вариант без названия не бывает",
+		"a variant needs a name, not only values",
+	},
+	"%s: qiymatlar kiritilmagan": {
+		"%s: значения не заданы",
+		"%s: no values entered",
+	},
+	"variantlar juda ko'p — kamroq qiymat tanlang": {
+		"слишком много вариантов — выберите меньше значений",
+		"too many variants — choose fewer values",
+	},
+	"variant o'lchovi kiritilmagan": {
+		"не задано ни одного измерения варианта",
+		"no variant axis was entered",
+	},
 	"Buyurtma kutmoqda": {
 		"Заказ ждёт",
 		"An order is waiting",
