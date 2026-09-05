@@ -73,3 +73,45 @@ func TestTheConsoleOffersTheCommonAnswerFirst(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **A bouquet is the most literal technical card in the product**, and the
+// first version of the shop work hid the cards from florists because it asked
+// "does this have a kitchen?" — a question a flower shop answers no to while
+// composing everything it sells. The two predicates are separate so that
+// mistake cannot be made again by reading one as the other.
+func TestAFloristComposesWithoutAKitchen(t *testing.T) {
+	if BizFlowers.HasKitchen() {
+		t.Error("a flower shop has no kitchen")
+	}
+	if !BizFlowers.Composes() {
+		t.Error("a flower shop composes bouquets — it needs technical cards")
+	}
+	for _, b := range []BusinessType{BizGrocery, BizClothing, BizPharmacy} {
+		if b.Composes() {
+			t.Errorf("%q composes nothing: the packet sold is the packet delivered", b)
+		}
+	}
+	for _, b := range []BusinessType{BizRestaurant, BizFastFood} {
+		if !b.Composes() {
+			t.Errorf("%q turns inputs into outputs", b)
+		}
+	}
+}
+
+// ⚠️ **Half of what a florist sells is carried to somebody else's address**, and
+// on the eighth of March nearly all of it. A shop set up the week before with
+// delivery switched off would discover that on the busiest morning of its year.
+func TestAFloristStartsWithDeliveryOn(t *testing.T) {
+	if !BizFlowers.Defaults().Delivery {
+		t.Error("a flower shop must start with delivery on")
+	}
+	// And the rest of the shops keep the counter default they were given.
+	for _, b := range []BusinessType{BizGrocery, BizClothing, BizPharmacy} {
+		if b.Defaults().Delivery {
+			t.Errorf("%q now starts with delivery on — was that meant?", b)
+		}
+		if !b.Defaults().Pickup {
+			t.Errorf("%q cannot hand goods over the counter", b)
+		}
+	}
+}

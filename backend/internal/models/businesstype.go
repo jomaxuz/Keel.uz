@@ -117,6 +117,27 @@ func (b BusinessType) HasKitchen() bool {
 	return k == BizRestaurant || k == BizFastFood
 }
 
+// Composes reports whether what is sold is assembled from other things it
+// stocks — which is the question a technical card actually answers.
+//
+// ⚠️ **Not the same question as HasKitchen, and reading it as the same one was
+// wrong for exactly one business.** A florist has no kitchen and cooks nothing,
+// and a bouquet is fifteen stems, a wrap and a ribbon — the most literal
+// technical card in the product. Hiding the cards from flower shops took away
+// the screen that tells them what a bouquet costs and what a bad week wrote
+// off, which for a shop with that much waste is the screen worth paying for.
+//
+// ⚠️ A grocery, a clothes shop and a pharmacy genuinely do not compose: the
+// packet on the shelf is the packet that was delivered, and their products keep
+// the one-line card the server writes for them.
+func (b BusinessType) Composes() bool {
+	switch b.known() {
+	case BizRestaurant, BizFastFood, BizFlowers:
+		return true
+	}
+	return false
+}
+
 // Defaults returns the switches a new brand of this type starts with.
 //
 // ⚠️ **Returned rather than enforced.** This is called once, when the brand is
@@ -124,6 +145,13 @@ func (b BusinessType) HasKitchen() bool {
 // truth from that moment on.
 func (b BusinessType) Defaults() BrandFeatures {
 	switch {
+	case b.known() == BizFlowers:
+		// ⚠️ **A florist delivers, and switching that off was a real mistake
+		// rather than a conservative default.** Half of what a flower shop
+		// sells is carried to somebody else's address — on the eighth of March
+		// it is nearly all of it — and a shop set up the week before that with
+		// delivery off would find out on the busiest morning of its year.
+		return BrandFeatures{Delivery: true, Pickup: true, DineIn: false, Booking: false}
 	case b.SellsGoods():
 		// A shop hands the goods over at the counter. Delivery is off rather
 		// than impossible — a pharmacy that starts delivering turns it on.

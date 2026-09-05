@@ -62,7 +62,7 @@ import AskProvider from "@/components/ui/Ask";
 import CrashReporter from "@/components/CrashReporter";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
-import { hasKitchen, hasTables } from "@/lib/types";
+import { composes, hasKitchen, hasTables } from "@/lib/types";
 import { homeFor } from "@/lib/panelRole";
 import { SubscriptionProvider, moduleForPath } from "@/lib/subscription";
 import UpgradeGate from "@/components/admin/UpgradeCta";
@@ -178,11 +178,19 @@ const ICONS: Record<string, IconType> = {
  *  ⚠️ **A brand new to this reads as a restaurant**, so a panel that has not
  *  loaded its brand yet — or one whose brand predates the field, which is every
  *  brand today — shows exactly what it showed before. */
-type Needs = "tables" | "kitchen";
+type Needs = "tables" | "kitchen" | "composes";
 
 function needsMet(need: Needs | undefined, brand: BrandLike): boolean {
-  if (!need) return true;
-  return need === "tables" ? hasTables(brand) : hasKitchen(brand);
+  switch (need) {
+    case "tables":
+      return hasTables(brand);
+    case "kitchen":
+      return hasKitchen(brand);
+    case "composes":
+      return composes(brand);
+    default:
+      return true;
+  }
 }
 
 type BrandLike = { businessType?: string } | null | undefined;
@@ -334,7 +342,10 @@ const NAV_GROUPS = [
       // one-line card the server keeps in step with it; a screen inviting
       // somebody to edit that by hand can only break the link between the
       // packet and the shelf it comes off.
-      { href: "/admin/tech-cards", key: "techCards", needs: "kitchen" },
+      // ⚠️ **"composes", not "kitchen".** A florist has no kitchen and composes
+      // everything it sells; asking the wrong question took the cards away from
+      // the one shop that needs them most.
+      { href: "/admin/tech-cards", key: "techCards", needs: "composes" },
       // Where those prices come from: entering a delivery is how they stop
       // being retyped.
       { href: "/admin/purchases", key: "purchases" },
@@ -352,7 +363,9 @@ const NAV_GROUPS = [
       // opens this page once, reads that it is not for them, and never returns.
       // Batches made in a prep workshop — a kitchen turning inputs into
       // outputs, which is the one thing a shop does not do.
-      { href: "/admin/production", key: "production", needs: "kitchen" },
+      // Batches made in a back room: fifty bouquets for the eighth of March is
+      // the same document as a pot of sauce.
+      { href: "/admin/production", key: "production", needs: "composes" },
       // And the count that turns the difference between them into an answer.
       { href: "/admin/stocktake", key: "stocktake" },
     ],

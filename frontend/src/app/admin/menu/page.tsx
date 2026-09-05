@@ -19,7 +19,7 @@ import OptionsEditor, {
 import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
 import type { Category, ComboLine, Ingredient, MenuItem } from "@/lib/types";
-import { hasKitchen, sellsGoods } from "@/lib/types";
+import { composes, hasKitchen, sellsGoods } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
@@ -170,6 +170,8 @@ export default function AdminMenuPage() {
   // ⚠️ Whether anything here is cooked to order. Separate from the question
   // above, because a fast food is neither: it has a kitchen and sells no goods.
   const brandHasKitchen = hasKitchen(scope.brand);
+  // ⚠️ The tech card follows composition, not cooking — see types.ts.
+  const brandComposes = composes(scope.brand);
   // ⚠️ **The data wins over the type.** A dish that already carries a barcode
   // keeps its fields visible whatever kind of business this is — otherwise the
   // value is saved on every edit and can never be seen or removed, which is the
@@ -750,7 +752,7 @@ export default function AdminMenuPage() {
                 hand can only break the tie between the packet and the shelf it
                 comes off. Shown anyway when a card already exists — data wins
                 over the type, here as everywhere on this page. */}
-            {(brandHasKitchen || draft.recipeLines > 0) && (
+            {(brandComposes || draft.recipeLines > 0) && (
             <div className="block text-sm sm:col-span-2">
               <span className="font-medium">{t.recipe.title}</span>
               <div className="mt-1 rounded-xl bg-ink/[0.03] px-3 py-2">

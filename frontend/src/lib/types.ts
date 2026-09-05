@@ -1782,6 +1782,19 @@ export function hasKitchen(brand?: { businessType?: string } | null): boolean {
   return !t || t === "fastfood";
 }
 
+/** Is what this brand sells assembled from other things it stocks?
+ *
+ *  ⚠️ **Not the same question as `hasKitchen`, and reading it as the same one
+ *  was wrong for exactly one business.** A florist cooks nothing and has no
+ *  kitchen, and a bouquet is fifteen stems, a wrap and a ribbon — the most
+ *  literal technical card there is. Asking the kitchen question took the cards
+ *  away from flower shops, which is the screen that tells them what a bouquet
+ *  costs and what a bad week threw out. Mirrors `BusinessType.Composes`. */
+export function composes(brand?: { businessType?: string } | null): boolean {
+  const t = brand?.businessType;
+  return !t || t === "fastfood" || t === "flowers";
+}
+
 export function sellsGoods(brand?: { businessType?: string } | null): boolean {
   switch (brand?.businessType) {
     case "grocery":
