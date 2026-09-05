@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The one place the brand orange is spelled outside Kotlin: the
+         notification tint, which the system reads from resources. -->
+    <color name="keel_orange">#E2590D</color>
+    <color name="keel_navy">#000B1C</color>
+</resources>
