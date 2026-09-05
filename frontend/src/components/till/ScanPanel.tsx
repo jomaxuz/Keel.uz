@@ -95,14 +95,35 @@ export default function ScanPanel({
     return () => clearInterval(t);
   }, [grab]);
 
-  async function submit(raw: string) {
+  /** Codes waiting their turn, so none is lost and none overtakes another.
+   *
+   *  ⚠️ **A queue, because refusing while busy loses the packet.** A scanner
+   *  sends the next code the moment it is pointed at the next label, which is
+   *  well inside the round trip for the one before it. Dropping that scan is
+   *  the worst available outcome: the beep sounds, the cashier moves on, and
+   *  the item is simply not on the bill. Nobody finds out at the counter —
+   *  it turns up as a shortfall at the next stocktake, with nothing to tie it
+   *  to.
+   *
+   *  ⚠️ **In order, one at a time.** They must not run together either: the
+   *  first scan of a sale opens the check, and a second one racing it would
+   *  ask for a second check. */
+  const queue = useRef<Promise<void>>(Promise.resolve());
+
+  function enqueue(raw: string) {
     const value = raw.trim();
-    if (!value || busy) return;
+    if (!value) return;
+    // ⚠️ Cleared here rather than after the round trip: the next code is
+    // already being typed into this box by the scanner.
+    setCode("");
+    queue.current = queue.current.then(() => submit(value));
+  }
+
+  async function submit(value: string) {
     setBusy(true);
     setError("");
     try {
       const res = await api.tillScan(value);
-      setCode("");
       // ⚠️ **Back to scanning after a code goes through.** Typing one in by
       // hand is the exception — a torn label — and leaving the keyboard up
       // afterwards would put it back over the check for the rest of the queue.
@@ -177,7 +198,7 @@ export default function ScanPanel({
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              void submit(code);
+              enqueue(code);
             }
           }}
           // ⚠️ Off, all of it: a barcode is not a word. Autocorrect on an
@@ -214,7 +235,7 @@ export default function ScanPanel({
         <button
           className="till-btn h-11 shrink-0 px-4"
           disabled={!code.trim() || busy}
-          onClick={() => void submit(code)}
+          onClick={() => enqueue(code)}
         >
           {t.till.barcodeAdd}
         </button>

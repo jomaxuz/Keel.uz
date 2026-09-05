@@ -242,7 +242,23 @@ export default function TillPage() {
   // server's own so a waiter looking for table 7 finds it, and marked so nobody
   // wonders why the pass has not started cooking.
   const [locals, setLocals] = useState<LocalCheck[]>([]);
-  const [active, setActive] = useState<Check | null>(null);
+  const [active, storeActive] = useState<Check | null>(null);
+  /** The same check, readable from a callback that has gone stale.
+   *
+   *  ⚠️ **A scanner outruns React, and a closure remembers what it was told.**
+   *  Two scans in quick succession run through handlers created by the same
+   *  render, so the second one reads `active` as null however long it waited —
+   *  and opens a second check for a customer standing at one counter with one
+   *  basket. State is what the screen draws; this is what the next line asks. */
+  const activeRef = useRef<Check | null>(null);
+  /** ⚠️ **The only writer**, so the ref cannot fall behind the state. Eighteen
+   *  call sites set the open check; a mirror kept by an effect would be correct
+   *  on screen and one turn late for the next scan, which is exactly the gap
+   *  being closed here. */
+  const setActive = useCallback((next: Check | null) => {
+    activeRef.current = next;
+    storeActive(next);
+  }, []);
   const [catID, setCatID] = useState<string>("");
   // ⚠️ **Per device, in localStorage.** Photographs help on a bright 15" panel
   // with a decent processor and hurt on the four-gigabyte monoblock next to it;
@@ -761,8 +777,27 @@ export default function TillPage() {
    *  ⚠️ **No table and one guest, deliberately.** A counter sale is the case
    *  `StaffOpenCheck` already allows without a table; a dialog asking a shop
    *  cashier how many people are in their party would be asked three hundred
-   *  times a day and answered wrongly once. */
-  const openCounterCheck = () => openCheck("", 1);
+   *  times a day and answered wrongly once.
+   *
+   *  ⚠️ **One at a time, and the second caller waits for the first.** Two
+   *  scans a fraction of a second apart — a scanner that sent its code twice,
+   *  two taps on a card — both read `active` as null, because state has not
+   *  landed yet, and both open a check. The customer's two items end up on two
+   *  bills, one of which is paid and one of which stays open on the counter
+   *  for the rest of the day. Holding the promise rather than a boolean is what
+   *  makes the second line land on the same check instead of being dropped.
+   *
+   *  ⚠️ A ref, not state: this must be true for the *next line of this
+   *  function*, and a state update is not. That gap is the whole bug. */
+  const openingCounter = useRef<Promise<Check | null> | null>(null);
+  function openCounterCheck(): Promise<Check | null> {
+    if (!openingCounter.current) {
+      openingCounter.current = openCheck("", 1).finally(() => {
+        openingCounter.current = null;
+      });
+    }
+    return openingCounter.current;
+  }
 
   async function addDish(
     item: MenuItem,
@@ -775,7 +810,8 @@ export default function TillPage() {
     // to tap and no party to count, so requiring an open check would make the
     // opening move of every sale a step the cashier performs on a screen that
     // has nothing else on it. A restaurant is unchanged: no check, no line.
-    const check = active ?? (sellsGoods ? await openCounterCheck() : null);
+    const check =
+      activeRef.current ?? (sellsGoods ? await openCounterCheck() : null);
     if (!check) return;
     // ⚠️ **The scan is asked for here rather than at the tile**, because this is
     // the one path every way of adding a dish goes through — a plain tap, a tap

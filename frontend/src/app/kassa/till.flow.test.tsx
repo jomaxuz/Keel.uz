@@ -9,7 +9,7 @@
  * of those.
  */
 
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { adminUz as t } from "@/lib/i18n/admin";
@@ -1651,5 +1651,57 @@ describe("the scan box and the on-screen keyboard", () => {
     await user.click(search);
     await new Promise((r) => setTimeout(r, 1800));
     expect(search).toHaveFocus();
+  });
+});
+
+/**
+ * The counter under a fast thumb.
+ *
+ * ⚠️ **The till has three guarantees about fast taps and they live in the
+ * layout** (`TillAppliance`, see DECISIONS → "tez bosganda qotib qolish"), so a
+ * shop's counter inherits them: it is the same screen. What it does *not*
+ * inherit is this — opening the sale itself, which a restaurant does through a
+ * dialog and a shop does on the first scan.
+ */
+describe("a shop counter tapped faster than the network", () => {
+  it("puts two quick scans on one bill, not two", async () => {
+    server = installTillServer({
+      sellsGoods: true,
+      hasTables: false,
+      barcodes: {
+        "4780000000001": { name: PLAIN_DISH },
+        "4780000000002": { name: TEA_DISH },
+      },
+    });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    const box = await screen.findByPlaceholderText(t.till.barcodePlaceholder);
+    // ⚠️ **Fired synchronously, with nothing awaited in between**, which is the
+    // only way to reproduce what a scanner does: both submits start before the
+    // state carrying the first check has landed, so both read `active` as null.
+    // Driving this through `user.type` proves nothing — it waits long enough
+    // for React to settle, and the test passed with the bug still in.
+    fireEvent.change(box, { target: { value: "4780000000001" } });
+    fireEvent.keyDown(box, { key: "Enter" });
+    fireEvent.change(box, { target: { value: "4780000000002" } });
+    fireEvent.keyDown(box, { key: "Enter" });
+
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(2));
+    expect(server.calls.openCheck).toHaveLength(1);
+    // Both lines on the same check.
+    expect(server.calls.addLines[0].checkId).toBe(
+      server.calls.addLines[1].checkId,
+    );
+    // ⚠️ And both visible on it. The queue is what makes this hold: two adds
+    // in flight together answer with two snapshots of the same check, and the
+    // one that lands last wins — so the later reply, built before the other
+    // line existed, would quietly take it off the screen while the server
+    // still had it.
+    await waitFor(() => {
+      expect(screen.getAllByText(PLAIN_DISH).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(TEA_DISH).length).toBeGreaterThan(0);
+    });
   });
 });
