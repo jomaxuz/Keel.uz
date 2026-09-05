@@ -55,12 +55,40 @@ export default function ScanPanel({
   const [last, setLast] = useState<Scanned | null>(null);
   /** A weighed product that arrived without a weight — mode three. */
   const [asking, setAsking] = useState<MenuItem | null>(null);
+  /** Whether the cashier asked to type the digits themselves.
+   *
+   *  ⚠️ **Off by default, and that is what keeps the on-screen keyboard down.**
+   *  The field must hold the focus — a scanner types into whatever has it — but
+   *  a focused numeric input on a touchscreen summons the software keyboard,
+   *  and this one takes the focus back every second and a half. The keyboard
+   *  therefore reappeared over the check for the whole shift, however many
+   *  times it was dismissed. `inputMode: "none"` keeps the focus and refuses
+   *  the keyboard; a hardware scanner is unaffected, because it is a keyboard
+   *  itself. */
+  const [typing, setTyping] = useState(false);
 
   // ⚠️ **The field takes the focus back, and this is not a nicety.** A cashier
   // who taps the check to correct a line leaves this input; the next scan then
   // types its digits into nothing and ends with an Enter that does nothing at
   // all. They scan again, harder, and report that the scanner is broken.
-  const grab = useCallback(() => box.current?.focus(), []);
+  // ⚠️ **Never out of another field somebody is typing in.** Taking it back
+  // from a *button* is the whole point — that is where the focus lands after
+  // every tap on the screen, and the next scan has to reach this box. Taking it
+  // back from an input is the opposite: "1.5" typed into the weight dialog
+  // arrived as "1" there and ".5" here, and the search box above the cards
+  // could not be typed into at all. The cashier saw their own digits jump
+  // between two fields and had no way to describe it.
+  const grab = useCallback(() => {
+    const el = document.activeElement as HTMLElement | null;
+    const busyElsewhere =
+      !!el &&
+      el !== box.current &&
+      (el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.isContentEditable);
+    if (busyElsewhere) return;
+    box.current?.focus();
+  }, []);
   useEffect(() => {
     grab();
     const t = setInterval(grab, 1500);
@@ -75,6 +103,10 @@ export default function ScanPanel({
     try {
       const res = await api.tillScan(value);
       setCode("");
+      // ⚠️ **Back to scanning after a code goes through.** Typing one in by
+      // hand is the exception — a torn label — and leaving the keyboard up
+      // afterwards would put it back over the check for the rest of the queue.
+      setTyping(false);
       if (!res.found || !res.item) {
         // ⚠️ The code is shown because it is what somebody will be asked for,
         // and because reading it off the screen is faster than reading it off a
@@ -155,8 +187,30 @@ export default function ScanPanel({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          inputMode="numeric"
+          // ⚠️ **"none" until somebody asks to type.** See `typing` above: this
+          // is the difference between a till that holds the scanner's focus and
+          // a till whose keyboard covers the check all day.
+          inputMode={typing ? "numeric" : "none"}
         />
+        {/* The way in for a code that will not scan — a torn label, a packet
+            whose barcode is under the fold. ⚠️ A button rather than "just tap
+            the field": tapping the field is what the cashier does by accident
+            all day, and if that opened the keyboard nothing above would have
+            changed. */}
+        <button
+          className="till-btn h-11 w-11 shrink-0 px-0 text-base"
+          aria-pressed={typing}
+          title={t.till.barcodeType}
+          aria-label={t.till.barcodeType}
+          onClick={() => {
+            setTyping(!typing);
+            // Focus after the mode changes, so the browser reads the new
+            // `inputmode` when it decides about the keyboard.
+            setTimeout(grab, 0);
+          }}
+        >
+          ⌨
+        </button>
         <button
           className="till-btn h-11 shrink-0 px-4"
           disabled={!code.trim() || busy}

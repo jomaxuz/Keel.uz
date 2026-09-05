@@ -1590,3 +1590,66 @@ describe("a counter with no kitchen behind it", () => {
     ).toBeInTheDocument();
   });
 });
+
+/**
+ * The scan box on a touchscreen.
+ *
+ * ⚠️ **Both of these are invisible on a desktop with a real keyboard**, which
+ * is where this screen is written, and unbearable on the tablet where it is
+ * used: the software keyboard came back over the check every second and a half
+ * because the field takes its focus back, and the weight box could not be typed
+ * into at all for the same reason.
+ */
+describe("the scan box and the on-screen keyboard", () => {
+  it("holds the focus without asking for a keyboard", async () => {
+    server = installTillServer({ sellsGoods: true, hasTables: false });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    const box = await screen.findByPlaceholderText(t.till.barcodePlaceholder);
+    // Focused, because a scanner types into whatever holds the focus…
+    await waitFor(() => expect(box).toHaveFocus());
+    // …and refusing the keyboard, because it is a keyboard itself.
+    expect(box).toHaveAttribute("inputmode", "none");
+
+    // The way in for a torn label: asked for explicitly, never by accident.
+    await user.click(screen.getByRole("button", { name: t.till.barcodeType }));
+    await waitFor(() => expect(box).toHaveAttribute("inputmode", "numeric"));
+  });
+
+  it("lets go of the focus while a weight is being typed", async () => {
+    server = installTillServer({
+      sellsGoods: true,
+      hasTables: false,
+      weighedDishes: { [PLAIN_DISH]: 11 },
+    });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await screen.findByPlaceholderText(t.till.barcodePlaceholder);
+
+    await user.click(await dishTile(PLAIN_DISH));
+    const kg = await screen.findByPlaceholderText(t.till.kgUnit);
+
+    // ⚠️ Past the refocus interval: the scan box used to take the focus back
+    // mid-number, so "1.5" arrived as "1" here and ".5" in the scan box.
+    await new Promise((r) => setTimeout(r, 1800));
+    expect(kg).toHaveFocus();
+  });
+
+  it("lets the cashier search the cards without being interrupted", async () => {
+    // ⚠️ The third place the same rule bites, and the one the shop counter
+    // needs most: searching the products by hand is what you do when the
+    // scanner has stopped reading.
+    server = installTillServer({ sellsGoods: true, hasTables: false });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    const search = await screen.findByPlaceholderText(t.till.search);
+    await user.click(search);
+    await new Promise((r) => setTimeout(r, 1800));
+    expect(search).toHaveFocus();
+  });
+});

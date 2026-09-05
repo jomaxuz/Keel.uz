@@ -2364,6 +2364,8 @@ export const adminUz = {
     // ⚠️ Each of these says what to do next rather than what went wrong: they
     // are read with a queue waiting.
     barcodePlaceholder: "Shtrix-kodni skanerlang",
+    // ⚠️ The on-screen keyboard is off until this is pressed — see ScanPanel.
+    barcodeType: "Qo'lda terish",
     barcodeAdd: "Qo'shish",
     barcodeHint: "Tovarni skanerlang — chekka o'zi tushadi",
     barcodeUnknown: (code: string) =>
@@ -6795,6 +6797,7 @@ export const adminRu: AdminDict = {
     barcodeStale: (price: number) =>
       `Цена на весах отличается от базы (${price} сум). Обновите весы или введите вручную.`,
     barcodePlaceholder: "Отсканируйте штрихкод",
+    barcodeType: "Ввести вручную",
     barcodeAdd: "Добавить",
     barcodeHint: "Отсканируйте товар — он сам попадёт в чек",
     barcodeUnknown: (code: string) =>
@@ -11038,6 +11041,7 @@ export const adminEn: AdminDict = {
     barcodeStale: (price: number) =>
       `The scale's price differs from the catalogue (${price}). Update the scale, or enter it by hand.`,
     barcodePlaceholder: "Scan the barcode",
+    barcodeType: "Type it in",
     barcodeAdd: "Add",
     barcodeHint: "Scan an item — it goes onto the check by itself",
     barcodeUnknown: (code: string) =>
