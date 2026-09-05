@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { formatPrice, weekdayName } from "@/lib/format";
+import ScaleSettings from "@/components/admin/ScaleSettings";
 import ImageUpload from "@/components/admin/ImageUpload";
 import AddressMap, { type LatLng } from "@/components/map/AddressMap";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
@@ -69,6 +70,11 @@ const BRANCH_FIELDS = [
   "delivery",
   "booking",
   "preorder",
+  // ⚠️ **The scale is a physical object in a room**, so its layout belongs to
+  // the branch. Two shops of one brand can have been set up by two different
+  // installers, and a layout read from the wrong one charges for a quantity
+  // nobody weighed.
+  "scale",
 ] as const;
 
 // And which belong to the brand: the face the guest sees. A company running a
@@ -141,6 +147,7 @@ export default function AdminSettingsPage() {
                 delivery: editedBranch.delivery,
                 booking: editedBranch.booking,
                 preorder: editedBranch.preorder,
+                scale: editedBranch.scale,
               }
             : {}),
         };
@@ -1085,6 +1092,21 @@ export default function AdminSettingsPage() {
             <BranchesEditor />
           </Section>
         )}
+
+        {/* ⚠️ **Beside the room rather than in the till settings**, because a
+            scale is a physical object in this branch — the same category as the
+            floor plan and the hours. Two shops of one brand can have been set up
+            by two different installers. */}
+        <Section
+          title={t.scale.enabled}
+          group="hall"
+          blockedBy={branchGate}
+        >
+          <ScaleSettings
+            value={rest.scale}
+            onChange={(next) => patch({ scale: next })}
+          />
+        </Section>
 
         {/* Table booking: the room is drawn here, guests book on it */}
         <Section

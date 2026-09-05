@@ -98,6 +98,17 @@ type Bridge = {
   /** The machine's own database — SQLite with WAL and `synchronous=FULL`.
    *  See `lib/offline/store.ts` for why the browser's storage is not enough
    *  and what the till falls back to when this is not there. */
+  /** The current reading from a counter scale, in kilograms.
+   *
+   *  ⚠️ **Rejects rather than returns zero.** A scale that is switched off, a
+   *  port that is wrong, an empty pan and an untared scale are four different
+   *  sentences somebody can act on — and a zero would be none of them, silently
+   *  adding nothing to a check.
+   *
+   *  ⚠️ Present only in the Windows till. A browser has no serial port, and the
+   *  screens fall back to typing the weight — see `canWeigh`. */
+  Weigh: (port: string) => Promise<number>;
+
   StoreReady: () => Promise<boolean>;
   StorePut: (store: string, key: string, value: string) => Promise<void>;
   StoreAll: (store: string) => Promise<string[]>;
@@ -184,4 +195,21 @@ export async function unpair(): Promise<boolean> {
 /** Whether this till can print without the browser's dialog. */
 export function canPrintLocally(): boolean {
   return bridge() !== null;
+}
+
+/** Whether this machine can read a scale at all.
+ *
+ *  ⚠️ **Asked before a button is drawn, not after it is pressed.** The same
+ *  lesson `canPrintLocally` carries: a control that exists and then explains it
+ *  cannot work is worse than one that was never there, and on a counter it is
+ *  pressed during a queue. */
+export function canWeigh(): boolean {
+  return typeof bridge()?.Weigh === "function";
+}
+
+/** Read the scale, in kilograms. Throws with the reason. */
+export async function weigh(port: string): Promise<number> {
+  const b = bridge();
+  if (!b?.Weigh) throw new Error("no bridge");
+  return b.Weigh(port);
 }

@@ -407,6 +407,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/staff/checks/{id}/merge", h.StaffMergeChecks)
 			r.Get("/staff/reservations", h.StaffReservations)
 			r.Get("/staff/branch", h.StaffBranch)
+			// What the scanner read, in one request. A shop's counter is this
+			// call repeated, so it answers "not found" as a state rather than
+			// as an error — see handlers/tillbarcode.go.
+			r.Get("/staff/scan", h.StaffScanBarcode)
 			// The manual stop list, on the counter's own screen.
 			//
 			// ⚠️ **The same list the panel writes** (`branch.soldOut`), reached

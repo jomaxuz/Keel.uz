@@ -4164,12 +4164,54 @@ export const api = {
    *  belongs to a branch by its token, and on a company with two of them the
    *  counter was drawing the other room's floor plan: the right number of
    *  tables, the right shapes, the wrong building. */
+  /** What the scanner read, resolved to a product.
+   *
+   *  ⚠️ **"Not found" comes back as a state, not as an error.** The cashier is
+   *  holding the packet with a queue behind them; a red failure sends them
+   *  looking for a fault, when the honest next step is to add the product. The
+   *  scanned string is echoed because it is what they will be asked for.
+   *
+   *  ⚠️ A scale label is decoded by the server and always arrives as `kg` —
+   *  including one that printed money, which the server divides by the
+   *  catalogue price. The till speaks quantities and nothing else: a line
+   *  carrying its own price would have to be understood by the check, the
+   *  receipt, the fiscal filing and the stock consumption. */
+  tillScan: (code: string) =>
+    request<{
+      found: boolean;
+      code?: string;
+      item?: MenuItem;
+      soldOut?: boolean;
+      weighed?: boolean;
+      kg?: number;
+      /** Set when the scale's own price no longer matches the catalogue's.
+       *
+       *  ⚠️ Surfaced rather than swallowed: it means the shelf price changed and
+       *  the scale was never updated, and the customer is holding a sticker that
+       *  says something else. Charging the catalogue price quietly would hide a
+       *  scale that has been wrong all week. */
+      priceMismatch?: number;
+    }>(`/staff/scan?code=${encodeURIComponent(code)}`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+
   tillBranch: () =>
     request<{
       id: string;
       name: string;
       currency: string;
       booking: BookingSettings;
+      /** Whether this counter sells the goods it bought — a shop rather than a
+       *  kitchen. ⚠️ A capability, not a business type: the screen needs to know
+       *  whether to open on a scanner, not the difference between a pharmacy and
+       *  a flower shop. */
+      sellsGoods?: boolean;
+      hasTables?: boolean;
+      /** Whether a manual weight box is worth offering at all. */
+      weighs?: boolean;
+      /** The serial port a counter scale is wired to, if any. */
+      scalePort?: string;
       /** The room's service rate. ⚠️ Needed on the device, not only on the
        *  server: a check opened during an outage has to charge what the same
        *  table would have been charged a minute earlier. */

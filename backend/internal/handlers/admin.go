@@ -494,6 +494,14 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// ⚠️ **Before the insert, because it writes the tech card onto `m`.** A
+	// product that sells itself consumes through a one-line card the server
+	// writes; run afterwards it would need a second update, and a crash between
+	// the two leaves a product that sells and never depletes.
+	if err := h.syncProductStock(r.Context(), &m); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	res, err := h.Store.Menu.InsertOne(r.Context(), m)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -530,6 +538,15 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	m.BrandID = h.keepBrandID(r, h.Store.Menu, id, m.BrandID)
 	if err := h.validateCombo(r.Context(), &m); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	// ⚠️ **The stock row is carried across a whole-document write.** This is a
+	// ReplaceOne: a `stockId` the panel never sends would be erased, and the
+	// product would mint a second stock row on the next save — leaving the
+	// purchases and the counted balance behind on the first one.
+	m.StockID = h.keepStockID(r.Context(), id, m.StockID)
+	if err := h.syncProductStock(r.Context(), &m); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	// ⚠️ **Read before the replace, because after it there is nothing to

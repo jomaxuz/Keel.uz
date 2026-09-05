@@ -368,6 +368,14 @@ export interface Restaurant {
    *  reads one picture. Absent on documents written before it existed, which
    *  reads as off — exactly what those restaurants do today. */
   preorder?: PreorderSettings;
+  /** How this branch's scales lay out a printed barcode.
+   *
+   *  ⚠️ **A branch field, laid over the company document by the settings
+   *  screen** — the same shape as `preorder` and the hours above it. It belongs
+   *  to the branch because a scale is a physical object in a room: two shops of
+   *  one brand can have been set up by two different installers, and a layout
+   *  read from the wrong one charges for a quantity nobody weighed. */
+  scale?: ScaleLabel;
   /** Whether guests' ratings and comments appear on the public site. */
   reviews?: ReviewSettings;
   loyalty?: LoyaltySettings;
@@ -744,6 +752,23 @@ export interface MenuItem {
    *  41 = litre. Zero is "piece", which is what a portion is, so almost every
    *  dish leaves this alone. */
   unitCode?: number;
+  /** The barcode printed on the packet, as the scanner reads it.
+   *
+   *  ⚠️ **A shop's counter begins here** — it is scanned, never tapped. Empty on
+   *  every dish, which is the ordinary state: a portion of osh has no barcode
+   *  and never will. Unique within a brand, not globally: two brands under one
+   *  owner may genuinely stock the same EAN. */
+  barcode?: string;
+  /** Whether this is the object that was purchased, rather than something made
+   *  from purchased things.
+   *
+   *  ⚠️ **The one field the whole shop/restaurant difference reduces to.** A
+   *  kitchen turns inputs into outputs, so what is sold and what is stocked are
+   *  two documents with a tech card between them; a shop sells the object it
+   *  bought, so the server keeps the stock row behind this product in step. The
+   *  stock module never learns this field exists — the product still consumes
+   *  through a tech card, written by the server, saying "one unit of itself". */
+  sellsItself?: boolean;
   /** Parts of one portion this dish may be sold in, as percents (25, 50, 75…).
    *  ⚠️ Empty means whole portions only — every menu written before this
    *  existed, and the safe reading: a missing value taken as "divisible" would
@@ -1712,6 +1737,38 @@ export interface Brand {
   isActive: boolean;
 }
 
+/** How a branch's scales lay out a printed barcode.
+ *
+ *  ⚠️ **The one piece of a shop's counter that gets money wrong in silence.** A
+ *  scale prints a label whose barcode carries the weight or the price inside it,
+ *  and every vendor lays those digits out differently. Read the layout wrong and
+ *  the counter still beeps, still shows a product and still prints a receipt —
+ *  with the wrong quantity on it. Nobody notices until a stocktake.
+ *
+ *  ⚠️ **Weight and price are not interchangeable.** A scale set to print price
+ *  sends money; read as grams it becomes a quantity in the thousands, which is
+ *  the failure that empties a shelf on paper. */
+export interface ScaleLabel {
+  /** ⚠️ Off by default: a prefix that matched an ordinary EAN would turn a
+   *  normal product into a weighed one, in every shop that has no scales. */
+  enabled: boolean;
+  /** "2" almost everywhere — GS1 reserves the 2x prefixes for in-store and
+   *  variable-measure items, which is why a retail product never starts with
+   *  one. */
+  prefix?: string;
+  itemLen?: number;
+  valueLen?: number;
+  /** "weight" (grams) or "price" (whole som). */
+  value?: string;
+  /** The serial port a counter scale is wired to, when there is one.
+   *
+   *  ⚠️ **Separate from the label settings above and not implied by them.** A
+   *  shop can have a labelling scale in the back and no scale at the counter, or
+   *  the other way round — reading one setting as the other would put a "weigh"
+   *  button in front of a cashier with nothing to weigh on. */
+  port?: string;
+}
+
 export interface Branch {
   id: string;
   brandId: string;
@@ -1734,6 +1791,9 @@ export interface Branch {
   delivery: DeliverySettings;
   booking?: BookingSettings;
   preorder?: PreorderSettings;
+  /** ⚠️ On the branch because a scale is a physical object in a room: two shops
+   *  of one brand can have been set up by two different installers. */
+  scale?: ScaleLabel;
   /** What this room adds to a table's bill. ⚠️ Tables only — the till applies
    *  it, because the setting cannot tell a table from a takeaway coffee. */
   service?: { enabled: boolean; percent: number };

@@ -778,6 +778,12 @@ export const adminUz = {
 
   menu: {
     title: "Menyu",
+    barcode: "Shtrix-kod",
+    barcodeHint:
+      "Do'kon kassasi tovarni shu bo'yicha topadi. Restoran taomlarida bo'sh qoladi.",
+    sellsItself: "Tovarning o'zi sotiladi",
+    sellsItselfHint:
+      "Do'kon uchun: sotib olingan narsaning o'zi sotiladi. Texkarta shart emas — ombor qatorini tizim o'zi yuritadi.",
     add: "+ Taom",
     empty: "Menyu bo'sh",
     newTitle: "Yangi taom",
@@ -2317,11 +2323,54 @@ export const adminUz = {
       "Bu raqamlar fiskal kassadan olingan — yuqoridagilar bizning buyurtmalarimizdan. Farq bo'lsa, naqd qaysi biriga mos kelishini tekshiring.",
   },
 
+  // ---- Tarozi yorlig'i ----
+  scale: {
+    enabled: "Tarozi yorliqlarini o'qish",
+    enabledHint:
+      "Tarozi chop etgan shtrix-kod ichida og'irlik yoki narx bo'ladi. Tarozisi yo'q do'konda o'chiq qoladi.",
+    prefix: "Prefiks",
+    itemLen: "Kod uzunligi",
+    valueLen: "Qiymat uzunligi",
+    value: "Ichidagi qiymat",
+    valueWeight: "Og'irlik (gramm)",
+    valuePrice: "Narx (so'm)",
+    totalLen: (n: number) =>
+      n === 13
+        ? "Jami 13 xona — tarozi shunday chop etadi."
+        : `Jami ${n} xona. Tarozi 13 xonali kod chop etadi — bu sozlama bilan hech bir yorliq o'qilmaydi.`,
+    sample: "Yorliqni sinab ko'ring",
+    sampleHint: "Haqiqiy stikerdagi kodni kiriting — quyida nima chiqishini ko'rasiz.",
+    sampleItem: (code: string) => `Tovar kodi: ${code}`,
+    sampleKg: (kg: number) => `${kg} kg`,
+    samplePrice: (p: number) => `${p} so'm`,
+    sampleNo: "Bu kod sozlamaga to'g'ri kelmadi — uzunlik yoki prefiksni tekshiring.",
+  },
   till: {
     // The till and the floor screen. Uzbek is the source of truth: AdminDict is
     // derived from it, so a key missing in ru/en is a compile error rather than
     // an English word appearing on a Russian screen mid-service.
     title: "Kassa",
+    weighRead: "Tarozidan o'qish",
+    barcodeStale: (price: number) =>
+      `Tarozidagi narx bazadagidan farq qiladi (${price} so'm). Tarozini yangilang yoki qo'lda kiriting.`,
+    // ---- A shop's counter ----
+    //
+    // ⚠️ **Named `barcode…`, not `scan…`, and the collision that forced it is
+    // worth keeping.** `scanPlaceholder` already exists here for the *marking*
+    // scanner — a DataMatrix square on a bottle, which is a different scan
+    // saying different things. One name for both would have put "show the
+    // scanner the square code" in front of a cashier holding a packet.
+    //
+    // ⚠️ Each of these says what to do next rather than what went wrong: they
+    // are read with a queue waiting.
+    barcodePlaceholder: "Shtrix-kodni skanerlang",
+    barcodeAdd: "Qo'shish",
+    barcodeHint: "Tovarni skanerlang — chekka o'zi tushadi",
+    barcodeUnknown: (code: string) =>
+      `Bu kod bazada yo'q: ${code}. Mahsulotni panelga qo'shing yoki qo'lda toping.`,
+    barcodeSoldOut: (name: string) => `${name} tugagan — sotib bo'lmaydi`,
+    barcodeFailed: "Bajarilmadi — qaytadan skanerlang",
+    kgUnit: "kg",
     floor: "Zal",
     noAccess: "Kassa ekraniga ruxsat yo'q — administratorga murojaat qiling",
 
@@ -5306,6 +5355,12 @@ export const adminRu: AdminDict = {
   },
   menu: {
     title: "Меню",
+    barcode: "Штрихкод",
+    barcodeHint:
+      "По нему касса магазина находит товар. У блюд ресторана остаётся пустым.",
+    sellsItself: "Продаётся сам товар",
+    sellsItselfHint:
+      "Для магазина: продаётся то же, что закуплено. Техкарта не нужна — складскую строку ведёт система.",
     add: "+ Блюдо",
     empty: "Меню пустое",
     newTitle: "Новое блюдо",
@@ -6713,8 +6768,40 @@ export const adminRu: AdminDict = {
       "Эти цифры из фискальной кассы, а выше — из наших заказов. Если есть разница, проверьте, с какой из них сходятся наличные.",
   },
 
+  scale: {
+    enabled: "Читать этикетки весов",
+    enabledHint:
+      "В штрихкоде с весов зашит вес или цена. В магазине без весов остаётся выключенным.",
+    prefix: "Префикс",
+    itemLen: "Длина кода",
+    valueLen: "Длина значения",
+    value: "Что внутри",
+    valueWeight: "Вес (граммы)",
+    valuePrice: "Цена (сум)",
+    totalLen: (n: number) =>
+      n === 13
+        ? "Всего 13 знаков — именно так печатают весы."
+        : `Всего ${n} знаков. Весы печатают 13 — с такой настройкой ни одна этикетка не прочитается.`,
+    sample: "Проверьте этикетку",
+    sampleHint: "Введите код с реального стикера — ниже увидите, что получится.",
+    sampleItem: (code: string) => `Код товара: ${code}`,
+    sampleKg: (kg: number) => `${kg} кг`,
+    samplePrice: (p: number) => `${p} сум`,
+    sampleNo: "Код не подошёл под настройку — проверьте длину или префикс.",
+  },
   till: {
     title: "Касса",
+    weighRead: "Считать с весов",
+    barcodeStale: (price: number) =>
+      `Цена на весах отличается от базы (${price} сум). Обновите весы или введите вручную.`,
+    barcodePlaceholder: "Отсканируйте штрихкод",
+    barcodeAdd: "Добавить",
+    barcodeHint: "Отсканируйте товар — он сам попадёт в чек",
+    barcodeUnknown: (code: string) =>
+      `Этого кода нет в базе: ${code}. Добавьте товар в панели или найдите вручную.`,
+    barcodeSoldOut: (name: string) => `${name} закончился — продать нельзя`,
+    barcodeFailed: "Не выполнено — отсканируйте ещё раз",
+    kgUnit: "кг",
     floor: "Зал",
     noAccess: "Нет доступа к кассе — обратитесь к администратору",
 
@@ -9516,6 +9603,12 @@ export const adminEn: AdminDict = {
   },
   menu: {
     title: "Menu",
+    barcode: "Barcode",
+    barcodeHint:
+      "How a shop's counter finds this. Empty on a restaurant's dishes.",
+    sellsItself: "Sells the goods themselves",
+    sellsItselfHint:
+      "For a shop: what is sold is what was bought. No tech card — the system keeps the stock row itself.",
     add: "+ Dish",
     empty: "The menu is empty",
     newTitle: "New dish",
@@ -10918,8 +11011,40 @@ export const adminEn: AdminDict = {
       "These figures come from the fiscal register; the ones above come from our orders. If they differ, check which the cash agrees with.",
   },
 
+  scale: {
+    enabled: "Read scale labels",
+    enabledHint:
+      "A barcode printed by a scale carries the weight or the price inside it. Off in a shop with no scales.",
+    prefix: "Prefix",
+    itemLen: "Item code length",
+    valueLen: "Value length",
+    value: "What is inside",
+    valueWeight: "Weight (grams)",
+    valuePrice: "Price",
+    totalLen: (n: number) =>
+      n === 13
+        ? "Thirteen digits in total — which is what a scale prints."
+        : `${n} digits in total. A scale prints thirteen; with this layout no label decodes at all.`,
+    sample: "Try a label",
+    sampleHint: "Type the code from a real sticker — you will see what it decodes to.",
+    sampleItem: (code: string) => `Item code: ${code}`,
+    sampleKg: (kg: number) => `${kg} kg`,
+    samplePrice: (p: number) => `${p}`,
+    sampleNo: "That code does not fit this layout — check the length or the prefix.",
+  },
   till: {
     title: "Till",
+    weighRead: "Read the scale",
+    barcodeStale: (price: number) =>
+      `The scale's price differs from the catalogue (${price}). Update the scale, or enter it by hand.`,
+    barcodePlaceholder: "Scan the barcode",
+    barcodeAdd: "Add",
+    barcodeHint: "Scan an item — it goes onto the check by itself",
+    barcodeUnknown: (code: string) =>
+      `That code is not in the catalogue: ${code}. Add the product in the panel, or find it by hand.`,
+    barcodeSoldOut: (name: string) => `${name} has run out — it cannot be sold`,
+    barcodeFailed: "Did not go through — scan again",
+    kgUnit: "kg",
     floor: "Floor",
     noAccess: "No access to the till — ask your manager",
 

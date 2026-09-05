@@ -62,6 +62,7 @@ import type {
 } from "@/lib/types";
 
 import CheckPanel from "./CheckPanel";
+import ScanPanel from "./ScanPanel";
 import UnfiledPanel from "./UnfiledPanel";
 import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
@@ -221,6 +222,12 @@ export default function TillPage() {
   // same table would have been charged a minute earlier. The server owns the
   // number online; this is the copy the offline path needs.
   const [servicePercent, setServicePercent] = useState(0);
+  /** Whether this counter sells the goods it bought — a shop rather than a
+   *  kitchen. ⚠️ False until the branch has answered, so a slow network opens
+   *  on the familiar screen rather than flashing a scanner at a waiter. */
+  const [sellsGoods, setSellsGoods] = useState(false);
+  const [weighs, setWeighs] = useState(false);
+  const [scalePort, setScalePort] = useState("");
   const [checks, setChecks] = useState<Check[]>([]);
   // ⚠️ **Checks this device owns.** They were opened while the server was not
   // there, so nothing else in the building knows about them — not the kitchen
@@ -420,6 +427,14 @@ export default function TillPage() {
         setCurrency(branch.currency || "UZS");
         setBranchName(branch.name ?? "");
         setServicePercent(branch.servicePercent ?? 0);
+        // ⚠️ **A capability, read from a call the till already makes.** The
+        // counter needs to know whether to open on a scanner; it does not need
+        // to know the difference between a pharmacy and a flower shop, and a
+        // screen that switched on the business type would need editing every
+        // time a type is added.
+        setSellsGoods(branch.sellsGoods === true);
+        setWeighs(branch.weighs === true);
+        setScalePort(branch.scalePort ?? "");
       } catch {
         // The menu failing is worth saying out loud — a till with no dishes on
         // it looks like a restaurant with no menu, and the cashier's next move
@@ -1197,7 +1212,22 @@ export default function TillPage() {
             </div>
           )}
 
-          {view === "order" && (
+          {/* ⚠️ **One pane differs, and only this one.** The check, the payment
+              dialog, the cash shift and the navigation are the same objects in a
+              shop as in a restaurant — a second till would be two of each, and
+              two tills drift. What changes is how a line gets onto the check:
+              tapped from a grid, or scanned. */}
+          {view === "order" && sellsGoods && (
+            <ScanPanel
+              weighs={weighs}
+              scalePort={scalePort}
+              onAdd={async (item, qty) => {
+                await addDish(item, undefined, qty);
+              }}
+            />
+          )}
+
+          {view === "order" && !sellsGoods && (
             <>
               <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
                 <input

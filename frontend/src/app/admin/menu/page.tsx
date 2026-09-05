@@ -52,6 +52,8 @@ interface Draft {
    *  a number field would collapse an explicit zero-rating into "unset". */
   vatPercent: string;
   unitCode: number;
+  barcode: string;
+  sellsItself: boolean;
   /** Which parts of a portion this dish may be sold in, as percents. Empty is
    *  "whole portions only" — every dish, until somebody says otherwise. */
   portions: number[];
@@ -97,6 +99,8 @@ function toDraft(m: MenuItem): Draft {
     // must come back into the form as "0", not as an empty field.
     vatPercent: m.vatPercent == null ? "" : String(m.vatPercent),
     unitCode: m.unitCode ?? 0,
+    barcode: m.barcode ?? "",
+    sellsItself: m.sellsItself ?? false,
     portions: m.portions ?? [],
     options: toOptionDrafts(m.options),
     comboItems: m.comboItems ?? [],
@@ -130,6 +134,8 @@ function emptyDraft(categoryId: string): Draft {
     packageCode: "",
     vatPercent: "",
     unitCode: 0,
+    barcode: "",
+    sellsItself: false,
     portions: [],
     options: [],
     comboItems: [],
@@ -298,6 +304,8 @@ export default function AdminMenuPage() {
       vatPercent:
         draft.vatPercent.trim() === "" ? null : Number(draft.vatPercent),
       unitCode: draft.unitCode,
+      barcode: draft.barcode.trim(),
+      sellsItself: draft.sellsItself,
       // ⚠️ Sorted, because the till draws them in this order and a list that
       // reads 3/4, 1/4, 1/2 is a row of buttons somebody has to search.
       portions: [...draft.portions].sort((a, b) => a - b),
@@ -906,6 +914,53 @@ export default function AdminMenuPage() {
               <span className="mt-1 block text-xs text-ink-muted">
                 {t.menu.unitCodeHint}
               </span>
+            </label>
+
+            {/* ---- Selling goods rather than dishes ----
+
+                ⚠️ **Two fields, and the second is the one that matters.** A
+                barcode is how a shop's counter finds this at all — it is
+                scanned, never tapped. "Sells itself" is the whole difference
+                between a shop and a kitchen: a kitchen turns inputs into
+                outputs, so what is sold and what is stocked are two documents
+                with a tech card between them; a shop sells the object it
+                bought, so the server keeps the stock row behind this product in
+                step and nobody maintains two names by hand. */}
+            <label className="block text-sm">
+              <span className="font-medium">{t.menu.barcode}</span>
+              <input
+                className={inputCls}
+                value={draft.barcode}
+                inputMode="numeric"
+                // ⚠️ Off, all of it: a barcode is not a word, and autocorrect on
+                // a tablet turns a digit string into something else entirely.
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                onChange={(e) =>
+                  setDraft({ ...draft, barcode: e.target.value.trim() })
+                }
+              />
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.barcodeHint}
+              </span>
+            </label>
+
+            <label className="block text-sm">
+              <span className="font-medium">{t.menu.sellsItself}</span>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-5 w-5"
+                  checked={draft.sellsItself}
+                  onChange={(e) =>
+                    setDraft({ ...draft, sellsItself: e.target.checked })
+                  }
+                />
+                <span className="text-xs text-ink-muted">
+                  {t.menu.sellsItselfHint}
+                </span>
+              </div>
             </label>
 
             <div className="sm:col-span-2">
