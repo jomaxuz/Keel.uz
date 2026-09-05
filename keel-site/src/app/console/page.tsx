@@ -9,6 +9,7 @@ import ServerHealth, { BackupAlarm } from "@/components/ServerHealth";
 import { money, stats, type Stats } from "@/lib/api";
 import { BreakdownChart } from "@/components/Charts";
 import PlatformOverview from "@/components/PlatformOverview";
+import BusinessBreakdown from "@/components/BusinessBreakdown";
 
 export default function OverviewPage() {
   const { t } = useT();
@@ -114,6 +115,14 @@ export default function OverviewPage() {
           thing, answering one question with two different numbers, and no way
           on the screen to tell which one to believe. */}
       <PlatformOverview />
+
+      {/* ⚠️ **The same platform, cut by what our customers are.** A restaurant
+          and a shop are sold ladders at a third of each other's price and trade
+          differently; averaged into the section above, the only question worth
+          asking of the pair — which of them to sell more of — has no answer at
+          all. Here rather than on a tab of its own, which was a number nobody
+          arrived at unless they already suspected it. */}
+      <BusinessBreakdown />
 
       <section className="card">
         <p className="text-sm font-semibold text-ink">{t.dash.topTenants}</p>

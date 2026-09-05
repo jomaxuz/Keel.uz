@@ -13,6 +13,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import Header from "@/components/Header";
+import { BlogIndexJsonLd } from "@/components/blog/BlogJsonLd";
 import { getPosts } from "@/lib/blog";
 import { getLang, getPath } from "@/lib/i18n/server";
 import { dicts } from "@/lib/i18n/dict";
@@ -37,6 +38,7 @@ export default async function BlogIndex() {
 
   return (
     <>
+      <BlogIndexJsonLd lang={lang} title={t.title} lead={t.lead} posts={posts} />
       <Header />
       <main className="container-page py-14 sm:py-20">
         <p className="eyebrow">Keel</p>

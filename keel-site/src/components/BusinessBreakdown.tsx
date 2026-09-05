@@ -2,6 +2,14 @@
 
 // The platform, split by what our customers actually are.
 //
+// ⚠️ **A section of the overview rather than a page of its own.** It answers
+// the same question the rest of that screen answers — how is the platform
+// doing — only cut a different way, and a separate tab meant a number nobody
+// arrived at unless they already suspected it. The tab was removed; this is
+// where it belongs.
+//
+// The platform, split by what our customers actually are.
+//
 // ⚠️ **A restaurant and a shop must not be one row.** They are sold ladders at
 // a third of each other's price and they trade differently — a dining room's
 // money arrives in checks, a grocery's in a few hundred scans an hour. Averaged
@@ -16,7 +24,7 @@ import { useT } from "@/lib/i18n/client";
 
 const WINDOWS = [7, 30, 90];
 
-export default function BusinessPage() {
+export default function BusinessBreakdown() {
   const { t } = useT();
   const [rows, setRows] = useState<BizRow[]>([]);
   const [days, setDays] = useState(30);
@@ -43,8 +51,8 @@ export default function BusinessPage() {
 
   return (
     <div>
-      <h1 className="h-display text-2xl">{t.biz.title}</h1>
-      <p className="mt-2 max-w-3xl text-sm text-ink-muted">{t.biz.intro}</p>
+      <h2 className="font-display text-lg font-semibold text-ink">{t.biz.title}</h2>
+      <p className="mt-1 max-w-3xl text-sm text-ink-muted">{t.biz.intro}</p>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {WINDOWS.map((d) => (

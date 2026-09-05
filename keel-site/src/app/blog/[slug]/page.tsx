@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 
 import Header from "@/components/Header";
 import Article from "@/components/blog/Article";
+import { BlogPostJsonLd } from "@/components/blog/BlogJsonLd";
 import { getPost } from "@/lib/blog";
 import { getLang, getPath } from "@/lib/i18n/server";
 import { dicts } from "@/lib/i18n/dict";
@@ -53,6 +54,7 @@ export default async function BlogArticle({
 
   return (
     <>
+      <BlogPostJsonLd lang={lang} blogTitle={t.title} post={post} />
       <Header />
       <main className="container-page py-14 sm:py-20">
         <Link

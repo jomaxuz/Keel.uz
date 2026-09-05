@@ -303,8 +303,13 @@ func (h *Handler) ConsoleBlogUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := res.InsertedID.(primitive.ObjectID)
+	// ⚠️ **The address the site serves, not the one this handler answers on.**
+	// `/internal` is reachable inside the docker network and nowhere else, so a
+	// post whose pictures pointed here rendered every one of them as a broken
+	// box for every reader — while looking perfectly correct in the editor. The
+	// site proxies this route at /blog-image/{id}.
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"url":  "/internal/blog/image/" + id.Hex(),
+		"url":  "/blog-image/" + id.Hex(),
 		"size": len(data),
 	})
 }

@@ -137,7 +137,7 @@ export default function ConsoleBlog() {
               <input
                 className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2"
                 value={draft.cover ?? ""}
-                placeholder="/internal/blog/image/…"
+                placeholder="/blog-image/…"
                 onChange={(e) => setDraft({ ...draft, cover: e.target.value })}
               />
             </label>

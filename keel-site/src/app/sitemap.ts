@@ -1,6 +1,15 @@
 import type { MetadataRoute } from "next";
-import { ALL_LANGS, alternatesFor } from "@/lib/i18n/url";
+import { ALL_LANGS, alternatesFor, localeUrl } from "@/lib/i18n/url";
+import type { Lang } from "@/lib/i18n/dict";
 import { ALL_SLUGS } from "@/lib/help";
+import { getPosts } from "@/lib/blog";
+
+/** Every slug that exists in any language, once. */
+function allSlugs(byLang: Record<Lang, Set<string>>): string[] {
+  const all = new Set<string>();
+  for (const l of ALL_LANGS) for (const s of byLang[l]) all.add(s);
+  return [...all];
+}
 
 /** Every page, in every language, each as its own entry.
  *
@@ -45,7 +54,38 @@ function inEveryLanguage(
   });
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
+// ⚠️ **Now async, and that is the whole change in shape.** Everything above is
+// known at build time; the blog is not — a post written this afternoon has to
+// be in the file this evening, and a sitemap generated once at build would list
+// the posts that existed when the image was made. Next re-renders this route,
+// so the list is asked for each time it is requested.
+//
+// ⚠️ **The control plane being unreachable must not empty the file.** `getPosts`
+// answers with an empty list rather than throwing, so a bad minute costs the
+// blog entries and leaves the other 279 addresses exactly where they were — the
+// alternative is a sitemap that briefly says the site has no pages, which is a
+// far more expensive thing to tell a crawler.
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // ⚠️ **Asked in Uzbek, listed in three.** A post exists at three addresses
+  // whenever it is written in three languages; asking once and expanding is
+  // what keeps the file from claiming a Russian page that was never written.
+  // The list endpoint already leaves out what has no text in the language, so
+  // the three calls are not the same list.
+  const [uzPosts, ruPosts, enPosts] = await Promise.all([
+    getPosts("uz"),
+    getPosts("ru"),
+    getPosts("en"),
+  ]);
+  const byLang: Record<Lang, Set<string>> = {
+    uz: new Set(uzPosts.map((p) => p.slug)),
+    ru: new Set(ruPosts.map((p) => p.slug)),
+    en: new Set(enPosts.map((p) => p.slug)),
+  };
+  const lastMod = new Map<string, Date>();
+  for (const p of uzPosts) {
+    if (p.publishedAt) lastMod.set(p.slug, new Date(p.publishedAt));
+  }
+
   return [
     ...inEveryLanguage("/", {
       lastModified: new Date(),
@@ -91,6 +131,43 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: path === "/help" ? 0.6 : 0.4,
       }),
     ),
+    // ⚠️ **The blog index, then every post that exists in each language.**
+    // This is the second place on the site with real long-tail value, and the
+    // one that grows: an article about weighing scales at a grocery counter is
+    // a page somebody finds months before they have heard of us.
+    ...inEveryLanguage("/blog", {
+      lastModified: uzPosts[0]?.publishedAt
+        ? new Date(uzPosts[0].publishedAt)
+        : new Date(),
+      // Weekly, honestly: a blog changes when somebody writes in it.
+      changeFrequency: "weekly",
+      priority: 0.6,
+    }),
+    // ⚠️ **Only the languages a post was actually written in**, and each entry
+    // carries the alternates of exactly those. Declaring a Russian address for
+    // a post with no Russian text is telling a crawler about a page that
+    // answers in another language — which is worse than not listing it, because
+    // the reader who follows it leaves.
+    ...allSlugs(byLang).flatMap((slug) => {
+      const langs = ALL_LANGS.filter((l) => byLang[l].has(slug));
+      const languages: Record<string, string> = {};
+      for (const l of langs) languages[l] = localeUrl(l, `/blog/${slug}`);
+      // ⚠️ **`x-default` points at whichever language the post actually has.**
+      // Uzbek is the site's base and every post has it today — but a post that
+      // somehow does not would otherwise declare a default that 404s, and a
+      // crawler treats that as the page it should have shown everybody.
+      languages["x-default"] = localeUrl(
+        langs.includes("uz") ? "uz" : langs[0],
+        `/blog/${slug}`,
+      );
+      return langs.map((lang) => ({
+        url: localeUrl(lang, `/blog/${slug}`),
+        alternates: { languages },
+        lastModified: lastMod.get(slug) ?? new Date(),
+        changeFrequency: "monthly" as const,
+        priority: 0.5,
+      }));
+    }),
     // ⚠️ The legal pages are listed, unlike /status. They are the pages a payment provider,
     // a bank or a cautious customer looks for by name before signing anything — and a
     // document that cannot be found is a document that does not count. Rarely changed, so a
