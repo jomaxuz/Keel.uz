@@ -13394,3 +13394,41 @@ Backend: `PayoutMonthly`, `courier.monthlyRate/payPeriod`, `courierPayrollRows`,
 `recordWagePayment`, `/staff/payees`, 7 ta yangi test.
 Frontend: kassa dropdowni, payroll marshrutlash, kuryer formasida oylik va
 davr, to'rtta ikonka, uch tilda matn.
+
+---
+
+## 2026-09-05 — Do'konlar: biznes turi, skanerdagi kassa, tarozi ✅
+
+### Biznes turi — shablon, rejim emas
+- `models.BusinessType`: restoran (bo'sh), fast food, oziq-ovqat do'koni, kiyim,
+  gul, dorixona. Konsolda tenant yaratishda dropdown; `BUSINESS_TYPE` konteynerga
+  admin login bilan yonma-yon uzatiladi va **faqat birinchi brend yaratilganda**
+  o'qiladi. Keyin panelning o'z tugmalari — haqiqat: gul do'koni kofe sotsa,
+  bu bir necha bosish, rad javob emas.
+- Bo'sh qiymat = restoran, ya'ni 12 ta jonli tenantning hammasi o'zgarmaydi.
+  Noma'lum satr ham `known()` orqali restoranga tushadi (test ushlab turadi).
+- Turi **brendda**, filialda emas: `Branch.BrandID` bir-birga va katalog
+  brendniki. `Tenant.Kind` (erkin matn) o'z joyida qoldi.
+- Bitta egada ham restoran, ham do'kon bo'lishi mumkin — turi har brendniki.
+
+### Do'kon kassasi
+- `GET /staff/scan` — skaner o'qigan kod bo'yicha mahsulot, narx va (tarozi
+  yorlig'i bo'lsa) tarozining o'zi bosgan og'irlik. Topilmagan kod — **holat**
+  (`{found:false}` 200 bilan), xato emas.
+- Tarozi yorlig'i katalogdan **oldin** o'qiladi: `2…` kod mahsulot id'si emas.
+  Sxema filialniki (`Branch.Scale`) — tarozi xonadagi jismoniy narsa.
+- Uch xil tortish ham ishlaydi: yorliq, qo'lda kiritish, kassaga ulangan tarozi
+  (`Weigh`, RS-232). Ulangan tarozining o'qigani **avtomatik urilmaydi** —
+  katakchani to'ldiradi, kassir tasdiqlaydi.
+- Mahsulot o'z yashirin masalliq qatoriga ega bo'ldi (`syncProductStock`) —
+  ombor `ingredientId` ga tayangan holicha qoldi, ya'ni restoranlarda hech nima
+  o'zgarmadi.
+- `menu_item`: `barcode` (brend ichida unique, sparse indeks), `isGoods`,
+  `stockId`, `unitCode`.
+
+### Ilovalar
+- Waiter/Owner: til va tema modal picker, yordam chati alohida sahifa, tab
+  panelidagi uzun so'zlar tuzatildi.
+
+**Keyingi qadam:** ulangan tarozini haqiqiy jihoz bilan sinash; ikkala ilovani
+qurilmada tekshirish (owner dark theme); Play uchun AAB.
