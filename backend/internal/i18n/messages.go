@@ -20,6 +20,14 @@ var messages = map[string]pair{
 		"Заказ #%s передан вам. Адрес: %s",
 		"Order #%s is yours. Address: %s",
 	},
+	"#%s buyurtma tayyor bo'ldi": {
+		"Заказ #%s готов",
+		"Order #%s is ready",
+	},
+	"#%s: %s tayyor bo'ldi": {
+		"#%s: %s готово",
+		"#%s: %s is ready",
+	},
 	"#%s buyurtma tayyor — olib chiqing": {
 		"Заказ #%s готов — забирайте",
 		"Order #%s is ready — come and collect it",
@@ -92,9 +100,13 @@ var messages = map[string]pair{
 		"для %s не введён API-токен",
 		"no API token was entered for %s",
 	},
-	"%s — buyurtma tayyor": {
-		"%s — заказ готов",
-		"%s — the order is ready",
+	"%s-stol: %s tayyor bo'ldi": {
+		"Стол %s: %s готово",
+		"Table %s: %s is ready",
+	},
+	"%s-stoldagi buyurtma tayyor bo'ldi": {
+		"Заказ на столе %s готов",
+		"The order on table %s is ready",
 	},
 	"%s — lekin bot javob bera olmaydi: %s": {
 		"%s — но бот не может отвечать: %s",

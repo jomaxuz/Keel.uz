@@ -345,17 +345,67 @@ func (h *Handler) notifyReady(
 	if o.Check == nil || o.Check.ServerID.IsZero() {
 		return
 	}
-	where := o.TableNumber
-	if where == "" {
-		where = o.Number
+	// ⚠️ **A table number and a receipt number are different facts, and this
+	// said neither.** The body was `where + " — buyurtma tayyor"` with `where`
+	// being whichever of the two existed — so "2 — buyurtma tayyor" meant table
+	// two on one order and receipt two on the next, and a waiter reading it in a
+	// corridor had no way to tell. They are two sentences now, and each says
+	// what its number is.
+	if o.TableNumber != "" {
+		h.notifyStaff(o.Check.ServerID, "Tayyor",
+			o.TableNumber+"-stoldagi buyurtma tayyor bo'ldi",
+			// ⚠️ The check's id travels with it so a tap can open the table
+			// rather than the room: a waiter reading this on the move has
+			// already decided where they are going.
+			map[string]any{
+				"type": "ready", "checkId": o.ID.Hex(), "table": o.TableNumber,
+			})
+		return
 	}
-	h.notifyStaff(o.Check.ServerID,
-		"Tayyor",
-		where+" — buyurtma tayyor",
-		// ⚠️ The check's id travels with it so a tap can open the table rather
-		// than the room: a waiter reading this on the move has already decided
-		// where they are going.
-		map[string]any{"type": "ready", "checkId": o.ID.Hex(), "table": where})
+	h.notifyStaff(o.Check.ServerID, "Tayyor",
+		"#"+o.Number+" buyurtma tayyor bo'ldi",
+		map[string]any{"type": "ready", "checkId": o.ID.Hex()})
+}
+
+// notifyDishReady tells the waiter that one dish is at the pass.
+//
+// ⚠️ **This was deliberately not sent, and the reason it was wrong is worth
+// keeping.** The argument against it was that a message per dish teaches people
+// to swipe them away, and then the one that matters goes with the rest. That is
+// true of *identical* messages — and the old one would have been identical,
+// because it said "the order is ready" and nothing else. A message that names
+// the dish is a different thing: it is the fact the waiter is waiting for, and
+// they act on it by walking to the pass for that plate.
+//
+// ⚠️ **The dish's name is the restaurant's own text and is not translated.** It
+// passes through `i18n` as a captured value, which returns anything it does not
+// recognise unchanged — so "Lag'mon" stays "Lag'mon" inside a Russian sentence,
+// which is what a waiter reading a Russian phone in this restaurant expects.
+func (h *Handler) notifyDishReady(
+	ctx context.Context, id, branchID primitive.ObjectID, dish string,
+) {
+	var o models.Order
+	if err := h.Store.Orders.FindOne(ctx,
+		bson.M{"_id": id, "branchId": branchID}).Decode(&o); err != nil {
+		return
+	}
+	if o.Check == nil || o.Check.ServerID.IsZero() || dish == "" {
+		return
+	}
+	where := o.TableNumber
+	body := "#" + o.Number + ": " + dish + " tayyor bo'ldi"
+	if where != "" {
+		body = where + "-stol: " + dish + " tayyor bo'ldi"
+	}
+	h.notifyStaff(o.Check.ServerID, "Tayyor", body,
+		// ⚠️ **`tag` is what stops these replacing one another.** The phone keys
+		// a notification on the check so a repeat about one table updates in
+		// place; two different dishes are two different facts and both have to
+		// survive. Without it the second plate silently erases the first.
+		map[string]any{
+			"type": "dishReady", "checkId": o.ID.Hex(),
+			"table": where, "dish": dish, "tag": dish,
+		})
 }
 
 func (h *Handler) orderIsPreparing(ctx context.Context, id, branchID primitive.ObjectID) bool {

@@ -154,11 +154,25 @@ func (h *Handler) StaffKitchenItem(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if all && o.ReadyAt == nil {
-		// ⚠️ After the write and only on the edge: the notification says "the
-		// order is ready", and sending it on every dish would teach a waiter to
-		// swipe the one that matters away with the rest.
+	// ⚠️ **After the write, always** — the kitchen's work is recorded whether or
+	// not anybody can be told, and `notifyStaff` is fire-and-forget for the same
+	// reason.
+	//
+	// ⚠️ **One message, never two.** On an order with a single cookable dish,
+	// ticking it makes that dish ready *and* the whole order ready at the same
+	// instant — so sending both would put two notifications about one plate on
+	// the waiter's phone, which is exactly the habit that teaches people to swipe
+	// without reading. The last dish is announced as the order; every dish before
+	// it is announced by name.
+	switch {
+	case !req.Ready:
+		// Unticking is a correction inside the kitchen. Nobody is waiting on it,
+		// and "that dish is not ready after all" is a message a waiter can do
+		// nothing with while carrying plates.
+	case all && o.ReadyAt == nil:
 		h.notifyReady(r.Context(), id, s.BranchID)
+	default:
+		h.notifyDishReady(r.Context(), id, s.BranchID, o.Items[i].Name)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"ok": true, "items": kitchenItems(&o), "allReady": all,
