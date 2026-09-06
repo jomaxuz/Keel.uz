@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The one place the brand colours are spelled outside Kotlin: the window
+         background and the splash, which the system draws before any of this
+         application's code has run. -->
+    <color name="keel_orange">#E2590D</color>
+    <color name="keel_navy">#000B1C</color>
+</resources>

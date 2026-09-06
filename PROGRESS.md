@@ -13432,3 +13432,46 @@ davr, to'rtta ikonka, uch tilda matn.
 
 **Keyingi qadam:** ulangan tarozini haqiqiy jihoz bilan sinash; ikkala ilovani
 qurilmada tekshirish (owner dark theme); Play uchun AAB.
+
+---
+
+## 2026-09-06 — TV ilovasi native Kotlin'da ✅
+
+`mobile/tv-android` — zaldagi televizor ilovasining noldan qayta yozilishi
+(Kotlin + Compose + Media3). Expo'niki (`mobile/tv`) o'z joyida qoldi, lekin
+`applicationId` bir xil (`uz.keel.tv`): yangisi televizorda eskisining o'rniga
+o'rnatiladi.
+
+**Dizayn — owner ilovasiniki.** `mobile/android-design` moduli yo'l bo'yicha
+ulandi (waiter va owner qanday ulasa shunday): shu shisha, shu to'q sarig'i, shu
+iliq qora fon, shu manzil qoidasi. O'lchamlar esa ekranniki — hammasi
+`screenWidthDp` dan hisoblanadi, ya'ni 32" va 65" da bir xil o'qiladi. Tugmaning
+fokus halqasi bor: **televizorda fokus — kursor**, va Compose'ning `clickable`
+i uni chizmaydi.
+
+**Ikonka / splash / banner** — `tools/icons.py`, manba telefon ilovalari bilan
+bir xil (`mobile/tv/assets`). Beshta zichlikda launcher (dumaloqi haqiqatan
+qirqilgan), adaptive XML, `core-splashscreen` uchun splash, va **320×180
+leanback banner** — busiz televizor bosh ekranida yorliq bo'sh to'rtburchak.
+
+**O'zgargani:**
+- UZ/RU/EN qo'shildi (ilgari faqat o'zbekcha). Til tugmasi **faqat manzil
+  ekranida** — u televizor hayotida bir marta bosiladi.
+- Rasm ekranga qarab kichraytirib dekod qilinadi: telefondan yuklangan 4000 px
+  surat 1 GB RAM'li setda OOM, ya'ni qora devor.
+- Video — Media3 ExoPlayer, `media3-ui` **siz** (bosadigan odam yo'q); nisbat
+  `onVideoSizeChanged` dan.
+- Fayl `.part` ga yuklanadi va keyin ko'chiriladi — yarim fayl `exists()` uchun
+  mavjud, ya'ni bir marta yiqilgan slayd boshqa hech qachon qayta yuklanmasdi.
+- Taymerlar `Job` bilan; Expo'da yurak urishi holatni o'zgartirardi va holat
+  effektni qayta ishga tushirardi (himoyasi — ref).
+- Tema tanlash yo'q: zaldagi panel doim qorong'i.
+
+**O'zgarmagani (ataylab):** xonaga xato ko'rsatilmaydi, `Offline` va
+`Unreachable` farqlanadi, playlist oflayn o'ynaydi va tablo 2 daqiqadan keyin
+jim bo'ladi, muddatni televizor o'zi hisoblaydi, vaqtni server aytadi, kod
+ko'rsatiladi — parol so'ralmaydi.
+
+Testlar: `WireShapeTest` (beshta endpoint javobi, JSON Go handler'laridan
+ko'chirilgan) va `PlaylistRulesTest` (muddat oynasi, lokal fayl nomi).
+Debug APK 24 MB, quriladi. ⏳ **Televizorda sinalmagan** — qurilma yo'q.

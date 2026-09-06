@@ -1,5 +1,11 @@
 # Keel TV — zaldagi ekran (Android TV)
 
+> ⚠️ **Bu ilova almashtirildi: `mobile/tv-android` (Kotlin + Compose).**
+> Yangisi shu `applicationId` ni (`uz.keel.tv`) oladi, ya'ni televizorda
+> eskisining o'rniga o'rnatiladi. Bu papka **hozircha saqlanadi**, chunki uning
+> qarorlari va ular ortidagi xatolar tarixi shu yerda yozilgan — yangisi ularni
+> ko'chirdi, lekin sabablari birinchi marta shu faylda yozilgan.
+
 Expo (SDK 57, RN 0.86, React 19). Restoran zalidagi televizor: kontent
 (video/rasm) va fastfood uchun buyurtma tablosi.
 

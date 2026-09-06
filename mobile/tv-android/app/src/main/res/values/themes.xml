@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ⚠️ **A television draws a splash whether we configure one or not**, from
+         the launcher icon on the window background — so the choice is never
+         "splash or none", it is "ours or whatever the set guesses". On a wall
+         that guess is the first thing a room full of people sees at opening
+         time. Below Android 12 the androidx library draws the same thing, which
+         is what stops one product looking like two depending on the set. -->
+    <style name="Theme.KeelTv.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/keel_navy</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.KeelTv</item>
+    </style>
+
+    <style name="Theme.KeelTv" parent="android:Theme.Material.NoActionBar">
+        <!-- ⚠️ Navy rather than black, and it matters here more than on a phone:
+             this is what fills the screen between the splash handing over and
+             the first frame Compose draws, and a black flash on a wall reads as
+             a television that lost its signal. -->
+        <item name="android:windowBackground">@color/keel_navy</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

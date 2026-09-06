@@ -52,8 +52,21 @@ softmax/
     ├── team/                 # qolgan xodimlar: davomat, ish haqi, xabarlar,
     │                         #   bozorchiga «Bozor» (faqat `buy` ruxsatida)
     ├── owner/                # ega: bugungi raqamlar, diqqat, buyurtma, hisobot
-    └── tv/                   # zaldagi televizor (Android TV): kontent va tablo
+    ├── tv/                   # zaldagi televizor (Android TV): kontent va tablo
+    │
+    │   # Native (Kotlin + Compose) qayta yozilishlari — Expo'nikini
+    │   # almashtiradi, `applicationId` bir xil qoladi:
+    ├── android-design/       # uchalasi bo'lishadigan dizayn tizimi va relslar
+    ├── waiter-android/       # ofitsiant
+    ├── owner-android/        # ega
+    └── tv-android/           # zaldagi televizor
 ```
+
+⚠️ **Native ilovalar dizaynni `mobile/android-design` dan oladi** — Gradle
+moduli sifatida **yo'l bo'yicha** ulanadi (`settings.gradle.kts`), chunki har
+biri alohida build. Rang, shisha, uch til va manzil qoidasi u yerda: nusxasi
+ajraydi, va ajragani devordagi televizorda qoladi. O'lchamlar esa ilovaniki —
+telefon tugmasi bilan televizor tugmasi bir narsa emas.
 
 ⚠️ **`mobile/` dagi ilovalar `frontend/src/lib` ni ko'chirmaydi** — Metro uni
 watch qiladi va `@/` aliasi veb ilovadagi bilan bir xil. Ya'ni qoida bir joyda

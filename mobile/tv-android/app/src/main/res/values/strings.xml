@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ⚠️ The launcher label only. Every other string is in i18n/Strings.kt:
+         the language is chosen inside the app, on the one screen a person ever
+         touches, and Android's resource system follows the system locale
+         instead — which on a television is whatever the shop set it to. -->
+    <string name="app_name">Keel TV</string>
+</resources>

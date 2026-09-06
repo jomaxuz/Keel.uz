@@ -94,6 +94,14 @@ class TokenStore(context: Context) {
          *  read by another in exactly one case that matters — a QR handover —
          *  and a divergent name fails silently there. */
         const val ADMIN_TOKEN = "admin_token"
+
+        /** The television's own long-lived token.
+         *
+         *  ⚠️ **The browser's spelling again** (`lib/api.ts` → `TV_TOKEN_KEY`).
+         *  Nothing hands this one between platforms today, but the two apps
+         *  that already diverged on a key name both did it while nobody
+         *  expected them to meet. */
+        const val TV_TOKEN = "tv_token"
         const val SERVER_ADDRESS = "keel_server_address"
         const val DEVICE_ID = "keel_device_id"
         const val LANG = "keel_lang"
@@ -105,12 +113,17 @@ class TokenStore(context: Context) {
          *  and sends somebody to a login they had already passed — and only on a
          *  cold start, which is the hardest kind of bug to be shown. */
         private val KEYS = listOf(
-            STAFF_TOKEN, ADMIN_TOKEN, SERVER_ADDRESS, DEVICE_ID, LANG, THEME, MENU_VIEW,
+            STAFF_TOKEN, ADMIN_TOKEN, TV_TOKEN, SERVER_ADDRESS, DEVICE_ID, LANG, THEME, MENU_VIEW,
             // The owner application's branch lens. ⚠️ Listed here like every
             // other key: hydration happens once, before the first render, and a
             // key nobody named reads as absent on a cold start — which would
             // silently widen an owner's view back to "every branch".
             "keel_owner_branch",
+            // What the television last heard the restaurant's clock say. ⚠️ Read
+            // here, before the first frame, because the first decision that app
+            // makes is whether a dated slide may play — and a set that came back
+            // from a power cut may believe it is 1970. See tv-android/Clock.kt.
+            "keel_tv_clock",
         )
     }
 }
