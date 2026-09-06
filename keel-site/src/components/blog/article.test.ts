@@ -62,6 +62,26 @@ describe("the rest of the small language", () => {
     });
   });
 
+  it("lifts a picture out of the sentence it was written in", () => {
+    // ⚠️ **The bug that shipped.** The editor inserts at the cursor, so a
+    // writer who uploads mid-paragraph leaves words on the same line — and an
+    // anchored `^…$` match meant the reader was shown `![](/blog-image/…)` as
+    // text, with no picture anywhere on the page.
+    const blocks = parse("oldin ![](/blog-image/abc)keyin\nyana");
+    expect(blocks.map((b) => b.kind)).toEqual(["p", "img", "p"]);
+    expect(blocks[0]).toEqual({ kind: "p", text: "oldin" });
+    expect(blocks[1]).toEqual({ kind: "img", alt: "", src: "/blog-image/abc" });
+    expect(blocks[2]).toEqual({ kind: "p", text: "keyin yana" });
+  });
+
+  it("reads two pictures on one line", () => {
+    const blocks = parse("![a](/x) ![b](/y)");
+    expect(blocks).toEqual([
+      { kind: "img", alt: "a", src: "/x" },
+      { kind: "img", alt: "b", src: "/y" },
+    ]);
+  });
+
   it("survives Windows line endings", () => {
     // ⚠️ The text arrives from a textarea on somebody's laptop; a "\r" left in
     // place turns every heading into a paragraph that merely looks like one.

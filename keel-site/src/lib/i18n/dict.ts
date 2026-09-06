@@ -783,6 +783,8 @@ export const uz = {
     coverChange: "Almashtirish",
     coverClear: "Olib tashlash",
     noCover: "rasm yo'q",
+    coverHint:
+      "Tavsiya: 1600×900 px (16:9), JPG yoki WebP, 4 MB gacha. Ro'yxatdagi karta 16:9 ga qirqadi, ijtimoiy tarmoqdagi ko'rinish ham shu rasmdan olinadi.",
     postTitle: "Sarlavha",
     excerpt: "Qisqacha (kartada ko'rinadi)",
     body: "Matn",
@@ -1987,6 +1989,8 @@ export const ru: Dict = {
     coverChange: "Заменить",
     coverClear: "Убрать",
     noCover: "нет картинки",
+    coverHint:
+      "Рекомендуем: 1600×900 px (16:9), JPG или WebP, до 4 МБ. Карточка в списке обрезает до 16:9, превью в соцсетях берётся оттуда же.",
     postTitle: "Заголовок",
     excerpt: "Кратко (видно на карточке)",
     body: "Текст",
@@ -3172,6 +3176,8 @@ export const en: Dict = {
     coverChange: "Replace",
     coverClear: "Remove",
     noCover: "no picture",
+    coverHint:
+      "Recommended: 1600×900 px (16:9), JPG or WebP, up to 4 MB. The card in the list crops to 16:9, and the social preview is taken from the same picture.",
     postTitle: "Title",
     excerpt: "Summary (shown on the card)",
     body: "Body",

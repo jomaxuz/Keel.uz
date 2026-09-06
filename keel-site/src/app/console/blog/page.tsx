@@ -100,10 +100,19 @@ export default function ConsoleBlog() {
     try {
       const { url } = await blogUpload(f);
       const el = bodyRef.current;
-      const md = `\n![](${url})\n`;
       if (draft && el) {
         const at = el.selectionStart ?? el.value.length;
-        const body = el.value.slice(0, at) + md + el.value.slice(at);
+        const head = el.value.slice(0, at);
+        const tail = el.value.slice(at);
+        // ⚠️ **A line of its own, counted rather than assumed.** A newline on
+        // each side is not enough: the cursor is usually in the middle of a
+        // sentence, so the picture landed with the rest of the paragraph still
+        // beside it — and the site printed `![](…)` at the reader instead of
+        // the photograph. The renderer now lifts a picture out of a line
+        // anyway; this keeps the text the writer sees honest as well.
+        const lead = head === "" || head.endsWith("\n") ? "" : "\n";
+        const trail = tail.startsWith("\n") ? "" : "\n";
+        const body = head + lead + `![](${url})` + trail + tail;
         setDraft({ ...draft, [lang]: { ...draft[lang], body } });
       }
     } catch (e) {
@@ -199,6 +208,13 @@ export default function ConsoleBlog() {
                   </button>
                 )}
               </div>
+              {/* ⚠️ **The size is written down where the picture is chosen.**
+                  The card crops to 16:9 and the article does not, so a tall
+                  photograph loses its subject in the list and looks fine in the
+                  editor — the one place nobody would think to check. */}
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.blogAdmin.coverHint}
+              </span>
             </div>
           </div>
 

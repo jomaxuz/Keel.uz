@@ -30,7 +30,16 @@ type Block =
 const YT =
   /^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/;
 
-const IMG = /^!\[([^\]]*)\]\(([^)\s]+)\)$/;
+/** A picture, anywhere in a line.
+ *
+ *  ⚠️ **Not anchored to the whole line, and that is the fix.** It used to be
+ *  `^…$`, so a picture with so much as one stray word beside it was not a
+ *  picture at all — it was `![](/blog-image/…)` printed at the reader in the
+ *  middle of a sentence. The editor inserts at the cursor, which is how the
+ *  word gets there: the writer uploads mid-paragraph and the text carries on
+ *  along the same line. Nothing on our side noticed, because the markup is
+ *  perfectly good text. */
+const IMG = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
 
 export function parse(body: string): Block[] {
   const out: Block[] = [];
@@ -66,10 +75,23 @@ export function parse(body: string): Block[] {
       out.push({ kind: "video", id: yt[1] });
       continue;
     }
-    const img = IMG.exec(line);
-    if (img) {
-      flush();
-      out.push({ kind: "img", alt: img[1], src: img[2] });
+    // ⚠️ **A picture is lifted out of the line it was written in**, and the
+    // words on either side of it stay words. A picture is a block — it is drawn
+    // full width — so the paragraph ends above it and starts again below.
+    IMG.lastIndex = 0;
+    if (IMG.test(line)) {
+      IMG.lastIndex = 0;
+      let last = 0;
+      let m: RegExpExecArray | null;
+      while ((m = IMG.exec(line))) {
+        const before = line.slice(last, m.index).trim();
+        if (before) para.push(before);
+        flush();
+        out.push({ kind: "img", alt: m[1], src: m[2] });
+        last = m.index + m[0].length;
+      }
+      const after = line.slice(last).trim();
+      if (after) para.push(after);
       continue;
     }
     if (line.startsWith("### ")) {
