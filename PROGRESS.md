@@ -13718,3 +13718,29 @@ ko'rinardi, tartib chalkash edi, yangi bo'limlar iconsiz edi.
    **hammasiga yo'q** derdi: stol ham, oshxona ham, texkarta ham, do'kon
    ekranlari ham yo'q. Go tomonida bu `known()` bilan allaqachon tuzatilgan va
    izohi yozilgan edi — panel qolib ketgan. Endi frontendda ham `known()` bor.
+
+---
+
+## 2026-09-07 (2) — Sozlamalar ham biznes turiga mos ✅
+
+Ombordagi qoida sozlamalar sahifasiga ham qo'llandi (`lib/adminNav.ts`, testi
+bilan — savol bitta, shuning uchun joyi ham bitta):
+
+```
+Restoran:  Restoran · Sayt · Zal va buyurtma · Yetkazish · To'lov va kassa · Integratsiyalar
+Do'kon:    Do'kon   · Kassa va javon · Sayt · To'lov va kassa · Yetkazish · Integratsiyalar
+```
+
+- «Restoran» → **Do'kon**, «Zal va buyurtma» → **Kassa va javon**: do'konda u
+  bo'limda tarozi, markirovka, ballar va kassa ekrani turadi — zal umuman yo'q.
+- Tartib: kassa ikkinchi, yetkazish oxiriga yaqin. Do'konda yetkazish standart
+  holda o'chiq (`BusinessType.Defaults`), ya'ni uning tab'i har dorixonada
+  uchinchi bo'lib turardi.
+- «Restoran profili» sarlavhasi va «Restoran nomi» maydoni do'kon so'zi bilan.
+- Masofa matni «restorandan» emas, **filialdan** — do'kon uchun to'g'ri,
+  restoran uchun aniqroq (masofa filialning nuqtasidan olinadi). Uch tilda.
+- Birinchi tab ikkalasida ham bir xil — brend yuklanmasdan chizilgan sahifa
+  keyin sakramasin. Ikkala tartibda ham hamma tab bor.
+
+Testlar: `adminNav.test.ts` 15 ta (6 tasi yangi — nom, tartib, to'liqlik,
+birinchi tab).

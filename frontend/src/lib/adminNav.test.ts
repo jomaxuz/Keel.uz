@@ -6,6 +6,8 @@ import {
   navLabel,
   needsMet,
   orderedFor,
+  settingsTabLabel,
+  settingsTabs,
   SHOP_STOCK_ORDER,
   type Needs,
 } from "@/lib/adminNav";
@@ -143,4 +145,67 @@ it("reads a business it has never heard of as a restaurant", () => {
   const future = { businessType: "bowling-alley" };
   expect(shown(future)).toEqual(shown(RESTAURANT));
   expect(navLabel("ingredients", adminUz, future)).toBe("Masalliqlar");
+});
+
+describe("the settings tabs, by business", () => {
+  // ⚠️ **The same failure as the store section, one screen along.** A chemist
+  // was asked about its "Restoran profili" under a tab called "Zal va
+  // buyurtma", which for a shop holds the scale, the marked goods and the
+  // till's screen — and no room at all.
+  it("calls the two restaurant tabs what a shop calls them", () => {
+    expect(settingsTabLabel("restaurant", adminUz, PHARMACY)).toBe("Do'kon");
+    expect(settingsTabLabel("hall", adminUz, GROCERY)).toBe("Kassa va javon");
+    expect(settingsTabLabel("restaurant", adminUz, RESTAURANT)).toBe("Restoran");
+    expect(settingsTabLabel("hall", adminUz, RESTAURANT)).toBe(
+      "Zal va buyurtma",
+    );
+    expect(settingsTabLabel("restaurant", adminRu, GROCERY)).toBe("Магазин");
+    expect(settingsTabLabel("restaurant", adminEn, GROCERY)).toBe("Shop");
+  });
+
+  it("leaves the tabs that mean the same thing in both alone", () => {
+    for (const brand of [RESTAURANT, PHARMACY]) {
+      expect(settingsTabLabel("money", adminUz, brand)).toBe(
+        adminUz.settings.groups.money,
+      );
+      expect(settingsTabLabel("site", adminUz, brand)).toBe(
+        adminUz.settings.groups.site,
+      );
+    }
+  });
+
+  // ⚠️ **The counter second, delivery near the end.** What a shop sets up on
+  // opening day is the scale and the marked goods; delivery is off by default
+  // for every shop but a florist, and its tab sat third in front of every
+  // chemist on the platform.
+  it("puts a shop's counter before its delivery", () => {
+    const shop = settingsTabs(GROCERY);
+    expect(shop.indexOf("hall")).toBeLessThan(shop.indexOf("delivery"));
+    expect(shop.indexOf("hall")).toBe(1);
+  });
+
+  it("leaves a restaurant's tabs in the order they always were", () => {
+    expect(settingsTabs(RESTAURANT)).toEqual([
+      "restaurant",
+      "site",
+      "hall",
+      "delivery",
+      "money",
+      "integrations",
+    ]);
+  });
+
+  // ⚠️ Both orders hold every tab: one dropped from a list is a page nobody can
+  // reach, and there is no address to type — the tabs are state on one screen.
+  it("keeps every tab in both orders", () => {
+    expect([...settingsTabs(GROCERY)].sort()).toEqual(
+      [...settingsTabs(RESTAURANT)].sort(),
+    );
+  });
+
+  // The first tab is the same in both, so a page that renders before the brand
+  // has loaded opens where it always did rather than jumping when it arrives.
+  it("opens on the same tab whatever the business", () => {
+    expect(settingsTabs(GROCERY)[0]).toBe(settingsTabs(RESTAURANT)[0]);
+  });
 });

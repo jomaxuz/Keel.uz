@@ -4,6 +4,11 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { formatPrice, weekdayName } from "@/lib/format";
 import { composes, hasTables, sellsGoods } from "@/lib/types";
+import {
+  settingsTabLabel,
+  settingsTabs,
+  type SettingsTab,
+} from "@/lib/adminNav";
 import ScaleSettings from "@/components/admin/ScaleSettings";
 import ImageUpload from "@/components/admin/ImageUpload";
 import AddressMap, { type LatLng } from "@/components/map/AddressMap";
@@ -110,9 +115,15 @@ export default function AdminSettingsPage() {
   // and a back button that moved between tabs would look like it was moving
   // between pages — and then somebody would press it expecting their edits to
   // still be there.
-  const [group, setGroup] = useState<SettingsGroup>("restaurant");
+  const [group, setGroup] = useState<SettingsTab>("restaurant");
   const [saved, setSaved] = useState(false);
   const scope = useAdminScope();
+  // ⚠️ The order is this business's, and the first tab is the same one in both
+  // — so a page that loads before the brand does opens where it always did.
+  const tabs = settingsTabs(scope.brand);
+  // Whether this business sells what it bought — the one question every
+  // difference on this page reduces to.
+  const goods = sellsGoods(scope.brand);
   // Which branch's own settings this form is editing. With one branch it is
   // simply that one; with several the panel's switcher decides.
   const editedBranch =
@@ -525,8 +536,12 @@ export default function AdminSettingsPage() {
 
           On a phone it wraps into chips: this screen is opened from a kitchen
           as often as from a desk. */}
+        {/* ⚠️ **Named and ordered by what this business is.** A chemist was
+            being asked about its "Restoran profili" under a tab called "Zal va
+            buyurtma" — which for a shop holds the scale, the marked goods and
+            the till's screen, and no room at all. See lib/adminNav. */}
         <nav className="mt-5 flex flex-wrap gap-2">
-          {GROUPS.map((g) => (
+          {tabs.map((g) => (
             <button
               key={g}
               type="button"
@@ -537,7 +552,7 @@ export default function AdminSettingsPage() {
                   : "rounded-xl border border-line px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-ink/5"
               }
             >
-              {t.settings.groups[g]}
+              {settingsTabLabel(g, t, scope.brand)}
             </button>
           ))}
         </nav>
@@ -546,10 +561,19 @@ export default function AdminSettingsPage() {
         {/* Company and brand identity: the name, the logo, the socials. A branch
           manager runs a kitchen, so these are the owner's. Their branch's own
           address, hours, delivery and dining room follow below. */}
+        {/* ⚠️ **"Restoran profili" over a pharmacy's own name.** The screen is
+            the same one; the heading and the field beside it were a
+            restaurant's, on the settings page of every shop on the platform.
+            Same rule as the store section's "Masalliqlar". */}
         {scope.isOwner && (
-          <Section title={t.settings.profile} group="restaurant">
+          <Section
+            title={goods ? t.settings.profileGoods : t.settings.profile}
+            group="restaurant"
+          >
             <label className="block text-sm">
-              <span className="font-medium">{t.settings.restaurantName}</span>
+              <span className="font-medium">
+                {goods ? t.settings.shopName : t.settings.restaurantName}
+              </span>
               <input
                 className={inputCls}
                 value={rest.name}
@@ -1830,7 +1854,7 @@ function Section({
   title: string;
   children: React.ReactNode;
   blockedBy?: React.ReactNode;
-  group?: SettingsGroup;
+  group?: SettingsTab;
 }) {
   const active = useContext(GroupContext);
   const shown = !group || group === active;
@@ -1854,22 +1878,11 @@ function Section({
   );
 }
 
-/** The tabs, in the order they are read: what the restaurant is, what the guest
- *  sees, how the room works, how food travels, how money arrives, and what is
- *  plugged in behind all of it. */
-type SettingsGroup =
-  "restaurant" | "site" | "hall" | "delivery" | "money" | "integrations";
-
-const GROUPS: SettingsGroup[] = [
-  "restaurant",
-  "site",
-  "hall",
-  "delivery",
-  "money",
-  "integrations",
-];
-
-const GroupContext = createContext<SettingsGroup>("restaurant");
+/** ⚠️ **The tabs themselves live in lib/adminNav**, with the sidebar's rules and
+ *  beside their test: which of them a business sees, in what order and under
+ *  what name is the same question three screens ask, and it was answered
+ *  differently — which is to say wrongly — on each of them. */
+const GroupContext = createContext<SettingsTab>("restaurant");
 
 function NumField({
   label,

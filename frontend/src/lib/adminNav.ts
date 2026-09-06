@@ -121,3 +121,69 @@ export function orderedFor<T extends { key: string }>(
   return [...group.items].sort((a, b) => place(a.key) - place(b.key));
 }
 
+
+// ---- The settings page's own tabs ----
+//
+// ⚠️ **The same complaint, one screen along.** The tabs are named and ordered
+// for a restaurant: a chemist opens Settings and is asked about its "Restoran
+// profili" under a tab called "Zal va buyurtma" — which for a shop holds the
+// scale, the marked goods and the till's screen, and no room at all.
+
+export type SettingsTab =
+  | "restaurant"
+  | "site"
+  | "hall"
+  | "delivery"
+  | "money"
+  | "integrations";
+
+/** The tabs in the order a restaurant reads them: what the restaurant is, what
+ *  the guest sees, how the room works, how food travels, how money arrives, and
+ *  what is plugged in behind all of it. */
+const KITCHEN_TABS: SettingsTab[] = [
+  "restaurant",
+  "site",
+  "hall",
+  "delivery",
+  "money",
+  "integrations",
+];
+
+/** And the order a shop reads them.
+ *
+ *  ⚠️ **The counter comes second, and delivery goes near the end.** What a shop
+ *  sets up on the day it opens is the scale and the marked goods; delivery is
+ *  off by default for every shop but a florist (BusinessType.Defaults), so a tab
+ *  about it sat third in front of every chemist on the platform. */
+const SHOP_TABS: SettingsTab[] = [
+  "restaurant",
+  "hall",
+  "site",
+  "money",
+  "delivery",
+  "integrations",
+];
+
+export function settingsTabs(brand: BrandLike): SettingsTab[] {
+  return sellsGoods(brand) ? SHOP_TABS : KITCHEN_TABS;
+}
+
+/** What a tab is called in this business.
+ *
+ *  ⚠️ **Two readings, not five.** A pharmacy is a shop, a boutique is a shop and
+ *  a flower stall is a shop — one word covers all three, and a dictionary per
+ *  business type is five copies of every string to keep in step for a gain
+ *  nobody can see. The one distinction that matters is whether there is a
+ *  kitchen and a dining room behind the counter. */
+export function settingsTabLabel(
+  tab: SettingsTab,
+  t: AdminDict,
+  brand: BrandLike,
+): string {
+  const g = t.settings.groups as unknown as Record<string, string>;
+  if (!sellsGoods(brand)) return g[tab];
+  // A shop's own words for the two tabs that were named after a restaurant.
+  if (tab === "restaurant") return g.shop;
+  if (tab === "hall") return g.counter;
+  return g[tab];
+}

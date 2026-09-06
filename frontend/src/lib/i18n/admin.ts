@@ -1665,6 +1665,11 @@ export const adminUz = {
     title: "Sozlamalar",
     groups: {
       restaurant: "Restoran",
+      // ⚠️ Do'kon, dorixona, gulchi va kiyim do'koni uchun o'sha ikki bo'lim,
+      // o'z nomi bilan: «Zal» — javon ortidagi kassa, «Restoran profili» esa
+      // dorixonaning profili emas.
+      shop: "Do'kon",
+      counter: "Kassa va javon",
       site: "Sayt",
       hall: "Zal va buyurtma",
       delivery: "Yetkazish",
@@ -1688,6 +1693,7 @@ export const adminUz = {
     loyaltyWelcome: "Ro'yxatdan o'tganda beriladigan ball",
     loyaltyWelcomeHint: "0 = berilmaydi.",
     profile: "Restoran profili",
+    profileGoods: "Do'kon profili",
     name: "Nomi",
     description: "Tavsif",
     logo: "Logotip",
@@ -1717,7 +1723,7 @@ export const adminUz = {
     perKm: "Har km uchun (so'm)",
     maxKm: "Maksimal masofa (km, 0 = cheksiz)",
     radiusExample: (base: string, per: string, total: string) =>
-      `Masalan ${base} + ${per} × 4 km = ${total} so'm. Masofa restorandan to'g'ri chiziq bo'yicha, yuqoriga yaxlitlanadi.`,
+      `Masalan ${base} + ${per} × 4 km = ${total} so'm. Masofa filialdan to'g'ri chiziq bo'yicha, yuqoriga yaxlitlanadi.`,
     zonesKept: " Chizilgan zonalar saqlanadi, lekin bu rejimda ishlatilmaydi.",
     saved: "Saqlandi ✓",
     mapTitle: "Xarita",
@@ -1937,6 +1943,7 @@ export const adminUz = {
       "Kuryer mijoz manziliga shu masofadan yaqin bo'lmasa, ilovada \"Yetkazdim\" tugmasi ishlamaydi. 0 — tekshiruv o'chiriladi. Admin panelda holatni baribir qo'lda o'zgartirsa bo'ladi.",
     noCoordinates: "Koordinata tanlanmagan",
     restaurantName: "Restoran nomi",
+    shopName: "Do'kon nomi",
     // ⚠️ Har biri jimgina noto'g'ri sozlama haqida: forma to'ldirilgandek
     // ko'rinadi, hech qanday xato chiqmaydi, va natija butunlay boshqa joyda
     // — buyurtma umuman kelmaydigan filial yoki hammasini o'ziga olib
@@ -2011,7 +2018,7 @@ export const adminUz = {
     baseFee: "Boshlang'ich narx (so'm)",
     perKm: "Har km uchun (so'm)",
     perKmHint: (base: string, per: string, total: string) =>
-      `Masofa restorandan mijoz manziligacha to'g'ri chiziq bo'yicha, yuqoriga yaxlitlanadi. Masalan ${base} + ${per} × 4 km = ${total} so'm.`,
+      `Masofa filialdan mijoz manziligacha to'g'ri chiziq bo'yicha, yuqoriga yaxlitlanadi. Masalan ${base} + ${per} × 4 km = ${total} so'm.`,
     points: (n: number) => `${n} nuqta`,
     needThree: " — kamida 3 ta kerak",
     undoPoint: "Oxirgi nuqtani bekor qilish",
@@ -6303,6 +6310,8 @@ export const adminRu: AdminDict = {
     title: "Настройки",
     groups: {
       restaurant: "Ресторан",
+      shop: "Магазин",
+      counter: "Касса и полка",
       site: "Сайт",
       hall: "Зал и заказы",
       delivery: "Доставка",
@@ -6323,6 +6332,7 @@ export const adminRu: AdminDict = {
     loyaltyWelcome: "Баллы при регистрации",
     loyaltyWelcomeHint: "0 = не начислять.",
     profile: "Профиль ресторана",
+    profileGoods: "Профиль магазина",
     name: "Название",
     description: "Описание",
     logo: "Логотип",
@@ -6352,7 +6362,7 @@ export const adminRu: AdminDict = {
     perKm: "За км (сум)",
     maxKm: "Максимальное расстояние (км, 0 = ограничения)",
     radiusExample: (base: string, per: string, total: string) =>
-      `Например ${base} + ${per} × 4 км = ${total} сум. Расстояние по прямой от ресторана, округляется вверх.`,
+      `Например ${base} + ${per} × 4 км = ${total} сум. Расстояние по прямой от филиала, округляется вверх.`,
     zonesKept:
       " Нарисованные зоны сохраняются, но в этом режиме не используются.",
     saved: "Сохранено ✓",
@@ -6567,6 +6577,7 @@ export const adminRu: AdminDict = {
       "Пока курьер не окажется ближе этого расстояния к адресу клиента, кнопка «Доставил» в приложении не сработает. 0 — проверка отключена. В админ-панели статус всё равно можно поменять вручную.",
     noCoordinates: "Координаты не выбраны",
     restaurantName: "Название ресторана",
+    shopName: "Название магазина",
     warnNoPin:
       "⚠️ Точка филиала на карте не отмечена. Расстояние считается от неё — без неё стоимость доставки и зона охвата будут неверными. Отметьте адрес на карте выше.",
     warnNoMaxKm:
@@ -6634,7 +6645,7 @@ export const adminRu: AdminDict = {
     baseFee: "Базовая цена (сум)",
     perKm: "За км (сум)",
     perKmHint: (base: string, per: string, total: string) =>
-      `Расстояние по прямой от ресторана до клиента, округляется вверх. Например ${base} + ${per} × 4 км = ${total} сум.`,
+      `Расстояние по прямой от филиала до клиента, округляется вверх. Например ${base} + ${per} × 4 км = ${total} сум.`,
     points: (n: number) => `${n} точек`,
     needThree: " — нужно минимум 3",
     undoPoint: "Отменить последнюю точку",
@@ -10681,6 +10692,8 @@ export const adminEn: AdminDict = {
     title: "Settings",
     groups: {
       restaurant: "Restaurant",
+      shop: "Shop",
+      counter: "Counter and shelf",
       site: "Website",
       hall: "Dining room",
       delivery: "Delivery",
@@ -10701,6 +10714,7 @@ export const adminEn: AdminDict = {
     loyaltyWelcome: "Points on sign-up",
     loyaltyWelcomeHint: "0 = none.",
     profile: "Restaurant profile",
+    profileGoods: "Shop profile",
     name: "Name",
     description: "Description",
     logo: "Logo",
@@ -10730,7 +10744,7 @@ export const adminEn: AdminDict = {
     perKm: "Per km (UZS)",
     maxKm: "Maximum distance (km, 0 = unlimited)",
     radiusExample: (base: string, per: string, total: string) =>
-      `For example ${base} + ${per} × 4 km = ${total} UZS. Distance is straight-line from the restaurant, rounded up.`,
+      `For example ${base} + ${per} × 4 km = ${total} UZS. Distance is straight-line from the branch, rounded up.`,
     zonesKept: " Drawn zones are kept but unused in this mode.",
     saved: "Saved ✓",
     mapTitle: "Map",
@@ -10945,6 +10959,7 @@ export const adminEn: AdminDict = {
       'Until the courier is closer than this to the customer address, the "Delivered" button in the app stays disabled. 0 turns the check off. The admin panel can still set the status by hand.',
     noCoordinates: "No coordinates picked",
     restaurantName: "Restaurant name",
+    shopName: "Shop name",
     warnNoPin:
       "⚠️ This branch has no point on the map. Distance is measured from it — without it the delivery fee and the area covered will both be wrong. Set the address on the map above.",
     warnNoMaxKm:
@@ -11011,7 +11026,7 @@ export const adminEn: AdminDict = {
     baseFee: "Base fee (UZS)",
     perKm: "Per km (UZS)",
     perKmHint: (base: string, per: string, total: string) =>
-      `Straight-line distance from the restaurant, rounded up. For example ${base} + ${per} × 4 km = ${total} UZS.`,
+      `Straight-line distance from the branch, rounded up. For example ${base} + ${per} × 4 km = ${total} UZS.`,
     points: (n: number) => `${n} points`,
     needThree: " — 3 minimum",
     undoPoint: "Undo last point",

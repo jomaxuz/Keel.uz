@@ -3800,6 +3800,20 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   narx yorlig'i va skaner. `suppliers` ham yuk mashinasi edi — kirim bilan
   bir xil shakl; endi qo'l siqish (yuk mashinasi — yetkazish, yetkazib
   beruvchi — telefon qiladigan odam).
+- ⚠️ **Sozlamalar sahifasining tab'lari ham shu qoida bo'yicha**
+  (`settingsTabs`, `settingsTabLabel` — o'sha faylda, chunki savol bitta):
+  do'konda «Restoran» → **Do'kon**, «Zal va buyurtma» → **Kassa va javon**
+  (do'kon uchun u bo'limda tarozi, markirovka, ballar va kassa ekrani turadi —
+  zal umuman yo'q), va tartibda kassa ikkinchi, yetkazish oxiriga yaqin
+  (do'konda yetkazish standart holda **o'chiq** — `BusinessType.Defaults` —
+  ya'ni uning tab'i har dorixonada uchinchi bo'lib turardi). «Restoran
+  profili» sarlavhasi va «Restoran nomi» maydoni ham do'kon so'zi bilan.
+  ⚠️ Birinchi tab ikkalasida ham bir xil: brend yuklanmasdan chizilgan sahifa
+  o'z joyida ochilsin, keyin sakramasin. ⚠️ Ikkala tartibda ham **hamma tab
+  bor** — tushib qolgani manzili yo'q, ochib bo'lmaydigan sahifa bo'lardi.
+- ⚠️ **Masofa «restorandan» emas, filialdan o'lchanadi** — matn shunday tuzatildi
+  (uch tilda). Bu do'kon uchun to'g'ri so'z, restoran uchun esa **aniqroq**:
+  masofa filialning xaritadagi nuqtasidan olinadi, brendning nomidan emas.
 - ⚠️ **Tanilmagan biznes turi — restoran, va u shunday emas edi.**
   `lib/types.ts` dagi har bir predikat o'zicha qaytardi (`!t`, `t === "..."`),
   ya'ni yangiroq konsol yozgan brend hammasiga **yo'q** deb javob berardi:
