@@ -3763,6 +3763,64 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   javobi) va **`label` maydonining aniq nomi** (davlat formatidan olingan,
   provayder hujjatlari bilan tasdiqlanmagan; har adapterda bitta qator).
 
+### Yorliq: do'konning o'z shtrix-kodi va tsennigi
+- ⚠️ **Bu Asl Belgisi emas va bo'la olmaydi.** Davlat kodini operator ishlab
+  chiqaruvchiga/importyorga beradi — dona hisobida va pullik. Qayta sotuvchi
+  do'kon uni faqat skanerlaydi. Bu yerda chiqadigan narsa — do'konning **o'z**
+  kodi, GS1 ichki diapazonida (`2x`).
+- ⚠️ **Diapazon tarozi bilan bo'lishiladi, va xavf shu yerda.** Tarozi
+  yorlig'ining prefiksi `branch.scale.prefix` da, standarti — yalang'och `"2"`,
+  ya'ni **butun diapazon**. O'zimiz chiqargan kod kassada og'irlik bo'lib
+  o'qilsa — kassa chiyillaydi, mahsulotni ko'rsatadi, chek bosadi va **hech kim
+  tortmagan miqdorga** pul oladi; inventarizatsiyagacha bilinmaydi. Shuning
+  uchun nomzod kod **o'sha filialning o'z o'quvchisiga** berib ko'riladi
+  (`barcode.Allocate(seq, readsAsScale)`), «qaysi prefiks xavfsiz» degan qoida
+  bilan emas: qoida bugun to'g'ri, tarozi sozlamasi o'zgargan kuni noto'g'ri.
+  Hammasi to'qnashsa — rad javobi **qaysi sozlamani** o'zgartirishni aytadi.
+- ⚠️ **Kod bosilayotgan paytda yaraladi**, oldin emas: bazada bor, paketda yo'q
+  kod — hech kim skanerlay olmaydigan kod.
+- ⚠️ **«Qaysi javon yolg'on gapiryapti» bayroqdan emas, bosilgan narxdan
+  hisoblanadi** (`menu_item.labelPrice`). Bayroq narx tahrirlangan zahoti
+  eskiradi — bu esa aynan ushlanishi kerak bo'lgan voqea. Uch sabab uch xil ish:
+  kodi yo'q (sotuvni to'xtatadi), hech qachon bosilmagan, narxi o'zgargan.
+- ⚠️ **Kirim yorliqni taklif qiladi, o'zi bosmaydi.** 200 paket 200 stiker bilan
+  javob bersa — bu hech kim so'ramagan rulon va bir haftada o'chirilgan printer.
+  Kirim olib tashlaydigan narsa — **terish**: tovar ham, soni ham allaqachon
+  ma'lum.
+- ⚠️ **Shtrix-kodni printer chizadi** (`GS k`), biz rasterlamaymiz: bitta dither
+  nuqtasi noto'g'ri chiziqda — skaner o'qimaydi, do'kon esa buni «yorliq buzuq»
+  deb tushunadi. Raqamlar tagida — dog' bosgan stikerni kassir qo'lda tera
+  olishi uchun.
+- Printerning alohida turi (`label`): ikkalasini oladigan kassa printeri narx
+  o'zgarganda chek shaklidagi stikerlar tasmasini chiqarardi.
+
+### Markirovka: kirimda skanerlash
+- ⚠️ **Butun xususiyat rad javobi qayerda berilishi haqida.** Tizimdan tashqarida
+  olingan shisha yoki muomaladan chiqarilgan kod kassada, mijoz oldida rad
+  etiladi — kassirning yagona chorasi qayta skanerlash, u esa yordam bermaydi.
+  Kirimda skanerlansa, o'sha fakt **ombor xonasida**, qutisi ochiq turganda
+  bilinadi.
+- ⚠️ **Filial bo'yicha ixtiyoriy** (`branch.markingInbound`). Bugungi har bir
+  install faqat kassada skanerlaydi; hech qachon qabul qilinmagan kodni rad
+  etadigan tekshiruv **birinchi kuniyoq** har bir markirovkalangan sotuvni rad
+  etardi. Yoqilgan bo'lsa — do'kon bo'lmasa ham ko'rinadi: ko'rinmaydigan
+  sozlamani o'chirib bo'lmaydi.
+- ⚠️ **Har shishaga bir qator, son emas** — markirovkaning butun ma'nosi shu.
+  `code` **global unique**: bir kod ikki marta — yo takror skanerlash, yo
+  qalbaki, ikkalasi ham odam qaraydigan narsa. Indeks — tekshiruvning o'zi,
+  undan oldingi qidiruv emas: ikki kassada ikki qutini ochayotgan ikki odam
+  ikkalasi ham «yo'q» deb topadi.
+- ⚠️ **Sotilgani belgilanadi, o'chirilmaydi**: «bu shisha o'sha chekda ketgan» —
+  keyin so'raladigan yagona savol, va o'chirilgan qator qayta skanerlangan kodni
+  hech qachon kelmagan koddan ajratib bo'lmaydigan qiladi.
+- ⚠️ **Qirqta shishadan bittasining stikeri o'qilmasa — bu yiqilgan quti emas.**
+  Har kod alohida javob oladi (qabul qilindi / allaqachon bor / kod emas), va
+  dublikatlar son emas, **kod bilan** qaytariladi: qutini ochayotgan odamning
+  qo'lida o'sha shisha turibdi.
+- ⚠️ **Koddagi GTIN — davlat katalogidagi mahsulot**, sizning menyungiz emas.
+  Ikkalasini moslashtirish — hech kim to'ldirmagan mapping; ekran odamdan
+  so'raydi va majburlamaydi.
+
 ### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
 - **Ma'lumot mijozniki va u bilan ketishi kerak**: menyusini, buyurtmalarini va
   bazasini ko'chira olmaydigan restoran mahsulot bilan emas, **chiqish narxi**

@@ -13544,3 +13544,42 @@ Push Expo relay o'rniga to'g'ridan-to'g'ri FCM, `team` kanalida.
 Testlar: `WireShapeTest` (login, StaffMe, hisobot, ro'yxat, katalog, hamyon,
 zakup, kirim natijasi — JSON Go handler'laridan) + `canWriteHere` qoidasi.
 ⏳ **Telefonda sinalmagan** — qurilma yo'q.
+
+---
+
+## 2026-09-06 (4) — do'kon yorliqlari va kirimda markirovka ✅
+
+**Yorliq (tsennik va shtrix-kod stikeri).** Do'kon zaxirasining yarmi kodsiz
+keladi — qadoqlangan, tortib sotiladigan, o'zi pishirgan, bozordan olingan — va
+kassa ularni **umuman ura olmaydi**. Endi panelda «Yorliqlar»: narxi o'zgargan
+va kodi yo'q tovarlar ro'yxati, tanlab yoki bittalab chiqarish.
+
+⚠️ **Bu Asl Belgisi emas va bo'la olmaydi** — davlat kodini operator ishlab
+chiqaruvchiga beradi. Bu yerdagisi — do'konning o'z kodi, GS1 ning `2x` ichki
+diapazonida.
+
+⚠️ **Diapazon tarozi bilan bo'lishiladi, va xavf shu yerda.** Tarozi prefiksi
+standart holda yalang'och `"2"` — butun diapazon. Nomzod kod **o'sha filialning
+o'z o'quvchisiga** berib ko'riladi; to'qnashsa boshqasi olinadi, hammasi
+to'qnashsa — rad javobi qaysi sozlamani o'zgartirishni aytadi. «Qaysi prefiks
+xavfsiz» degan qoida bugun to'g'ri, tarozi sozlamasi o'zgargan kuni noto'g'ri
+bo'lardi.
+
+⚠️ **Kirim yorliqni taklif qiladi, o'zi bosmaydi**: 200 paket 200 stiker bilan
+javob bersa — bir haftada o'chirilgan printer. Kirim olib tashlaydigani —
+terish.
+
+**Markirovka: kirimda skanerlash.** Kelgan tovarning DataMatrix kodlari ombor
+xonasida o'qiladi. Yoqilgan bo'lsa kassa faqat qabul qilingan kodni o'tkazadi —
+ya'ni «bu shisha bizga kelmagan» mijoz oldida emas, quti ochiq turganda
+bilinadi. ⚠️ Filial bo'yicha **ixtiyoriy**: bugungi har bir install faqat
+kassada skanerlaydi, va tekshiruv birinchi kuniyoq hamma sotuvni rad etardi.
+
+**Yo'l-yo'lakay topilgan jonli xato:** `scale` `BRANCH_FIELDS` da edi — ya'ni
+kompaniya so'rovidan o'chirilardi — lekin filial so'roviga **qo'shilmagan edi**.
+Tahrirlangan tarozi sxemasi bir so'rovdan chiqarib tashlanib, ikkinchisiga
+kirmasdi: sahifa «saqlandi» derdi, filial esa eski sxemani ushlab qolardi.
+
+Testlar: `internal/barcode` (check-raqam, tarozi bilan to'qnashuv), `escpos`
+(`GS k`), `handlers` (stale sabablari, yorliq tartibi, kirim qoidalari).
+
