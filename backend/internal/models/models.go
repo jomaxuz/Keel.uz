@@ -1161,6 +1161,20 @@ type MenuItem struct {
 	// purchases and write-offs go on keying on `ingredientId` exactly as today.
 	SellsItself bool `bson:"sellsItself,omitempty" json:"sellsItself,omitempty"`
 
+	// When a shelf label was last printed for this product, and the price that
+	// was on it.
+	//
+	// ⚠️ **The price as printed, not a "printed" flag.** A boolean set at print
+	// time goes stale the moment somebody edits a price — which is precisely the
+	// event that makes a shelf label wrong, and the one thing a shop needs to be
+	// told about. With the figure, "which shelves are lying" is a question with
+	// an answer; with a flag it is a shop reprinting everything or nothing.
+	//
+	// ⚠️ Empty on every dish and on every product nobody has labelled, which is
+	// the ordinary state — a portion of osh has no shelf.
+	LabelAt    *time.Time `bson:"labelAt,omitempty" json:"labelAt,omitempty"`
+	LabelPrice int        `bson:"labelPrice,omitempty" json:"labelPrice,omitempty"`
+
 	// The stock row this product *is*, when it sells itself.
 	//
 	// ⚠️ Written by the server, never by the panel — it is what lets purchases,

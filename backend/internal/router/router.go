@@ -664,6 +664,14 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			r.Get("/admin/menu", h.AdminListMenu)
 			r.Post("/admin/menu", h.CreateMenuItem)
+
+			// Shelf labels and barcode stickers. ⚠️ **A shop cannot sell what it
+			// cannot scan**, and half of what a shop stocks arrives with no code
+			// on it at all. `stale` is the list a price change makes wrong; the
+			// post prints, and invents a barcode for anything that still has
+			// none — see handlers/labels.go.
+			r.Get("/admin/labels/stale", h.AdminStaleLabels)
+			r.Post("/admin/labels", h.AdminPrintLabels)
 			// ⚠️ **Two steps, never one.** Preview reads a page the owner
 			// pasted and proposes; apply writes what they ticked. An importer
 			// that wrote a hundred and twenty dishes into a live menu on one

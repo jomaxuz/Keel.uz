@@ -1341,6 +1341,23 @@ var messages = map[string]pair{
 		"неизвестный тип аккаунта",
 		"unknown kind of account",
 	},
+	"hech narsa tanlanmagan": {
+		"ничего не выбрано",
+		"nothing was chosen",
+	},
+	// ⚠️ Names the setting rather than the failure: the fix is one field on the
+	// scale screen, and "could not allocate a barcode" would send somebody
+	// looking at the printer.
+	"ichki shtrix-kod chiqmadi — tarozi prefiksi butun diapazonni egallagan, Sozlamalar → Tarozi da aniqroq prefiks tanlang": {
+		"внутренний штрихкод не выдан — префикс весов занял весь диапазон, выберите более точный в Настройки → Весы",
+		"no internal barcode could be issued — the scale prefix has claimed the whole range; choose a narrower one in Settings → Scales",
+	},
+	// ⚠️ Said out loud rather than answered with a silent success: "it printed"
+	// followed by no paper is the report we would get instead.
+	"yorliq bosadigan printer sozlanmagan": {
+		"принтер для этикеток не настроен",
+		"no printer is set to print labels",
+	},
 	"nomini yozing": {
 		"введите название",
 		"enter a name",

@@ -79,6 +79,20 @@ var Untranslated = map[string]bool{
 	"fcm kaliti o'qilmadi: %s":           true,
 	"fcm sozlanmagan":                    true,
 	"fcm tokeni olinmadi: %s %s":         true,
+
+	// ⚠️ **A programmer's mistake, not a person's.** These come out of
+	// `internal/barcode` when it is handed something that is not a code — the
+	// caller checks its inputs, and none of these can reach a screen without a
+	// bug above them. The one refusal from that package that a person does read
+	// — the scale prefix having claimed the whole in-store range — is worded and
+	// translated in `handlers/labels.go`, because it names a setting somebody has
+	// to go and change.
+	"ean-13 needs 12 digits, got %d":         true,
+	"ean-13 takes digits only":               true,
+	"every candidate reads as a scale label": true,
+	"no internal barcodes left":              true,
+	"sequence must not be negative":          true,
+	"not a number":                           true,
 	"%s":                                 true,
 	"%s %s: %s":                          true,
 	"atmos invoice: %s %s":               true,

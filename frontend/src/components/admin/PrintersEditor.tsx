@@ -22,7 +22,11 @@ import type { Printer } from "@/lib/types";
 
 /** What a printer can be asked to print. The order is the order of the day:
  *  the kitchen ticket, then the bill, then the receipt. */
-const KINDS = ["kitchen", "precheck", "till", "customer"] as const;
+// ⚠️ **"label" is here and last on purpose.** It is a different machine with a
+// different roll — a shop's sticker printer — and putting it beside the receipt
+// kinds is what stops somebody ticking it on the till's printer and answering a
+// price change with a receipt-shaped strip of stickers.
+const KINDS = ["kitchen", "precheck", "till", "customer", "label"] as const;
 
 export default function PrintersEditor({
   printers,

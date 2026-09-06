@@ -177,6 +177,55 @@ func EncodeQR(text string) []byte {
 	return b.Bytes()
 }
 
+// EncodeBarcode prints a barcode with its digits underneath.
+//
+// ⚠️ **The printer draws it, not us.** A barcode rendered as a picture is at the
+// mercy of the raster: one dot of dither in the wrong bar and the scanner reads
+// nothing, and the shop concludes the label is broken rather than the image.
+// Every unit in this price range has the bars in firmware, at the exact widths
+// the standard asks for.
+//
+// ⚠️ **The digits are printed under it, and that is not decoration.** A scanner
+// that will not read a smudged label leaves a cashier with a queue and a packet;
+// the number is what lets them type it in and carry on.
+//
+// ⚠️ **EAN-13 or CODE128, chosen by what the code is.** Thirteen digits with a
+// valid check digit is an EAN-13, which is what a shop's scanner is fastest at;
+// anything else goes out as CODE128, which takes letters and any length. Sending
+// thirteen digits to CODE128 would work and would be wider — and on a 30 mm
+// label, wider means the bars run off the edge.
+func EncodeBarcode(code string, ean13 bool) []byte {
+	if code == "" {
+		return nil
+	}
+	var b bytes.Buffer
+	b.Write(alignCenter)
+	// HRI below the bars, in the small font.
+	b.Write([]byte{0x1D, 0x48, 0x02})
+	b.Write([]byte{0x1D, 0x66, 0x00})
+	// Height in dots and module width. ⚠️ Modest on both: a 58 mm roll is 384
+	// dots wide, and an EAN-13 at width 3 does not fit on it.
+	b.Write([]byte{0x1D, 0x68, 0x50})
+	b.Write([]byte{0x1D, 0x77, 0x02})
+	if ean13 {
+		// GS k m n d1..dn, m = 67 (EAN-13), the twelve digits without the check
+		// digit — the printer computes and prints the thirteenth itself.
+		body := code
+		if len(body) == 13 {
+			body = body[:12]
+		}
+		b.Write([]byte{0x1D, 0x6B, 67, byte(len(body))})
+		b.WriteString(body)
+	} else {
+		// CODE128 in subset B, which is where digits, letters and spaces live.
+		body := "{B" + code
+		b.Write([]byte{0x1D, 0x6B, 73, byte(len(body))})
+		b.WriteString(body)
+	}
+	b.Write(alignLeft)
+	return b.Bytes()
+}
+
 // anyCyrillic reports whether a job has a single Cyrillic letter anywhere in it.
 //
 // ⚠️ Checked **after** `Fold`, which is what the encoder itself applies: a

@@ -376,6 +376,12 @@ const NAV_GROUPS = [
       // more columns on every delivery is a cost paid by every restaurant for
       // a screen most of them would not open.
       { href: "/admin/expiring", key: "expiring", needs: "goods" },
+      // Shelf labels and barcode stickers.
+      //
+      // ⚠️ **A shop only.** A restaurant's dishes have no shelf and no
+      // barcode — a row offering to label a portion of osh is a row that
+      // teaches a kitchen to stop reading the sidebar.
+      { href: "/admin/labels", key: "labels", needs: "goods" },
     ],
   },
   {

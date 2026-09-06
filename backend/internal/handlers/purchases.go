@@ -131,6 +131,14 @@ func (h *Handler) AdminCreatePurchase(w http.ResponseWriter, r *http.Request) {
 		// it is the part of this that changes other screens, and somebody
 		// entering an invoice should see that it did.
 		"pricesChanged": changed,
+		// ⚠️ **The labels this delivery makes worth printing — offered, never
+		// printed.** A shop's goods arrive and go on a shelf, and until this
+		// existed somebody had to hunt each one out of the catalogue by name to
+		// get a sticker. Two hundred packets answering themselves with two
+		// hundred stickers would be worse: the products and the counts are here,
+		// so the panel puts one button in front of the person who just typed the
+		// invoice. Empty for every restaurant, which is every install today.
+		"labelsDue": h.labelsDueFor(r.Context(), in),
 	})
 }
 

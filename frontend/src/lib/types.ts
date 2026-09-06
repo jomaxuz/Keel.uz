@@ -4113,6 +4113,34 @@ export interface WriteOff {
 /** One thing to buy. ⚠️ `suggested` is the gap to the reorder point, which is
  *  the smallest defensible number — case sizes and next week's bookings are
  *  things only the owner knows. */
+/** One product whose shelf label no longer says the truth.
+ *
+ *  ⚠️ **`reason` is three different jobs, not one.** "No barcode" stops a sale
+ *  outright — no code, no scan, no ring-up; "never printed" is a shelf with
+ *  nothing on it; "price" is a sticker that contradicts the till, which is the
+ *  law's business rather than a matter of tidiness. */
+export interface StaleLabel {
+  id: string;
+  name: string;
+  price: number;
+  barcode?: string;
+  reason: "noBarcode" | "never" | "price";
+  /** What the sticker says now, when there is one. */
+  wasPrice?: number;
+}
+
+/** What a delivery just made worth printing.
+ *
+ *  ⚠️ **Offered, never printed on its own.** Two hundred packets answering
+ *  themselves with two hundred stickers is a roll of paper nobody asked for and
+ *  a printer switched off within a week. What the delivery removes is the
+ *  typing: the products and the counts are already known. */
+export interface LabelDue extends StaleLabel {
+  /** How many arrived. ⚠️ Whole units, floored: four and a half kilos of loose
+   *  rice is one shelf label, not five stickers. */
+  copies: number;
+}
+
 export interface ShoppingRow {
   ingredientId: string;
   name: string;

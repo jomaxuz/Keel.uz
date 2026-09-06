@@ -97,6 +97,7 @@ export const adminUz = {
     shopping: "Xarid ro'yxati",
     stocktake: "Inventarizatsiya",
     expiring: "Muddati tugayapti",
+    labels: "Yorliqlar",
     promotions: "Aksiyalar",
     feedback: "Fikrlar",
     vacancies: "Vakansiyalar",
@@ -4491,6 +4492,25 @@ export const adminUz = {
     failed: "Ulanib bo'lmadi.",
     off: "Bu serverda AI yordamchi ulanmagan — matnni o'zingiz yozasiz.",
   },
+  labels: {
+    title: "Yorliqlar",
+    // ⚠️ Ekran nima uchunligini bir qatorda aytadi, chunki uni birinchi
+    // ochadigan odam «tsennik qayerda?» deb qidirib kelgan bo'ladi.
+    hint: "Narxi o'zgargan va shtrix-kodi yo'q tovarlar. Yorliq kassa printeriga emas, «Yorliq» turi yoqilgan printerga chiqadi (Sozlamalar → Printerlar).",
+    allGood: "Hamma yorliq joyida.",
+    copies: "Nusxa",
+    print: "Chiqarish",
+    printChosen: (n: number) => `${n} ta tovarga yorliq`,
+    queued: (n: number) => `${n} ta yorliq navbatga qo'yildi`,
+    barcoded: (names: string) => `shtrix-kod berildi: ${names}`,
+    reason: {
+      // ⚠️ Birinchi, chunki bu sotuvni to'xtatadi: kodi yo'q tovarni kassa
+      // umuman ura olmaydi.
+      noBarcode: "Shtrix-kodi yo'q — kassada urib bo'lmaydi",
+      never: "Hali yorliq chiqarilmagan",
+      price: "Narxi o'zgargan — javondagi yorliq eski",
+    } as Record<string, string>,
+  },
   receipts: {
     splitPerGuest: "Chekni mehmonlar soniga bo'lish",
     splitPerGuestHint:
@@ -4502,6 +4522,10 @@ export const adminUz = {
       customer: "Mijoz cheki",
       till: "Kassa cheki",
       kitchen: "Oshxona cheki",
+      // ⚠️ Alohida tur: yorliq printeri boshqa mashina va boshqa rulon.
+      // Ikkalasini oladigan printer narx o'zgarganda chek shaklidagi
+      // stikerlar tasmasini chiqarardi.
+      label: "Yorliq (tsennik)",
     },
     enabled: "Chop etilsin",
     enabledHint: {
@@ -4762,6 +4786,7 @@ export const adminRu: AdminDict = {
     shopping: "Список закупки",
     stocktake: "Инвентаризация",
     expiring: "Истекает срок",
+    labels: "Этикетки",
     promotions: "Акции",
     feedback: "Отзывы",
     vacancies: "Вакансии",
@@ -8800,6 +8825,21 @@ export const adminRu: AdminDict = {
     failed: "Не удалось подключиться.",
     off: "На этом сервере AI-помощник не подключён — текст пишете сами.",
   },
+  labels: {
+    title: "Этикетки",
+    hint: "Товары с изменившейся ценой и без штрихкода. Этикетка печатается не на чековом принтере, а на том, где включён тип «Этикетка» (Настройки → Принтеры).",
+    allGood: "Все ценники на месте.",
+    copies: "Копий",
+    print: "Печать",
+    printChosen: (n: number) => `Этикетки: ${n} товаров`,
+    queued: (n: number) => `В очередь поставлено этикеток: ${n}`,
+    barcoded: (names: string) => `присвоен штрихкод: ${names}`,
+    reason: {
+      noBarcode: "Нет штрихкода — на кассе не пробить",
+      never: "Этикетка ещё не печаталась",
+      price: "Цена изменилась — ценник на полке старый",
+    } as Record<string, string>,
+  },
   receipts: {
     splitPerGuest: "Делить чек на количество гостей",
     splitPerGuestHint:
@@ -8811,6 +8851,7 @@ export const adminRu: AdminDict = {
       customer: "Чек гостя",
       till: "Чек кассы",
       kitchen: "Кухонный чек",
+      label: "Этикетка (ценник)",
     },
     enabled: "Печатать",
     enabledHint: {
@@ -9063,6 +9104,7 @@ export const adminEn: AdminDict = {
     shopping: "Shopping list",
     stocktake: "Stocktake",
     expiring: "Expiring soon",
+    labels: "Labels",
     promotions: "Campaigns",
     feedback: "Feedback",
     vacancies: "Vacancies",
@@ -13088,6 +13130,21 @@ export const adminEn: AdminDict = {
     failed: "Could not connect.",
     off: "No assistant on this server — you write the message yourself.",
   },
+  labels: {
+    title: "Labels",
+    hint: "Goods whose price moved, and goods with no barcode. Labels go to a printer with the \"label\" kind ticked, not to the till's (Settings → Printers).",
+    allGood: "Every shelf says the right thing.",
+    copies: "Copies",
+    print: "Print",
+    printChosen: (n: number) => `Labels for ${n} products`,
+    queued: (n: number) => `${n} labels queued`,
+    barcoded: (names: string) => `given a barcode: ${names}`,
+    reason: {
+      noBarcode: "No barcode — the till cannot ring it up",
+      never: "Never labelled",
+      price: "The price moved — the shelf is out of date",
+    } as Record<string, string>,
+  },
   receipts: {
     splitPerGuest: "Split the bill by guests",
     splitPerGuestHint:
@@ -13099,6 +13156,7 @@ export const adminEn: AdminDict = {
       customer: "Guest copy",
       till: "Till copy",
       kitchen: "Kitchen ticket",
+      label: "Shelf label",
     },
     enabled: "Print it",
     enabledHint: {

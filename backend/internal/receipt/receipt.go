@@ -42,6 +42,15 @@ const (
 	Customer Kind = "customer"
 	// The bill handed to a table **before** they pay.
 	Precheck Kind = "precheck"
+
+	// Label is a shelf label or a barcode sticker.
+	//
+	// ⚠️ **Its own kind, not "till".** A shop's label printer is a different
+	// machine with a different roll, and a printer that took both would answer a
+	// price change with a receipt-shaped strip of stickers. A branch that has not
+	// set one up prints no labels — which is said out loud rather than answered
+	// with a silent success.
+	Label Kind = "label"
 )
 
 // Widths in characters, by paper size.

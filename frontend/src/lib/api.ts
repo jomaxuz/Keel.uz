@@ -119,6 +119,7 @@ import type {
   PanelRole,
   TVScreen,
   TVScreenMode,
+  StaleLabel,
   TVScreenSelf,
   TVSlide,
   TVSlideKind,
@@ -1707,6 +1708,31 @@ export const api = {
       "/admin/ingredients",
       { auth: true, cache: "no-store", scope: true },
     ),
+  // ---- Shelf labels and barcode stickers ----
+  //
+  // ⚠️ **A shop cannot sell what it cannot scan**, and half of what a shop
+  // stocks arrives with no code on it. Printing one is not a convenience there:
+  // it is the difference between a product existing at the counter and not.
+  /** Which shelves are lying, and why. ⚠️ Computed from the price *as printed*
+   *  rather than a "printed" flag — a flag goes stale the moment somebody edits
+   *  a price, which is the event this list exists to catch. */
+  adminStaleLabels: () =>
+    request<{ items: StaleLabel[] }>("/admin/labels/stale", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  /** ⚠️ A product with no barcode is given one here, at the moment it is
+   *  printed — a code that exists in a database and on no packet is a code
+   *  nobody can scan. The names it invented come back so the panel can say so. */
+  adminPrintLabels: (items: { id: string; copies?: number }[]) =>
+    request<{ queued: number; barcoded?: string[] }>("/admin/labels", {
+      method: "POST",
+      body: { items },
+      auth: true,
+      scope: true,
+    }),
+
   adminSaveIngredient: (body: Partial<Ingredient> & { id?: string }) =>
     request<Ingredient>(
       body.id ? `/admin/ingredients/${body.id}` : "/admin/ingredients",

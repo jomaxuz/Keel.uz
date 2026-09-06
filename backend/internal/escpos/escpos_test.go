@@ -247,3 +247,48 @@ func TestLatinTextStaysOnTheLatinPage(t *testing.T) {
 		t.Fatal("a Latin job did not select CP437")
 	}
 }
+
+// ⚠️ **A barcode the printer draws, and the digits under it.** A scanner that
+// will not read a smudged label leaves a cashier with a queue and a packet; the
+// number underneath is what lets them type it in and carry on.
+func TestEAN13GoesOutWithoutItsCheckDigit(t *testing.T) {
+	out := EncodeBarcode("2100000000012", true)
+	if len(out) == 0 {
+		t.Fatal("nothing was written")
+	}
+	// GS k, m = 67 (EAN-13), then the length and the body.
+	i := bytes.Index(out, []byte{0x1D, 0x6B, 67})
+	if i < 0 {
+		t.Fatal("no EAN-13 command")
+	}
+	n := int(out[i+3])
+	if n != 12 {
+		t.Errorf("sent %d digits, want 12 — the printer computes the check digit", n)
+	}
+	if got := string(out[i+4 : i+4+n]); got != "210000000001" {
+		t.Errorf("body %q", got)
+	}
+	// HRI below the bars, or the number is not printed at all.
+	if !bytes.Contains(out, []byte{0x1D, 0x48, 0x02}) {
+		t.Error("the digits are not printed under the bars")
+	}
+}
+
+// ⚠️ Anything that is not a clean EAN-13 goes out as CODE128: it takes letters
+// and any length, which is what a code somebody typed by hand will be.
+func TestAnythingElseGoesOutAsCode128(t *testing.T) {
+	out := EncodeBarcode("AB-12", false)
+	i := bytes.Index(out, []byte{0x1D, 0x6B, 73})
+	if i < 0 {
+		t.Fatal("no CODE128 command")
+	}
+	if !bytes.Contains(out, []byte("{BAB-12")) {
+		t.Error("subset B was not selected")
+	}
+}
+
+func TestNoCodeIsNoBytes(t *testing.T) {
+	if len(EncodeBarcode("", true)) != 0 {
+		t.Error("an empty code still wrote something")
+	}
+}
