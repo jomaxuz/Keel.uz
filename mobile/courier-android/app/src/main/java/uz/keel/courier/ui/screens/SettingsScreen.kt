@@ -52,6 +52,9 @@ fun SettingsScreen(
     address: String,
     bottomInset: PaddingValues,
     pushState: PushState,
+    /** ⚠️ The server's or the operating system's own words. See
+     *  `PushRegistration.detail`. */
+    pushDetail: String?,
     onRetryPush: () -> Unit,
     onSignOut: () -> Unit,
     onForgetServer: () -> Unit,
@@ -139,6 +142,14 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.labelMedium,
                         color = c.muted,
                     )
+                    // ⚠️ **The reason, untranslated.** This is the line that
+                    // tells "this build has no push credentials" apart from
+                    // "the server is older than the endpoint" — neither of
+                    // which is fixed from this phone, and both of which read as
+                    // "not registered" without it.
+                    pushDetail?.let {
+                        Text(it, style = MaterialTheme.typography.labelSmall, color = c.warn)
+                    }
                 }
             }
             if (pushState != PushState.Working) {

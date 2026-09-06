@@ -219,6 +219,7 @@ private fun Root(app: KeelOwnerApp, pendingTab: String?, onConsumed: () -> Unit)
                                             ?.name.orEmpty(),
                                         bottomInset = tabsInset,
                                         pushState = push.state,
+                                        pushDetail = push.detail,
                                         onRetryPush = push.retry,
                                         onOpenHelp = { help = true },
                                         // ⚠️ The phone is dropped **before** the

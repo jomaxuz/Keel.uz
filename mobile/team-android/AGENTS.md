@@ -9,7 +9,7 @@ Loyihaning umumiy qoidalari — ildizdagi `CLAUDE.md`. Bu ilovaning o'z qarorlar
 Ularning har biriga tegishli izohlar kod ichida — o'zgartirishdan oldin o'qing.
 
 ⚠️ **Hisob-kitob bu yerda emas.** `/staff/report` javobi ikkinchi marta
-chizilади, ikkinchi marta hisoblanmaydi: telefon o'z soatlarini qo'shsa, farq
+chiziladi, ikkinchi marta hisoblanmaydi: telefon o'z soatlarini qo'shsa, farq
 oylik kuni topiladi.
 
 ⚠️ **Tab ruxsat bilan so'raladi, rol nomi bilan emas** (`canWriteHere`). Rol

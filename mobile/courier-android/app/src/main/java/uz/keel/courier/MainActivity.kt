@@ -215,6 +215,7 @@ private fun Root(app: KeelCourierApp, pendingTab: String?, onConsumed: () -> Uni
                         address = s.address,
                         bottomInset = tabsInset,
                         pushState = push.state,
+                        pushDetail = push.detail,
                         onRetryPush = push.retry,
                         onSignOut = { leave { vm.signOut(s.address) } },
                         onForgetServer = { leave { vm.forgetServer() } },

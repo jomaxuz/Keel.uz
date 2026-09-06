@@ -213,6 +213,7 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
                         address = s.address,
                         bottomInset = tabsInset,
                         pushState = push.state,
+                        pushDetail = push.detail,
                         onRetryPush = push.retry,
                         onSignOut = { leave { vm.signOut(s.address) } },
                         onForgetServer = { leave { vm.forgetServer() } },

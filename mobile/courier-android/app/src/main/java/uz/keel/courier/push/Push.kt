@@ -56,6 +56,20 @@ enum class PushState(val key: String) {
 
 class PushRegistration(
     val state: PushState,
+    /** The raw reason it failed, for the settings screen.
+     *
+     *  ⚠️ **"Failed" was not enough, and the product already learned that.** The
+     *  first person to run the Expo build on a real phone read "not registered ·
+     *  could not reach the internet or the server", pressed retry, and got the
+     *  same line — which is true of at least three completely different faults:
+     *  this build has no push credentials, the server is older than the
+     *  endpoint, or the phone is offline. None is fixed from the phone, and
+     *  whoever *can* fix it needs to know which one it is.
+     *
+     *  ⚠️ **Deliberately not translated.** It is a diagnostic, read by whoever
+     *  is fixing the install, and a translated HTTP status is a status nobody
+     *  can search for. */
+    val detail: String?,
     val retry: () -> Unit,
     val forget: suspend () -> Unit,
 )
@@ -64,6 +78,7 @@ class PushRegistration(
 fun rememberPushRegistration(api: KeelApi, signedIn: Boolean, lang: String): PushRegistration {
     val ctx = LocalContext.current
     var state by remember { mutableStateOf(PushState.Asking) }
+    var detail by remember { mutableStateOf<String?>(null) }
     var nonce by remember { mutableIntStateOf(0) }
     val token = remember { arrayOfNulls<String>(1) }
     var asked by remember { mutableStateOf(false) }
@@ -87,6 +102,7 @@ fun rememberPushRegistration(api: KeelApi, signedIn: Boolean, lang: String): Pus
             }
         }
         state = PushState.Asking
+        detail = null
         try {
             val value = FirebaseMessaging.getInstance().token.await()
             token[0] = value
@@ -98,11 +114,13 @@ fun rememberPushRegistration(api: KeelApi, signedIn: Boolean, lang: String): Pus
             // "they said they sent me an order and nothing came" has five causes
             // and no way to tell them apart from the phone it happened on.
             state = PushState.Failed
+            detail = e.message ?: e::class.java.simpleName
         }
     }
 
     return PushRegistration(
         state = state,
+        detail = detail,
         retry = { nonce += 1 },
         forget = {
             val value = token[0] ?: return@PushRegistration
