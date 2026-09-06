@@ -40,3 +40,14 @@ Thumbs.db
 # checkout that has deployed does not report itself dirty — and so nobody
 # "tidies it away" into the repository.
 .deploy.lock
+
+# Agent skills installed into this checkout (`npx skills add`, plugin
+# marketplaces). ⚠️ **Ignored rather than committed**, because they are
+# somebody's tooling and not part of the product: they arrive with megabytes of
+# artwork, they update on their own schedule, and a skill that runs with full
+# agent permissions is not something to hand every future clone of this
+# repository without a decision. A skill the team genuinely wants shared gets
+# added on purpose, without the images.
+/.claude/skills/
+/.agents/
+/skills-lock.json
