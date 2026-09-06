@@ -376,6 +376,15 @@ export interface Restaurant {
    *  one brand can have been set up by two different installers, and a layout
    *  read from the wrong one charges for a quantity nobody weighed. */
   scale?: ScaleLabel;
+  /** Whether marked goods are scanned when they arrive, not only when they
+   *  sell.
+   *
+   *  ⚠️ **Off by default, and that is not caution for its own sake.** A check
+   *  that started refusing codes nobody had ever received would refuse every
+   *  sale of every marked bottle on the day it shipped — at a counter, with a
+   *  customer waiting. What it buys is where the refusal lands: switched on, the
+   *  same fact turns up in the store room with the box still open. */
+  markingInbound?: boolean;
   /** Whether guests' ratings and comments appear on the public site. */
   reviews?: ReviewSettings;
   loyalty?: LoyaltySettings;
@@ -1896,6 +1905,15 @@ export interface Branch {
   /** ⚠️ On the branch because a scale is a physical object in a room: two shops
    *  of one brand can have been set up by two different installers. */
   scale?: ScaleLabel;
+  /** Whether marked goods are scanned when they arrive, not only when they
+   *  sell.
+   *
+   *  ⚠️ **Off by default, and that is not caution for its own sake.** A check
+   *  that started refusing codes nobody had ever received would refuse every
+   *  sale of every marked bottle on the day it shipped — at a counter, with a
+   *  customer waiting. What it buys is where the refusal lands: switched on, the
+   *  same fact turns up in the store room with the box still open. */
+  markingInbound?: boolean;
   /** What this room adds to a table's bill. ⚠️ Tables only — the till applies
    *  it, because the setting cannot tell a table from a takeaway coffee. */
   service?: { enabled: boolean; percent: number };

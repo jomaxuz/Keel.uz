@@ -382,6 +382,14 @@ const NAV_GROUPS = [
       // barcode — a row offering to label a portion of osh is a row that
       // teaches a kitchen to stop reading the sidebar.
       { href: "/admin/labels", key: "labels", needs: "goods" },
+      // Marked goods, scanned as they arrive.
+      //
+      // ⚠️ **Shown to a shop, though a bar receives marked bottles too.** The
+      // row is presentation and the page is not gated — a restaurant that
+      // stocks marked drinks reaches it by address, exactly as it reaches the
+      // booking screen. What a sidebar row costs is a line every kitchen reads
+      // past forever.
+      { href: "/admin/marking", key: "marking", needs: "goods" },
     ],
   },
   {

@@ -498,6 +498,34 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ⚠️ **One row per bottle, enforced rather than assumed.** A marking code
+	// names a physical object: the same one arriving twice is a duplicate scan
+	// or a counterfeit, and both are things somebody has to look at rather than
+	// facts to store twice. Without the index a re-scan at goods-in would put
+	// two rows in the store, and the till would then let the same bottle be sold
+	// twice — the exact failure the state's marking exists to make impossible.
+	//
+	// ⚠️ **Global, not per branch.** Two branches of one chain cannot
+	// legitimately hold the same bottle either, and a code that turned up in two
+	// of them is worth refusing loudly.
+	if _, err := s.MarkedUnits.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "code", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// What a branch is holding, which is the question the receiving screen and
+	// the till both ask.
+	if _, err := s.MarkedUnits.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "branchId", Value: 1},
+			{Key: "menuItemId", Value: 1},
+			{Key: "soldAt", Value: 1},
+		},
+	}); err != nil {
+		return err
+	}
+
 	// ⚠️ **One briefing per day per lens, enforced rather than assumed.** It is
 	// written with an upsert, and two dashboard tabs opened in the same second
 	// both miss the existing document and both insert. The second one is a

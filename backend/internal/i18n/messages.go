@@ -1341,6 +1341,25 @@ var messages = map[string]pair{
 		"неизвестный тип аккаунта",
 		"unknown kind of account",
 	},
+	"hech narsa skanerlanmadi": {
+		"ничего не отсканировано",
+		"nothing was scanned",
+	},
+	"bir marta 500 tagacha kod saqlanadi": {
+		"за один раз сохраняется до 500 кодов",
+		"up to 500 codes are saved at a time",
+	},
+	// ⚠️ The two refusals a marked bottle can meet at the counter, once a shop
+	// has said it scans deliveries. Named as what they are rather than as a
+	// failure: the bottle is in the room and the paperwork is not.
+	"bu kod kirimda qabul qilinmagan": {
+		"этот код не принят на приход",
+		"this code was never received into the store",
+	},
+	"bu kod allaqachon sotilgan": {
+		"этот код уже продан",
+		"this code has already been sold",
+	},
 	"hech narsa tanlanmagan": {
 		"ничего не выбрано",
 		"nothing was chosen",

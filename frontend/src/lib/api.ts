@@ -1733,6 +1733,30 @@ export const api = {
       scope: true,
     }),
 
+  // ---- Marked goods, scanned when they arrive ----
+  //
+  // ⚠️ **The whole point is where a refusal lands.** A bottle bought outside the
+  // system, or a code already withdrawn, is otherwise discovered at the counter
+  // with a customer waiting — and scanning again, the cashier's only remedy,
+  // cannot help. Scanned at goods-in, the same fact turns up in the store room
+  // with the box still open.
+  /** ⚠️ Every code is answered separately: a box of forty with one unreadable
+   *  sticker is not a failed box. */
+  adminReceiveMarks: (body: {
+    menuItemId?: string;
+    purchaseId?: string;
+    codes: string[];
+  }) =>
+    request<{ added: number; duplicates: string[]; bad: string[] }>(
+      "/admin/marking/receive",
+      { method: "POST", body, auth: true, scope: true },
+    ),
+  adminMarkStock: (menuItemId?: string) =>
+    request<{ held: number }>(
+      `/admin/marking/stock${menuItemId ? `?menuItemId=${menuItemId}` : ""}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+
   adminSaveIngredient: (body: Partial<Ingredient> & { id?: string }) =>
     request<Ingredient>(
       body.id ? `/admin/ingredients/${body.id}` : "/admin/ingredients",

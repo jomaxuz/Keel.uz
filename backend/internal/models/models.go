@@ -568,6 +568,21 @@ type Branch struct {
 	// shops of one brand can have been set up by two different installers, and
 	// a layout read from the wrong one charges for a quantity nobody weighed.
 	Scale ScaleLabel `bson:"scale" json:"scale"`
+
+	// Whether marked goods are scanned when they arrive, not only when they sell.
+	//
+	// ⚠️ **Off by default, and that is not caution for its own sake.** Every
+	// restaurant running today scans only at the till; a check that started
+	// refusing codes nobody had ever received would refuse every sale in the
+	// product on the day it shipped. Off means the till behaves exactly as it
+	// does now.
+	//
+	// ⚠️ **What it buys is where the refusal lands.** A bottle bought outside
+	// the system, or a code already withdrawn, is otherwise discovered at the
+	// counter with a customer waiting — and scanning again, the cashier's only
+	// remedy, cannot help. Switched on, the same fact turns up in the store room
+	// with the box still open.
+	MarkingInbound bool `bson:"markingInbound,omitempty" json:"markingInbound,omitempty"`
 	// Whether this kitchen takes orders for later, and how much warning it
 	// wants before one is due.
 	Preorder PreorderSettings `bson:"preorder" json:"preorder"`

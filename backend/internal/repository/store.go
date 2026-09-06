@@ -10,6 +10,7 @@ type Store struct {
 	Menu            *mongo.Collection
 	Ingredients     *mongo.Collection
 	Purchases       *mongo.Collection
+	MarkedUnits     *mongo.Collection
 	WriteOffs       *mongo.Collection
 	CourierPayments *mongo.Collection
 	Payouts         *mongo.Collection
@@ -160,6 +161,7 @@ func New(db *mongo.Database) *Store {
 		Menu:            db.Collection("menu_item"),
 		Ingredients:     db.Collection("ingredient"),
 		Purchases:       db.Collection("purchase"),
+		MarkedUnits:     db.Collection("marked_unit"),
 		WriteOffs:       db.Collection("writeoff"),
 		CourierPayments: db.Collection("courier_payment"),
 		Payouts:         db.Collection("payout"),

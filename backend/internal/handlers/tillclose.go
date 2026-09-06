@@ -186,6 +186,18 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ **The second question, and only where a shop has said it wants it
+	// asked**: is this bottle one we actually took in? Silent on every install
+	// that scans only at the till, which is all of them today — see
+	// handlers/markinginbound.go.
+	if msg, err := h.markInboundRefusal(r.Context(), o.BranchID, o.Items); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	} else if msg != "" {
+		httpx.Error(w, http.StatusConflict, msg)
+		return
+	}
+
 	live := o.LiveItems()
 	if len(live) == 0 {
 		// An empty check was never a sale. Closing it as one would put a zero
@@ -374,6 +386,12 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	// cancelled, and a dish stopped by a table that never paid is a dish
 	// refused to somebody standing at the counter with money out.
 	h.applyDailyLimits(r.Context(), o.BranchID)
+
+	// ⚠️ **After the sale is filed, and best effort.** The receipt is the legal
+	// record and the money is taken; a store row that failed to update must not
+	// unwind either. Its absence is the safe direction — the code reads as
+	// unsold and the next scan of it is refused.
+	h.markUnitsSold(r.Context(), o.ID, o.Items)
 
 	// ⚠️ **On closing, and only on closing.** A line removed while a table is
 	// still eating is ordinary work being done — the guest changed their mind,

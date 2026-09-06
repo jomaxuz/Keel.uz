@@ -672,6 +672,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// none — see handlers/labels.go.
 			r.Get("/admin/labels/stale", h.AdminStaleLabels)
 			r.Post("/admin/labels", h.AdminPrintLabels)
+
+			// Marked goods, scanned when they arrive rather than only when they
+			// sell. ⚠️ The whole feature is about *where* a refusal lands: a
+			// bottle bought outside the system is otherwise discovered at the
+			// counter with a customer waiting — see handlers/markinginbound.go.
+			r.Post("/admin/marking/receive", h.AdminReceiveMarks)
+			r.Get("/admin/marking/stock", h.AdminMarkStock)
 			// ⚠️ **Two steps, never one.** Preview reads a page the owner
 			// pasted and proposes; apply writes what they ticked. An importer
 			// that wrote a hundred and twenty dishes into a live menu on one

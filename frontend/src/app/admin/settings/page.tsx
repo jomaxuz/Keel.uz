@@ -76,6 +76,11 @@ const BRANCH_FIELDS = [
   // installers, and a layout read from the wrong one charges for a quantity
   // nobody weighed.
   "scale",
+  // ⚠️ **Whether marked goods are checked on arrival is a fact about a room
+  // too**: one branch of a chain may have started scanning deliveries and
+  // another not, and a flag read from the wrong one refuses every marked sale
+  // in a shop that never scanned anything.
+  "markingInbound",
 ] as const;
 
 // And which belong to the brand: the face the guest sees. A company running a
@@ -149,6 +154,7 @@ export default function AdminSettingsPage() {
                 booking: editedBranch.booking,
                 preorder: editedBranch.preorder,
                 scale: editedBranch.scale,
+                markingInbound: editedBranch.markingInbound,
               }
             : {}),
         };
@@ -217,6 +223,20 @@ export default function AdminSettingsPage() {
           // sold-out list being deleted from the branch form server-side.
           ...(rest.booking ? { booking: rest.booking } : {}),
           preorder: rest.preorder,
+          // ⚠️ **These two were in `BRANCH_FIELDS` and were never sent.** The
+          // list above deletes branch-owned keys from the company payload, so
+          // an edited scale layout was stripped out of one request and left out
+          // of the other — the page said "saved", the branch kept its old
+          // arrangement, and the only symptom was a shop's counter reading a
+          // weight label the way it always had. A field that belongs to the
+          // branch has to appear in both places, and the list is not the second
+          // one.
+          //
+          // ⚠️ Guarded like `booking` and for the same reason: undefined is
+          // "this tab never loaded it", not "there is no scale", and the server
+          // replaces the whole sub-document with what it is sent.
+          ...(rest.scale ? { scale: rest.scale } : {}),
+          markingInbound: !!rest.markingInbound,
         });
       }
       if (scope.isOwner && scope.brand) {
@@ -1122,6 +1142,41 @@ export default function AdminSettingsPage() {
               value={rest.scale}
               onChange={(next) => patch({ scale: next })}
             />
+          </Section>
+        )}
+
+        {/* Marked goods, checked when they arrive rather than only when they
+            sell.
+
+            ⚠️ **Off until a shop says otherwise, and that is not caution.** A
+            check that started refusing codes nobody had ever received would
+            refuse every sale of every marked bottle on the day it shipped — at
+            a counter, with a customer waiting. Switched on, the same refusal
+            lands in the store room with the box still open.
+
+            ⚠️ Shown where it is already on even outside a shop, for the reason
+            the scale section is: a setting that cannot be seen cannot be turned
+            off. */}
+        {(sellsGoods(scope.brand) || rest.markingInbound) && (
+          <Section
+            title={t.markingInbound.title}
+            group="hall"
+            blockedBy={branchGate}
+          >
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={!!rest.markingInbound}
+                onChange={(e) => patch({ markingInbound: e.target.checked })}
+              />
+              <span>
+                {t.markingInbound.enabled}
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.markingInbound.hint}
+                </span>
+              </span>
+            </label>
           </Section>
         )}
 
