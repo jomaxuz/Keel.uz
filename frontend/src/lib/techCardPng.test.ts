@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { CARD_WORDS, cardFileName, DEFAULT_DESIGN } from "@/lib/techCardPng";
+import {
+  CARD_COLUMN_ORDER,
+  CARD_WORDS,
+  cardFileName,
+  DEFAULT_DESIGN,
+  nettoOf,
+} from "@/lib/techCardPng";
 
 /**
  * ⚠️ **The sheet and its file are one thing.** A Russian card that lands as
@@ -54,5 +60,59 @@ describe("the words on the sheet", () => {
     // ⚠️ A card with no ingredient column is not a card. The constructor does
     // not offer to remove it; this pins the default it starts from.
     expect(DEFAULT_DESIGN.columns).toContain("name");
+  });
+});
+
+/**
+ * ⚠️ **The card is drawn for a cook, and a cook weighs netto.** The recipe
+ * figure is brutto — what leaves the store, which is what the dish costs
+ * whether or not a third of it is peel — so netto is derived and never used for
+ * money. Getting this backwards would understate every dish on every report,
+ * quietly and everywhere.
+ */
+describe("what actually goes in the pot", () => {
+  const line = (qty: number, waste?: number) => ({
+    name: "Kartoshka",
+    qty,
+    unit: "g",
+    rate: 4,
+    waste,
+  });
+
+  it("takes the peel off the brutto figure", () => {
+    expect(nettoOf(line(1000, 25))).toBe(750);
+  });
+
+  it("is the same weight when nothing is thrown away", () => {
+    // ⚠️ Zero waste is netto equal to brutto, not a blank: flour, salt and oil
+    // are exactly that, and a column with holes in it beside the lines that do
+    // have peel reads as a card somebody forgot to finish.
+    expect(nettoOf(line(120))).toBe(120);
+    expect(nettoOf(line(120, 0))).toBe(120);
+  });
+
+  it("refuses a waste that would empty the line", () => {
+    // ⚠️ A hundred per cent is an ingredient of which nothing reaches the pot,
+    // and "0 g" beside a line somebody weighs is worse than no column at all.
+    // The server clamps it too; this is the half a stale tab cannot get past.
+    // ⚠️ Compared loosely: 100 × (1 − 0.99) is not exactly 1 in binary
+    // floating point. The sheet never shows the difference — `qty` rounds to
+    // two decimals — and a test that demanded exactness here would be pinning
+    // the arithmetic of the language rather than the rule.
+    expect(nettoOf(line(100, 100))).toBeCloseTo(1, 6);
+    expect(nettoOf(line(100, -5))).toBe(100);
+  });
+
+  it("orders the columns the same way the table draws them", () => {
+    // ⚠️ Netto sits beside the quantity it is derived from. Anywhere else on
+    // the sheet and a cook reads two numbers with a price between them.
+    expect(CARD_COLUMN_ORDER).toEqual([
+      "no",
+      "name",
+      "qty",
+      "netto",
+      "rate",
+      "cost",
+    ]);
   });
 });

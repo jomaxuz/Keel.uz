@@ -276,6 +276,11 @@ export default function TechCardsPage() {
           qty: l.qty,
           unit: t.ingredients.recipeUnits[ing.unit as "kg"] ?? "",
           rate: ratePerUnit(ing),
+          // ⚠️ Carried, never computed here: the netto a cook weighs is the
+          // ingredient's own waste applied to a brutto figure, and a second
+          // opinion about peel on the printing screen is how one card says
+          // 120 g and the next says 130.
+          waste: ing.waste ?? 0,
         };
       })
       .filter(Boolean) as CardData["lines"];

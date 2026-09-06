@@ -21,7 +21,20 @@
 const A4 = { w: 210, h: 297 };
 const MARGIN = 14;
 
-export type CardColumn = "no" | "name" | "qty" | "rate" | "cost";
+export type CardColumn = "no" | "name" | "qty" | "netto" | "rate" | "cost";
+
+/** The order columns are printed in, whatever order they were switched on.
+ *
+ *  ⚠️ Exported so the dialog and the sheet cannot disagree: a column turned off
+ *  and on again used to move to the end of the table on one side only. */
+export const CARD_COLUMN_ORDER: CardColumn[] = [
+  "no",
+  "name",
+  "qty",
+  "netto",
+  "rate",
+  "cost",
+];
 
 export type CardDesign = {
   /** Which language the sheet is written in. */
@@ -54,6 +67,13 @@ export type CardLine = {
   unit: string;
   /** What one of that unit costs. From the server's rate; see the note above. */
   rate: number;
+  /** Per cent of this that never reaches the pot: peel, bone, trimmings.
+   *
+   *  ⚠️ **`qty` is brutto and stays brutto.** A kilo of potatoes costs a kilo
+   *  whether or not a third of it is peel, so netto is derived here for the
+   *  cook and never used for money — costing the peeled weight is how a card
+   *  quietly understates every dish it describes. */
+  waste?: number;
 };
 
 export type CardData = {
@@ -82,6 +102,11 @@ export const CARD_WORDS = {
     no: "№",
     name: "Nomi",
     qty: "Miqdori",
+    // ⚠️ Uchinchi so'z emas, o'sha ustunning ikkinchi nomi: netto ustuni
+    // yoqilganda "Miqdori" brutto degani, va shunday atalgani aniqroq.
+    brutto: "Brutto",
+    netto: "Netto",
+    totalQty: "Jami",
     rate: "Narxi",
     cost: "Summa",
     total: "Jami tannarx",
@@ -99,6 +124,9 @@ export const CARD_WORDS = {
     no: "№",
     name: "Наименование",
     qty: "Количество",
+    brutto: "Брутто",
+    netto: "Нетто",
+    totalQty: "Итого",
     rate: "Цена",
     cost: "Сумма",
     total: "Себестоимость",
@@ -116,6 +144,9 @@ export const CARD_WORDS = {
     no: "#",
     name: "Ingredient",
     qty: "Quantity",
+    brutto: "Gross",
+    netto: "Net",
+    totalQty: "Total",
     rate: "Rate",
     cost: "Cost",
     total: "Cost price",
@@ -142,11 +173,67 @@ function money(n: number): string {
   return out;
 }
 
+/** What actually goes in: brutto less whatever is peeled off it.
+ *
+ *  ⚠️ **Zero waste is netto equal to brutto, not a blank.** Most things are
+ *  exactly that — flour, salt, oil — and a column with holes in it beside the
+ *  ones that do have peel would read as a card somebody forgot to finish. */
+export function nettoOf(line: CardLine): number {
+  const waste = Math.min(99, Math.max(0, line.waste ?? 0));
+  return line.qty * (1 - waste / 100);
+}
+
 /** A quantity, keeping a fraction only where there is one. */
 function qty(n: number): string {
   const r = Math.round(n * 100) / 100;
   return r === Math.floor(r) ? String(r) : String(r).replace(/0+$/, "");
 }
+
+/** Keel's own mark, drawn with the same two strokes as everywhere else.
+ *
+ *  ⚠️ **Drawn, not loaded.** An image would be a second copy of the mark, a
+ *  file to ship, and a request that can fail — on a sheet whose whole job is to
+ *  be identical on every machine. The geometry is `keel-site`'s `KeelMark`,
+ *  viewBox and all: a hull in cross-section with the keel fin below it.
+ *
+ *  ⚠️ **Keel's orange, never `design.accent`.** The accent belongs to the
+ *  restaurant and it is theirs to choose; this mark is ours, and one that
+ *  changed colour with a customer's preference would be somebody else's logo. */
+function keelMark(
+  c: CanvasRenderingContext2D,
+  mm: (n: number) => number,
+  x: number,
+  y: number,
+  size: number,
+) {
+  const u = (n: number) => mm(x + (n / 32) * size);
+  const v = (n: number) => mm(y + (n / 32) * size);
+  c.save();
+  c.strokeStyle = KEEL_ORANGE;
+  c.lineWidth = Math.max(1, mm((2.4 / 32) * size));
+  c.lineCap = "round";
+  c.lineJoin = "round";
+  c.beginPath();
+  c.moveTo(u(5), v(6));
+  c.bezierCurveTo(u(5), v(15.5), u(9.4), v(20.5), u(16), v(20.5));
+  c.bezierCurveTo(u(22.6), v(20.5), u(27), v(15.5), u(27), v(6));
+  c.stroke();
+  c.beginPath();
+  c.moveTo(u(16), v(20.5));
+  c.lineTo(u(16), v(29));
+  c.stroke();
+  c.restore();
+}
+
+/** ⚠️ Spelled here rather than imported from the panel's theme: this file draws
+ *  a document, and a sheet whose logo followed a dark-mode token would print
+ *  our mark in whatever colour the panel happened to be showing. */
+const KEEL_ORANGE = "#e2590d";
+
+/** How much of the top-right corner the mark and its word take, in
+ *  millimetres. ⚠️ A constant because two things need it: the block draws
+ *  itself into it, and the restaurant's own name is cut to what is left. */
+const KEEL_BLOCK = 24;
 
 async function loadLogo(url?: string): Promise<HTMLImageElement | null> {
   if (!url) return null;
@@ -218,10 +305,40 @@ export async function drawTechCard(
     const textLeft = logo ? left + 20 : left;
     c.fillStyle = "#111111";
     c.font = `bold ${mm(5.5)}px sans-serif`;
-    c.fillText(data.brand, mm(textLeft), mm(y + 5));
+    // ⚠️ **Cut to the room it has**, because the corner opposite is spoken for.
+    // A chain with a long name would otherwise print straight through the mark
+    // in the top right — on the one document that leaves the building, and only
+    // for the customers whose name is long enough.
+    c.fillText(
+      fit(c, data.brand, mm(right - textLeft - KEEL_BLOCK)),
+      mm(textLeft),
+      mm(y + 5),
+    );
     c.fillStyle = design.accent;
     c.font = `bold ${mm(7)}px sans-serif`;
     c.fillText(w.title, mm(textLeft), mm(y + 13));
+
+    // ---- Who made the card, opposite whose card it is ----
+    //
+    // ⚠️ **The far corner from the restaurant's own name**, and quieter than
+    // it. This sheet is handed to a supplier and to an inspection under the
+    // restaurant's name; ours belongs on it the way a printer's mark belongs on
+    // a form — findable, never competing. Put beside their logo it would read
+    // as a partnership neither of us claimed.
+    //
+    // ⚠️ **Black, and the mark in Keel's orange.** The wordmark is lowercase
+    // because that is how it is written everywhere else it appears; a card that
+    // capitalised it would be the one place the brand is spelled differently.
+    const markSize = 8;
+    c.font = `bold ${mm(5)}px sans-serif`;
+    // ⚠️ Measured in pixels and placed in millimetres, so the gap between the
+    // mark and the word is the same at 150 DPI and at 300 — the whole reason
+    // every other position on this sheet is in millimetres.
+    const wordMm = c.measureText("keel").width / scale;
+    keelMark(c, mm, right - wordMm - 1.5 - markSize, y + 1, markSize);
+    c.fillStyle = "#111111";
+    c.textAlign = "left";
+    c.fillText("keel", mm(right - wordMm), mm(y + 5.5));
 
     y += 22;
     c.strokeStyle = design.accent;
@@ -252,6 +369,7 @@ export async function drawTechCard(
       no: 10,
       name: 0, // whatever is left
       qty: 26,
+      netto: 26,
       rate: 30,
       cost: 32,
     };
@@ -271,8 +389,20 @@ export async function drawTechCard(
     c.fillRect(mm(left), mm(y), mm(right - left), mm(rowH));
     c.fillStyle = "#333333";
     c.font = `bold ${mm(3.4)}px sans-serif`;
+    // ⚠️ **The quantity column is renamed, not duplicated.** The recipe figure
+    // is brutto by definition — what leaves the store — so a card showing netto
+    // beside it should say so on the header rather than print a third number.
+    // With no netto column the plainer word is the honest one: a cook reading a
+    // single column is reading a quantity, and "brutto" alone invites the
+    // question "brutto of what?".
+    const netto = cols.includes("netto");
+    // ⚠️ Whether this sheet is about money at all. With neither column on it is
+    // a cook's card, and the totals below follow the columns rather than the
+    // data — see the foot.
+    const money_ = cols.includes("rate") || cols.includes("cost");
     for (const k of cols) {
-      const label = w[k as keyof typeof w] as string;
+      const label =
+        k === "qty" && netto ? w.brutto : (w[k as keyof typeof w] as string);
       const rightAligned = k !== "name" && k !== "no";
       c.textAlign = rightAligned ? "right" : "left";
       c.fillText(
@@ -302,6 +432,8 @@ export async function drawTechCard(
         if (k === "no") c.fillText(String(n), tx, ty);
         if (k === "name") c.fillText(fit(c, line.name, mm(widths.name - 4)), tx, ty);
         if (k === "qty") c.fillText(`${qty(line.qty)} ${line.unit}`, tx, ty);
+        if (k === "netto")
+          c.fillText(`${qty(nettoOf(line))} ${line.unit}`, tx, ty);
         if (k === "rate") c.fillText(money(line.rate), tx, ty);
         if (k === "cost") c.fillText(money(line.rate * line.qty), tx, ty);
       }
@@ -322,19 +454,31 @@ export async function drawTechCard(
       c.textAlign = "right";
       c.fillStyle = "#111111";
       c.font = `bold ${mm(4.6)}px sans-serif`;
-      c.fillText(`${w.total}: ${money(data.cost)}`, mm(right), mm(y));
-      if (data.price && data.price > 0) {
-        y += 7;
-        c.font = `${mm(3.8)}px sans-serif`;
-        c.fillStyle = "#555555";
-        const margin = data.price > 0
-          ? Math.round(((data.price - data.cost) / data.price) * 100)
-          : 0;
-        c.fillText(
-          `${w.price}: ${money(data.price)}   ·   ${w.margin}: ${margin}%`,
-          mm(right),
-          mm(y),
-        );
+      if (money_) {
+        c.fillText(`${w.total}: ${money(data.cost)}`, mm(right), mm(y));
+        if (data.price && data.price > 0) {
+          y += 7;
+          c.font = `${mm(3.8)}px sans-serif`;
+          c.fillStyle = "#555555";
+          const margin = data.price > 0
+            ? Math.round(((data.price - data.cost) / data.price) * 100)
+            : 0;
+          c.fillText(
+            `${w.price}: ${money(data.price)}   ·   ${w.margin}: ${margin}%`,
+            mm(right),
+            mm(y),
+          );
+        }
+      } else {
+        // ⚠️ **What the sheet was asked for, totalled.** Turning the price and
+        // the sum off and still printing a cost was the bug: a card handed to a
+        // cook carried a figure the card no longer showed the working for, and
+        // a total nobody can check is a total somebody quotes.
+        //
+        // ⚠️ **Summed per unit, never into one number.** Grams, millilitres and
+        // pieces do not add up, and "180" under a column of three units is a
+        // weight somebody would put on a scale.
+        c.fillText(`${w.totalQty}: ${totals(data.lines, netto)}`, mm(right), mm(y));
       }
       c.textAlign = "left";
 
@@ -361,6 +505,22 @@ export async function drawTechCard(
     if (blob) out.push(blob);
   }
   return out;
+}
+
+/** The weight of everything on the card, one figure per unit.
+ *
+ *  ⚠️ **Per unit, because units do not add.** A card of 180 g, 50 ml and 2 pcs
+ *  has no single total, and inventing one gives a cook a number to weigh that
+ *  no dish has ever contained. */
+function totals(lines: CardLine[], netto: boolean): string {
+  const sums = new Map<string, number>();
+  for (const line of lines) {
+    const value = netto ? nettoOf(line) : line.qty;
+    sums.set(line.unit, (sums.get(line.unit) ?? 0) + value);
+  }
+  return [...sums]
+    .map(([unit, sum]) => `${qty(sum)} ${unit}`)
+    .join("   ·   ");
 }
 
 /** Cut a name to the width it has, with an ellipsis where it was cut. */

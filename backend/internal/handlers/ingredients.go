@@ -187,6 +187,16 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 	if in.MinQty < 0 {
 		in.MinQty = 0
 	}
+	// ⚠️ **Clamped below 100, not at it.** A hundred per cent waste is an
+	// ingredient of which nothing reaches the pot, and a card printing "0 g"
+	// beside a line somebody weighs is worse than no netto column at all —
+	// it is a card that says the dish contains nothing.
+	if in.Waste < 0 {
+		in.Waste = 0
+	}
+	if in.Waste > 99 {
+		in.Waste = 99
+	}
 	in.Note = clampText(in.Note, 120)
 	// ⚠️ **Both halves or neither.** A packaging name with no size converts
 	// nothing, and a size with no name would multiply a buyer's quantity by a

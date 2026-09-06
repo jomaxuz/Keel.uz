@@ -117,6 +117,22 @@ type Ingredient struct {
 	// they run out.
 	MinQty float64 `bson:"minQty,omitempty" json:"minQty,omitempty"`
 
+	// How much of this is thrown away before it reaches the pot, as a
+	// percentage: peel, bone, trimmings.
+	//
+	// ⚠️ **It changes nothing about cost, and that is the whole point.** A kilo
+	// of potatoes costs a kilo whether or not a third of it is peel, so the
+	// recipe quantity stays brutto — what leaves the store — and every price on
+	// every card and report is untouched by this field. What it buys is the
+	// second number a cook actually weighs: netto, what goes in.
+	//
+	// ⚠️ **Zero means "the same weight goes in as comes out", not "unknown".**
+	// Most ingredients are exactly that — flour, salt, oil — and a card that
+	// printed an empty netto column for them would be a card with a hole in it.
+	// So a printed sheet with no waste anywhere is the sheet that was printed
+	// before this field existed.
+	Waste float64 `bson:"waste,omitempty" json:"waste,omitempty"`
+
 	// Every price this ingredient has had, oldest first.
 	//
 	// ⚠️ **Without it, raising a price rewrites history.** Beef going up today

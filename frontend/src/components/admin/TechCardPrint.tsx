@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  CARD_COLUMN_ORDER,
   CARD_WORDS,
   DEFAULT_DESIGN,
   cardFileName,
@@ -31,7 +32,7 @@ const ACCENTS = ["#e2590d", "#1f2937", "#0f766e", "#7c3aed", "#b91c1c"];
 /** ⚠️ The name is not offered: a card with no ingredient column is not a card,
  *  and a switch that can produce a useless sheet is a switch somebody finds by
  *  accident. */
-const OPTIONAL: CardColumn[] = ["no", "qty", "rate", "cost"];
+const OPTIONAL: CardColumn[] = ["no", "qty", "netto", "rate", "cost"];
 
 export default function TechCardPrint({
   data,
@@ -96,8 +97,9 @@ export default function TechCardPrint({
       columns: design.columns.includes(col)
         ? design.columns.filter((c) => c !== col)
         : // ⚠️ Put back in the canonical order, never appended: a column turned
-          // off and on again would otherwise move to the end of the table.
-          (["no", "name", "qty", "rate", "cost"] as CardColumn[]).filter(
+          // off and on again would otherwise move to the end of the table. The
+          // order lives beside the drawing, so the two cannot disagree.
+          CARD_COLUMN_ORDER.filter(
             (c) => c === col || design.columns.includes(c),
           ),
     });
@@ -166,7 +168,13 @@ export default function TechCardPrint({
                       : "border-line text-ink-muted"
                   }`}
                 >
-                  {CARD_WORDS[design.lang][col]}
+                  {/* ⚠️ Named the way the sheet names it: with netto on, the
+                      quantity column's header reads "brutto" there, and a chip
+                      still saying "quantity" would be the control disagreeing
+                      with the picture directly under it. */}
+                  {col === "qty" && design.columns.includes("netto")
+                    ? CARD_WORDS[design.lang].brutto
+                    : CARD_WORDS[design.lang][col]}
                 </button>
               ))}
             </div>

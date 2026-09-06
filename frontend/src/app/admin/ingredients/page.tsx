@@ -43,6 +43,9 @@ type Draft = Omit<Partial<Ingredient>, "recipe" | "output" | "minQty"> & {
   output: number;
   /** Warn below this. Zero is "do not warn me". */
   minQty: number;
+  /** Per cent thrown away before the pot. Zero is "what comes out is what goes
+   *  in", which is most things. */
+  waste: number;
   /** Which store it is kept in. Empty is the undivided one. */
   warehouseId: string;
 };
@@ -54,6 +57,7 @@ const EMPTY: Draft = {
   recipe: [],
   output: 0,
   minQty: 0,
+  waste: 0,
   warehouseId: "",
 };
 
@@ -106,6 +110,11 @@ export default function IngredientsPage() {
         price: Math.max(0, Math.round(draft.price) || 0),
         note: draft.note ?? "",
         minQty: draft.minQty,
+        // ⚠️ Sent on every save because this is a whole-document replace: an
+        // ingredient whose price is corrected here would otherwise lose its
+        // waste, and the loss would surface as a netto column that quietly
+        // equals brutto on a card somebody already trusts.
+        waste: draft.waste,
         // ⚠️ Both halves or neither — the server drops a half-filled pair for
         // the same reason: a size with no name multiplies a buyer's quantity by
         // a factor nobody can see on screen.
@@ -265,6 +274,26 @@ export default function IngredientsPage() {
               value={draft.minQty ?? 0}
               onValue={(v) => setDraft({ ...draft, minQty: qtyNumber(v) })}
             />
+          </label>
+          {/* ⚠️ **A number for the kitchen, not for the accounts.** It never
+              touches a price: the recipe quantity is brutto — what leaves the
+              store — and that is what a dish costs whether or not a third of it
+              is peel. This is the other number, the one a cook puts on a scale,
+              and it exists so a printed card can carry both. */}
+          <label className="block text-sm">
+            <span className="text-xs text-ink-muted">
+              {t.ingredients.waste}
+            </span>
+            <QtyInput
+              className="input mt-1 w-28"
+              value={draft.waste ?? 0}
+              onValue={(v) =>
+                setDraft({ ...draft, waste: Math.min(99, Math.max(0, qtyNumber(v))) })
+              }
+            />
+            <span className="mt-1 block text-xs text-ink-muted">
+              {t.ingredients.wasteHint}
+            </span>
           </label>
           {/* ---- How the market sells it ----
               ⚠️ **The gap between how a thing is bought and how it is kept**,
@@ -444,6 +473,7 @@ export default function IngredientsPage() {
                           recipe: row.recipe ?? [],
                           output: row.output ?? 0,
                           minQty: row.minQty ?? 0,
+                          waste: row.waste ?? 0,
                           // ⚠️ Defaulted here as well as in EMPTY: an
                           // ingredient saved before warehouses existed has no
                           // field at all, and `undefined` in a controlled

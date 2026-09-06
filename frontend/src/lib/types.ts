@@ -3960,6 +3960,17 @@ export interface Ingredient {
    *  not "warn me at zero": a list where every line eventually turns red is a
    *  list nobody reads, so it is opt-in one ingredient at a time. */
   minQty?: number;
+  /** How much is thrown away before it reaches the pot, as a percentage: peel,
+   *  bone, trimmings.
+   *
+   *  ⚠️ **It changes no cost anywhere.** A kilo of potatoes costs a kilo
+   *  whether or not a third of it is peel, so the recipe quantity stays brutto
+   *  — what leaves the store — and every price on every card and report is
+   *  untouched. What it buys is the second number a cook weighs: netto.
+   *
+   *  ⚠️ Zero means "the same weight goes in as comes out", not "unknown". Most
+   *  things are exactly that — flour, salt, oil. */
+  waste?: number;
   /** What should be on the shelf now.
    *
    *  ⚠️ An estimate: the last count plus deliveries, less what the cards and

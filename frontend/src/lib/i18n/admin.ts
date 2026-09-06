@@ -1236,6 +1236,10 @@ export const adminUz = {
     batchedHint:
       "Markaziy oshxona partiya qilib tayyorlaydigan va filiallarga tarqatadigan mahsulotlar uchun. Yoqilsa, bu mahsulot javondagi narsa bo'lib sanaladi va ko'chiriladi; taom uni masalliqlariga yoymay o'zini sarflaydi, masalliqlari esa ishlab chiqarish hujjatida chiqadi.",
     minQty: "Minimal qoldiq",
+    // ⚠️ Oshxona uchun raqam, buxgalteriya uchun emas: tannarxga tegmaydi.
+    waste: "Chiqindi, %",
+    wasteHint:
+      "Qozonga tushmasdan tashlanadigan qismi: po'st, suyak, qirqim. Tannarxga ta'sir qilmaydi — kartadagi miqdor brutto bo'lib qoladi, ya'ni ombordan chiqadigan og'irlik. Bu raqam faqat chop etilgan texkartadagi netto ustuni uchun. Un, tuz, yog' uchun 0.",
     expected: "Bo'lishi kerak",
     low: "tugayapti",
     expectedSince: (d: string) =>
@@ -5805,6 +5809,9 @@ export const adminRu: AdminDict = {
     batchedHint:
       "Для того, что центральная кухня готовит партиями и развозит по филиалам. Если включено, продукт считается и перемещается как вещь на полке; блюдо списывает его самого, а не ингредиенты — они списываются документом производства.",
     minQty: "Минимальный остаток",
+    waste: "Отходы, %",
+    wasteHint:
+      "Что выбрасывается до кастрюли: кожура, кость, обрезь. На себестоимость не влияет — количество в карте остаётся брутто, то есть вес, который уходит со склада. Это число только для колонки нетто на печатной карте. Для муки, соли, масла — 0.",
     expected: "Должно быть",
     low: "заканчивается",
     expectedSince: (d: string) =>
@@ -10095,6 +10102,9 @@ export const adminEn: AdminDict = {
     batchedHint:
       "For what a central kitchen makes in batches and ships to the branches. With this on the item is counted and transferred like anything on a shelf, and a dish consumes it rather than what it was made of — its inputs are taken by the production document instead.",
     minQty: "Minimum",
+    waste: "Waste, %",
+    wasteHint:
+      "What is thrown away before the pot: peel, bone, trimmings. It changes no cost — the quantity on a card stays brutto, the weight that leaves the store. This number is only for the netto column on a printed card. Flour, salt and oil are 0.",
     expected: "Should be there",
     low: "running out",
     expectedSince: (d: string) =>
