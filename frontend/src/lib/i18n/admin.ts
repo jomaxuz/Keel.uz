@@ -4536,6 +4536,52 @@ export const adminUz = {
       never: "Hali yorliq chiqarilmagan",
       price: "Narxi o'zgargan — javondagi yorliq eski",
     } as Record<string, string>,
+
+    design: {
+      title: "Yorliq dizayni",
+      // ⚠️ Nima uchun oltita ekani bir qatorda: bitta dizayn ikkitasiga
+      // noto'g'ri bo'ladi, va buni faqat rulonni qo'lida ushlab turgan odam
+      // ko'radi.
+      hint: "Do'kon o'zi tanlaydi. Javon tsennigi ikki metrdan o'qiladi, paketdagi stikerga esa faqat skaner qaraydi — bitta dizayn ikkalasiga ham to'g'ri kelmaydi. Quyidagi oltitasi printerning o'z kodi bilan chizilgan, ya'ni qog'ozdan chiqadigani aynan shu.",
+      choose: "Tanlash",
+      chosen: "Tanlandi",
+      save: "Saqlash",
+      saved: "Dizayn saqlandi",
+      width: "Qog'oz eni",
+      lang: "Yorliq tili",
+      feed: "Kesishdan oldin bo'sh qator",
+      // ⚠️ Nega kerakligi bilan: yarmidan kesilgan shtrix-kod umuman
+      // o'qilmaydi, va buni faqat kassada bilib qolishadi.
+      feedHint: "Kesish chizig'i shtrix-koddan pastda bo'lishi uchun. Yarmidan kesilgan kodni skaner o'qimaydi.",
+      fields: "Qo'shimcha qatorlar",
+      field: {
+        shop: "Do'kon nomi",
+        unit: "O'lchov birligi (kg, l)",
+        date: "Bosilgan sana",
+      } as Record<string, string>,
+      sample: (name: string) => `Namuna: ${name}`,
+      // ⚠️ Namunada eski narx ataylab bor — bo'lmasa «Aksiya» dizayni
+      // oddiysidan farq qilmay ko'rinardi va tanlab bo'lmasdi.
+      sampleHint:
+        "Namuna — shu do'konning o'z tovari; «Aksiya» ko'rinishi uchun eski narx o'ylab qo'shilgan.",
+      noBars: "Shtrix-kodsiz",
+      style: {
+        shelf: "Javon yorlig'i",
+        price: "Katta tsennik",
+        sticker: "Shtrix-kod stikeri",
+        compact: "Ixcham",
+        sale: "Aksiya",
+        full: "To'liq",
+      } as Record<string, string>,
+      styleHint: {
+        shelf: "Nomi, do'kon, narxi va kodi. Standart ko'rinish.",
+        price: "Faqat narx, eng katta o'lchamda. Shtrix-kod chiqmaydi — bu javon tsennigi, paketga yopishtiriladigan stiker emas.",
+        sticker: "Nomi bir qatorda va shtrix-kod. Eng kichik, 30 mm stikerlar uchun.",
+        compact: "Nomi va narxi bitta qatorda — rulonni tejaydi.",
+        sale: "Eski narx va yangi narx. ⚠️ Narx tushmagan bo'lsa bu dizayn oddiy javon yorlig'iga o'tadi: javonda yo'q chegirmani yozib bo'lmaydi.",
+        full: "Do'kon nomi, tovar, narx va bosilgan sana.",
+      } as Record<string, string>,
+    },
   },
   receipts: {
     splitPerGuest: "Chekni mehmonlar soniga bo'lish",
@@ -8888,6 +8934,45 @@ export const adminRu: AdminDict = {
       never: "Этикетка ещё не печаталась",
       price: "Цена изменилась — ценник на полке старый",
     } as Record<string, string>,
+
+    design: {
+      title: "Дизайн этикетки",
+      hint: "Магазин выбирает сам. Ценник на полке читают с двух метров, а на стикер на пачке смотрит только сканер — один макет не подходит обоим. Все шесть ниже нарисованы кодом самого принтера, то есть именно так и выйдет на бумаге.",
+      choose: "Выбрать",
+      chosen: "Выбрано",
+      save: "Сохранить",
+      saved: "Дизайн сохранён",
+      width: "Ширина бумаги",
+      lang: "Язык этикетки",
+      feed: "Пустых строк перед отрезом",
+      feedHint: "Чтобы линия отреза была ниже штрихкода. Разрезанный пополам код сканер не читает.",
+      fields: "Дополнительные строки",
+      field: {
+        shop: "Название магазина",
+        unit: "Единица (кг, л)",
+        date: "Дата печати",
+      } as Record<string, string>,
+      sample: (name: string) => `Образец: ${name}`,
+      sampleHint:
+        "Образец — товар этого магазина; старая цена придумана, чтобы был виден макет «Акция».",
+      noBars: "Без штрихкода",
+      style: {
+        shelf: "Полочный ценник",
+        price: "Крупная цена",
+        sticker: "Стикер со штрихкодом",
+        compact: "Компактный",
+        sale: "Акция",
+        full: "Полный",
+      } as Record<string, string>,
+      styleHint: {
+        shelf: "Название, магазин, цена и код. Обычный вид.",
+        price: "Только цена, самым крупным шрифтом. Штрихкод не печатается — это ценник для полки, а не стикер на пачку.",
+        sticker: "Название в одну строку и штрихкод. Самый маленький, для стикеров 30 мм.",
+        compact: "Название и цена в одной строке — экономит рулон.",
+        sale: "Старая и новая цена. ⚠️ Если цена не снижена, макет переключается на обычный: скидку, которой нет, печатать нельзя.",
+        full: "Магазин, товар, цена и дата печати.",
+      } as Record<string, string>,
+    },
   },
   receipts: {
     splitPerGuest: "Делить чек на количество гостей",
@@ -13216,6 +13301,45 @@ export const adminEn: AdminDict = {
       never: "Never labelled",
       price: "The price moved — the shelf is out of date",
     } as Record<string, string>,
+
+    design: {
+      title: "Label design",
+      hint: "The shop picks. A shelf tag is read from two metres away; a sticker on a packet is only ever read by a scanner — one layout is wrong for one of them. All six below are drawn by the printer's own layout code, so this is what comes off the roll.",
+      choose: "Choose",
+      chosen: "Chosen",
+      save: "Save",
+      saved: "Design saved",
+      width: "Paper width",
+      lang: "Label language",
+      feed: "Blank lines before the cut",
+      feedHint: "So the tear-off is below the barcode. A code cut in half scans as nothing.",
+      fields: "Optional lines",
+      field: {
+        shop: "Shop name",
+        unit: "Unit (kg, l)",
+        date: "Date printed",
+      } as Record<string, string>,
+      sample: (name: string) => `Sample: ${name}`,
+      sampleHint:
+        "The sample is this shop's own product; the old price is invented so the sale design has something to show.",
+      noBars: "No barcode",
+      style: {
+        shelf: "Shelf label",
+        price: "Big price tag",
+        sticker: "Barcode sticker",
+        compact: "Compact",
+        sale: "Sale",
+        full: "Full",
+      } as Record<string, string>,
+      styleHint: {
+        shelf: "Name, shop, price and code. The ordinary one.",
+        price: "The price and almost nothing else, as large as the head can draw it. No barcode — this is a tag for a shelf, not a sticker for a packet.",
+        sticker: "One line of name and the bars. The smallest, for 30 mm stickers.",
+        compact: "Name and price on one line — saves roll.",
+        sale: "What it cost and what it costs now. ⚠️ With nothing reduced this design steps aside for the plain one: a discount that did not happen cannot be printed.",
+        full: "Shop, product, price and the date it was printed.",
+      } as Record<string, string>,
+    },
   },
   receipts: {
     splitPerGuest: "Split the bill by guests",

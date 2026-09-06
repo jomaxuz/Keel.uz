@@ -31,6 +31,19 @@ type ReceiptSettings struct {
 	Till     receipt.Template `bson:"till" json:"till"`
 	Customer receipt.Template `bson:"customer" json:"customer"`
 
+	// The shop's label design.
+	//
+	// ⚠️ **Here rather than on the branch**, because a label is a piece of paper
+	// coming out of a machine on that counter — the same fact that puts the
+	// paper width and the printers in this document. A shop that changed its
+	// design would otherwise have to find it on a settings page that is about
+	// opening hours and delivery zones.
+	//
+	// ⚠️ **Absent is the shelf label at 58 mm**, not "print nothing": every
+	// branch created before this field existed has no entry here. See
+	// LabelTemplate.Defaults.
+	Label receipt.LabelTemplate `bson:"label,omitempty" json:"label"`
+
 	// The printers this branch has, and which receipts go to each.
 	//
 	// ⚠️ **A list, not three fields.** A restaurant with one printer at the
@@ -181,6 +194,7 @@ func DefaultReceipts(branchID primitive.ObjectID) ReceiptSettings {
 
 	return ReceiptSettings{
 		BranchID: branchID, Kitchen: k, Till: till, Customer: cust,
+		Label:     receipt.LabelTemplate{}.Defaults(),
 		UpdatedAt: time.Now(),
 	}
 }

@@ -120,6 +120,8 @@ import type {
   TVScreen,
   TVScreenMode,
   StaleLabel,
+  LabelDesign,
+  LabelDesignView,
   TVScreenSelf,
   TVSlide,
   TVSlideKind,
@@ -1729,6 +1731,34 @@ export const api = {
     request<{ queued: number; barcoded?: string[] }>("/admin/labels", {
       method: "POST",
       body: { items },
+      auth: true,
+      scope: true,
+    }),
+
+  /** Which of the six designs this shop's labels come out in.
+   *
+   *  ⚠️ The answer carries all six rendered, not just the chosen one: a shop
+   *  picks by looking, and a dropdown of six words asks somebody holding a roll
+   *  of paper to imagine it. */
+  adminLabelDesign: () =>
+    request<LabelDesignView>("/admin/labels/design", {
+      auth: true,
+      scope: true,
+      cache: "no-store",
+    }),
+  /** Draw a design that has not been saved — the width, the language and the
+   *  optional lines have to be visible before they are kept. */
+  previewLabelDesign: (body: LabelDesign) =>
+    request<LabelDesignView>("/admin/labels/design/preview", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  saveLabelDesign: (body: LabelDesign) =>
+    request<LabelDesignView>("/admin/labels/design", {
+      method: "PUT",
+      body,
       auth: true,
       scope: true,
     }),

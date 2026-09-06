@@ -672,6 +672,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// none — see handlers/labels.go.
 			r.Get("/admin/labels/stale", h.AdminStaleLabels)
 			r.Post("/admin/labels", h.AdminPrintLabels)
+			// Which of the six designs comes out of the printer. ⚠️ The shop
+			// chooses by looking: the answer carries all six rendered by the
+			// printer's own layout code, because a dropdown of six words asks
+			// somebody holding a roll of paper to imagine it.
+			r.Get("/admin/labels/design", h.AdminLabelDesign)
+			r.Post("/admin/labels/design/preview", h.AdminPreviewLabelDesign)
+			r.Put("/admin/labels/design", h.AdminSaveLabelDesign)
 
 			// Marked goods, scanned when they arrive rather than only when they
 			// sell. ⚠️ The whole feature is about *where* a refusal lands: a

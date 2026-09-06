@@ -218,7 +218,13 @@ func (h *Handler) queueLabels(
 	if err != nil {
 		return 0, nil, err
 	}
+	tpl := set.Label.Defaults()
+	currency := h.currencyOf(ctx)
 	now := time.Now()
+	// ⚠️ Formatted here, in the server's own zone, rather than inside the
+	// renderer: a date is the thing this codebase has already got wrong twice by
+	// letting it travel as a timestamp (see CLAUDE.md on Mongo and UTC).
+	day := now.Format("02.01.2006")
 
 	for _, want := range items {
 		id, err := objectID(want.ID)
@@ -251,8 +257,14 @@ func (h *Handler) queueLabels(
 			barcoded = append(barcoded, it.Name)
 		}
 
-		lines := labelLines(it, *branch)
-		bars := escpos.EncodeBarcode(it.Barcode, barcode.Valid(it.Barcode))
+		lines := receipt.RenderLabel(tpl, labelData(it, *branch, currency, day))
+		// ⚠️ **The design decides whether there are bars at all.** A price tag
+		// for a shelf edge is not a sticker for a packet, and printing the code
+		// on it would take the room the price is chosen to fill.
+		var bars []byte
+		if tpl.Bars() {
+			bars = escpos.EncodeBarcode(it.Barcode, barcode.Valid(it.Barcode))
+		}
 		for _, p := range printers {
 			// ⚠️ **Built once per printer, sent once per copy.** Six stickers of
 			// the same product are six jobs, not one job with six inside: the
@@ -306,27 +318,46 @@ func labelPayload(lines []string, bars []byte, p models.Printer) []byte {
 	return out
 }
 
-// labelLines is what is printed above the bars.
+// currencyOf is the word printed after a price.
 //
-// ⚠️ **The price is the largest thing on it, and the name is second.** A shelf
-// label is read from a metre away by somebody deciding whether to pick the
-// packet up; a sticker on the packet is read at the till by a scanner, which
-// needs none of the words. One layout serves both, so it is written for the
-// harder reader.
-func labelLines(it models.MenuItem, branch models.Branch) []string {
-	name := strings.TrimSpace(it.Name)
-	lines := []string{"!" + name}
-	if branch.Name != "" {
-		lines = append(lines, branch.Name)
+// ⚠️ **Read rather than assumed.** "so'm" is the answer for every shop today,
+// and a constant would be a shelf full of the wrong word on the first install
+// that is not — which is a thing the panel already lets an owner change.
+func (h *Handler) currencyOf(ctx context.Context) string {
+	var rest models.Restaurant
+	if err := h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest); err == nil {
+		if rest.Currency != "" {
+			return rest.Currency
+		}
 	}
-	// ⚠️ The unit beside the price, because "18 500" means nothing on a shelf of
-	// loose goods until it says whether that is a kilo or a packet.
-	price := formatSom(it.Price)
-	if u := unitWord(it); u != "" {
-		price += " / " + u
+	return "so'm"
+}
+
+// labelData is one product as a sticker's worth of facts.
+//
+// ⚠️ **The layout is not here.** Which of the six designs those facts are poured
+// into is the shop's choice, and it is applied by internal/receipt — the same
+// code that draws the panel's preview, so what the shop chose and what comes out
+// of the printer cannot disagree.
+func labelData(
+	it models.MenuItem, branch models.Branch, currency, day string,
+) receipt.LabelData {
+	d := receipt.LabelData{
+		Name:     strings.TrimSpace(it.Name),
+		Shop:     branch.Name,
+		Price:    it.Price,
+		Unit:     unitWord(it),
+		Barcode:  it.Barcode,
+		Currency: currency,
+		Date:     day,
 	}
-	lines = append(lines, "!!"+price)
-	return lines
+	// ⚠️ Only a genuine reduction. `oldPrice` is a nullable field a panel may
+	// have left holding the same number, and a sale label over an unchanged
+	// price is a claim on a shelf that we would have printed ourselves.
+	if it.OldPrice != nil && *it.OldPrice > it.Price {
+		d.OldPrice = *it.OldPrice
+	}
+	return d
 }
 
 // unitWord is how this product is sold, in the words the shop uses.

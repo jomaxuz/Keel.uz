@@ -3793,6 +3793,44 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   olishi uchun.
 - Printerning alohida turi (`label`): ikkalasini oladigan kassa printeri narx
   o'zgarganda chek shaklidagi stikerlar tasmasini chiqarardi.
+- ⚠️ **Dizaynni do'kon tanlaydi — oltitadan** (`receipt.LabelStyle`):
+  `shelf` (javon yorlig'i), `price` (katta tsennik), `sticker` (shtrix-kod
+  stikeri), `compact` (ixcham), `sale` (aksiya), `full` (to'liq). Sabab: yorliq
+  bitta narsa emas. Javon tsennigi ikki metrdan o'qiladi, 30 mm stikerga esa
+  faqat skaner qaraydi — bitta maket ikkinchisiga **noto'g'ri** bo'ladi
+  (tsennik rulonni yeydi, stikerning mayda yozuvi javonda o'qilmaydi).
+- ⚠️ **Tanlov ko'rish orqali qilinadi.** Oltita so'zli ro'yxat qo'lida rulon
+  ushlab turgan odamdan qog'ozni tasavvur qilishni so'raydi. Shuning uchun
+  panel oltalasini **serverda chizib** ko'rsatadi
+  (`GET /admin/labels/design`) — brauzerda qayta chizish ikkinchi maket
+  dvigateli bo'lardi va farqi stikerni qo'lida ushlagan do'konda bilinardi
+  (chek ko'rinishi bilan bir qoida).
+- ⚠️ **`price` dizaynida shtrix-kod yo'q, va bu ataylab.** U javon tsennigi —
+  paketga yopishtiriladigan stiker emas; bar narx uchun ajratilgan joyni yeydi.
+  Panelga `bars` bayrog'i yuboriladi, aks holda tanlash oynasida kodsiz
+  dizaynning tagida ham bar chizilardi.
+- ⚠️ **`sale` narx tushmagan bo'lsa oddiy `shelf` ga o'tadi.** Javonda yo'q
+  chegirmani yozish — mijoz bizdan so'rashi mumkin bo'lgan yagona xato.
+  `oldPrice` — nullable maydon, va panel unga eski narxni **teng** qoldirgan
+  bo'lishi mumkin.
+- ⚠️ **Katta shrift narxni kesmaydi.** Ikki barobar kenglikda qatorga yarmicha
+  belgi sig'adi; sig'magan narx kesilsa — qog'ozda **kichikroq** son turadi,
+  ya'ni javon mijoz foydasiga yolg'on gapiradi va kassada janjal chiqadi.
+  Sig'masa oddiy o'lchamda bosiladi (`bigPrice`, `centerBig`).
+- ⚠️ **Standart eni — 58 mm** (cheklarda 80). Yorliq rulonining eni shu, va
+  80 mm ga chizilgan maketning o'ng cheti tushib qoladi — tsennikda bu narxning
+  o'zi.
+- ⚠️ **Dizayn `receipt_settings` da** (`label`), filialniki — printer ham
+  o'shaniki. Ikkala forma bir-birining maydoniga **yozmaydi**: yorliq ekrani
+  faqat `label` ni, chek ekrani qolganini `$set` qiladi (aks holda footer
+  tahriri dizaynni, dizayn tanlovi esa printerlar ro'yxatini o'chirardi).
+- **Ikki jonli xato shu ish bilan tuzatildi:** (1) `cleanPrinters` ruxsat
+  etilgan turlar ro'yxatida `label` **yo'q edi** — do'kon printerga «Yorliq»
+  turini belgilab saqlaydi, server uni jimgina tashlab yuboradi, va har bosish
+  «yorliq bosadigan printer sozlanmagan» deb javob beradi; (2) yorliq matnida
+  urg'u `"!"` va `"!!"` bilan yozilgan edi — escpos markerlari esa
+  `\x01`/`\x03`, ya'ni qog'ozda urg'u ham yo'q, ikkita undov belgisi bor edi.
+  Ikkalasini ham test emas, **qo'ldagi qog'oz** ko'rsatardi; endi testlari bor.
 
 ### Markirovka: kirimda skanerlash
 - ⚠️ **Butun xususiyat rad javobi qayerda berilishi haqida.** Tizimdan tashqarida

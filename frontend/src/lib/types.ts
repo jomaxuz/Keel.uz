@@ -4149,6 +4149,62 @@ export interface StaleLabel {
   wasPrice?: number;
 }
 
+/** Which of the six designs a shop's labels come out in.
+ *
+ *  ⚠️ **A label is not one thing.** The same button prints a price tag clipped
+ *  to a shelf edge and read from two metres, a sticker wrapped round a packet
+ *  that only a scanner looks at, and a promotion card that has to say what the
+ *  price used to be. One layout is wrong for two of those. */
+export type LabelStyle =
+  | "shelf"
+  | "price"
+  | "sticker"
+  | "compact"
+  | "sale"
+  | "full";
+
+export const LABEL_STYLES: LabelStyle[] = [
+  "shelf",
+  "price",
+  "sticker",
+  "compact",
+  "sale",
+  "full",
+];
+
+export interface LabelDesign {
+  style: LabelStyle;
+  /** 58 or 80. ⚠️ 58 by default, unlike the receipts: a label roll is the
+   *  narrow one, and a design laid out for 80 mm loses its right-hand end —
+   *  which on a price tag is the price. */
+  widthMm: number;
+  feedLines: number;
+  lang?: string;
+  /** "shop" · "unit" · "date". ⚠️ **Missing means shown**, so a shop that has
+   *  never opened the chooser keeps the lines it was printing. */
+  fields?: Record<string, boolean>;
+}
+
+/** One design, drawn by the printer's own layout code.
+ *
+ *  ⚠️ **Never redrawn in the browser.** Two layout engines drift, and the drift
+ *  is found by a shop whose stickers do not look like what they picked. */
+export interface LabelDesignOption {
+  style: LabelStyle;
+  lines: string[];
+  /** Whether the printer draws bars under it — false for the price tag, which
+   *  is the one design chosen for not having them. */
+  bars: boolean;
+}
+
+export interface LabelDesignView {
+  design: LabelDesign;
+  options: LabelDesignOption[];
+  /** The product the six were drawn against: this shop's own where it has one,
+   *  because the length that matters is this catalogue's. */
+  sample: { name: string; barcode: string };
+}
+
 /** What a delivery just made worth printing.
  *
  *  ⚠️ **Offered, never printed on its own.** Two hundred packets answering

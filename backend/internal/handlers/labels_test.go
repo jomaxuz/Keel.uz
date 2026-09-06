@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"restaurant-backend/internal/escpos"
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/receipt"
 )
 
 // ⚠️ **The list a price change makes wrong.** Nothing on any screen used to say
@@ -86,24 +88,58 @@ func TestTheUnitIsTheClassifiersAndNotAGuess(t *testing.T) {
 // ⚠️ **The price is the largest thing on a shelf label and the name is second.**
 // It is read from a metre away by somebody deciding whether to pick the packet
 // up; the sticker on the packet is read by a scanner, which needs none of the
-// words. One layout serves both, so it is written for the harder reader.
+// words. Which of the six designs those facts land in is the shop's choice —
+// what is checked here is that the facts are complete before they get there.
+//
+// ⚠️ **This test used to assert the bug.** It required the name to start with
+// "!" and the price with "!!", which are not the emphasis markers escpos reads —
+// so it passed for a label that printed two stray exclamation marks and no
+// emphasis at all. A test written against the code rather than against the paper
+// keeps whatever the code happened to do.
 func TestTheLabelLeadsWithTheNameAndShoutsThePrice(t *testing.T) {
-	lines := labelLines(
-		models.MenuItem{Name: "Guruch Lazer", Price: 18500, UnitCode: 10},
-		models.Branch{Name: "Chilonzor"},
+	price := 24000
+	d := labelData(
+		models.MenuItem{
+			Name: "Guruch Lazer", Price: 18500, UnitCode: 10,
+			OldPrice: &price,
+		},
+		models.Branch{Name: "Chilonzor"}, "so'm", "06.09.2026",
 	)
-	if len(lines) < 2 {
-		t.Fatalf("a label of %d lines", len(lines))
+	if d.Name != "Guruch Lazer" || d.Shop != "Chilonzor" {
+		t.Errorf("the label does not name the product and the shop: %+v", d)
 	}
-	if !strings.HasPrefix(lines[0], "!") || !strings.Contains(lines[0], "Guruch Lazer") {
+	if d.Unit != "kg" {
+		t.Errorf("unit %q — the price does not say what it is per", d.Unit)
+	}
+	if d.OldPrice != 24000 {
+		t.Errorf("a genuine reduction was dropped: %+v", d)
+	}
+
+	lines := receipt.RenderLabel(receipt.LabelTemplate{}, d)
+	if !strings.HasPrefix(lines[0], escpos.MarkBold) ||
+		!strings.Contains(lines[0], "Guruch Lazer") {
 		t.Errorf("first line %q is not the name, emphasised", lines[0])
 	}
 	last := lines[len(lines)-1]
-	if !strings.HasPrefix(last, "!!") {
+	if !strings.HasPrefix(last, escpos.MarkBoldBig) {
 		t.Errorf("the price line %q is not the big one", last)
 	}
-	if !strings.Contains(last, "kg") {
-		t.Errorf("the price line %q does not say what the price is per", last)
+	if !strings.Contains(last, "18 500") || !strings.Contains(last, "kg") {
+		t.Errorf("the price line %q is not the price per unit", last)
+	}
+}
+
+// ⚠️ **A sale label is only ever printed over a real reduction.** `oldPrice` is
+// a nullable field a panel may have left holding the same number, and a shelf
+// that claims a discount which did not happen is a claim we printed ourselves.
+func TestAnOldPriceThatIsNotLowerIsNotASale(t *testing.T) {
+	same := 18500
+	d := labelData(
+		models.MenuItem{Name: "Guruch", Price: 18500, OldPrice: &same},
+		models.Branch{}, "so'm", "",
+	)
+	if d.OldPrice != 0 {
+		t.Errorf("an unchanged price was carried as a reduction: %d", d.OldPrice)
 	}
 }
 
@@ -130,4 +166,69 @@ func TestTheBarcodeIsPrintedBeforeThePaperIsCut(t *testing.T) {
 
 func indexOf(hay, needle []byte) int {
 	return strings.Index(string(hay), string(needle))
+}
+
+// ---- The design the shop chose ----
+
+// ⚠️ **The emphasis markers are control characters, and they were literal
+// exclamation marks.** `labelLines` wrote "!name" and "!!price" — which is not
+// what escpos reads, so every label came out at one size with two stray
+// punctuation marks on it. Nothing failed; the paper was just wrong, and only a
+// shop holding one would have found it.
+func TestLabelEmphasisUsesTheMarkersAndNotPunctuation(t *testing.T) {
+	src := readSource(t, "labels.go")
+	if strings.Contains(src, `"!" + name`) || strings.Contains(src, `"!!"+price`) {
+		t.Error("emphasis is written as punctuation the printer prints")
+	}
+	if !strings.Contains(src, "receipt.RenderLabel") {
+		t.Error("the label is laid out somewhere other than the renderer")
+	}
+}
+
+// ⚠️ **The price tag has no bars, and the queue has to honour that.** Encoding
+// them anyway would print a barcode under the one design chosen for not having
+// one — and the shop would conclude the chooser does nothing.
+func TestTheQueueAsksTheDesignWhetherToPrintBars(t *testing.T) {
+	fn := between(t, readSource(t, "labels.go"), "func (h *Handler) queueLabels", "\n}\n")
+	if !strings.Contains(fn, "tpl.Bars()") {
+		t.Error("the barcode is encoded without asking the design")
+	}
+}
+
+// ⚠️ **A save from the labels screen must not blank the branch's printers.**
+// They live in one document because they are one machine's settings, and a
+// whole-document write from the smaller form is how the bigger one is lost.
+func TestSavingTheDesignTouchesOnlyTheDesign(t *testing.T) {
+	fn := between(t, readSource(t, "labeldesign.go"),
+		"func (h *Handler) AdminSaveLabelDesign", "\n}\n")
+	if strings.Contains(fn, `"printers"`) || strings.Contains(fn, `"kitchen"`) {
+		t.Error("the design save writes the receipts as well")
+	}
+	if !strings.Contains(fn, `"label": tpl`) {
+		t.Error("the design is not written")
+	}
+}
+
+// ⚠️ **And the receipts form must not blank the design**, which is the same trap
+// from the other side.
+func TestSavingTheReceiptsLeavesTheDesignAlone(t *testing.T) {
+	fn := between(t, readSource(t, "receipts.go"),
+		"func (h *Handler) AdminUpdateReceipts", "\n}\n")
+	if strings.Contains(fn, `"label"`) {
+		t.Error("the receipts form writes the label design too")
+	}
+}
+
+// ⚠️ **`label` is a printer kind the editor offers**, and the whitelist that
+// validates a save was dropping it — so a shop ticked the box, saved, and every
+// label run answered "no printer is set to print labels".
+func TestALabelPrinterSurvivesBeingSaved(t *testing.T) {
+	in := []models.Printer{{
+		Name: "Yorliq", Target: "tcp://192.168.1.50:9100",
+		Kinds: []string{"label"},
+	}}
+	out := cleanPrinters(in)
+	if len(out) != 1 || len(out[0].Kinds) != 1 || out[0].Kinds[0] != "label" {
+		t.Fatalf("the label kind was dropped on save: %+v", out)
+	}
 }

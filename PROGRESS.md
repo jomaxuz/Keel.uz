@@ -13610,3 +13610,55 @@ test ma'lumoti API qaytaradigan ko'rinishda yoziladi.
 
 **Keyingi qadam:** deploy — `main` dan; tarozi sozlamasi tuzatishi (6d193c1) ham
 shu deploy bilan jonli serverga chiqadi va o'sha yerda tekshiriladi.
+
+---
+
+## 2026-09-06 (6) — do'kon yorlig'i: oltita dizayn, do'kon o'zi tanlaydi ✅
+
+**Nima qilindi.** Yorliq endi bitta maket emas — oltita, va do'kon **ko'rib**
+tanlaydi (`/admin/labels` → «Yorliq dizayni»):
+
+| Dizayn | Nima chiqadi |
+|---|---|
+| `shelf` — Javon yorlig'i | nomi, do'kon, narx+birlik, shtrix-kod (standart) |
+| `price` — Katta tsennik | faqat narx, eng katta o'lchamda, **shtrix-kodsiz** |
+| `sticker` — Shtrix-kod stikeri | nomi bir qatorda + kod (30 mm stikerlar) |
+| `compact` — Ixcham | nomi va narxi bitta qatorda + kod |
+| `sale` — Aksiya | eski narx → yangi narx + kod |
+| `full` — To'liq | do'kon, tovar, narx, bosilgan sana + kod |
+
+Yonida: qog'oz eni (58/80), yorliq tili (uz/ru/en), qo'shimcha qatorlar
+(do'kon nomi / birlik / sana), kesishdan oldingi bo'sh qatorlar.
+
+**Qoidalari (nega shunday):**
+- Oltalasi **serverda**, printerning o'z maket kodi bilan chiziladi
+  (`receipt.RenderLabel`) — brauzerdagi ikkinchi dvigatel ajrab ketardi va
+  farqni stikerni ushlagan do'kon topardi.
+- `price` da bar yo'q va panelga shu aytiladi, aks holda tanlash oynasi kodsiz
+  dizaynni ham kodli qilib ko'rsatardi.
+- `sale` narx tushmagan bo'lsa `shelf` ga o'tadi — bo'lmagan chegirmani javonga
+  yozib bo'lmaydi.
+- Katta shrift narxni **kesmaydi**: sig'masa oddiy o'lchamda bosiladi. Kesilgan
+  narx qog'ozda kichikroq son bo'lib qoladi, ya'ni kassada janjal.
+- Standart eni 58 mm (cheklarda 80), chunki yorliq ruloni shu.
+- Saqlash: `receipt_settings.label`, faqat shu maydonning `$set`'i — chek
+  formasi dizaynni, dizayn formasi printerlar ro'yxatini o'chirmasin.
+
+**Yo'l-yo'lakay topilgan ikki jonli xato:**
+1. `cleanPrinters` ruxsat etilgan printer turlari ro'yxatida **`label` yo'q
+   edi**. Do'kon printerga «Yorliq» turini belgilaydi, saqlaydi — server uni
+   jimgina tashlaydi, va har bosishda «yorliq bosadigan printer sozlanmagan»
+   chiqadi, ya'ni tuzatadigan sozlama allaqachon yoqilgan bo'ladi. Yorliq
+   bosish **umuman ishlamas edi**.
+2. Yorliq matnida urg'u `"!"` va `"!!"` bilan yozilgan edi; escpos markerlari
+   esa `\x01`/`\x03`. Ya'ni qog'ozda na qalin, na katta shrift — o'rniga ikkita
+   undov belgisi. Buni **testning o'zi mustahkamlab qo'ygan edi**: u aynan `"!"`
+   ni tekshirardi. Test qog'ozga emas, kodga qarab yozilgan edi.
+
+Testlar: `internal/receipt` (oltala dizayn, qog'ozdan chiqib ketmaslik, uzun
+narx, aksiya qoidasi, nol qiymat, tillar), `internal/handlers` (marker,
+`bars`, ikkala formaning bir-birini o'chirmasligi, `label` printer turi).
+
+**Keyingi qadam:** haqiqiy yorliq printerida sinash — qog'ozda `GS !` ni
+qo'llamaydigan apparat bo'lsa, katta qator oddiy o'lchamda chiqadi (bu xavfsiz
+tomon, lekin ko'rib qo'yish kerak).

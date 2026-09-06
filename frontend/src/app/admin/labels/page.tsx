@@ -28,6 +28,7 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { useAsk } from "@/components/ui/Ask";
 import { ListScroll } from "@/components/admin/PagedList";
+import LabelDesignChooser from "@/components/admin/LabelDesignChooser";
 import type { StaleLabel } from "@/lib/types";
 
 export default function AdminLabelsPage() {
@@ -119,6 +120,13 @@ export default function AdminLabelsPage() {
       </div>
 
       {error !== "" && <p className="text-sm text-danger">{error}</p>}
+
+      {/* ⚠️ **On this screen and not in the receipt settings.** The shop that
+          wants a different sticker is standing on the page it prints from, and
+          the receipts page is about the three papers a restaurant hands to
+          people. Stored beside them all the same — they come out of the same
+          machine. */}
+      <LabelDesignChooser />
 
       {rows !== null && list.length === 0 && (
         // ⚠️ Said as a state rather than left blank: an empty screen on a shop's

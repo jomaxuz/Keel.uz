@@ -92,7 +92,15 @@ func cleanPrinters(in []models.Printer) []models.Printer {
 		kinds := make([]string, 0, len(p.Kinds))
 		for _, k := range p.Kinds {
 			switch receipt.Kind(k) {
-			case receipt.Kitchen, receipt.Till, receipt.Customer, receipt.Precheck:
+			// ⚠️ **`Label` belongs in this list and was missing from it.** The
+			// printers editor offered the tick, the shop ticked it, and the save
+			// dropped it on the floor — so every label run answered "no printer
+			// is set to print labels", and the setting that would fix it was the
+			// one already on. A whitelist that silently discards a value the UI
+			// offers is worse than no whitelist: nothing fails, and the screen
+			// shows the box unticked again as if the shop had never tried.
+			case receipt.Kitchen, receipt.Till, receipt.Customer,
+				receipt.Precheck, receipt.Label:
 				kinds = append(kinds, k)
 			}
 		}
@@ -199,6 +207,11 @@ func (h *Handler) AdminUpdateReceipts(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// ⚠️ **The label design is not in this `$set` on purpose.** It is chosen on
+	// the shop's own labels screen, and this form does not know about it —
+	// written from here it would be overwritten with a zero template every time
+	// somebody edited a receipt footer. The same trap `soldOut` and the kiosk
+	// key are kept out of the branch save for.
 	set := bson.M{
 		"branchId":  branchID,
 		"kitchen":   cleanTemplate(req.Kitchen),
