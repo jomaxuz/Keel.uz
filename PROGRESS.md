@@ -13508,3 +13508,39 @@ kanali; smena xizmati alohida, past muhimlikdagi `shift` kanalida).
 Testlar: `GateTest` (haversine, uchta istisno, eskirgan nuqta) va
 `WireShapeTest` (login, buyurtma, statistika, tarix, profil radiusi — JSON Go
 handler'laridan). Debug APK 23 MB. ⏳ **Telefonda sinalmagan** — qurilma yo'q.
+
+---
+
+## 2026-09-06 (3) — ishchilar ilovasi ham native, va beshtasi ham tugadi ✅
+
+`mobile/team-android` (Kotlin + Compose). Bu — beshinchi va oxirgi ko'chirish:
+waiter, owner, TV, kuryer va endi team. Hammasi bitta `mobile/android-design`
+modulini yo'l bo'yicha ulaydi.
+
+**Uchta ekran ko'chdi**, va ikkitasi eng kattasi edi: bozorlik (746 qator) va
+bozorlik ro'yxatini yozish (476). Ikkalasining umumiy qismi —
+`MarketPieces.kt`: o'lchov tugmasi va tanlash qatori. ⚠️ Bu ikkisi bir xil
+ko'ringani uchun emas, **bir xil qoidani tashigani uchun** bo'lishiladi: birini
+tuzatib ikkinchisini unutish — bozorda yozilgan miqdorning javondagisi bilan
+farq qilishi.
+
+**Joylashuv kuryernikidan boshqacha, ataylab.** Kuryerda ruxsat smena ochilishi
+bilan so'raladi, chunki u yerda ruxsat — smenaning o'zi. Bu yerda esa tugma
+bosilganda: bitta punch uchun bitta nuqta, va ochilishda so'ralgan ruxsat
+javobi «yo'q» bo'ladigan savol.
+
+**Tab ruxsat bilan so'raladi, rol nomi bilan emas** (`canWriteHere`, testi
+bilan): kassirda `buyorder` bor, lekin uning telefoni bozorlik
+rejalashtiriladigan joy emas. Ruxsat tortib olinsa odam «Smena» ga qaytariladi.
+
+⚠️ **Hisob-kitob ilovada emas.** `/staff/report` javobi ikkinchi marta
+chiziladi, ikkinchi marta hisoblanmaydi — telefon o'z soatlarini qo'shsa, farq
+oylik kuni topilardi. Kalendar ranglari `design/StatusColor` dan.
+
+Push Expo relay o'rniga to'g'ridan-to'g'ri FCM, `team` kanalida.
+
+**Kalit:** `~/keys/keel-team.jks` — beshinchi alohida imzo kaliti.
+
+Testlar: `WireShapeTest` (login, StaffMe, hisobot, ro'yxat, katalog, hamyon,
+zakup, kirim natijasi — JSON Go handler'laridan) + `canWriteHere` qoidasi.
+⏳ **Telefonda sinalmagan** — qurilma yo'q.

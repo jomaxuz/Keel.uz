@@ -1,0 +1,161 @@
+package uz.keel.team.push
+
+import android.Manifest
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.tasks.await
+import uz.keel.team.KeelTeamApp
+import uz.keel.team.MainActivity
+import uz.keel.team.R
+import uz.keel.team.data.KeelApi
+
+// Being told the things somebody cannot find out by looking.
+//
+// ⚠️ **What arrives here is pay, the roster, and a shift somebody corrected.**
+// None of it happens while the person is holding the phone, and all of it is
+// worth knowing before the argument rather than after: "my hours are wrong" is
+// a conversation that goes very differently when the correction was announced
+// the day it was made.
+//
+// ⚠️ **Its own channel** (`team`), not the kitchen's and not the courier's.
+// Android lets somebody switch a channel off, and a cook who muted the pass's
+// chime must not have muted their own pay slip with it.
+//
+// ⚠️ **FCM directly, not Expo's relay.** The four Expo builds still go through
+// the relay and the server routes by the token's own shape — see
+// `internal/push/send.go`. A native token the relay would silently not deliver
+// to is the failure this whole arrangement avoids.
+
+/** ⚠️ **Four, where the Expo build had six.** "Not on a simulator" and "no
+ *  project id" were facts about Expo's relay, and neither can happen here: this
+ *  asks Firebase directly, and either it answers with a token or it does not. A
+ *  state nothing can produce is a state somebody reads and tries to fix. */
+enum class PushState(val key: String) {
+    Working("working"), Asking("asking"), Denied("denied"), Failed("failed"),
+}
+
+class PushRegistration(
+    val state: PushState,
+    val retry: () -> Unit,
+    val forget: suspend () -> Unit,
+)
+
+@Composable
+fun rememberPushRegistration(api: KeelApi, signedIn: Boolean, lang: String): PushRegistration {
+    val ctx = LocalContext.current
+    var state by remember { mutableStateOf(PushState.Asking) }
+    var nonce by remember { mutableIntStateOf(0) }
+    val token = remember { arrayOfNulls<String>(1) }
+    var asked by remember { mutableStateOf(false) }
+
+    // ⚠️ **Asked after signing in, not at launch.** A prompt on the first screen
+    // is answered before anybody knows what the app is for, and the answer to a
+    // question you do not understand is "no".
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) nonce += 1 else state = PushState.Denied
+    }
+
+    LaunchedEffect(signedIn, lang, nonce) {
+        if (!signedIn) return@LaunchedEffect
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                if (!asked) { asked = true; ask.launch(Manifest.permission.POST_NOTIFICATIONS) }
+                else state = PushState.Denied
+                return@LaunchedEffect
+            }
+        }
+        state = PushState.Asking
+        try {
+            val value = FirebaseMessaging.getInstance().token.await()
+            token[0] = value
+            api.registerPush(value, lang)
+            state = PushState.Working
+        } catch (e: Throwable) {
+            // ⚠️ Recorded, never shown on the screen somebody is reading their
+            // hours on. But available on the settings screen — without it "they
+            // said they paid me and nothing came" has several causes and no way
+            // to tell them apart from the phone it happened on.
+            state = PushState.Failed
+        }
+    }
+
+    return PushRegistration(
+        state = state,
+        retry = { nonce += 1 },
+        forget = {
+            val value = token[0] ?: return@PushRegistration
+            token[0] = null
+            runCatching { api.forgetPush(value) }
+            runCatching { FirebaseMessaging.getInstance().deleteToken().await() }
+        },
+    )
+}
+
+class TeamMessagingService : FirebaseMessagingService() {
+
+    override fun onNewToken(token: String) {
+        // Re-registered by the app on its next launch; a service has no
+        // signed-in session of its own to send with.
+    }
+
+    override fun onMessageReceived(message: RemoteMessage) {
+        val data = message.data
+        val title = data["title"] ?: message.notification?.title ?: return
+        val body = data["body"] ?: message.notification?.body ?: ""
+
+        // ⚠️ **A tap has nowhere else to go.** Every one of these messages is
+        // about hours or pay, and this app has one screen for both — the honest
+        // behaviour is to land on it rather than invent a destination.
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(MainActivity.EXTRA_TAB, "profile")
+        }
+        val pending = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val note = NotificationCompat.Builder(this, KeelTeamApp.TEAM_CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(ContextCompat.getColor(this, R.color.keel_orange))
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) return
+
+        // ⚠️ **Keyed on the server's tag, not on one id.** "You were paid" and
+        // "Tuesday was corrected" are two facts; keying them together would let
+        // the second silently erase the first, and nobody would learn about the
+        // payment at all.
+        val tag = data["tag"] ?: title
+        getSystemService(NotificationManager::class.java).notify(tag.hashCode(), note)
+    }
+}

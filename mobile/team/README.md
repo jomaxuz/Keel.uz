@@ -1,5 +1,11 @@
 # Keel Team — ishchilar ilovasi (Android + iOS)
 
+> ⚠️ **Bu ilova almashtirildi: `mobile/team-android` (Kotlin + Compose).**
+> Yangisi shu `applicationId` ni (`uz.keel.team`) oladi, ya'ni telefonda
+> eskisining o'rniga o'rnatiladi. Bu papka **hozircha saqlanadi**: qarorlar va
+> ular ortidagi xatolar tarixi shu yerda birinchi marta yozilgan, va iOS hali
+> faqat shu yerda.
+
 Expo (SDK 57, RN 0.86, React 19). Restorandagi **har bir xodim** uchun: smenani
 ochish/yopish, o'z davomati va ish haqi, va o'ziga tegishli bildirishnomalar.
 

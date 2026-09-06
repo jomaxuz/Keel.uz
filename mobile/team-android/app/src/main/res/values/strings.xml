@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ⚠️ The launcher label only. Every other string is in i18n/Strings.kt:
+         the language is chosen inside the app — a kitchen has three of them —
+         and Android's resource system follows the system locale instead. -->
+    <string name="app_name">Keel Team</string>
+</resources>

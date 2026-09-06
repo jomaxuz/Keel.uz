@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Where somebody is standing when they open a shift.
+         ⚠️ **One fix on a press, and no service.** The server compares the punch
+         against the branch's own point (`geofenceBlocked`); nothing here needs
+         to know where anybody is at any other moment, which is the whole
+         difference between this app and the courier's. Both are declared
+         because Android 12 lets somebody grant "approximate only", and an app
+         that asked for fine alone would be handed nothing rather than a
+         hundred-metre answer — which is inside a fifty-metre radius often
+         enough to matter and can be corrected by walking to the door. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Android 13+. ⚠️ Asked after signing in, never at launch: a prompt on the
+         first screen is answered before anybody knows what the app is for. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:name=".KeelTeamApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="false"
+        android:theme="@style/Theme.KeelTeam.Splash">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.KeelTeam.Splash"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ⚠️ Registered here rather than created at runtime so a notification
+             arriving before the app has ever run still lands in the right
+             channel. A message sent to a channel the phone never created is
+             dropped silently — a working registration and nothing heard. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="team" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/keel_orange" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <service
+            android:name=".push.TeamMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

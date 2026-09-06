@@ -60,6 +60,7 @@ softmax/
     ├── waiter-android/       # ofitsiant
     ├── owner-android/        # ega
     ├── courier-android/      # kuryer
+    ├── team-android/         # qolgan xodimlar
     └── tv-android/           # zaldagi televizor
 ```
 
