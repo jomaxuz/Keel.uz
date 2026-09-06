@@ -51,6 +51,17 @@ type Config struct {
 	// every boot would be a mode rather than a template.
 	BusinessType string
 
+	// What this business calls itself, for the profile seeded on the very first
+	// boot.
+	//
+	// ⚠️ **Read once, exactly like the business type above it.** Without it the
+	// seed wrote the installer's placeholder — "My Restaurant" — into the
+	// profile of every new install, and a grocery was a grocery called My
+	// Restaurant on its own website, its receipts and its Telegram messages
+	// until an owner noticed and retyped it. The console has always known the
+	// answer; nothing was passing it along.
+	BrandName string
+
 	SMSProvider string
 	// Hand the one-time code back in the API response when no real gateway is
 	// configured. **Off unless explicitly switched on**, and never set on a
@@ -86,6 +97,7 @@ func Load() *Config {
 
 		FCMCredentials: get("FCM_CREDENTIALS", ""),
 		BusinessType:   get("BUSINESS_TYPE", ""),
+		BrandName:      strings.TrimSpace(get("BRAND_NAME", "")),
 
 		SMSProvider:        get("SMS_PROVIDER", "demo"),
 		SMSDemoExposeCode:  get("SMS_DEMO_EXPOSE_CODE", "0") == "1",

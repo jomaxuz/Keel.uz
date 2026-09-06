@@ -13744,3 +13744,38 @@ Do'kon:    Do'kon   · Kassa va javon · Sayt · To'lov va kassa · Yetkazish ·
 
 Testlar: `adminNav.test.ts` 15 ta (6 tasi yangi — nom, tartib, to'liqlik,
 birinchi tab).
+
+---
+
+## 2026-09-07 (3) — «My Restaurant» va sozlamalar ichidagi bo'limlar ✅
+
+**Jonli xato: yangi do'kon o'zini «My Restaurant» deb atardi.** Seed profilga
+o'rnatuvchining so'zini yozardi, brend va filial esa shu profildan yaratiladi
+(`EnsureBrandAndBranch`) — ya'ni o'sha nom saytning sarlavhasiga, chekning
+birinchi qatoriga, Telegram xabarlariga va kassa qog'oziga ko'chardi. Hech
+qayerda xato chiqmaydi: hamma ekran ishlaydi, nom noto'g'ri.
+
+- Konsol endi nomni yuboradi: `BRAND_NAME` (tenantning `Name`'i),
+  `BUSINESS_TYPE` bilan bir qatorda va bir xil qoida bilan — har boot'da
+  yuboriladi, profil yaratilayotgan boot'da o'qiladi.
+- Nomsiz kelsa: do'konga «Do'kon», restoranga «Restoran». Tavsif ham
+  («milliy va zamonaviy taomlar» dorixonaning bosh sahifasida turmasin).
+- **Do'konga namuna menyu berilmaydi.** Dorixonadagi 48 ta taom «hali
+  kiritilmagan» emas, birovning do'koni bo'lib o'qiladi, va egasining birinchi
+  ishi ularni bittalab o'chirish bo'lardi. Do'kon namunasini shunchaki yozib
+  qo'yib bo'lmaydi ham: o'zini sotadigan tovarga server tutadigan ombor qatori
+  kerak, aks holda yarim tovar — sotib bo'ladi, sanab bo'lmaydi.
+
+**Sozlamalar ichidagi bo'limlar biznesga moslandi:**
+- Do'konda **oshxona cheki yo'q** — uchta chek o'rniga ikkita, matni ham
+  «ikkita chek» deydi; printerga «Oshxona» turi taklif qilinmaydi. Restoranga
+  esa «Yorliq» turi taklif qilinmaydi. ⚠️ Allaqachon yoqilgan tur baribir
+  ko'rinadi — ma'lumot shablondan ustun.
+- Neytral qilingan matnlar (yangi kalitsiz): «Restoranda ishlab turgan kassa» →
+  «Sizda…», «restoraningizga» → «biznesingizga», «Oshxonaga necha daqiqa
+  oldin» → «Tayyorlashga», «oshxona ekraniga» → «tayyorlash ekraniga (KDS)»,
+  «faqat restoran ochiq bo'lgan vaqtlar» → «faqat ish vaqti». Bular do'kon
+  uchun to'g'ri, restoran uchun aniqroq (gulchi ham `composes`).
+
+Testlar: `internal/seed` 5 ta yangi (nom, tavsif, do'konga menyu yozilmasligi),
+`adminNav.test.ts` 19 ta (4 tasi yangi — printer va chek turlari).

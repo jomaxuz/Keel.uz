@@ -187,3 +187,53 @@ export function settingsTabLabel(
   if (tab === "hall") return g.counter;
   return g[tab];
 }
+
+// ---- What a printer can be asked to print, and which receipts exist ----
+//
+// ⚠️ **A shop has no pass and a kitchen has no shelf.** The full list offered a
+// grocery a kitchen ticket to design and a printer to send it to, and offered a
+// restaurant a price label for a shelf it does not have. A tick that can only
+// ever produce paper nobody reads is a tick somebody tries once.
+//
+// ⚠️ **Data wins over the template, here as everywhere on these screens.** A
+// kind already ticked on a printer, or a receipt already switched on, stays
+// offered whatever kind of business this is — a bakery counter inside a shop is
+// real, and hiding the box would leave a setting switched on that nobody can
+// find to switch off.
+
+/** Every kind a printer can take, in the order of the day. */
+export const PRINT_KINDS = [
+  "kitchen",
+  "precheck",
+  "till",
+  "customer",
+  "label",
+] as const;
+
+export type PrintKind = (typeof PRINT_KINDS)[number];
+
+export function printKindsFor(
+  brand: BrandLike,
+  printers: { kinds?: string[] }[],
+): PrintKind[] {
+  const used = new Set(printers.flatMap((p) => p.kinds ?? []));
+  return PRINT_KINDS.filter((k) => {
+    if (used.has(k)) return true;
+    if (k === "kitchen") return hasKitchen(brand);
+    if (k === "label") return sellsGoods(brand);
+    return true;
+  });
+}
+
+/** The receipts this business designs. ⚠️ The guest's copy and the till's are
+ *  everybody's; the kitchen ticket is a kitchen's. */
+export type ReceiptKind = "customer" | "till" | "kitchen";
+
+export function receiptKindsFor(
+  brand: BrandLike,
+  kitchenEnabled: boolean,
+): ReceiptKind[] {
+  const kinds: ReceiptKind[] = ["customer", "till"];
+  if (hasKitchen(brand) || kitchenEnabled) kinds.push("kitchen");
+  return kinds;
+}

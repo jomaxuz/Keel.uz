@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
+import { receiptKindsFor } from "@/lib/adminNav";
 import type { Printer, ReceiptPreview, ReceiptTemplate } from "@/lib/types";
 import PrintersEditor from "./PrintersEditor";
 
@@ -55,6 +56,10 @@ export default function ReceiptEditor() {
   );
   const [preview, setPreview] = useState<ReceiptPreview | null>(null);
   const [kind, setKind] = useState<Kind>("customer");
+  // ⚠️ **A shop has no pass and no kitchen ticket**, and the third tab asked a
+  // grocery to design one. Kept when this branch has already switched it on —
+  // see lib/adminNav for why data wins over the template.
+  const kinds = receiptKindsFor(scope.brand, !!draft?.kitchen.enabled);
   const [saving, setSaving] = useState(false);
   // ⚠️ Loaded and saved with the templates, because they are one setting: the
   // paper width a template is designed for belongs to the printer it comes out
@@ -119,11 +124,11 @@ export default function ReceiptEditor() {
   return (
     <div>
       <p className="text-xs leading-relaxed text-ink-muted">
-        {t.receipts.intro}
+        {kinds.includes("kitchen") ? t.receipts.intro : t.receipts.introGoods}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {(["customer", "till", "kitchen"] as Kind[]).map((k) => (
+        {kinds.map((k) => (
           <button
             key={k}
             type="button"

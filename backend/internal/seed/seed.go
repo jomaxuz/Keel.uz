@@ -13,12 +13,45 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Bootstrap creates the initial admin user and a default restaurant document
-// if they do not yet exist. Safe to run on every startup.
+// Bootstrap creates the initial admin user and a default profile if they do not
+// yet exist. Safe to run on every startup.
 func Bootstrap(ctx context.Context, store *repository.Store, cfg *config.Config) {
 	ensureAdmin(ctx, store, cfg)
-	ensureRestaurant(ctx, store)
+	ensureRestaurant(ctx, store, cfg)
 	ensureMenu(ctx, store, cfg)
+}
+
+// firstProfile is the name and the description a brand-new install starts with.
+//
+// ⚠️ **The console knows the customer's name and nothing was passing it along.**
+// Every install wrote the installer's placeholder — "My Restaurant" — into its
+// profile, and because the brand and the branch are both created from that
+// profile (repository.EnsureBrandAndBranch), a grocery was a grocery called My
+// Restaurant: on its own website, on its receipts, in its Telegram messages and
+// on the till's paper, until an owner noticed and retyped it. It is sent now
+// (BRAND_NAME), and read once, on the boot that creates the profile.
+//
+// ⚠️ **And the fallback is not a restaurant either.** A tenant provisioned
+// without a name — by hand, or by an older console — should start as the kind of
+// thing it is. "Do'kon" is wrong for nobody who runs a shop; "My Restaurant" is
+// wrong for all of them.
+func firstProfile(cfg *config.Config) (name, description string) {
+	shop := models.BusinessType(cfg.BusinessType).SellsGoods()
+	name = cfg.BrandName
+	if name == "" {
+		if shop {
+			name = "Do'kon"
+		} else {
+			name = "Restoran"
+		}
+	}
+	if shop {
+		// ⚠️ No dishes in it. This sentence is printed on the site's home page
+		// until the owner writes their own, and "milliy va zamonaviy taomlar"
+		// over a pharmacy is the same mistake as the name.
+		return name, "Kundalik mahsulotlar — qulay narxlarda. Yetkazib berish shahar bo'ylab."
+	}
+	return name, "Milliy va zamonaviy taomlar — har kuni yangi mahsulotlardan tayyorlanadi. Yetkazib berish shahar bo'ylab."
 }
 
 func ensureAdmin(ctx context.Context, store *repository.Store, cfg *config.Config) {
@@ -49,18 +82,19 @@ func ensureAdmin(ctx context.Context, store *repository.Store, cfg *config.Confi
 	log.Printf("seed: created admin user %q", cfg.AdminUsername)
 }
 
-func ensureRestaurant(ctx context.Context, store *repository.Store) {
+func ensureRestaurant(ctx context.Context, store *repository.Store, cfg *config.Config) {
 	count, err := store.Restaurant.CountDocuments(ctx, bson.M{})
 	if err != nil || count > 0 {
 		return
 	}
+	name, description := firstProfile(cfg)
 	hours := make([]models.WorkingHour, 7)
 	for i := 0; i < 7; i++ {
 		hours[i] = models.WorkingHour{Day: i, Open: "10:00", Close: "23:00"}
 	}
 	_, _ = store.Restaurant.InsertOne(ctx, models.Restaurant{
-		Name:         "My Restaurant",
-		Description:  "Milliy va zamonaviy taomlar — har kuni yangi mahsulotlardan tayyorlanadi. Yetkazib berish shahar bo'ylab.",
+		Name:         name,
+		Description:  description,
 		CoverURL:     imagePath("cover"),
 		Phones:       []string{"+998 90 000 00 00"},
 		Address:      models.GeoPoint{Text: "Toshkent", Lat: 41.311081, Lng: 69.240562},
@@ -76,5 +110,5 @@ func ensureRestaurant(ctx context.Context, store *repository.Store) {
 		},
 		UpdatedAt: time.Now(),
 	})
-	log.Print("seed: created default restaurant")
+	log.Printf("seed: created profile %q", name)
 }

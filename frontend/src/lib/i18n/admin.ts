@@ -1800,7 +1800,7 @@ export const adminUz = {
     footerNote: "Footer matni",
     perksTitle: "Bosh sahifadagi kartochkalar",
     perksHint:
-      "Hero ostidagi uchta kartochka. Bo'sh qoldirilsa standart matn ko'rinadi (\"Tez yetkazib berish\", \"Yangi mahsulotlar\", \"Qulay to'lov\") — restoraningizga to'g'ri kelmasa, o'zingiznikini yozing yoki bo'limni o'chiring.",
+      "Hero ostidagi uchta kartochka. Bo'sh qoldirilsa standart matn ko'rinadi (\"Tez yetkazib berish\", \"Yangi mahsulotlar\", \"Qulay to'lov\") — biznesingizga to'g'ri kelmasa, o'zingiznikini yozing yoki bo'limni o'chiring.",
     perksShow: "Bosh sahifada ko'rsatilsin",
     perksDefaults:
       "Hozir standart matn ko'rinmoqda. \"Kartochka qo'shish\" bosilsa, o'rniga faqat siz yozganlari chiqadi.",
@@ -1966,16 +1966,16 @@ export const adminUz = {
     reviewsPick: "Fikrlarni tanlash →",
     preorderTitle: "Oldindan buyurtma (predzakaz)",
     preorderEnabled: "Oldindan buyurtmani yoqish",
-    preorderLead: "Oshxonaga necha daqiqa oldin bildirilsin",
+    preorderLead: "Tayyorlashga necha daqiqa oldin bildirilsin",
     preorderLeadHint:
-      "Eng muhim sozlama. Buyurtma shu vaqt qolganda oshxona ekraniga chiqadi va panelda qo'ng'iroq chalinadi — undan oldin u faqat ro'yxatda turadi. Mijoz tanlagan vaqtdan ayiriladi.",
+      "Eng muhim sozlama. Buyurtma shu vaqt qolganda tayyorlash ekraniga (KDS) chiqadi va panelda qo'ng'iroq chalinadi — undan oldin u faqat ro'yxatda turadi. Mijoz tanlagan vaqtdan ayiriladi.",
     preorderMin: "Mijoz kamida necha daqiqa oldin bera oladi",
     preorderMinHint:
       'Saytdagi vaqt ro\'yxati shundan boshlanadi. Telefon orqali operator bu chegaradan ozod — "yigirma daqiqadan keyin" ham, "to\'yga" ham qabul qiladi.',
     preorderDays: "Necha kun oldin buyurtma berish mumkin",
     preorderSlot: "Vaqt qadami (daqiqa)",
     preorderSlotHint:
-      "Mijozga ko'rsatiladigan vaqtlar shu qadamda beriladi (30 — yarim soatlik). Faqat restoran ochiq bo'lgan vaqtlar chiqadi.",
+      "Mijozga ko'rsatiladigan vaqtlar shu qadamda beriladi (30 — yarim soatlik). Faqat ish vaqti ichidagi soatlar chiqadi.",
     coverLabel: "Muqova (cover)",
     logoSize:
       "Tavsiya etilgan o'lcham: 512 × 512 px (kvadrat). Logotip kvadrat qilib, burchaklari yumaloqlangan holda ko'rsatiladi — belgini markazga joylang, chetiga yozuv qo'ymang. Xuddi shu rasm brauzer yorlig'idagi belgi (favicon) bo'lib ham ishlatiladi, ya'ni u juda kichkina holatda ham tanilishi kerak. PNG shaffof fon bilan bo'lishi mumkin.",
@@ -2124,7 +2124,7 @@ export const adminUz = {
     confirmDeleteBranch: (name: string) => `"${name}" filiali o'chirilsinmi?`,
     brandsTitle: "Brendlar",
     brandsHint:
-      "Brend — alohida menyu va ko'rinish (masalan restoran va somsa tarmog'i). Har brendning o'z filiallari bo'ladi.",
+      "Brend — alohida menyu va ko'rinish (masalan restoran va somsa tarmog'i, yoki do'kon va dorixona). Har brendning o'z filiallari bo'ladi.",
     addBrand: "+ Brend qo'shish",
     brandName: "Brend nomi",
     brandActive: "Saytda ko'rinadi",
@@ -3925,7 +3925,7 @@ export const adminUz = {
      *  has to say so before the first line of it is read. */
     navTitle: "Tashqi kassa (iiko, Poster…)",
     intro:
-      "Restoranda ishlab turgan kassa tizimiga ulanish. Menyu bizda qoladi — POS'ga buyurtma yuboriladi, har bir taom o'sha tizimdagi identifikatori bilan. Sozlagach, har bir taomni POS mahsulotiga bog'lash kerak.",
+      "Sizda ishlab turgan kassa tizimiga ulanish. Menyu bizda qoladi — POS'ga buyurtma yuboriladi, har bir taom o'sha tizimdagi identifikatori bilan. Sozlagach, har bir taomni POS mahsulotiga bog'lash kerak.",
     provider: "Qaysi tizim",
     enabled: "Yoqilgan",
     autoSend: "Tasdiqlanganda avtomatik yuborilsin",
@@ -4612,6 +4612,11 @@ export const adminUz = {
     title: "Chek dizayni",
     intro:
       "Uchta chek alohida sozlanadi, chunki ularni uch xil odam o'qiydi. Oshxona cheki qisqa bo'lishi kerak va unda narx yo'q; mijoz cheki esa fiskal belgini tashiydi. O'ngdagi ko'rinish printer chiqaradigan narsaning aynan o'zi.",
+    // ⚠️ Do'konda oshxona cheki yo'q — u haqda gapiradigan jumla ham
+    // bo'lmasligi kerak, aks holda matn ko'rinmayotgan uchinchi tabni
+    // izohlaydi.
+    introGoods:
+      "Ikkita chek alohida sozlanadi, chunki ularni ikki xil odam o'qiydi: kassadagi xodim va mijoz. Mijoz cheki fiskal belgini tashiydi. O'ngdagi ko'rinish printer chiqaradigan narsaning aynan o'zi.",
     kinds: {
       customer: "Mijoz cheki",
       till: "Kassa cheki",
@@ -6596,9 +6601,9 @@ export const adminRu: AdminDict = {
     reviewsPick: "Выбрать отзывы →",
     preorderTitle: "Предзаказ",
     preorderEnabled: "Принимать предзаказы",
-    preorderLead: "За сколько минут сообщить кухне",
+    preorderLead: "За сколько минут сообщить на подготовку",
     preorderLeadHint:
-      "Главная настройка. За это время до нужного часа заказ появится на кухонном экране и в панели прозвучит звонок — до этого он просто лежит в списке. Вычитается из времени, выбранного клиентом.",
+      "Главная настройка. За это время до нужного часа заказ появится на экране подготовки (KDS) и в панели прозвучит звонок — до этого он просто лежит в списке. Вычитается из времени, выбранного клиентом.",
     preorderMin: "Минимум за сколько минут клиент может заказать",
     preorderMinHint:
       "С этого начинается список времени на сайте. Оператор по телефону от этого ограничения свободен — примет и «через двадцать минут», и «на свадьбу».",
@@ -6734,7 +6739,7 @@ export const adminRu: AdminDict = {
     confirmDeleteBranch: (name: string) => `Удалить филиал "${name}"?`,
     brandsTitle: "Бренды",
     brandsHint:
-      "Бренд — отдельное меню и оформление (например ресторан и сеть самсы). У каждого свои филиалы.",
+      "Бренд — отдельное меню и оформление (например ресторан и сеть самсы, или магазин и аптека). У каждого свои филиалы.",
     addBrand: "+ Добавить бренд",
     brandName: "Название бренда",
     brandActive: "Виден на сайте",
@@ -8354,7 +8359,7 @@ export const adminRu: AdminDict = {
     title: "POS: привязка меню",
     navTitle: "Внешняя касса (iiko, Poster…)",
     intro:
-      "Подключение к кассовой системе ресторана. Меню остаётся у нас — в POS уходит заказ, каждая позиция с её идентификатором там. После настройки нужно привязать каждое блюдо к товару POS.",
+      "Подключение к вашей кассовой системе. Меню остаётся у нас — в POS уходит заказ, каждая позиция с её идентификатором там. После настройки нужно привязать каждое блюдо к товару POS.",
     provider: "Какая система",
     enabled: "Включено",
     autoSend: "Отправлять автоматически при подтверждении",
@@ -9014,6 +9019,8 @@ export const adminRu: AdminDict = {
     title: "Дизайн чеков",
     intro:
       "Три чека настраиваются отдельно, потому что их читают три разных человека. Кухонный чек должен быть коротким и без цен; чек гостя несёт фискальный признак. Справа — ровно то, что напечатает принтер.",
+    introGoods:
+      "Два чека настраиваются отдельно, потому что их читают двое: кассир и покупатель. Чек покупателя несёт фискальный признак. Справа — ровно то, что напечатает принтер.",
     kinds: {
       customer: "Чек гостя",
       till: "Чек кассы",
@@ -10978,9 +10985,9 @@ export const adminEn: AdminDict = {
     reviewsPick: "Choose reviews →",
     preorderTitle: "Pre-orders",
     preorderEnabled: "Accept pre-orders",
-    preorderLead: "Warn the kitchen this many minutes ahead",
+    preorderLead: "Warn the prep this many minutes ahead",
     preorderLeadHint:
-      "The setting that matters. This long before the wanted time the order appears on the kitchen screen and the panel chimes — until then it simply sits in the list. Subtracted from the time the customer picked.",
+      "The setting that matters. This long before the wanted time the order appears on the prep screen (KDS) and the panel chimes — until then it simply sits in the list. Subtracted from the time the customer picked.",
     preorderMin: "Earliest a customer may order, in minutes",
     preorderMinHint:
       'Where the time list on the site starts. An operator on the phone is exempt — they can take both "in twenty minutes" and "for the wedding".',
@@ -11115,7 +11122,7 @@ export const adminEn: AdminDict = {
     confirmDeleteBranch: (name: string) => `Delete the branch "${name}"?`,
     brandsTitle: "Brands",
     brandsHint:
-      "A brand is its own menu and look (a restaurant and a samsa chain, say). Each has its own branches.",
+      "A brand is its own menu and look (a restaurant and a samsa chain, or a shop and a pharmacy). Each has its own branches.",
     addBrand: "+ Add brand",
     brandName: "Brand name",
     brandActive: "Visible on the site",
@@ -12734,7 +12741,7 @@ export const adminEn: AdminDict = {
     title: "POS: menu mapping",
     navTitle: "External till (iiko, Poster…)",
     intro:
-      "Connect the till the restaurant already runs. The menu stays here — what crosses is the order, each line named by the id it has over there. Once set up, every dish has to be mapped to a POS product.",
+      "Connect the till you already run. The menu stays here — what crosses is the order, each line named by the id it has over there. Once set up, every dish has to be mapped to a POS product.",
     provider: "Which system",
     enabled: "Enabled",
     autoSend: "Send automatically on confirmation",
@@ -13392,6 +13399,8 @@ export const adminEn: AdminDict = {
     title: "Receipt design",
     intro:
       "The three receipts are set up separately, because three different people read them. The kitchen ticket has to be short and carries no prices; the guest's copy carries the fiscal sign. The preview on the right is exactly what the printer will produce.",
+    introGoods:
+      "The two receipts are set up separately, because two different people read them: the person at the till and the customer. The customer's copy carries the fiscal sign. The preview on the right is exactly what the printer will produce.",
     kinds: {
       customer: "Guest copy",
       till: "Till copy",

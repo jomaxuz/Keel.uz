@@ -741,6 +741,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Menyu importi, havoladan | Menyuni havoladan import qilish |
 | Boshqa POS'dan ko'chirish (iiko, Poster…) | Boshqa POS'dan ko'chirish |
 | Kesh, siqish, indeks, yuk | Yuk: nima siqiladi, nima keshlanadi |
+| Yangi install: nomi, namuna menyu | Birinchi profil: yangi install o'zini nima deb ataydi · Namuna menyu |
 | Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
 
 ### Qo'shni hujjatlar

@@ -93,7 +93,16 @@ type Spec struct {
 	JWTSecret string
 	// Which template the tenant's first brand is created from. ⚠️ Read once, on
 	// a tenant that has never booted — see the note where it is sent.
-	BusinessType  string
+	BusinessType string
+	// What the customer calls itself, for the profile the tenant seeds on its
+	// very first boot.
+	//
+	// ⚠️ **The console already knows this and the tenant was guessing.** Without
+	// it every new install named itself "My Restaurant" — the installer's
+	// placeholder — and a shop was a shop called My Restaurant, on its own site,
+	// on its receipts and in its Telegram messages until somebody noticed. Read
+	// once, like the business type below it.
+	BrandName     string
 	AdminUsername string
 	AdminPassword string
 	// The first of the tenant's domains, used for absolute URLs it generates.
@@ -313,6 +322,13 @@ func (c *Client) create(ctx context.Context, s Spec) error {
 	// before the owner has logged in is an ordinary thing to do.
 	if s.BusinessType != "" {
 		env["BUSINESS_TYPE"] = s.BusinessType
+	}
+	// Same rule, same reason: applied while the profile is being created and
+	// ignored on every boot after that. A tenant renamed in the console keeps
+	// the name its owner typed into their own settings — which is the one they
+	// have been reading on their receipts.
+	if s.BrandName != "" {
+		env["BRAND_NAME"] = s.BrandName
 	}
 
 	list := make([]string, 0, len(env))

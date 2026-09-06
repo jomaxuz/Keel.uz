@@ -6,6 +6,8 @@ import {
   navLabel,
   needsMet,
   orderedFor,
+  printKindsFor,
+  receiptKindsFor,
   settingsTabLabel,
   settingsTabs,
   SHOP_STOCK_ORDER,
@@ -207,5 +209,54 @@ describe("the settings tabs, by business", () => {
   // has loaded opens where it always did rather than jumping when it arrives.
   it("opens on the same tab whatever the business", () => {
     expect(settingsTabs(GROCERY)[0]).toBe(settingsTabs(RESTAURANT)[0]);
+  });
+});
+
+describe("what a printer prints, and which receipts exist", () => {
+  // ⚠️ **A grocery was being asked to design a kitchen ticket** and offered a
+  // printer to send it to; a restaurant was offered a price label for a shelf
+  // it does not have. Both are ticks that can only ever produce paper nobody
+  // reads.
+  it("offers a kitchen ticket to a kitchen and a label to a shop", () => {
+    expect(printKindsFor(RESTAURANT, [])).toContain("kitchen");
+    expect(printKindsFor(RESTAURANT, [])).not.toContain("label");
+    expect(printKindsFor(GROCERY, [])).toContain("label");
+    expect(printKindsFor(GROCERY, [])).not.toContain("kitchen");
+    // The bill and the two receipts are everybody's.
+    for (const brand of [RESTAURANT, GROCERY, PHARMACY]) {
+      expect(printKindsFor(brand, [])).toEqual(
+        expect.arrayContaining(["precheck", "till", "customer"]),
+      );
+    }
+  });
+
+  // ⚠️ **Data wins over the template.** A kind already ticked stays offered
+  // whatever the business is — otherwise a setting is switched on and there is
+  // no box left to switch it off with. A bakery counter inside a shop is real.
+  it("keeps offering a kind this branch already uses", () => {
+    const withKitchen = [{ kinds: ["kitchen"] }];
+    expect(printKindsFor(GROCERY, withKitchen)).toContain("kitchen");
+    const withLabel = [{ kinds: ["label"] }];
+    expect(printKindsFor(RESTAURANT, withLabel)).toContain("label");
+  });
+
+  it("designs two receipts for a shop and three for a kitchen", () => {
+    expect(receiptKindsFor(GROCERY, false)).toEqual(["customer", "till"]);
+    expect(receiptKindsFor(RESTAURANT, false)).toEqual([
+      "customer",
+      "till",
+      "kitchen",
+    ]);
+    // ⚠️ Already switched on: the same rule, so a shop that set one up can
+    // still find it.
+    expect(receiptKindsFor(PHARMACY, true)).toContain("kitchen");
+  });
+
+  // ⚠️ A fast food cooks and has no dining room — the pair of facts that keeps
+  // `hasKitchen` and `hasTables` separate questions.
+  it("gives a fast food its kitchen ticket", () => {
+    expect(receiptKindsFor({ businessType: "fastfood" }, false)).toContain(
+      "kitchen",
+    );
   });
 });

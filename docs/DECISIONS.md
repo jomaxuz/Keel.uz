@@ -3800,6 +3800,20 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   narx yorlig'i va skaner. `suppliers` ham yuk mashinasi edi — kirim bilan
   bir xil shakl; endi qo'l siqish (yuk mashinasi — yetkazish, yetkazib
   beruvchi — telefon qiladigan odam).
+- ⚠️ **Sozlamalar ichidagi bo'limlar ham**: do'konda **oshxona cheki**
+  ko'rsatilmaydi (uchta chek o'rniga ikkita, matni ham «ikkita chek» deydi) va
+  printerga «Oshxona» turi taklif qilinmaydi; restoranga esa «Yorliq» turi
+  taklif qilinmaydi. ⚠️ **Ma'lumot shablondan ustun**: allaqachon yoqilgan tur
+  baribir ko'rinadi — aks holda yoqilgan sozlamani o'chiradigan katakcha
+  qolmaydi (do'kon ichidagi nonvoyxona — haqiqiy narsa).
+  Qoidalar `printKindsFor` / `receiptKindsFor` da, o'sha faylda, testi bilan.
+- ⚠️ **Bir necha matn umuman neytral qilindi** (yangi kalit qo'shmasdan):
+  «Restoranda ishlab turgan kassa» → «Sizda ishlab turgan kassa»,
+  «restoraningizga to'g'ri kelmasa» → «biznesingizga», «Oshxonaga necha daqiqa
+  oldin» → «Tayyorlashga», «oshxona ekraniga chiqadi» → «tayyorlash ekraniga
+  (KDS)», «faqat restoran ochiq bo'lgan vaqtlar» → «faqat ish vaqti».
+  Bular do'kon uchun to'g'ri, restoran uchun esa **aniqroq** — masalan gulchi
+  ham `composes`, ya'ni oldindan buyurtmani u ham ko'radi.
 - ⚠️ **Sozlamalar sahifasining tab'lari ham shu qoida bo'yicha**
   (`settingsTabs`, `settingsTabLabel` — o'sha faylda, chunki savol bitta):
   do'konda «Restoran» → **Do'kon**, «Zal va buyurtma» → **Kassa va javon**
@@ -6516,6 +6530,31 @@ yuborilgan joy — jonli rasm yo'q bo'ldi, qaytaradigan joyi yo'q.
   bazadan kelgan deb o'ylagan odam tekshirmaydi.
 - AI byudjeti **brifing va kampaniya bilan bitta** — ega eshitgan kunlik limit
   rost bo'lib qolishi uchun. Import bitta chaqiruv.
+
+### Birinchi profil: yangi install o'zini nima deb ataydi
+- ⚠️ **«My Restaurant» — o'rnatuvchining so'zi edi, va u hech kim ko'rib
+  o'tkazib yuboradigan joyda turmasdi.** Brend ham, filial ham shu profildan
+  yaratiladi (`repository.EnsureBrandAndBranch`), ya'ni o'sha so'z saytning
+  sarlavhasiga, chekning birinchi qatoriga, Telegram xabarlariga va kassa
+  qog'oziga ko'chardi — va do'konga «restoran» derdi. Hech qayerda xato
+  chiqmaydi: hamma ekran ishlaydi, nom esa noto'g'ri.
+- Endi konsol nomni yuboradi: `BRAND_NAME` (tenant `Name`'i), `BUSINESS_TYPE`
+  bilan bir qatorda va **bir xil qoida bilan** — har boot'da yuboriladi,
+  **profil yaratilayotgan** boot'da o'qiladi. Konsolda keyin qayta nomlangan
+  mijoz o'z panelida yozgan nomini saqlab qoladi (chekida shu turibdi).
+- ⚠️ **Nomsiz kelganda ham restoran emas.** Qo'lda yoki eski konsol bilan
+  yaratilgan tenant baribir biror nom bilan boshlanishi kerak: do'kon uchun
+  «Do'kon», restoran uchun «Restoran». «My Restaurant» esa do'konlarning
+  **hammasi** uchun noto'g'ri.
+- ⚠️ **Do'konga namuna menyu berilmaydi.** Namuna bor, chunki topshirilgan
+  kundagi bo'sh sayt «ishlamayapti» deb o'qiladi. Lekin dorixonadagi 48 ta taom
+  «hali kiritilmagan» ham, «ishlamayapti» ham emas — **birovning do'koni** deb
+  o'qiladi, va egasining birinchi ishi ularni bittalab o'chirish bo'ladi.
+  ⚠️ Do'kon namunasini shunchaki yozib qo'yib ham bo'lmaydi: o'zini sotadigan
+  tovarga server tutib turadigan ombor qatori va bir qatorli karta kerak
+  (`handlers/productstock.go`), to'g'ridan-to'g'ri Mongo'ga yozilgan qatorlar
+  esa **yarim tovar** bo'lardi — sotib bo'ladi, sanab bo'lmaydi. Do'konning
+  katalogi o'z shtrix-kodlaridan keladi: kirim ekrani, skaner va import.
 
 ### Namuna menyu (seed)
 - `backend/internal/seed/menu.go` — 7 kategoriya, 48 taom (rasmlari bilan).

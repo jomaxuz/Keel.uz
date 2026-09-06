@@ -18,6 +18,8 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import PrintQueuePanel from "@/components/admin/PrintQueuePanel";
+import { useAdminScope } from "@/lib/adminScope";
+import { printKindsFor } from "@/lib/adminNav";
 import type { Printer } from "@/lib/types";
 
 /** What a printer can be asked to print. The order is the order of the day:
@@ -26,8 +28,6 @@ import type { Printer } from "@/lib/types";
 // different roll — a shop's sticker printer — and putting it beside the receipt
 // kinds is what stops somebody ticking it on the till's printer and answering a
 // price change with a receipt-shaped strip of stickers.
-const KINDS = ["kitchen", "precheck", "till", "customer", "label"] as const;
-
 export default function PrintersEditor({
   printers,
   onChange,
@@ -36,6 +36,9 @@ export default function PrintersEditor({
   onChange: (next: Printer[]) => void;
 }) {
   const t = useAdminT();
+  const scope = useAdminScope();
+  // ⚠️ A shop has no pass and a kitchen has no shelf — see lib/adminNav.
+  const kinds = printKindsFor(scope.brand, printers);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -135,7 +138,7 @@ export default function PrintersEditor({
               <span className="text-xs text-ink-muted">
                 {t.printers.kinds}:
               </span>
-              {KINDS.map((k) => {
+              {kinds.map((k) => {
                 const on = p.kinds.includes(k);
                 return (
                   <button

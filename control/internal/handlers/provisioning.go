@@ -60,6 +60,7 @@ func (h *Handler) provisionTenant(ctx context.Context, t *models.Tenant, rebuild
 		DBName:        t.DBName(),
 		JWTSecret:     t.JWTSecret,
 		BusinessType:  t.BusinessType,
+		BrandName:     t.Name,
 		AdminUsername: t.AdminUsername,
 		AdminPassword: t.AdminPassword,
 		PrimaryDomain: primary,
