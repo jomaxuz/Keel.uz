@@ -13583,3 +13583,30 @@ kirmasdi: sahifa «saqlandi» derdi, filial esa eski sxemani ushlab qolardi.
 Testlar: `internal/barcode` (check-raqam, tarozi bilan to'qnashuv), `escpos`
 (`GS k`), `handlers` (stale sabablari, yorliq tartibi, kirim qoidalari).
 
+
+---
+
+## 2026-09-06 (5) — jonli sayt: menyuda har kategoriyadan bitta taom ✅
+
+**Alomat:** restoran saytining `/menu` sahifasida har bir kategoriya bitta
+taom ko'rsatardi. API to'g'ri javob berardi (b5somsa: «Milliy taomlar» — 7 ta),
+sahifa esa bittasini chizardi.
+
+**Sabab:** `oneCardPerModel` (`lib/types.ts`) — «bir model, bir karta» qoidasi —
+`if (!m.variantOf)` deb o'qirdi. Modeli yo'q taom `variantOf` ni **bo'sh emas**,
+`"000000000000000000000000"` bo'lib oladi (Go'ning `omitempty` si `ObjectID` ga
+ta'sir qilmaydi), va bu JavaScript'da truthy. Ya'ni menyudagi **hamma taom
+bitta** modelning varianti bo'lib o'qildi va har kategoriyadan birinchisi
+qoldi. CLAUDE.md dagi tuzoqning aynan o'zi, ikkinchi marta.
+
+**Tuzatildi:** uchala o'qish joyi `hasId()` ga o'tdi — `oneCardPerModel`,
+taom sahifasidagi «o'lchamlari» ro'yxati (u ham butun katalogni bir taomning
+variantlari deb ko'rsatardi) va paneldagi menyu tartibi.
+
+**Nega testlar ushlamadi:** ular `variantOf: undefined` berardi, API esa hech
+qachon `undefined` yubormaydi. Endi nol id bilan ham test bor
+(`variants.test.ts`), va qoida CLAUDE.md ga ikkinchi misol bo'lib yozildi:
+test ma'lumoti API qaytaradigan ko'rinishda yoziladi.
+
+**Keyingi qadam:** deploy — `main` dan; tarozi sozlamasi tuzatishi (6d193c1) ham
+shu deploy bilan jonli serverga chiqadi va o'sha yerda tekshiriladi.

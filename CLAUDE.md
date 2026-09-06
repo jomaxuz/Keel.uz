@@ -526,6 +526,12 @@ call site'da to'g'ridek ko'rinadi.
 - Bu xato bir marta jiddiy oqibat bergan: `pinned: !!me?.branchId` tufayli
   **har bir admin filialga biriktirilgandek** ko'rinib, filial almashtirgichi
   bosilmaydigan yorliqqa aylangan edi.
+- ⚠️ **Ikkinchi marta jonli saytda**: `oneCardPerModel` da `if (!m.variantOf)`
+  — modeli yo'q har bir taom `"0000…"` bilan keladi, ya'ni **hammasi bitta**
+  modelning varianti bo'lib o'qildi va menyuda **har kategoriyadan bitta taom**
+  qoldi. Testlar yashil edi, chunki ular `undefined` beradi — API esa hech
+  qachon `undefined` yubormaydi. Test ma'lumoti **API qaytaradigan ko'rinishda**
+  yozilsin (Mongo sanasi `.UTC()` bilan yozilgani bilan bir sabab).
 
 ### ⚠️ Tuzoq: alpine konteynerda vaqt mintaqasi jimgina UTC bo'ladi
 `TZ=Asia/Tashkent` berilgan bo'lsa ham, `alpine` image'ida **`tzdata` yo'q** —

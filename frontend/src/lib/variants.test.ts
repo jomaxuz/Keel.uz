@@ -31,6 +31,19 @@ describe("one card per model", () => {
     expect(oneCardPerModel(list)).toHaveLength(3);
   });
 
+  it("leaves ordinary dishes alone when the API sends the zero id", () => {
+    // ⚠️ **The bug this file did not catch.** Go's `omitempty` has no effect on
+    // an ObjectID, so a dish with no model does not arrive with `variantOf`
+    // absent — it arrives as twenty-four zeroes, which is truthy. Every dish on
+    // the menu then read as a variant of the same model and each category kept
+    // exactly one card. The tests above used `undefined`, which the API never
+    // sends, so they stayed green while the live menu showed one dish per
+    // category.
+    const zero = "000000000000000000000000";
+    const list = [item("a", zero), item("b", zero), item("c", zero)];
+    expect(oneCardPerModel(list).map((m) => m.id)).toEqual(["a", "b", "c"]);
+  });
+
   it("keeps one card per model when there are several", () => {
     const list = [
       item("a", "m1", ["S"]),

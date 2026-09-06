@@ -1,5 +1,7 @@
 // Types mirror the Go backend JSON models (backend/internal/models/models.go).
 
+import { hasId } from "@/lib/id";
+
 export interface GeoPoint {
   text: string;
   lat: number;
@@ -5014,11 +5016,18 @@ export interface ExpiringRow {
  *  ⚠️ **The first variant is a complete card on its own.** Variants are copied
  *  from their model when they are generated, so the name, the photograph, the
  *  description and the price are already on it — which is why this needs no
- *  model row and no second request. */
+ *  model row and no second request.
+ *
+ *  ⚠️ **`hasId`, never a bare truthiness check.** A dish that is not a variant
+ *  arrives with `variantOf: "000000000000000000000000"` — Go's `omitempty` has
+ *  no effect on an ObjectID — and that string is truthy. Read naively, every
+ *  ordinary dish on the menu became a variant of the same zero model, so each
+ *  category kept exactly **one** card and dropped the rest. That is what this
+ *  went live as. */
 export function oneCardPerModel(items: MenuItem[]): MenuItem[] {
   const seen = new Set<string>();
   return items.filter((m) => {
-    if (!m.variantOf) return true;
+    if (!hasId(m.variantOf)) return true;
     if (seen.has(m.variantOf)) return false;
     seen.add(m.variantOf);
     return true;

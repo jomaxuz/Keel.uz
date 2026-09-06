@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { api, imageUrl, ApiError } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { formatPrice } from "@/lib/format";
+import { hasId } from "@/lib/id";
 import AddToCartControl from "@/components/menu/AddToCartControl";
 import Recommendations from "@/components/menu/Recommendations";
 import { getTranslations } from "@/lib/i18n/server";
@@ -67,7 +68,12 @@ export default async function MenuItemPage({
 
   // The sizes and colours of this model, this one included. Empty for anything
   // that is not a variant, which is every dish ever written.
-  const siblings = item.variantOf
+  //
+  // ⚠️ **`hasId`, never a bare truthiness check.** A dish with no model arrives
+  // with `variantOf: "000000000000000000000000"` — truthy in JavaScript — and
+  // read naively every dish on the menu matched every other, so an ordinary
+  // dish page listed the whole catalogue as its own sizes.
+  const siblings = hasId(item.variantOf)
     ? catalogue
         .flatMap((g) => g.items)
         .filter((m) => m.variantOf === item.variantOf)

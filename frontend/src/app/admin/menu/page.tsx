@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { hasId } from "@/lib/id";
 import ImageUpload from "@/components/admin/ImageUpload";
 import Modal from "@/components/admin/Modal";
 import { ListScroll } from "@/components/admin/PagedList";
@@ -368,15 +369,19 @@ export default function AdminMenuPage() {
    *  are twelve rows of the same word in twelve different places, and the one
    *  with no barcode is the one nobody finds. */
   function grouped(list: MenuItem[]): MenuItem[] {
+    // ⚠️ **`hasId`, never a bare truthiness check.** A row with no model
+    // arrives with `variantOf: "000000000000000000000000"`, which is truthy —
+    // so read naively every dish was a variant of one zero model and no dish
+    // was ever a model, and the whole list fell through to the tail loop.
     const kids = new Map<string, MenuItem[]>();
     for (const m of list) {
-      if (!m.variantOf) continue;
+      if (!hasId(m.variantOf)) continue;
       kids.set(m.variantOf, [...(kids.get(m.variantOf) ?? []), m]);
     }
     const out: MenuItem[] = [];
     const placed = new Set<string>();
     for (const m of list) {
-      if (m.variantOf) continue;
+      if (hasId(m.variantOf)) continue;
       out.push(m);
       placed.add(m.id);
       for (const k of kids.get(m.id) ?? []) {
