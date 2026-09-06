@@ -1,5 +1,6 @@
 package uz.keel.tv.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,9 +8,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,12 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import uz.keel.design.KeelTheme
 import uz.keel.tv.Board
+import uz.keel.tv.R
 import uz.keel.tv.t
 import uz.keel.tv.ui.EDGE
 
@@ -50,31 +57,73 @@ fun BoardScreen(board: Board, branchName: String?) {
     // unreadable or absurd on a 65" across a room.
     val numberSize = (LocalConfiguration.current.screenWidthDp / 22).sp
 
-    if (!board.hasAnything) {
-        // ⚠️ **Not an empty grid with two headings.** A board drawn with nothing
-        // under it reads as broken — and between lunch and dinner it would read
-        // that way for hours. The room's own name is a screen that is plainly on.
-        Box(Modifier.fillMaxSize().padding(EDGE), Alignment.Center) {
-            Text(
-                branchName ?: t.appName,
-                fontSize = 40.sp, fontWeight = FontWeight.Bold, color = c.muted,
-            )
-        }
-        return
-    }
+    Column(Modifier.fillMaxSize().padding(EDGE)) {
+        BoardBrand()
+        Spacer(Modifier.height(24.dp))
 
+        if (!board.hasAnything) {
+            // ⚠️ **Not an empty grid with two headings.** A board drawn with
+            // nothing under it reads as broken — and between lunch and dinner it
+            // would read that way for hours. The room's own name is a screen
+            // that is plainly on.
+            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                Text(
+                    branchName ?: t.appName,
+                    fontSize = 40.sp, fontWeight = FontWeight.Bold, color = c.muted,
+                )
+            }
+            return@Column
+        }
+
+        Row(
+            Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(EDGE),
+        ) {
+            Column(Modifier.weight(1f)) {
+                BoardColumn(t.idle.cooking, board.cooking, numberSize, ready = false)
+            }
+            // The ready column is given the visual weight as well as the better
+            // side.
+            Box(Modifier.width(2.dp).fillMaxHeight().background(c.line))
+            Column(Modifier.weight(1f).padding(start = EDGE)) {
+                BoardColumn(t.idle.ready, board.ready, numberSize, ready = true)
+            }
+        }
+    }
+}
+
+/** Whose screen this is, in the corner the eye starts from.
+ *
+ *  ⚠️ **Quiet, and above the numbers rather than beside them.** Everything else
+ *  on this wall is one number somebody is hunting for; a mark that competed with
+ *  it would cost the screen the only job it has. So it is smaller than a heading,
+ *  in the softer ink, and in the corner reading starts at — present without being
+ *  read.
+ *
+ *  ⚠️ **The launcher's own foreground, not a second file.** It is the mark the
+ *  television already wears on its home row and the phones wear on their home
+ *  screens; a copy drawn for this screen would be the one that drifts. It
+ *  carries the adaptive icon's padding, which is why the box is larger than the
+ *  mark that appears inside it. */
+@Composable
+private fun BoardBrand() {
+    val c = KeelTheme.colors
     Row(
-        Modifier.fillMaxSize().padding(EDGE),
-        horizontalArrangement = Arrangement.spacedBy(EDGE),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.weight(1f)) {
-            BoardColumn(t.idle.cooking, board.cooking, numberSize, ready = false)
-        }
-        // The ready column is given the visual weight as well as the better side.
-        Box(Modifier.width(2.dp).fillMaxSize().background(c.line))
-        Column(Modifier.weight(1f).padding(start = EDGE)) {
-            BoardColumn(t.idle.ready, board.ready, numberSize, ready = true)
-        }
+        Image(
+            painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+        )
+        Text(
+            "Keel",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            color = c.inkSoft,
+        )
     }
 }
 
