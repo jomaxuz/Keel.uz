@@ -158,10 +158,15 @@ func (h *Handler) sampleLabel(
 	ctx context.Context, branchID, brandID primitive.ObjectID,
 ) receipt.LabelData {
 	d := receipt.LabelData{
-		Name:     "Guruch, Lazer, 1 kg",
-		Price:    18500,
-		Unit:     "kg",
-		Barcode:  "2100000000017",
+		Name:  "Guruch, Lazer, 1 kg",
+		Price: 18500,
+		Unit:  "kg",
+		// ⚠️ **A real in-store code, check digit and all.** An invented one fails
+		// `barcode.Valid`, which means the queue would send it as CODE128 while
+		// the preview drew it as an EAN — so the sample would misrepresent the
+		// one thing this screen exists to show. The panel's own test caught this
+		// after it shipped once; there is a test below the fold now.
+		Barcode:  "2100000000012",
 		Currency: h.currencyOf(ctx),
 		Date:     time.Now().Format("02.01.2006"),
 	}

@@ -13662,3 +13662,24 @@ narx, aksiya qoidasi, nol qiymat, tillar), `internal/handlers` (marker,
 **Keyingi qadam:** haqiqiy yorliq printerida sinash — qog'ozda `GS !` ni
 qo'llamaydigan apparat bo'lsa, katta qator oddiy o'lchamda chiqadi (bu xavfsiz
 tomon, lekin ko'rib qo'yish kerak).
+
+---
+
+## 2026-09-06 (7) — yorliq dizaynini tanlash: karta va haqiqiy ko'rinish ✅
+
+Tanlash joyi endi **kartalar**, va har kartaning ustida yorliqning **haqiqiy**
+ko'rinishi turadi: o'sha belgilar to'ri, katta shrift aynan ikki barobar
+(`GS !` shunday ishlaydi), haqiqiy EAN-13 chiziqlari (95 modul, guardlari
+uzunroq), tagida raqamlar, keyin kesishdan oldingi bo'sh qatorlar va kesish
+chizig'i. Ya'ni «qog'ozdan nima chiqadi» degan savolga karta o'zi javob beradi.
+
+**Yo'l-yo'lakay ikkita xato ko'rindi — ikkalasini ham rasm/test ko'rsatdi:**
+1. Namuna shtrix-kodi `2100000000017` **haqiqiy EAN-13 emas** edi (check raqami
+   2). Ya'ni printer uni CODE128 qilib yuborardi, karta esa EAN chizardi —
+   aynan shu ekran yolg'on gapirardi. Yangi `lib/ean13.ts` testi ushladi;
+   backendda ham namunani tekshiradigan test qo'shildi.
+2. Qog'oz enini tashqi qutiga berganda **padding ustunlarni yeb qo'yardi** va
+   butun rulon enidagi qator (narx qatori doim shunday) kartadan chiqib
+   ketardi. Screenshotdan ko'rindi; en endi matnning o'ziga beriladi.
+
+Ko'rinishi Playwright bilan surat qilib tekshirildi (oltala karta, 58 mm).

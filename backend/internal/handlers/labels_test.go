@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"regexp"
+
+	"restaurant-backend/internal/barcode"
 	"restaurant-backend/internal/escpos"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/receipt"
@@ -230,5 +233,22 @@ func TestALabelPrinterSurvivesBeingSaved(t *testing.T) {
 	out := cleanPrinters(in)
 	if len(out) != 1 || len(out[0].Kinds) != 1 || out[0].Kinds[0] != "label" {
 		t.Fatalf("the label kind was dropped on save: %+v", out)
+	}
+}
+
+// ⚠️ **The preview's sample code has to be a real EAN-13.** An invented one
+// fails `barcode.Valid`, so the queue would send it to the printer as CODE128
+// while the chooser drew it as an EAN — and the screen whose whole job is "what
+// comes out of the printer" would be showing something else. This is the second
+// time an EAN has been invented in this repository and the second time the
+// check digit caught it.
+func TestThePreviewSampleIsARealEAN13(t *testing.T) {
+	src := readSource(t, "labeldesign.go")
+	m := regexp.MustCompile(`Barcode:\s+"(\d+)"`).FindStringSubmatch(src)
+	if m == nil {
+		t.Fatal("the sample has no barcode — was it renamed?")
+	}
+	if !barcode.Valid(m[1]) {
+		t.Errorf("the sample code %q is not a valid EAN-13", m[1])
 	}
 }

@@ -3799,6 +3799,25 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   bitta narsa emas. Javon tsennigi ikki metrdan o'qiladi, 30 mm stikerga esa
   faqat skaner qaraydi — bitta maket ikkinchisiga **noto'g'ri** bo'ladi
   (tsennik rulonni yeydi, stikerning mayda yozuvi javonda o'qilmaydi).
+- ⚠️ **Tanlov karta ko'rinishida, va kartadagi rasm — qog'ozning o'zi.**
+  Har dizayn alohida karta: ustida yorliqning **haqiqiy** ko'rinishi (o'sha
+  belgilar to'ri, katta shrift aynan ikki barobar — `GS !` shunday ishlaydi —
+  haqiqiy EAN-13 chiziqlari, tagida raqamlar, keyin bo'sh qatorlar va kesish
+  chizig'i), pastida nomi va nima uchunligi.
+  - Shtrix-kod **hisoblab chiziladi** (`lib/ean13.ts`): 95 modul, uchta guard
+    uzunroq. Bezak sifatidagi chiziqlar noto'g'ri **enda** bo'lardi, en esa —
+    do'kon o'z yorlig'iga solishtirib turgan narsa. (Bu skanerlanishiga kafolat
+    emas: unga faqat sinov chiqarish javob beradi.)
+  - ⚠️ **En matnga beriladi, qog'ozga emas.** Tashqi qutiga berilsa ustunlarni
+    padding yeydi va butun rulon enidagi qator (narx qatori doim shunday)
+    kartadan chiqib ketadi — printer to'g'ri bosayotgan bo'lsa ham karta xato
+    ko'rsatardi.
+  - ⚠️ **Namuna kodi haqiqiy EAN-13 bo'lishi shart.** O'ylab topilgani
+    `barcode.Valid` dan o'tmaydi, ya'ni printer uni CODE128 qilib yuboradi-yu
+    karta EAN chizadi. Shu ish paytida aynan shunday bo'ldi
+    (`2100000000017` — check raqami 2), va buni panelning o'z testi ushladi.
+    Repozitoriyda EAN ikkinchi marta o'ylab topilgan; endi ikkala tomonda ham
+    testi bor.
 - ⚠️ **Tanlov ko'rish orqali qilinadi.** Oltita so'zli ro'yxat qo'lida rulon
   ushlab turgan odamdan qog'ozni tasavvur qilishni so'raydi. Shuning uchun
   panel oltalasini **serverda chizib** ko'rsatadi

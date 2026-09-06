@@ -105,6 +105,10 @@ export default defineConfig({
       // is selected, so a missing word is only ever seen by the person who
       // receives the sheet.
       "src/lib/techCardPng.test.ts",
+      // The barcode drawn on the label chooser. Here because it is the one
+      // thing on that screen a person cannot check by looking: 95 modules of
+      // black and white are correct or nonsense, and both look like a barcode.
+      "src/lib/ean13.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

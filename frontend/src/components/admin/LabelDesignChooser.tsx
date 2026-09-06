@@ -19,24 +19,12 @@ import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { LABEL_STYLES } from "@/lib/types";
-import type { LabelDesign, LabelDesignView, LabelStyle } from "@/lib/types";
+import type { LabelDesign, LabelDesignView } from "@/lib/types";
+import LabelPaper from "./LabelPaper";
 
 /** Which optional lines the chooser offers. ⚠️ The three the renderer reads —
  *  a switch that changed nothing would teach the shop that none of them work. */
 const FIELDS = ["shop", "unit", "date"] as const;
-
-/** The emphasis markers escpos reads, taken off the front of a preview line.
- *
- *  ⚠️ **Shown as weight and size rather than dropped.** They are control
- *  characters, so a preview that printed them raw shows nothing at all — and
- *  this whole screen is about which line is the big one. */
-function marked(line: string): { text: string; bold: boolean; big: boolean } {
-  const head = line.charCodeAt(0);
-  if (head === 1) return { text: line.slice(1), bold: true, big: false };
-  if (head === 2) return { text: line.slice(1), bold: false, big: true };
-  if (head === 3) return { text: line.slice(1), bold: true, big: true };
-  return { text: line, bold: false, big: false };
-}
 
 export default function LabelDesignChooser() {
   const t = useAdminT();
@@ -108,8 +96,6 @@ export default function LabelDesignChooser() {
   }
   if (!draft || !view) return null;
 
-  const cols = draft.widthMm === 58 ? 32 : 48;
-
   return (
     <section className="space-y-4 rounded-2xl border border-line p-4">
       <div>
@@ -117,8 +103,10 @@ export default function LabelDesignChooser() {
         <p className="mt-1 text-xs text-ink-muted">{t.labels.design.hint}</p>
       </div>
 
-      {/* The six, at the width of the paper. */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {/* The six, as cards: a picture of the paper, its name, and what it is
+          for. ⚠️ The picture is the control — a shop chooses a label the way it
+          would choose one off a shelf, not from a dropdown of six words. */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {LABEL_STYLES.map((style) => {
           const drawn = view.options.find((o) => o.style === style);
           const on = draft.style === style;
@@ -128,72 +116,53 @@ export default function LabelDesignChooser() {
               type="button"
               onClick={() => patch({ style })}
               aria-pressed={on}
-              className={`flex flex-col gap-2 rounded-xl border p-3 text-left transition-colors ${
+              className={`group flex flex-col overflow-hidden rounded-2xl border text-left transition-all ${
                 on
-                  ? "border-brand bg-brand/5"
-                  : "border-line hover:border-brand"
+                  ? "border-brand ring-2 ring-brand/30"
+                  : "border-line hover:border-brand hover:shadow-card"
               }`}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold">
-                  {t.labels.design.style[style]}
-                </span>
-                <span
-                  className={`shrink-0 text-xs ${
-                    on ? "font-semibold text-brand" : "text-ink-muted"
-                  }`}
-                >
-                  {on ? t.labels.design.chosen : t.labels.design.choose}
-                </span>
+              {/* The paper, on a surface that is not the paper — a white
+                  sticker on a white card has no edges, and its width is half of
+                  what is being judged here. */}
+              <div
+                className={`flex justify-center px-4 py-5 transition-colors ${
+                  on ? "bg-brand/10" : "bg-ink/5 group-hover:bg-brand/5"
+                }`}
+              >
+                <LabelPaper
+                  lines={drawn?.lines ?? []}
+                  bars={drawn?.bars ?? false}
+                  code={view.sample.barcode}
+                  widthMm={draft.widthMm}
+                  feedLines={draft.feedLines}
+                />
               </div>
 
-              {/* Monospace and exactly as wide as the paper, so a line the
-                  printer would cut is visibly cut here too. */}
-              <div
-                className="overflow-x-auto rounded-lg border border-line bg-white p-2 font-mono text-[10px] leading-tight text-black"
-                style={{ width: `${cols}ch`, maxWidth: "100%" }}
-              >
-                {(drawn?.lines ?? []).map((line, i) => {
-                  const m = marked(line);
-                  return (
-                    <div
-                      key={i}
-                      className={`${m.bold ? "font-bold" : ""} ${
-                        m.big ? "text-[15px] leading-tight tracking-tight" : ""
-                      } whitespace-pre`}
-                    >
-                      {m.text || " "}
-                    </div>
-                  );
-                })}
-                {/* ⚠️ Sketched, never a real barcode: the bars are drawn by the
-                    printer's firmware from the code, and a picture of them here
-                    would be a promise about a scan we cannot make. What the
-                    shop needs from this box is "there is a code on it, and it
-                    is this big". */}
-                {drawn?.bars ? (
-                  <div className="mt-1">
-                    <div
-                      className="h-6 w-full"
-                      style={{
-                        backgroundImage:
-                          "repeating-linear-gradient(90deg,#000 0 1px,transparent 1px 3px,#000 3px 5px,transparent 5px 8px)",
-                      }}
-                    />
-                    <div className="text-center text-[9px]">
-                      {view.sample.barcode}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-1 text-center text-[9px] text-ink-muted">
-                    {t.labels.design.noBars}
-                  </div>
+              <div className="flex flex-1 flex-col gap-1 border-t border-line p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">
+                    {t.labels.design.style[style]}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
+                      on
+                        ? "bg-brand text-white"
+                        : "border border-line-strong text-ink-muted"
+                    }`}
+                  >
+                    {on ? t.labels.design.chosen : t.labels.design.choose}
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-ink-muted">
+                  {t.labels.design.styleHint[style]}
+                </p>
+                {!drawn?.bars && (
+                  <p className="text-xs font-medium text-ink-muted">
+                    · {t.labels.design.noBars}
+                  </p>
                 )}
               </div>
-
-              <p className="text-xs text-ink-muted">
-                {t.labels.design.styleHint[style]}
-              </p>
             </button>
           );
         })}
