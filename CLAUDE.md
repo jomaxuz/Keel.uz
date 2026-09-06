@@ -59,6 +59,7 @@ softmax/
     ├── android-design/       # uchalasi bo'lishadigan dizayn tizimi va relslar
     ├── waiter-android/       # ofitsiant
     ├── owner-android/        # ega
+    ├── courier-android/      # kuryer
     └── tv-android/           # zaldagi televizor
 ```
 

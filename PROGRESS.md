@@ -13475,3 +13475,36 @@ ko'rsatiladi — parol so'ralmaydi.
 Testlar: `WireShapeTest` (beshta endpoint javobi, JSON Go handler'laridan
 ko'chirilgan) va `PlaylistRulesTest` (muddat oynasi, lokal fayl nomi).
 Debug APK 24 MB, quriladi. ⏳ **Televizorda sinalmagan** — qurilma yo'q.
+
+---
+
+## 2026-09-06 (2) — kuryer ilovasi ham native Kotlin'da ✅
+
+`mobile/courier-android` — to'rtinchi va oxirgi native ko'chirish (Kotlin +
+Compose + fused location). Expo'niki o'z joyida; `applicationId` bir xil
+(`uz.keel.courier`).
+
+**Joylashuv ruxsatini Android o'zi so'raydi.** Smena `off` dan chiqishi bilan
+dialog ko'tariladi — Expo ilovasidagidek tugma kutib turmaydi. Sabab: kuryer
+smenani ochib, yo'lga chiqib, buni **eshik oldida** «Yetkazildi» bosilmasligidan
+bilib qolardi. Ruxsat sozlama emas, smenaning o'zi. `fine` va `coarse` bitta
+dialogda: Android 12 «taxminan» berishga ruxsat beradi, faqat `fine` so'ralsa u
+javob rad bo'lib keladi.
+
+⚠️ **`ACCESS_BACKGROUND_LOCATION` olib tashlandi.** `location` turidagi
+foreground service ilova ekranda turganda ishga tushirilsa, oddiy while-in-use
+ruxsati bilan **ekran o'chganda ham** nuqta oladi — bu aynan smena. Fon ruxsati
+faqat tizim ilovani butunlay o'ldirgan holatni qoplardi, narxi esa ikkinchi
+qo'rqinchli dialog va Play Store'ning video so'raydigan tekshiruvi.
+
+**Qolgan hammasi ko'chdi:** gate qoidasi (server nusxasi, testi bilan), 15
+soniyalik flush + 25 m filtri + 50 lik bufer, uchta yo'l ilovasi (koordinata
+tartibi bilan), naqd/onlayn farqi, qo'ldagi naqd, oflayn ekran, ikki chiqish
+yo'li, UZ/RU/EN. Push Expo relay o'rniga to'g'ridan-to'g'ri FCM (`delivery`
+kanali; smena xizmati alohida, past muhimlikdagi `shift` kanalida).
+
+**Kalit:** `~/keys/keel-courier.jks` — to'rtinchi alohida imzo kaliti.
+
+Testlar: `GateTest` (haversine, uchta istisno, eskirgan nuqta) va
+`WireShapeTest` (login, buyurtma, statistika, tarix, profil radiusi — JSON Go
+handler'laridan). Debug APK 23 MB. ⏳ **Telefonda sinalmagan** — qurilma yo'q.

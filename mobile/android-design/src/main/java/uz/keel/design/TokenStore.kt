@@ -102,6 +102,13 @@ class TokenStore(context: Context) {
          *  that already diverged on a key name both did it while nobody
          *  expected them to meet. */
         const val TV_TOKEN = "tv_token"
+
+        /** The courier's own session.
+         *
+         *  ⚠️ The browser's spelling again (`lib/api.ts` → `COURIER_TOKEN_KEY`),
+         *  for the reason the other two carry it: the one time two platforms
+         *  meet over a stored key, a divergent name fails silently. */
+        const val COURIER_TOKEN = "courier_token"
         const val SERVER_ADDRESS = "keel_server_address"
         const val DEVICE_ID = "keel_device_id"
         const val LANG = "keel_lang"
@@ -113,7 +120,8 @@ class TokenStore(context: Context) {
          *  and sends somebody to a login they had already passed — and only on a
          *  cold start, which is the hardest kind of bug to be shown. */
         private val KEYS = listOf(
-            STAFF_TOKEN, ADMIN_TOKEN, TV_TOKEN, SERVER_ADDRESS, DEVICE_ID, LANG, THEME, MENU_VIEW,
+            STAFF_TOKEN, ADMIN_TOKEN, TV_TOKEN, COURIER_TOKEN,
+            SERVER_ADDRESS, DEVICE_ID, LANG, THEME, MENU_VIEW,
             // The owner application's branch lens. ⚠️ Listed here like every
             // other key: hydration happens once, before the first render, and a
             // key nobody named reads as absent on a cold start — which would

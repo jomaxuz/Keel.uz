@@ -1,5 +1,11 @@
 # Keel Courier — kuryer ilovasi (Android + iOS)
 
+> ⚠️ **Bu ilova almashtirildi: `mobile/courier-android` (Kotlin + Compose).**
+> Yangisi shu `applicationId` ni (`uz.keel.courier`) oladi, ya'ni telefonda
+> eskisining o'rniga o'rnatiladi. Bu papka **hozircha saqlanadi**: qarorlar va
+> ular ortidagi xatolar tarixi shu yerda birinchi marta yozilgan, va iOS hali
+> faqat shu yerda.
+
 Expo (SDK 57, RN 0.86, React 19). Bitta ilova, har bir kuryer o'z hisobiga
 kiradi. Ofitsiant ilovasi bilan bir naqsh: qoidalar `frontend/src/lib` dan
 import qilinadi, ekranlar shu yerda chiziladi.

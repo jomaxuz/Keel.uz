@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Where the courier is.
+         ⚠️ **Both, and coarse is not a fallback nobody uses.** Android 12 lets
+         somebody grant "approximate only" from the dialog, and an app that
+         declared fine alone would be handed nothing at all rather than a
+         hundred-metre answer — which is still enough for a dispatcher's map,
+         and a courier can widen it later. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- ⚠️ **No ACCESS_BACKGROUND_LOCATION, deliberately.** A foreground service
+         of type `location`, started while the app is on screen, keeps receiving
+         positions with the ordinary while-in-use permission — which is exactly
+         the shift: the courier opens it, puts the phone in a pocket, and the
+         service keeps reporting. The background permission would buy only the
+         case where the system has killed the app entirely, and it costs a
+         second scarier dialog plus a Play Store review that asks for a video.
+         The Expo build asked for it; this one does not, and the note in
+         `location/LocationService.kt` says what is given up. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- Android 13+. ⚠️ Asked after signing in, never at launch: a prompt on the
+         first screen is answered before anybody knows what the app is for. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- ⚠️ **Declared, or the buttons silently do nothing.** Android 11+ hides
+         other applications unless a query names what this one needs to reach:
+         without these, `ACTION_DIAL` and a maps link resolve to nothing — a
+         button that looks fine and opens nothing, at a kerb. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".KeelCourierApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="false"
+        android:theme="@style/Theme.KeelCourier.Splash">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.KeelCourier.Splash"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- The shift's own service. ⚠️ `location` type, or Android 14 refuses
+             to start it at all — and the refusal is an exception at the moment
+             a courier opens their shift. -->
+        <service
+            android:name=".location.LocationService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- ⚠️ Registered here rather than created at runtime so a notification
+             arriving before the app has ever run still lands in the right
+             channel. A message sent to a channel the phone never created is
+             dropped silently — a working registration and nothing heard. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="delivery" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/keel_orange" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <service
+            android:name=".push.CourierMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

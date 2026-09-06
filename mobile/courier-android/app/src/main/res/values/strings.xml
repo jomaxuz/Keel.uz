@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ⚠️ The launcher label and the two lines Android itself draws on the
+         shift notification. Everything else is in i18n/Strings.kt, because the
+         language is chosen inside the app and Android's resource system follows
+         the system locale instead — and a phone handed to a Russian-speaking
+         courier is set to whatever the shop set it to. -->
+    <string name="app_name">Keel Courier</string>
+    <string name="shift_running">Keel Courier — smena ochiq</string>
+    <string name="shift_sending">Joylashuv restoranga yuborilmoqda</string>
+</resources>
