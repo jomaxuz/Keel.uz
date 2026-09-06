@@ -736,6 +736,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | SEO, sitemap, IndexNow, Google | Qidiruv tizimlari |
 | Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |
 | Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar · Markirovka: kirimda skanerlash |
+| Panel yon paneli: qaysi qator, qanday tartib, qanday nom | Panel navigatsiyasi biznes turiga qarab |
 | Yorliq, tsennik, ichki shtrix-kod | Yorliq: do'konning o'z shtrix-kodi va tsennigi |
 | Menyu importi, havoladan | Menyuni havoladan import qilish |
 | Boshqa POS'dan ko'chirish (iiko, Poster…) | Boshqa POS'dan ko'chirish |

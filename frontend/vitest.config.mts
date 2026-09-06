@@ -109,6 +109,12 @@ export default defineConfig({
       // thing on that screen a person cannot check by looking: 95 modules of
       // black and white are correct or nonsense, and both look like a barcode.
       "src/lib/ean13.test.ts",
+      // Which rows of the panel each kind of business sees, in which order and
+      // under what name. Here because the failure is invisible from a
+      // restaurant: every screen works, and the sidebar simply describes
+      // somebody else's work — which is what a chemist reading "Masalliqlar"
+      // over a shelf of paracetamol was looking at.
+      "src/lib/adminNav.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

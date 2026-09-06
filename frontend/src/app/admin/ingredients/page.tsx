@@ -26,6 +26,7 @@ import PosImport from "@/components/admin/PosImport";
 import WarehousesEditor, {
   WarehousePicker,
 } from "@/components/admin/WarehousesEditor";
+import { sellsGoods } from "@/lib/types";
 import type { Ingredient, RecipeLine, Warehouse } from "@/lib/types";
 import { qtyNumber } from "@/lib/qty";
 import { QtyInput } from "@/components/QtyInput";
@@ -64,6 +65,9 @@ const EMPTY: Draft = {
 export default function IngredientsPage() {
   const t = useAdminT();
   const scope = useAdminScope();
+  // Whether this business sells what it buys, which is the only difference
+  // between the two readings of this screen.
+  const goods = sellsGoods(scope.brand);
   const [rows, setRows] = useState<Ingredient[]>([]);
   // When the expected figures were last anchored to a count. ⚠️ Shown, and
   // "never" is the most important thing it can say: without a count the
@@ -163,9 +167,17 @@ export default function IngredientsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">{t.ingredients.title}</h1>
+          {/* ⚠️ **A shop's stock list is not called "ingredients".** It is the
+              same screen — a shop's goods are stock rows exactly as a kitchen's
+              are — but the heading and the sentence under it were a kitchen's,
+              on the panel of every chemist and clothes shop on the platform.
+              The word is what tells somebody whether the software was built for
+              them; the screen underneath is unchanged. */}
+          <h1 className="text-xl font-semibold">
+            {goods ? t.ingredients.titleGoods : t.ingredients.title}
+          </h1>
           <p className="mt-1 text-sm text-ink-soft">
-            {t.ingredients.intro}{" "}
+            {goods ? t.ingredients.introGoods : t.ingredients.intro}{" "}
             {/* ⚠️ How much of an estimate the expected column is. Without this
               sentence it reads as a stock balance the system has been keeping,
               and somebody orders against it. */}

@@ -88,6 +88,9 @@ export const adminUz = {
     categories: "Kategoriyalar",
     stock: "Qoldiqlar",
     ingredients: "Masalliqlar",
+    // ⚠️ Do'kon va dorixona uchun o'sha ekranning nomi. Ekran bitta — farqi
+    // bir so'zda, va o'sha so'z «bu panel siz uchun emas» deb turadi.
+    goodsList: "Tovarlar",
     techCards: "Texkartalar",
     purchases: "Kirim",
     writeoffs: "Chiqim",
@@ -1220,6 +1223,12 @@ export const adminUz = {
     title: "Masalliqlar",
     intro:
       "Oshxona nima sotib oladi va qanchaga. Narx sotib olinadigan birlikda yoziladi (kilo, litr, dona) — grammga o'tkazishni texkarta o'zi qiladi. ⚠️ Bu ombor emas: qoldiq hisoblanmaydi, faqat tannarx.",
+    // ⚠️ Do'kon va dorixona uchun o'sha ekran, boshqa so'z bilan. Do'kon
+    // sotib olgan narsasini sotadi — «oshxona nima sotib oladi» degan gap
+    // dorixonaning javoni tepasida turmasligi kerak.
+    titleGoods: "Tovarlar",
+    introGoods:
+      "Do'kon nima sotib oladi va qanchaga. Narx sotib olinadigan birlikda yoziladi (kilo, litr, dona). ⚠️ Bu ombor emas: qoldiq hisoblanmaydi, faqat tannarx.",
     name: "Nomi",
     unit: "Birlik",
     price: "Narx",
@@ -1315,6 +1324,12 @@ export const adminUz = {
     qty: "Miqdor",
     reason: "Sabab",
     reasonPlaceholder: "buzildi, to'kildi, xodimlar ovqati",
+    // ⚠️ Do'kon va dorixona uchun o'sha maydon, o'z misollari bilan:
+    // «xodimlar ovqati» — oshxonaning eng ko'p uchraydigan chiqimi va
+    // dorixonada hech nimani anglatmaydi.
+    reasonPlaceholderGoods: "muddati tugadi, sinib qoldi, yaroqsiz",
+    introGoods:
+      "Sotilmasdan ketgan tovar: muddati tugagani, sinib qolgani, yaroqsizi. ⚠️ Sabab majburiy — sababsiz yozuv bir oydan keyin hech kimga hech nima aytmaydi.",
     value: "Summasi",
     total: "Davr bo'yicha",
     empty: "Hali hisobdan chiqarilmagan",
@@ -4849,6 +4864,7 @@ export const adminRu: AdminDict = {
     categories: "Категории",
     stock: "Остатки",
     ingredients: "Ингредиенты",
+    goodsList: "Товары",
     techCards: "Техкарты",
     purchases: "Приход",
     writeoffs: "Списания",
@@ -5889,6 +5905,9 @@ export const adminRu: AdminDict = {
     title: "Ингредиенты",
     intro:
       "Что кухня закупает и по какой цене. Цена — за единицу закупки (кило, литр, штука); перевод в граммы делает техкарта. ⚠️ Это не склад: остатки не считаются, только себестоимость.",
+    titleGoods: "Товары",
+    introGoods:
+      "Что магазин закупает и по какой цене. Цена — за единицу закупки (кило, литр, штука). ⚠️ Это не склад: остатки не считаются, только себестоимость.",
     name: "Название",
     unit: "Единица",
     price: "Цена",
@@ -5980,6 +5999,9 @@ export const adminRu: AdminDict = {
     qty: "Количество",
     reason: "Причина",
     reasonPlaceholder: "испортилось, разлили, питание персонала",
+    reasonPlaceholderGoods: "истёк срок, разбилось, брак",
+    introGoods:
+      "Товар, ушедший не через продажу: истёкший срок, бой, брак. ⚠️ Причина обязательна — запись без причины через месяц никому ничего не скажет.",
     value: "Сумма",
     total: "За период",
     empty: "Списаний пока нет",
@@ -9229,6 +9251,7 @@ export const adminEn: AdminDict = {
     categories: "Categories",
     stock: "Stock",
     ingredients: "Ingredients",
+    goodsList: "Goods",
     techCards: "Tech cards",
     purchases: "Deliveries",
     writeoffs: "Write-offs",
@@ -10261,6 +10284,9 @@ export const adminEn: AdminDict = {
     title: "Ingredients",
     intro:
       "What the kitchen buys and what it pays. The price is per purchase unit (kilo, litre, piece) — the tech card converts to grams. ⚠️ This is not stock: nothing here tracks what is on hand, only what a portion costs.",
+    titleGoods: "Goods",
+    introGoods:
+      "What the shop buys and what it pays. The price is per purchase unit (kilo, litre, piece). ⚠️ This is not stock: nothing here tracks what is on hand, only what a line costs.",
     name: "Name",
     unit: "Unit",
     price: "Price",
@@ -10352,6 +10378,9 @@ export const adminEn: AdminDict = {
     qty: "Quantity",
     reason: "Reason",
     reasonPlaceholder: "spoiled, spilled, staff meal",
+    reasonPlaceholderGoods: "expired, broken, damaged",
+    introGoods:
+      "Goods that left without being sold: expired, broken, damaged. ⚠️ A reason is required — a line without one tells nobody anything a month later.",
     value: "Value",
     total: "In this period",
     empty: "No write-offs yet",

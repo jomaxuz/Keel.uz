@@ -3763,6 +3763,51 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   javobi) va **`label` maydonining aniq nomi** (davlat formatidan olingan,
   provayder hujjatlari bilan tasdiqlanmagan; har adapterda bitta qator).
 
+### Panel navigatsiyasi biznes turiga qarab
+
+- ⚠️ **Qaysi qator ko'rinishi — `needs`, qaysi tartibda — `SHOP_STOCK_ORDER`,
+  qanday nomlanishi — `navLabel`.** Uchalasi `frontend/src/lib/adminNav.ts` da,
+  layoutning ichida emas: javobni tekshirishning yagona yo'li «o'sha turdagi
+  biznes bo'lib kirish» edi, va noto'g'ri javob barcha dorixona va kiyim
+  do'konlarida bir vaqtda noto'g'ri edi. Testi yonida.
+- ⚠️ **Bu ko'rinish, ruxsat emas.** Qatorni yashirish — xushmuomalalik; kim
+  qaysi sahifani ocha olishini server hal qiladi (`handlers/panelgate.go`), va
+  manzilni terib kirgan do'kon o'sha ekranni topadi.
+- ⚠️ **Do'konning ombori — oshxonaniki emas, va buni tartib aytadi.**
+  `NAV_GROUPS` oshxona tartibida yozilgan (javonda nima bor → nima olish kerak
+  → nima qanchaga → porsiyaga nima ketadi). Do'kon uni yuqoridan pastga o'qib,
+  o'zi eng ko'p ochadigan uchta ekranni (yorliq, markirovka, muddat) eng
+  pastdan, oyiga bir marta tegadigan hujjatlar tagidan topardi. Hech nima xato
+  emas edi — shunchaki birovning ish tartibi.
+- ⚠️ **Tartib — ro'yxat, sahifalar ro'yxati emas.** Qator bor-yo'qligini `needs`
+  hal qiladi (sababi o'sha yerda yozilgan); bu yerda ikkinchi «a'zolik
+  ro'yxati» bo'lsa, ikkisi bir kun kelishmay qoladi va natija — sababi hech
+  qayerda yozilmagan holda yo'qolgan ekran.
+- ⚠️ **Gulchi — kompozitsiya qiladigan do'kon**, va u birinchi variantni
+  buzdi: `techCards` va `production` tartibda nomlanmagani uchun eng pastga
+  tushib qolgandi — aynan shu shikoyat, faqat eng muhtoj do'kon tomonidan.
+  Test endi uchala do'kon turini ham tekshiradi.
+- ⚠️ **«Masalliqlar» — oshxonaning so'zi.** Ekran bitta (do'kon tovari ham
+  ombor qatori), lekin so'z dorixonaning paratsetamol javoni tepasida turardi.
+  Odam bunday paytda «so'z erkin ishlatilgan ekan» demaydi — «bu panel boshqa
+  kimdir uchun qilingan» deydi. Shuning uchun `goodsList: "Tovarlar"` va
+  chiqim maydonining misollari ham («xodimlar ovqati» → «muddati tugadi»).
+  «Kirim», «Chiqim», «Inventarizatsiya» esa ombor so'zlari — ikkinchi tarjima
+  qilinmaydi, aks holda ikki lug'at ajraydi.
+- ⚠️ **Yangi bo'limlar iconsiz chiqqan edi** (`expiring`, `labels`,
+  `marking`) — o'n bir qatorli ustunda bu «bo'limga tegishli bo'lmagan uchta
+  qator» bo'lib o'qiladi, holbuki do'kon uchun bo'limning o'zi shu. Sana,
+  narx yorlig'i va skaner. `suppliers` ham yuk mashinasi edi — kirim bilan
+  bir xil shakl; endi qo'l siqish (yuk mashinasi — yetkazish, yetkazib
+  beruvchi — telefon qiladigan odam).
+- ⚠️ **Tanilmagan biznes turi — restoran, va u shunday emas edi.**
+  `lib/types.ts` dagi har bir predikat o'zicha qaytardi (`!t`, `t === "..."`),
+  ya'ni yangiroq konsol yozgan brend hammasiga **yo'q** deb javob berardi:
+  stol ham, oshxona ham, texkarta ham, do'kon ekranlari ham yo'q — panel
+  chizishi mumkin bo'lgan eng bo'sh yon panel, eng yangi mijozda. Go tomonida
+  bu allaqachon `known()` bilan tuzatilgan va izohi ham yozilgan edi; panel
+  qolib ketgan. Endi `known()` frontendda ham bor.
+
 ### Yorliq: do'konning o'z shtrix-kodi va tsennigi
 - ⚠️ **Bu Asl Belgisi emas va bo'la olmaydi.** Davlat kodini operator ishlab
   chiqaruvchiga/importyorga beradi — dona hisobida va pullik. Qayta sotuvchi

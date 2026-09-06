@@ -1,0 +1,146 @@
+import { readFileSync } from "node:fs";
+
+import { describe, expect, it } from "vitest";
+
+import {
+  navLabel,
+  needsMet,
+  orderedFor,
+  SHOP_STOCK_ORDER,
+  type Needs,
+} from "@/lib/adminNav";
+import { adminEn, adminRu, adminUz } from "@/lib/i18n/admin";
+
+// What each kind of business sees in the store section.
+//
+// ⚠️ **The failure this pins was invisible from a restaurant.** Every screen
+// worked; the sidebar simply described somebody else's work — a chemist read
+// "Masalliqlar" over its shelf of paracetamol, and found the three screens it
+// actually opens weekly (price labels, marked goods, expiry dates) at the bottom
+// of the list under four documents it touches once a month. Nothing errors, so
+// the only way this is ever checked is here or by logging in as a pharmacy.
+
+/** The store rows as the sidebar actually declares them.
+ *
+ *  ⚠️ **Read out of the layout rather than duplicated here.** A copy would keep
+ *  passing after somebody added a row to the real one — and a row nobody
+ *  ordered or gated is exactly the bug this file is about. */
+function stockRows(): { key: string; needs?: Needs }[] {
+  const src = readFileSync("src/app/admin/layout.tsx", "utf8");
+  const start = src.indexOf('key: "stock",\n    items: [');
+  if (start < 0) throw new Error("the store group was renamed");
+  const end = src.indexOf("\n  },", start);
+  return [...src.slice(start, end).matchAll(/\{ href: "[^"]+", key: "(\w+)"(?:, needs: "(\w+)")? \}/g)]
+    .map((m) => ({ key: m[1], needs: m[2] as Needs | undefined }));
+}
+
+const shown = (brand: { businessType?: string } | null) =>
+  orderedFor({ key: "stock", items: stockRows() }, brand)
+    .filter((i) => needsMet(i.needs, brand))
+    .map((i) => i.key);
+
+const RESTAURANT = null;
+const GROCERY = { businessType: "grocery" };
+const PHARMACY = { businessType: "pharmacy" };
+// ⚠️ **A shop that composes**, and the case that broke the first version of
+// this order: its cards and its batches fell to the bottom of the section
+// because the order named neither.
+const FLOWERS = { businessType: "flowers" };
+
+describe("the store section, by business", () => {
+  // ⚠️ **A florist composes and has no kitchen**, which is the pair of facts
+  // the `composes` rule exists for. Its cards belong beside its catalogue, not
+  // after the stocktake.
+  it("gives a florist its cards, in the middle rather than at the end", () => {
+    const rows = shown(FLOWERS);
+    expect(rows).toContain("techCards");
+    expect(rows.indexOf("techCards")).toBeLessThan(rows.indexOf("writeoffs"));
+    expect(rows.indexOf("production")).toBeLessThan(rows.indexOf("stocktake"));
+  });
+
+  it("keeps the kitchen's own screens out of a shop", () => {
+    for (const shop of [GROCERY, PHARMACY]) {
+      expect(shown(shop)).not.toContain("techCards");
+      expect(shown(shop)).not.toContain("production");
+    }
+    expect(shown(RESTAURANT)).toContain("techCards");
+    expect(shown(RESTAURANT)).toContain("production");
+  });
+
+  it("gives a shop the three screens it opens weekly", () => {
+    for (const shop of [GROCERY, PHARMACY]) {
+      expect(shown(shop)).toEqual(
+        expect.arrayContaining(["labels", "marking", "expiring"]),
+      );
+    }
+    // ⚠️ And keeps them off a kitchen's sidebar, where they are three rows read
+    // past forever.
+    expect(shown(RESTAURANT)).not.toContain("labels");
+  });
+
+  // ⚠️ **The order is the complaint.** Nothing was missing for a grocery; its
+  // own screens were simply last, under the monthly paperwork.
+  it("puts a shop's weekly screens above its monthly ones", () => {
+    const rows = shown(GROCERY);
+    const at = (k: string) => rows.indexOf(k);
+    expect(at("stock")).toBe(0);
+    for (const weekly of ["labels", "marking", "expiring"]) {
+      for (const monthly of ["writeoffs", "transfers", "stocktake"]) {
+        expect(at(weekly)).toBeLessThan(at(monthly));
+      }
+    }
+  });
+
+  it("leaves a restaurant's order exactly as it was", () => {
+    // ⚠️ The kitchen order is the one written in the layout, and re-sorting it
+    // would be a change nobody asked for on every restaurant on the platform.
+    expect(shown(RESTAURANT)).toEqual(
+      stockRows()
+        .filter((i) => needsMet(i.needs, RESTAURANT))
+        .map((i) => i.key),
+    );
+  });
+
+  // ⚠️ **The two lists must not drift.** A row added to the layout and not named
+  // in the order lands at the end of a shop's sidebar without anybody deciding
+  // that — which is how the three screens above got there in the first place.
+  it("orders every store row a shop can see, and no row it cannot", () => {
+    const rows = stockRows().map((i) => i.key);
+    for (const key of SHOP_STOCK_ORDER) expect(rows).toContain(key);
+    // ⚠️ Every shop, not just the commonest one: a florist sees two rows a
+    // grocery does not, and they were the two nothing ordered.
+    for (const shop of [GROCERY, PHARMACY, FLOWERS]) {
+      for (const key of shown(shop)) expect(SHOP_STOCK_ORDER).toContain(key);
+    }
+  });
+});
+
+describe("what a row is called", () => {
+  it("calls a shop's stock list goods and a kitchen's ingredients", () => {
+    expect(navLabel("ingredients", adminUz, PHARMACY)).toBe("Tovarlar");
+    expect(navLabel("ingredients", adminUz, RESTAURANT)).toBe("Masalliqlar");
+    expect(navLabel("ingredients", adminRu, GROCERY)).toBe("Товары");
+    expect(navLabel("ingredients", adminEn, GROCERY)).toBe("Goods");
+  });
+
+  it("leaves the warehouse words alone in both", () => {
+    // "Kirim" and "Inventarizatsiya" are warehouse words, not kitchen ones, and
+    // a second translation of them would be two dictionaries drifting for free.
+    for (const brand of [RESTAURANT, PHARMACY]) {
+      expect(navLabel("purchases", adminUz, brand)).toBe("Kirim");
+      expect(navLabel("stocktake", adminUz, brand)).toBe("Inventarizatsiya");
+    }
+  });
+});
+
+// ⚠️ **An unrecognised business is a restaurant, and it was not.** Every
+// predicate in lib/types fell back on its own — so a brand written by a newer
+// console answered *no* to all of them at once: no tables, no kitchen, no tech
+// cards, and none of the shop screens either. The emptiest sidebar the panel can
+// draw, on the newest customer we have. The Go side carries the same note,
+// having been fixed there and not here.
+it("reads a business it has never heard of as a restaurant", () => {
+  const future = { businessType: "bowling-alley" };
+  expect(shown(future)).toEqual(shown(RESTAURANT));
+  expect(navLabel("ingredients", adminUz, future)).toBe("Masalliqlar");
+});

@@ -13683,3 +13683,38 @@ chizig'i. Ya'ni «qog'ozdan nima chiqadi» degan savolga karta o'zi javob beradi
    ketardi. Screenshotdan ko'rindi; en endi matnning o'ziga beriladi.
 
 Ko'rinishi Playwright bilan surat qilib tekshirildi (oltala karta, 58 mm).
+
+---
+
+## 2026-09-07 — Ombor bo'limi biznes turiga qarab ✅
+
+**Shikoyat:** do'kon va dorixona omborida restoranga tegishli narsalar
+ko'rinardi, tartib chalkash edi, yangi bo'limlar iconsiz edi.
+
+**Qilindi.**
+- **Tartib** — do'kon uchun o'z tartibi (`SHOP_STOCK_ORDER`,
+  `lib/adminNav.ts`): javon → xarid → tovarlar (+ gulchida texkarta) → kirim →
+  yetkazib beruvchilar → **yorliq, markirovka, muddat** → ishlab chiqarish →
+  chiqim, ko'chirish, inventarizatsiya. Ilgari do'kon eng ko'p ochadigan uchta
+  ekran eng pastda, oyiga bir marta tegiladigan hujjatlar tagida edi.
+  Restoranning tartibi **o'zgarmadi**.
+- **Nomlar** — «Masalliqlar» do'kon va dorixonada «Tovarlar»; ingredients
+  sahifasining sarlavhasi va tagidagi gapi ham («Oshxona nima sotib oladi» →
+  «Do'kon nima sotib oladi»); chiqim sababi misollari («xodimlar ovqati» →
+  «muddati tugadi, sinib qoldi»). Uch tilda.
+- **Iconlar** — `expiring` (kalendar-soat), `labels` (yorliq), `marking`
+  (skaner). `suppliers` kirim bilan bir xil yuk mashinasi edi — qo'l siqishga
+  o'zgardi.
+- **Qoidalar layoutdan chiqarildi** (`lib/adminNav.ts`) va testi yozildi
+  (`adminNav.test.ts`, 10 ta): qaysi biznes nimani ko'radi, qanday tartibda,
+  qanday nom bilan; ikki ro'yxatning ajrab ketmasligi ham tekshiriladi.
+
+**Test yo'l-yo'lakay ikkita xato topdi:**
+1. **Gulchi** — `techCards` va `production` do'kon tartibida nomlanmagani uchun
+   eng pastga tushib qolgandi: aynan shikoyatning o'zi, faqat shu ekranlarga
+   eng muhtoj do'konda.
+2. **Tanilmagan biznes turi restoran emas edi.** `lib/types.ts` dagi har bir
+   predikat o'zicha qaytardi, ya'ni yangiroq konsol yozgan brend uchun panel
+   **hammasiga yo'q** derdi: stol ham, oshxona ham, texkarta ham, do'kon
+   ekranlari ham yo'q. Go tomonida bu `known()` bilan allaqachon tuzatilgan va
+   izohi yozilgan edi — panel qolib ketgan. Endi frontendda ham `known()` bor.

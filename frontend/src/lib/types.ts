@@ -1781,6 +1781,35 @@ export type BusinessType =
   | "flowers"
   | "pharmacy";
 
+/** Everything this build knows how to tailor for. ⚠️ The empty string is a
+ *  restaurant, deliberately: it is what every brand written before the field
+ *  existed carries. */
+const BUSINESS_TYPES: readonly string[] = [
+  "",
+  "fastfood",
+  "grocery",
+  "clothing",
+  "flowers",
+  "pharmacy",
+];
+
+/** Collapses anything this build does not recognise to a restaurant.
+ *
+ *  ⚠️ **Every predicate below goes through this, and the bug is why.** They were
+ *  written as `!t` and `t === "..."`, each falling back on its own — so a brand
+ *  written by a newer console and read by this panel answered *no* to all of
+ *  them at once: no tables, no kitchen, no tech cards, and none of the shop
+ *  screens either. Not "the tailoring is missing", but the emptiest sidebar the
+ *  panel can draw, on the newest customer we have. The comments underneath each
+ *  one already promised this behaviour; nothing implemented it.
+ *
+ *  ⚠️ Mirrors `BusinessType.known()` in Go, which carries the same note for the
+ *  same reason — the server was fixed and the panel was not. */
+function known(brand?: { businessType?: string } | null): string {
+  const t = brand?.businessType ?? "";
+  return BUSINESS_TYPES.includes(t) ? t : "";
+}
+
 /** Does this brand sell the thing it bought, rather than cook with it?
  *
  *  ⚠️ **The one question the whole shop/restaurant difference reduces to**, and
@@ -1794,7 +1823,7 @@ export function hasTables(brand?: { businessType?: string } | null): boolean {
   // ⚠️ Only a restaurant seats people. A fast food takes orders at a counter
   // and a shop has no room at all — and both were being offered a floor plan,
   // a booking list and a table QR code they can never use.
-  return !brand?.businessType;
+  return known(brand) === "";
 }
 
 /** Does anything here get cooked to order?
@@ -1805,8 +1834,8 @@ export function hasTables(brand?: { businessType?: string } | null): boolean {
  *  inviting somebody to edit that card by hand is a screen that can only break
  *  it. */
 export function hasKitchen(brand?: { businessType?: string } | null): boolean {
-  const t = brand?.businessType;
-  return !t || t === "fastfood";
+  const t = known(brand);
+  return t === "" || t === "fastfood";
 }
 
 /** Is what this brand sells assembled from other things it stocks?
@@ -1818,8 +1847,8 @@ export function hasKitchen(brand?: { businessType?: string } | null): boolean {
  *  away from flower shops, which is the screen that tells them what a bouquet
  *  costs and what a bad week threw out. Mirrors `BusinessType.Composes`. */
 export function composes(brand?: { businessType?: string } | null): boolean {
-  const t = brand?.businessType;
-  return !t || t === "fastfood" || t === "flowers";
+  const t = known(brand);
+  return t === "" || t === "fastfood" || t === "flowers";
 }
 
 /** Does this brand sell one product in sizes and colours?
@@ -1835,11 +1864,11 @@ export function composes(brand?: { businessType?: string } | null): boolean {
  *  product that already has variants keeps its editor whatever kind of business
  *  this is. */
 export function hasVariants(brand?: { businessType?: string } | null): boolean {
-  return brand?.businessType === "clothing";
+  return known(brand) === "clothing";
 }
 
 export function sellsGoods(brand?: { businessType?: string } | null): boolean {
-  switch (brand?.businessType) {
+  switch (known(brand)) {
     case "grocery":
     case "clothing":
     case "flowers":

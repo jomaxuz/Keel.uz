@@ -21,6 +21,7 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
+import { sellsGoods } from "@/lib/types";
 import type { Ingredient, WriteOff, WriteOffReason } from "@/lib/types";
 import { QtyInput } from "@/components/QtyInput";
 import { qtyNumber } from "@/lib/qty";
@@ -41,6 +42,7 @@ function monthStart() {
 export default function WriteOffsPage() {
   const t = useAdminT();
   const scope = useAdminScope();
+  const goods = sellsGoods(scope.brand);
   const [rows, setRows] = useState<WriteOff[]>([]);
   const [value, setValue] = useState(0);
   const [reasons, setReasons] = useState<WriteOffReason[]>([]);
@@ -117,7 +119,9 @@ export default function WriteOffsPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">{t.writeoffs.title}</h1>
-        <p className="mt-1 text-sm text-ink-soft">{t.writeoffs.intro}</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          {goods ? t.writeoffs.introGoods : t.writeoffs.intro}
+        </p>
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -188,7 +192,16 @@ export default function WriteOffsPage() {
             <span className="text-xs text-ink-muted">{t.writeoffs.reason}</span>
             <input
               className="input mt-1 w-full"
-              placeholder={t.writeoffs.reasonPlaceholder}
+              // ⚠️ **The examples are this business's own.** "Staff meals" is a
+              // kitchen's commonest write-off and means nothing in a chemist,
+              // where the answer is almost always an expiry date — and a
+              // placeholder that names somebody else's work is how a form
+              // teaches people it was not built for them.
+              placeholder={
+                goods
+                  ? t.writeoffs.reasonPlaceholderGoods
+                  : t.writeoffs.reasonPlaceholder
+              }
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />

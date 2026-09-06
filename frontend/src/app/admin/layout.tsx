@@ -13,6 +13,10 @@ import {
   LuShoppingCart,
   LuTrash2,
   LuTruck,
+  LuHandshake,
+  LuCalendarClock,
+  LuTag,
+  LuScanBarcode,
   LuWarehouse,
   LuClock,
   LuContact,
@@ -56,13 +60,19 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, clearToken, getToken } from "@/lib/api";
 import { useAdminT, type AdminDict } from "@/lib/i18n/admin";
+import {
+  navLabel,
+  needsMet,
+  orderedFor,
+  type BrandLike,
+  type Needs,
+} from "@/lib/adminNav";
 import AlertBell, { SoundToggle } from "@/components/admin/AlertBell";
 import SupportWidget from "@/components/admin/SupportWidget";
 import AskProvider from "@/components/ui/Ask";
 import CrashReporter from "@/components/CrashReporter";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
-import { composes, hasKitchen, hasTables, sellsGoods } from "@/lib/types";
 import { homeFor } from "@/lib/panelRole";
 import { SubscriptionProvider, moduleForPath } from "@/lib/subscription";
 import UpgradeGate from "@/components/admin/UpgradeCta";
@@ -109,7 +119,11 @@ const ICONS: Record<string, IconType> = {
   purchases: LuTruck,
   writeoffs: LuTrash2,
   transfers: LuArrowLeftRight,
-  suppliers: LuTruck,
+  // ⚠️ **Not the lorry.** Deliveries already have it, and two identical shapes
+  // in one column is the failure the note above this map is about — it was the
+  // one pair in the store that had it. A delivery is a lorry; a supplier is the
+  // person you ring about the lorry.
+  suppliers: LuHandshake,
   shopping: LuShoppingCart,
   // ⚠️ A pot, not a factory or a clipboard: what this screen records is a
   // batch **cooked** in the central kitchen. It was the one row in the store
@@ -117,6 +131,17 @@ const ICONS: Record<string, IconType> = {
   // belong to the section.
   production: LuCookingPot,
   stocktake: LuClipboardCheck,
+  // ---- The three a shop opens and a kitchen mostly does not ----
+  //
+  // ⚠️ **They shipped with no icons at all**, which in a column of eleven reads
+  // as three rows that do not belong to the section — and they are the section,
+  // for a shop. A date, a price tag and a scanner: the object each one is about,
+  // by the rule the rest of this map follows.
+  expiring: LuCalendarClock,
+  labels: LuTag,
+  // ⚠️ A scanner, not a barcode: what this screen does is *read* a code the
+  // state issued, and it never prints one. The label screen owns the tag.
+  marking: LuScanBarcode,
   pos: LuMonitor,
   categories: LuTags,
   promotions: LuTicketPercent,
@@ -173,30 +198,6 @@ const ICONS: Record<string, IconType> = {
  *  everything off its own list anyway; this exists so the panel does not draw
  *  twenty links that all answer forbidden, which reads as a broken account
  *  rather than as a boundary. */
-/** What a section needs the business to be, when it needs anything.
- *
- *  ⚠️ **A brand new to this reads as a restaurant**, so a panel that has not
- *  loaded its brand yet — or one whose brand predates the field, which is every
- *  brand today — shows exactly what it showed before. */
-type Needs = "tables" | "kitchen" | "composes" | "goods";
-
-function needsMet(need: Needs | undefined, brand: BrandLike): boolean {
-  switch (need) {
-    case "tables":
-      return hasTables(brand);
-    case "kitchen":
-      return hasKitchen(brand);
-    case "composes":
-      return composes(brand);
-    case "goods":
-      return sellsGoods(brand);
-    default:
-      return true;
-  }
-}
-
-type BrandLike = { businessType?: string } | null | undefined;
-
 /** The sections this role can see, narrowed to what this business is.
  *
  *  ⚠️ **`brand` is optional, and omitting it means "do not narrow".** The
@@ -223,7 +224,7 @@ function navFor(role: string, brand?: BrandLike) {
     groups
       .map((g) => ({
         ...g,
-        items: g.items.filter(
+        items: orderedFor(g, brand).filter(
           (item) =>
             (!("ownerOnly" in item) || role === "owner") &&
             needsMet((item as { needs?: Needs }).needs, brand),
@@ -892,7 +893,7 @@ function GroupLinks({
             {Icon && (
               <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
             )}
-            {t.nav[item.key]}
+            {navLabel(item.key, t, brand)}
           </Link>
         );
       })}
@@ -957,7 +958,7 @@ function NavLinks({
                   {Icon && (
                     <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
                   )}
-                  {t.nav[item.key]}
+                  {navLabel(item.key, t, brand)}
                 </Link>
               );
             })}
