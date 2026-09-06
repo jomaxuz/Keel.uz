@@ -1484,6 +1484,18 @@ export const adminUz = {
     weightOddHint:
       "Odatda bu kilogrammni gramm o'rniga yozganda bo'ladi: 1.5 — bu bir yarim gramm, 1500 emas. Xato bo'lsa taom deyarli tekin ko'rinadi va ombordan hech narsa yechilmaydi. Degustatsiya porsiyasi yoki banket patnisi bo'lsa — saqlayvering.",
     cardCost: "Tannarx",
+    // ⚠️ Qog'ozdagi karta — ta'minotchiga, buxgalterga, tekshiruvga beriladi.
+    printTitle: "A4 uchun PNG",
+    printHint:
+      "Quyidagi rasm — yuklab olinadigan faylning o'zi. Til, rang va ustunlarni tanlang.",
+    printLang: "Til",
+    printAccent: "Rang",
+    printColumns: "Ustunlar",
+    printLogo: "Logotip",
+    printSignatures: "Imzo joylari",
+    printHiRes: "Yuqori sifat (300 dpi)",
+    printDownload: "PNG yuklab olish",
+    printCard: "PNG",
     cardMissing: "—",
     manualCost: "qo'lda",
     // ⚠️ Named where it appears, because this is the one number on the screen
@@ -6020,6 +6032,17 @@ export const adminRu: AdminDict = {
     weightOddHint:
       "Обычно так бывает, когда килограмм записали вместо граммов: 1.5 — это полтора грамма, а не 1500. Тогда блюдо выглядит почти бесплатным, а со склада ничего не списывается. Если это дегустационная порция или банкетный поднос — сохраняйте.",
     cardCost: "Себестоимость",
+    printTitle: "PNG для A4",
+    printHint:
+      "Картинка ниже — это и есть файл, который скачается. Выберите язык, цвет и колонки.",
+    printLang: "Язык",
+    printAccent: "Цвет",
+    printColumns: "Колонки",
+    printLogo: "Логотип",
+    printSignatures: "Места для подписей",
+    printHiRes: "Высокое качество (300 dpi)",
+    printDownload: "Скачать PNG",
+    printCard: "PNG",
     cardMissing: "—",
     manualCost: "вручную",
     manualCostHint:
@@ -10298,6 +10321,17 @@ export const adminEn: AdminDict = {
       "This usually means a kilo was typed where grams were meant: 1.5 is a gram and a half, not 1500. The dish then looks almost free and the store takes nothing off the shelf. If it really is a tasting portion or a catering tray, save it.",
     showAll: "Show all",
     cardCost: "Cost",
+    printTitle: "PNG for A4",
+    printHint:
+      "The picture below is the file that downloads. Choose the language, the colour and the columns.",
+    printLang: "Language",
+    printAccent: "Colour",
+    printColumns: "Columns",
+    printLogo: "Logo",
+    printSignatures: "Signature lines",
+    printHiRes: "High resolution (300 dpi)",
+    printDownload: "Download the PNG",
+    printCard: "PNG",
     cardMissing: "—",
     manualCost: "typed",
     manualCostHint:

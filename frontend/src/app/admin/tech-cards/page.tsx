@@ -25,14 +25,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, imageUrl } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAsk } from "@/components/ui/Ask";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
 import Modal from "@/components/admin/Modal";
-import RecipeEditor from "@/components/admin/RecipeEditor";
+import RecipeEditor, { ratePerUnit } from "@/components/admin/RecipeEditor";
+import TechCardPrint from "@/components/admin/TechCardPrint";
+import type { CardData } from "@/lib/techCardPng";
 import type {
   Ingredient,
   MenuItem,
@@ -89,6 +91,14 @@ export default function TechCardsPage() {
   const [prep, setPrep] = useState<PrepDraft | null>(null);
   const [dish, setDish] = useState<MenuItem | null>(null);
   const [dishLines, setDishLines] = useState<RecipeLine[]>([]);
+  /** The card being turned into a sheet of paper, if any. */
+  const [printing, setPrinting] = useState<CardData | null>(null);
+  /** The name and logo the sheet is headed with. ⚠️ The brand's, not the
+   *  branch's: a technical card belongs to the catalogue, and the catalogue is
+   *  the brand's — the same rule the cards themselves already follow. */
+  const [brand, setBrand] = useState<{ name: string; logo?: string }>({
+    name: "",
+  });
   const [search, setSearch] = useState("");
   const [noCardOnly, setNoCardOnly] = useState(false);
 
@@ -109,7 +119,28 @@ export default function TechCardsPage() {
       .adminStockCoverage()
       .then(setCoverage)
       .catch(() => setCoverage(null));
-  }, []);
+    // The name and logo the printed sheet is headed with. ⚠️ Its own request
+    // and its own failure, for the reason above: a card can be written and
+    // printed without a logo, and a heading nobody can fetch must not be the
+    // reason a recipe cannot be typed. The brand's, not the branch's — a
+    // technical card belongs to the catalogue.
+    api
+      .getRestaurant({ raw: true })
+      .then((r) =>
+        setBrand({
+          // ⚠️ The brand's face first, the company's underneath — the same
+          // fallback the settings screen edits through. A chain whose second
+          // brand has never been given a logo still gets a headed sheet.
+          name: scope.brand?.name || r.restaurant.name || "",
+          logo: scope.brand?.logoUrl || r.restaurant.logoUrl || "",
+        }),
+      )
+      .catch(() => setBrand({ name: scope.brand?.name ?? "" }));
+    // ⚠️ **The brand is a dependency now.** This closure reads which brand is
+    // selected, and an empty list would leave a chain's second brand printing
+    // the first one's name on its sheets — the exact confusion the lens exists
+    // to prevent, on the one artefact that leaves the building.
+  }, [scope.brand]);
 
   // ⚠️ Re-read when the lens moves: the catalogue belongs to the brand, and a
   // chain switching brands with a stale list would offer one brand's sauces
@@ -223,6 +254,45 @@ export default function TechCardsPage() {
       if (ing && (ing.unit === "kg" || ing.unit === "l")) total += l.qty;
     }
     return total;
+  }
+
+  /** Turn a card into the shape the sheet is drawn from.
+   *
+   *  ⚠️ **Rates come from `ratePerUnit`, the rule the editor already prices
+   *  with.** A second implementation here is how a printed card and a report
+   *  end up disagreeing about one dish, on paper, in front of a supplier. */
+  function sheetOf(
+    name: string,
+    lines: RecipeLine[],
+    price?: number,
+    yieldText?: string,
+  ): CardData {
+    const rows = lines
+      .map((l) => {
+        const ing = ingredients.find((i) => i.id === l.ingredientId);
+        if (!ing) return null;
+        return {
+          name: ing.name,
+          qty: l.qty,
+          unit: t.ingredients.recipeUnits[ing.unit as "kg"] ?? "",
+          rate: ratePerUnit(ing),
+        };
+      })
+      .filter(Boolean) as CardData["lines"];
+    return {
+      brand: brand.name,
+      // ⚠️ 600 wide: the sheet draws it at 16 mm, and at 300 dpi that is
+      // nearly 200 pixels — a thumbnail scaled up prints as a blur on the
+      // one document somebody hands to a supplier.
+      logoUrl: imageUrl(brand.logo, 600) ?? undefined,
+      dish: name,
+      yield: yieldText,
+      lines: rows,
+      // ⚠️ Rounded once over the whole card, exactly as the server does it —
+      // rounding each line would print a total no report agrees with.
+      cost: Math.round(rows.reduce((sum, r) => sum + r.rate * r.qty, 0)),
+      price,
+    };
   }
 
   async function saveDish() {
@@ -736,6 +806,25 @@ export default function TechCardsPage() {
                 {t.common.delete}
               </button>
             )}
+            {prep.recipe.length > 0 && (
+              <button
+                className="btn-ghost mr-auto px-4 py-2 text-sm"
+                onClick={() =>
+                  setPrinting(
+                    sheetOf(
+                      prep.name,
+                      prep.recipe,
+                      undefined,
+                      prep.output > 0
+                        ? `${prep.output} ${t.ingredients.recipeUnits[prep.unit as "kg"] ?? ""}`
+                        : undefined,
+                    ),
+                  )
+                }
+              >
+                {t.techCards.printCard}
+              </button>
+            )}
             <button
               className="btn-ghost px-4 py-2 text-sm"
               onClick={() => setPrep(null)}
@@ -767,6 +856,18 @@ export default function TechCardsPage() {
             />
           </div>
           <div className="mt-5 flex justify-end gap-2">
+            {/* ⚠️ Only once there is something to print. An empty sheet with a
+                logo on it is a document that says a dish has no recipe. */}
+            {dishLines.length > 0 && (
+              <button
+                className="btn-ghost mr-auto px-4 py-2 text-sm"
+                onClick={() =>
+                  setPrinting(sheetOf(dish.name, dishLines, dish.price))
+                }
+              >
+                {t.techCards.printCard}
+              </button>
+            )}
             <button
               className="btn-ghost px-4 py-2 text-sm"
               onClick={() => setDish(null)}
@@ -782,6 +883,9 @@ export default function TechCardsPage() {
             </button>
           </div>
         </Modal>
+      )}
+      {printing && (
+        <TechCardPrint data={printing} onClose={() => setPrinting(null)} />
       )}
     </div>
   );

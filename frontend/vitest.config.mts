@@ -100,6 +100,11 @@ export default defineConfig({
       // rule that swallowed an ordinary dish would empty every restaurant's
       // menu page, and every menu ever written is that case.
       "src/lib/variants.test.ts",
+      // The printed technical card. Here because what it pins is invisible on
+      // the screen that produces it: the preview is drawn in whichever language
+      // is selected, so a missing word is only ever seen by the person who
+      // receives the sheet.
+      "src/lib/techCardPng.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

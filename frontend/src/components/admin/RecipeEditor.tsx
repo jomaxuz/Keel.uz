@@ -41,7 +41,7 @@ function recipeUnit(unit: string): string {
  *
  *  The typed price is the fallback for a bought ingredient the list has not
  *  been able to rate — never a second opinion about one it has. */
-function ratePerUnit(ing: Ingredient): number {
+export function ratePerUnit(ing: Ingredient): number {
   if (ing.rate) return ing.rate;
   const per = ing.unit === "kg" || ing.unit === "l" ? 1000 : 1;
   return ing.price / per;
