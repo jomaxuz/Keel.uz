@@ -22,6 +22,7 @@ playServicesLocation = "21.3.0"
 firebaseBom = "34.4.0"
 googleServices = "4.4.3"
 coreKtx = "1.17.0"
+junit = "4.13.2"
 splashscreen = "1.0.1"
 
 [libraries]
@@ -51,6 +52,7 @@ play-services-location = { module = "com.google.android.gms:play-services-locati
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+junit = { module = "junit:junit", version.ref = "junit" }
 core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
 

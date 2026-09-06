@@ -134,5 +134,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 
+    // ⚠️ **The wire models are a second copy of the panel's types**, and kotlinx
+    // fills a default for any key it does not find — so a renamed field is not a
+    // failure, it is a zero on a bill. See WireShapeTest.
+    testImplementation(libs.junit)
     debugImplementation(libs.compose.ui.tooling)
 }

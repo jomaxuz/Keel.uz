@@ -115,18 +115,29 @@ bitta, va farqi shu.
 
 ## Nima qolgan
 
-1. ⏳ **Oflayn navbat yo'q.** Eski ilovada `expo-sqlite` seam ortidagi uchinchi
-   dvigatel edi. ⚠️ Lekin diqqat: eski ilovada ham chek ekranlari navbatdan
-   **o'tmasdi** — `openOfflineStore()` faqat dvigatelni ro'yxatdan o'tkazardi,
-   `check.tsx` esa to'g'ridan-to'g'ri `api` ni chaqirardi. Ya'ni ko'chirilmagan
-   narsa xususiyat emas, **relslar**; navbat Room bilan qo'shilganda uni chek
-   oqimiga ulash alohida ish.
-2. ⏳ **Telefonda sinalmagan.** APK quriladi, lekin hech bir qurilmada
-   ishga tushirilmagan — `adb` bor (`~/Android/Sdk/platform-tools/adb`),
-   ulangan telefon yo'q.
-3. ⏳ Splash ekran (`androidx.core:core-splashscreen`) va release imzosi
-   (`keystore`) — do'kon buildi uchun.
-4. ⚠️ **Backend: FCM v1** (yuqoridagi bo'lim) — busiz bildirishnoma kelmaydi.
+⚠️ **Bu ro'yxat 2026-09-06 da tekshirildi**: to'rttadan uchtasi bajarilgan edi
+va ro'yxat eskirgan holicha turgan edi. Eskirgan «hali yo'q» ro'yxati —
+qilingan ishni ikkinchi marta rejalashtirishga chaqiruv.
+
+1. ✅ **Oflayn navbat ulandi.** `data/Outbox.kt` (Room) va u chek oqimidan
+   o'tadi: `CheckScreen` qatorlarni `outbox.send(...)` orqali yuboradi, javobi
+   `Sent / Refused / Queued`, va navbatdagilar soni tab panelida ko'rinadi.
+2. ✅ **Splash va release imzosi bajarilgan** (`core-splashscreen`,
+   `~/keys/keel-waiter.jks`). Release APK **3.1 MB**.
+3. ✅ **FCM v1 serverda** (`internal/push/fcm.go`), yo'nalish token shakliga
+   qarab. Ilova FCM tokenini oladi va `kitchen` kanalida ko'rsatadi.
+4. ✅ **Wire testi qo'shildi** (`WireShapeTest`, 7 ta): chek, qator, void,
+   zal, menyu va hisobot — JSON `handlers/till.go` dan ko'chirilgan. Ilgari bu
+   ilovada **umuman test yo'q edi**, va aynan shu ilova nomi o'zgargan
+   maydondan uchta xatoni bir vaqtda yuborgan.
+5. ⏳ **Telefonda sinalmagan.** APK quriladi, testlar o'tadi; ulangan qurilma
+   yo'q.
+
+⚠️ **`data/TokenStore.kt` o'chirildi** (2026-09-06): u `android-design` dagi
+ulashilgan nusxaning ikkinchi nusxasi edi va **hech kim ishlatmasdi** — ilova
+`uz.keel.design.TokenStore` ni import qiladi. Kompilyator bunday faylni
+ko'rmaydi: u quriladi, tahrirlanadi va hech qayerga ta'sir qilmaydi. Aynan shu
+modul mavjudligining sababi.
 
 ### Tasdiqlangan muhit (5-sentabr 2026)
 
