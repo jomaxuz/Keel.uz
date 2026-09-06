@@ -181,3 +181,51 @@ func TestEverySiteBlockCompresses(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **Every served site carries the security headers, the suspended one too.**
+// The edge is the one place they can be set once for keel.uz and every tenant
+// at once, and the failure mode of missing them is silent — a browser simply
+// does not enforce a protection nobody sent. So this pins them to the render
+// rather than trusting each block to include the helper.
+func TestEverySiteBlockCarriesSecurityHeaders(t *testing.T) {
+	out := Render([]Site{
+		{Slug: "osh", Domains: []string{"osh.uz"}},
+		{Slug: "stop", Domains: []string{"stop.uz"}, Suspended: true},
+	}, opts())
+
+	want := []string{
+		"Strict-Transport-Security",
+		"X-Content-Type-Options nosniff",
+		"Referrer-Policy",
+		"frame-ancestors 'self' https://web.telegram.org",
+	}
+	for _, start := range []string{"keel.uz, www.keel.uz {", "osh.uz {", "stop.uz {"} {
+		i := strings.Index(out, start)
+		if i < 0 {
+			t.Fatalf("no site block %q", start)
+		}
+		body := out[i:]
+		if end := strings.Index(body, "\n}\n"); end > 0 {
+			body = body[:end]
+		}
+		for _, h := range want {
+			if !strings.Contains(body, h) {
+				t.Errorf("site %q is missing %q:\n%s", start, h, body)
+			}
+		}
+	}
+}
+
+// ⚠️ **Framing is controlled by frame-ancestors, never by X-Frame-Options:
+// DENY.** The Telegram mini app is this very site rendered inside Telegram,
+// which frames it; DENY would break every mini app on Telegram Web. This is the
+// kind of "hardening" that looks correct in a scan and takes a feature down.
+func TestFramingDoesNotBlockTheTelegramMiniApp(t *testing.T) {
+	out := Render([]Site{{Slug: "osh", Domains: []string{"osh.uz"}}}, opts())
+	if strings.Contains(out, "X-Frame-Options") {
+		t.Error("X-Frame-Options would break the Telegram mini app; use frame-ancestors")
+	}
+	if !strings.Contains(out, "telegram.org") {
+		t.Error("Telegram is not allowed to frame the mini app")
+	}
+}

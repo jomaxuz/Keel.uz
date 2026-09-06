@@ -309,7 +309,10 @@ func (h *Handler) AdminListLogs(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case len(ids) == 1 && !strings.Contains(ids[0], "."):
 			// A whole group: "order" matches order.status, order.cancel, …
-			filter["action"] = bson.M{"$regex": "^" + ids[0] + "\\."}
+			// ⚠️ Escaped: the group name comes from ?action= and reaches Mongo's
+			// regex engine, so a metacharacter in it is a pattern rather than a
+			// literal — a crafted value is a catastrophic-backtracking DoS.
+			filter["action"] = bson.M{"$regex": "^" + regexp.QuoteMeta(ids[0]) + "\\."}
 		case len(ids) > 0:
 			filter["action"] = bson.M{"$in": ids}
 		}

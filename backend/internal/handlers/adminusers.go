@@ -37,7 +37,12 @@ func (h *Handler) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 	filter := bson.M{}
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
 		// Case-insensitive "contains" across the human-readable fields.
-		rx := bson.M{"$regex": q, "$options": "i"}
+		// ⚠️ Escaped through textSearch: a stray "(" or a crafted "(a+)+$" from
+		// the query string would otherwise reach Mongo's regex engine as a
+		// pattern — matching nothing at best, and a catastrophic-backtracking
+		// DoS at worst. Every other free-text search on these screens already
+		// goes through this helper; this one was building the matcher by hand.
+		rx := textSearch(q)
 		filter["$or"] = []bson.M{
 			{"firstName": rx}, {"lastName": rx}, {"phone": rx},
 		}

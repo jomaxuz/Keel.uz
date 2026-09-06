@@ -88,6 +88,42 @@ func frontendProxy(frontend string) string {
 // body exactly as before, so this cannot break a client by being on.
 const encodeDirective = "\tencode zstd gzip\n"
 
+// securityHeaders is the response header block every served site carries.
+//
+// ⚠️ **At the edge, and per site for the same reason `encode` is** — Caddy's
+// global options block sets nothing that touches a response, so one site added
+// last and rendered without this is a site served without it. One helper, every
+// block.
+//
+// ⚠️ **Deliberately not a full Content-Security-Policy.** A `script-src` policy
+// is the thing that would actually stop a stolen-token XSS, and it is also the
+// thing most likely to break a Next.js app silently: Next serves inline
+// hydration scripts, and the map SDKs (2GIS, Yandex, Google) each load their own
+// — a blind `script-src 'self'` blanks the site with an error only the console
+// shows. That belongs in a tested, nonce-based rollout, not in a header string.
+// What is here is the set that improves security without that risk.
+//
+//   - HSTS pins HTTPS for a year. No `includeSubDomains` and no `preload`:
+//     tenants bring their own domains, and claiming their subdomains — or
+//     locking a domain onto us after they leave — is not ours to do.
+//   - `nosniff` stops a browser guessing an uploaded file is a script.
+//   - `frame-ancestors`, not `X-Frame-Options: DENY`, because **the Telegram
+//     mini app is this very site rendered inside Telegram** (channelreport.go),
+//     which frames it on web.telegram.org. DENY would break every mini app; a
+//     frame-ancestors CSP blocks clickjacking while letting Telegram embed us.
+//     This directive touches only embedding — it does not restrict scripts or
+//     styles, so it cannot blank the page the way a full CSP can.
+//   - `Referrer-Policy` keeps a full URL (order numbers, ids) from leaking to
+//     a third party a guest clicks through to.
+//   - `-Server` drops the "Caddy" version banner; a smaller target, no cost.
+const securityHeaders = "\theader {\n" +
+	"\t\tStrict-Transport-Security \"max-age=31536000\"\n" +
+	"\t\tX-Content-Type-Options nosniff\n" +
+	"\t\tReferrer-Policy strict-origin-when-cross-origin\n" +
+	"\t\tContent-Security-Policy \"frame-ancestors 'self' https://web.telegram.org https://*.telegram.org\"\n" +
+	"\t\t-Server\n" +
+	"\t}\n"
+
 // Options are the fixed parts of the edge.
 type Options struct {
 	// Where the shared Next.js renderers listen. One address, or several
@@ -138,6 +174,7 @@ func Render(sites []Site, o Options) string {
 	if len(o.MainDomains) > 0 && o.MainUpstream != "" {
 		fmt.Fprintf(&b, "%s {\n", strings.Join(o.MainDomains, ", "))
 		b.WriteString(encodeDirective)
+		b.WriteString(securityHeaders)
 		fmt.Fprintf(&b, "\thandle /api/* {\n\t\treverse_proxy %s\n\t}\n", o.Control)
 		fmt.Fprintf(&b, "\thandle {\n\t\treverse_proxy %s\n\t}\n", o.MainUpstream)
 		b.WriteString("}\n\n")
@@ -156,6 +193,7 @@ func Render(sites []Site, o Options) string {
 		fmt.Fprintf(&b, "# %s\n%s {\n", s.Slug, strings.Join(domains, ", "))
 		b.WriteString("\ttls {\n\t\ton_demand\n\t}\n")
 		b.WriteString(encodeDirective)
+		b.WriteString(securityHeaders)
 		if s.Suspended {
 			// The container is stopped; there is nothing to proxy to.
 			fmt.Fprintf(&b, "\treverse_proxy %s {\n\t\theader_up X-Keel-Tenant %s\n\t}\n",

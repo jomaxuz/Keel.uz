@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/md5"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -236,7 +237,16 @@ func clickSignValid(req *clickCallback, secret string) bool {
 	raw := req.ClickTransID + req.ServiceID + secret + req.MerchantTransID +
 		prepareID + req.Amount + req.Action + req.SignTime
 	sum := md5.Sum([]byte(raw))
-	return strings.EqualFold(hex.EncodeToString(sum[:]), req.SignString)
+	// ⚠️ **Constant time, like Payme's Basic-auth check.** The signature is the
+	// only thing authenticating a money-moving callback, and a byte-wise string
+	// compare returns as soon as the first character differs — which is the
+	// classic timing side-channel for guessing a signature one character at a
+	// time. EqualFold also lower-cased both sides; the digest is already
+	// lower-case hex, so the incoming value is folded once here and then
+	// compared without early exit.
+	want := hex.EncodeToString(sum[:])
+	got := strings.ToLower(strings.TrimSpace(req.SignString))
+	return subtle.ConstantTimeCompare([]byte(want), []byte(got)) == 1
 }
 
 func clickOKResp(w http.ResponseWriter, req *clickCallback, prepareID string) {

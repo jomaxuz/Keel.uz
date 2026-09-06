@@ -13815,3 +13815,30 @@ Ya'ni litrlab sotiladigan sharbatning yorlig'ida «18 500 so'm» yozilib, nimaga
 nisbatan ekani **yozilmasdi** — birlik aynan shu tovarlar uchun kerak edi.
 Eski test ham xato kodni mustahkamlab turgan ekan; endi u forma yozadigan
 beshta kodni tekshiradi va `stockUnitOf` bilan mosligini ham.
+
+---
+
+## 2026-09-07 (5) — Kiberxavfsizlik auditi va tuzatishlar ✅
+
+Anthropic Cybersecurity Skills to'plamining metodikasi (OWASP API Top-10,
+NoSQL injection, JWT confusion, SSRF, path-traversal, secrets, auth) bo'yicha
+qo'lda audit. Kritik zaiflik topilmadi; postura kuchli (JWT alg-confusion
+bloklangan, JWT_SECRET boot-guard, path-traversal ikki qavat, sirlar `json:"-"`,
+`crypto/rand`, rate-limit, OTP bcrypt+lockout). To'rtta topilma tuzatildi:
+
+1. **Chekka header'lari (O'rta)** — Caddy render'iga HSTS, nosniff,
+   Referrer-Policy, `-Server` va clickjacking uchun CSP `frame-ancestors`
+   qo'shildi (har bir sayt blokida). `X-Frame-Options: DENY` **atayin emas** —
+   Telegram mini app saytni iframe qiladi, DENY uni buzardi. To'liq `script-src`
+   CSP ataylab qoldirildi (Next.js'ni jimgina buzadi — nonce'li chiqarish
+   kerak). Testlar: `caddy_test.go` +2.
+2. **Bog'liqliklar (O'rta)** — `npm audit fix`: sharp tuzatildi (high 3→1).
+   Qolgan postcss faqat Next 16 breaking upgrade bilan tuzatiladi; build-vaqti,
+   real xavf past — alohida ishga qoldirildi.
+3. **Regex DoS (Past)** — `adminusers.go` va `auditlog.go` dagi `$regex`
+   `regexp.QuoteMeta` bilan escape qilindi (ReDoS/DoS).
+4. **Click imzosi (Past)** — `strings.EqualFold` → `subtle.ConstantTimeCompare`
+   (timing side-channel), Payme bilan bir xil.
+
+Backend `go build/vet/test ./...` toza, control testlari toza, frontend
+`tsc --noEmit` toza, 251 test yashil. Qaror `docs/DECISIONS.md` da.

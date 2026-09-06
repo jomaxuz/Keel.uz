@@ -3141,6 +3141,48 @@ o'chirildi — kuryer ilovasi uch tilli, xarita esa faqat o'zbekcha edi va
   mexanizmi yo'q — parol o'zgartirilsa ham eski token ishlaydi. Tuzatish uchun
   hisobda `tokenVersion` + middleware tekshiruvi kerak; alohida ish.
 
+### Xavfsizlik: chekkadagi javob header'lari
+- ⚠️ **Header'lar chekkada (Caddy), har bir sayt blokida** — `control/internal/caddy`
+  render'ida `securityHeaders`, `encode` bilan bir naqsh. Caddy'ning global
+  bloki javobga tegadigan direktiv qabul qilmaydi, ya'ni oxirgi qo'shilgan
+  tenant header'siz qolmasligi uchun bitta helper hamma blokka yoziladi.
+  Nosozligi **jimgina**: brauzer yuborilmagan himoyani majburlamaydi.
+- **Nima qo'yildi va nega:** HSTS (`max-age`, `includeSubDomains` va `preload`
+  YO'Q — tenant o'z domenini olib keladi, uning subdomenlarini da'vo qilish yoki
+  ketganidan keyin domenni bizga qulflash bizniki emas); `nosniff`;
+  `Referrer-Policy`; `-Server` (versiya bannerini o'chirish).
+- ⚠️ **Clickjacking — `X-Frame-Options: DENY` emas, `frame-ancestors`.**
+  Telegram mini app — bu **Telegram ichida ochilgan saytning o'zi**
+  (`channelreport.go`), ya'ni u saytni web.telegram.org da iframe qiladi. DENY
+  har bir mini app'ni buzardi — skanerlarda "to'g'ri" ko'rinadigan, lekin
+  funksiyani o'ldiradigan "hardening"ning aynan o'zi. `frame-ancestors` faqat
+  joylashtirishga tegadi, skript/stilga emas — sahifani bo'shatib qo'ymaydi.
+- ⚠️ **To'liq CSP (`script-src`) ataylab QO'YILMADI.** O'g'irlangan token XSS'ini
+  haqiqatan to'xtatadigan narsa shu, va aynan u Next.js'ni jimgina buzadi: Next
+  inline hidratsiya skriptlari, xarita SDK'lari (2GIS/Yandex/Google) o'zinikini
+  yuklaydi — ko'r-ko'rona `script-src 'self'` saytni konsoldagina ko'rinadigan
+  xato bilan bo'shatadi. U nonce'li, sinovdan o'tgan chiqarishni talab qiladi —
+  header qatorida emas. Admin tokeni `localStorage` da (bilib qilingan tanlov);
+  CSP uni himoyalaydigan yagona nazorat va u alohida ish bo'lib qoladi.
+
+### Xavfsizlik: to'lov callback'lari va regex qidiruv (2026-09-07 auditi)
+- ⚠️ **Pul ko'chiradigan callback imzosi constant-time solishtiriladi.** Payme
+  Basic auth allaqachon shunday edi; Click MD5 imzosi `strings.EqualFold` bilan
+  solishtirilardi — belgi-baholab, birinchi farqda qaytadigan, imzoni belgima-belgi
+  taxmin qilishning klassik timing kanali. Endi `subtle.ConstantTimeCompare`
+  (`payclick.go`).
+- ⚠️ **Operator qidiruvi Mongo `$regex` ga `regexp.QuoteMeta` bilan tushadi.**
+  `adminusers.go` (`?q=`) va `auditlog.go` (`?action=`) quote qilmasdan
+  yuborardi — faqat autentifikatsiyalangan admin kira oladi va ma'lumot
+  chiqmaydi (Mongo `$regex` maydonlararo o'tolmaydi), lekin `(a+)+$` kabi qiymat
+  katastrofik backtracking DoS beradi. Qolgan qidiruv joylari `textSearch`
+  helper'idan o'tadi; bu ikkitasi qo'lda qurardi.
+- **Bog'liqliklar:** `sharp` yangilandi (`npm audit fix`). Qolgan `postcss`
+  "high" — Next 15'ning **build-vaqti** bog'liqligi, faqat Next 16 (major,
+  breaking) bilan tuzatiladi; real xavf past (build paytida o'z CSS'ini qayta
+  ishlaydi, foydalanuvchi kiritmasini emas), shuning uchun **ataylab
+  ko'tarilmadi** — alohida, sinovli upgrade.
+
 ### Panel adminlari va amallar jurnali
 - **Yangi admin — mavjud sayt mijozi**: odam avval saytda telefon + SMS bilan
   kirgan bo'lishi kerak; owner `/admin/admins` da uni qidirib topadi va login +
