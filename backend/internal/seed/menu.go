@@ -342,29 +342,27 @@ var demoMenu = []seedCategory{
 // and menu items — but only when the database has no categories yet, so a real
 // restaurant's menu is never touched.
 func ensureMenu(ctx context.Context, store *repository.Store, cfg *config.Config) {
-	// ⚠️ **A shop does not get a restaurant's menu.** The sample exists so a new
-	// customer's site is not empty on the day it is handed over — an empty grid
-	// reads as "this does not work" rather than "nothing has been entered yet".
-	// Forty-eight dishes in a pharmacy read as neither: they read as somebody
-	// else's shop, and the owner's first job becomes deleting them one at a
-	// time before entering anything of their own.
-	//
-	// ⚠️ **And a shop's sample cannot simply be written here.** A product that
-	// sells itself needs the stock row and the one-line card the server keeps in
-	// step with it (handlers/productstock.go); rows inserted straight into Mongo
-	// would be half-products — sellable, not countable — which is worse than an
-	// empty catalogue in the one part of the product where a wrong number is
-	// silent. A shop's catalogue comes from its own barcodes: the goods-in
-	// screen, the scanner and the import.
-	if models.BusinessType(cfg.BusinessType).SellsGoods() {
-		return
-	}
 	count, err := store.Categories.CountDocuments(ctx, bson.M{})
 	if err != nil {
 		log.Printf("seed: count categories: %v", err)
 		return
 	}
 	if count > 0 {
+		return
+	}
+	// ⚠️ **A shop gets a shop's catalogue, not a restaurant's menu.** The sample
+	// exists so a new customer's site is not empty on the day it is handed over
+	// — an empty grid reads as "this does not work" rather than as "nothing has
+	// been entered yet". Forty-eight dishes in a pharmacy read as neither: they
+	// read as somebody else's shop, and the owner's first job becomes deleting
+	// them one at a time before entering anything of their own. See shop.go for
+	// what each kind of shop starts with, and why every row goes through the
+	// panel's own stock code on the way in.
+	biz := models.BusinessType(cfg.BusinessType)
+	if biz.SellsGoods() {
+		if err := writeShopCatalogue(ctx, store, biz); err != nil {
+			log.Printf("seed: write shop catalogue: %v", err)
+		}
 		return
 	}
 	if err := WriteMenu(ctx, store, cfg, false); err != nil {

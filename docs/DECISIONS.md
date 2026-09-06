@@ -6546,15 +6546,34 @@ yuborilgan joy — jonli rasm yo'q bo'ldi, qaytaradigan joyi yo'q.
   yaratilgan tenant baribir biror nom bilan boshlanishi kerak: do'kon uchun
   «Do'kon», restoran uchun «Restoran». «My Restaurant» esa do'konlarning
   **hammasi** uchun noto'g'ri.
-- ⚠️ **Do'konga namuna menyu berilmaydi.** Namuna bor, chunki topshirilgan
-  kundagi bo'sh sayt «ishlamayapti» deb o'qiladi. Lekin dorixonadagi 48 ta taom
-  «hali kiritilmagan» ham, «ishlamayapti» ham emas — **birovning do'koni** deb
-  o'qiladi, va egasining birinchi ishi ularni bittalab o'chirish bo'ladi.
-  ⚠️ Do'kon namunasini shunchaki yozib qo'yib ham bo'lmaydi: o'zini sotadigan
-  tovarga server tutib turadigan ombor qatori va bir qatorli karta kerak
-  (`handlers/productstock.go`), to'g'ridan-to'g'ri Mongo'ga yozilgan qatorlar
-  esa **yarim tovar** bo'lardi — sotib bo'ladi, sanab bo'lmaydi. Do'konning
-  katalogi o'z shtrix-kodlaridan keladi: kirim ekrani, skaner va import.
+- ⚠️ **Do'kon restoranning menyusini olmaydi, lekin bo'sh ham qolmaydi.**
+  Dorixonadagi 48 ta taom «hali kiritilmagan» ham, «ishlamayapti» ham emas —
+  **birovning do'koni** deb o'qiladi, va egasining birinchi ishi ularni
+  bittalab o'chirish bo'lardi. Bo'sh jadval esa topshirilgan kuni
+  «ishlamayapti» deb o'qiladi. Shuning uchun har bir do'kon turiga o'z
+  namunasi bor (`internal/seed/shop.go`): oziq-ovqat, dorixona, kiyim, gul.
+- ⚠️ **Namuna qisqa — o'n-o'n ikki qator, ellik emas.** Bu kassa, yorliq va
+  qoldiq ekranlari ishlashini ko'rsatish uchun, «boshlang'ich katalog» emas:
+  do'konning haqiqiy ro'yxati o'z shtrix-kodlaridan keladi, va qolib ketgan
+  har bir namuna qatori keyin kimdir topib o'chiradigan qator. Restoranning
+  menyusi uzun, chunki u **tahrirlanadi**; do'konniki skanerlanadi.
+- ⚠️ **Har bir namuna qatori panelning o'z kodidan o'tadi**
+  (`repository.SyncProductStock`). O'zini sotadigan tovarga ombor qatori va bir
+  qatorli karta kerak; to'g'ridan-to'g'ri Mongo'ga yozilgani **yarim tovar**
+  bo'lardi — sotib bo'ladi, sanab bo'lmaydi, va bu birinchi kundanoq,
+  namunaviy ma'lumotda. Shu sababli funksiya `handlers` dan `repository` ga
+  ko'chirildi: bitta amal, ikkita chaqiruvchi. `InsertMany` ishlatilmaydi —
+  har qatorga ombor qatorining id'si **yozib qaytariladi**.
+- ⚠️ **Rasm yo'q.** Seeddagi suratlar — taomlar; do'kon javonini biz
+  suratga olmaymiz. Rasmsiz kartochka do'kon ro'yxatida odatiy, birovning
+  palovi esa paratsetamol qutisi ustida — yo'q.
+- ⚠️ **Kiyim namunasida o'lchamlar yo'q**, garchi butik ularni sotsa ham:
+  variantlar menyu ekranidagi tugma bilan **do'konning o'z** o'lchamlaridan
+  yaratiladi, tayyor kelgan o'n ikki variant esa o'chiriladigan o'n ikki qator.
+- ⚠️ **Gulchida tayyor buket yo'q**, poya va o'ram bor: buket — shu qatorlar
+  ustidagi texkarta, va uni do'kon o'zi sotib oladigan gullardan yozadi. Namuna
+  buket bu do'konda yo'q poyalarga ishora qilardi, ya'ni tannarxi gul do'koni
+  aynan shu uchun sotib oladigan ekranda noto'g'ri chiqardi.
 
 ### Namuna menyu (seed)
 - `backend/internal/seed/menu.go` — 7 kategoriya, 48 taom (rasmlari bilan).

@@ -71,20 +71,38 @@ func TestAPriceThatCameBackIsNotStale(t *testing.T) {
 }
 
 // ⚠️ **The unit beside the price, because "18 500" means nothing on a shelf of
-// loose goods** until it says whether that is a kilo or a packet. The codes are
-// the state classifier's, which is what the field holds — a word invented here
-// would disagree with the receipt.
+// loose goods** until it says whether that is a kilo or a packet.
+//
+// ⚠️ **The codes are the ones the panel actually writes**, and this test used to
+// assert one that it does not. `unitWord` read 112 for a litre — a number from
+// no list in this product; the menu form offers 0, 11, 10, 41 and 22. So juice
+// sold by the litre printed "18 500 so'm" with nothing after it, and the test
+// agreed with the code instead of with the form. The options are pinned against
+// the form here for that reason.
 func TestTheUnitIsTheClassifiersAndNotAGuess(t *testing.T) {
-	if got := unitWord(models.MenuItem{UnitCode: 10}); got != "kg" {
-		t.Errorf("gram code gave %q", got)
-	}
-	if got := unitWord(models.MenuItem{UnitCode: 112}); got != "l" {
-		t.Errorf("litre code gave %q", got)
+	// The five the menu form offers, which is the whole set this field ever
+	// holds: piece, kilogram, gram, litre, metre.
+	for code, want := range map[int]string{
+		0: "", 11: "kg", 10: "kg", 41: "l", 22: "m",
+	} {
+		if got := unitWord(models.MenuItem{UnitCode: code}); got != want {
+			t.Errorf("code %d gave %q, want %q", code, got, want)
+		}
 	}
 	// A piece is sold by the piece: nothing to say, and a "/ dona" on every
 	// sticker in the shop is noise on the one line that has to be read fast.
 	if got := unitWord(models.MenuItem{UnitCode: 0}); got != "" {
 		t.Errorf("piece gave %q", got)
+	}
+	// ⚠️ And the store's own unit agrees with it: the same codes, mapped into
+	// the words a purchase is written in. Two vocabularies for one fact is
+	// already one too many.
+	for code, want := range map[int]string{
+		11: models.UnitKg, 10: models.UnitKg, 41: models.UnitL, 0: models.UnitPcs,
+	} {
+		if got := stockUnitOf(&models.MenuItem{UnitCode: code}); got != want {
+			t.Errorf("stock unit for %d gave %q, want %q", code, got, want)
+		}
 	}
 }
 

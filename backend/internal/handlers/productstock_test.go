@@ -52,8 +52,11 @@ func TestEveryMeasureCodeLandsOnAStockUnit(t *testing.T) {
 // wrong in the flattering direction, which is the wrong way to be wrong about
 // money.
 func TestTheStockRowIsNotSeededWithTheSalePrice(t *testing.T) {
-	src := readSrc(t, "productstock.go")
-	body := between(t, src, "func (h *Handler) syncProductStock", "\n}\n")
+	// ⚠️ Read from the repository, where the work moved when the seed needed it
+	// too: a sample shop catalogue written straight into Mongo would be products
+	// that can be sold and cannot be counted.
+	src := readSrc(t, "../repository/productstock.go")
+	body := between(t, src, "func SyncProductStock", "\n}\n")
 	if strings.Contains(body, "m.Price") {
 		t.Fatal("the sale price reaches the stock row")
 	}
@@ -66,8 +69,11 @@ func TestTheStockRowIsNotSeededWithTheSalePrice(t *testing.T) {
 // write-offs and a counted balance; deleting it would take a real quantity of
 // real goods out of the books to tidy up a checkbox.
 func TestClearingTheFlagDoesNotDeleteStock(t *testing.T) {
-	src := readSrc(t, "productstock.go")
-	body := between(t, src, "func (h *Handler) syncProductStock", "\n}\n")
+	// ⚠️ Read from the repository, where the work moved when the seed needed it
+	// too: a sample shop catalogue written straight into Mongo would be products
+	// that can be sold and cannot be counted.
+	src := readSrc(t, "../repository/productstock.go")
+	body := between(t, src, "func SyncProductStock", "\n}\n")
 	if strings.Contains(body, "DeleteOne") || strings.Contains(body, "DeleteMany") {
 		t.Fatal("the stock row is deleted when the product stops selling itself")
 	}

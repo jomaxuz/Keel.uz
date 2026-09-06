@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"context"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/repository"
 )
 
 // ---- A product that is its own stock row ----
@@ -37,80 +37,17 @@ import (
 // alternative — calling it only when the flag is set — leaves a stale row behind
 // a product whose flag was turned off, and stale stock is stock somebody orders
 // against.
+//
+// ⚠️ **The work itself lives in the repository**, because the seed needs it too:
+// a sample shop catalogue written straight into Mongo would be products that
+// can be sold and cannot be counted, which is the one kind of wrong number this
+// product never lets through. One implementation, two callers.
 func (h *Handler) syncProductStock(ctx context.Context, m *models.MenuItem) error {
-	if !m.SellsItself {
-		// ⚠️ The row is deliberately *not* deleted when the flag comes off: it
-		// may carry purchases, write-offs and a counted balance, and deleting it
-		// would take a real quantity of real goods out of the books to tidy up a
-		// checkbox. It simply stops being maintained.
-		return nil
-	}
-
-	unit := stockUnitOf(m)
-	now := time.Now()
-
-	if m.StockID.IsZero() {
-		ing := models.Ingredient{
-			BrandID: m.BrandID,
-			Name:    m.Name,
-			Unit:    unit,
-			// ⚠️ **The purchase price, not the sale price**, and it starts at
-			// zero rather than at the shelf price. `Ingredient.Price` is what
-			// the goods cost us; seeding it from what we charge would make the
-			// first stock valuation and every margin read from it wrong, and
-			// wrong in the flattering direction.
-			Price:     0,
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-		res, err := h.Store.Ingredients.InsertOne(ctx, ing)
-		if err != nil {
-			return err
-		}
-		m.StockID = oidOf(res.InsertedID)
-	} else {
-		// ⚠️ Only the fields a person can see on the product. The price, the
-		// minimum and the placement belong to the stock screens and an owner may
-		// have set them there; overwriting those from the catalogue would undo
-		// somebody's work every time a name was corrected.
-		_, err := h.Store.Ingredients.UpdateOne(ctx,
-			bson.M{"_id": m.StockID},
-			bson.M{"$set": bson.M{"name": m.Name, "unit": unit, "updatedAt": now}})
-		if err != nil {
-			return err
-		}
-	}
-
-	// ⚠️ **The tech card is written here, not by the owner.** It is what makes a
-	// sale consume the goods through exactly the code a restaurant uses — one
-	// unit of itself. Written every time, because a product whose flag was just
-	// turned on has no card yet and one whose stock row was recreated has the
-	// wrong one.
-	m.Recipe = []models.RecipeLine{{IngredientID: m.StockID, Qty: 1}}
-	return nil
+	return repository.SyncProductStock(ctx, h.Store, m)
 }
 
-// stockUnitOf turns the product's fiscal measure code into the store's own unit.
-//
-// ⚠️ **Two vocabularies for one fact, and neither is going away.** `unitCode` is
-// the state classifier's — it goes on the receipt and the tax filing, and its
-// numbers are not ours to choose. The store speaks `kg`/`l`/`pcs`, because that
-// is what a purchase is written in and what `PerUnit` divides by. This is the
-// only place they meet, so a code the classifier adds later is one line here
-// rather than a wrong balance somewhere.
-//
-// ⚠️ Anything unrecognised is a piece, which is what an unset code already means
-// and what almost everything in a shop is.
-func stockUnitOf(m *models.MenuItem) string {
-	switch m.UnitCode {
-	case 10, 11: // gram, kilogram
-		return models.UnitKg
-	case 41: // litre
-		return models.UnitL
-	default:
-		return models.UnitPcs
-	}
-}
+// stockUnitOf is the store's own unit for a product — see repository.StockUnit.
+func stockUnitOf(m *models.MenuItem) string { return repository.StockUnit(m.UnitCode) }
 
 // keepStockID holds on to the stock row across a whole-document save.
 //

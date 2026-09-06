@@ -13779,3 +13779,39 @@ qayerda xato chiqmaydi: hamma ekran ishlaydi, nom noto'g'ri.
 
 Testlar: `internal/seed` 5 ta yangi (nom, tavsif, do'konga menyu yozilmasligi),
 `adminNav.test.ts` 19 ta (4 tasi yangi — printer va chek turlari).
+
+---
+
+## 2026-09-07 (4) — do'kon uchun namuna katalog ✅
+
+Har bir do'kon turi endi o'z namunasi bilan boshlanadi (`internal/seed/shop.go`):
+
+| Tur | Kategoriya | Tovar |
+|---|---|---|
+| Oziq-ovqat | 4 | 11 |
+| Dorixona | 3 | 9 |
+| Kiyim | 3 | 7 |
+| Gul do'koni | 3 | 7 |
+
+- **Har bir qator panelning o'z kodidan o'tadi** — `repository.SyncProductStock`
+  ombor qatorini yaratadi va bir qatorli kartani yozadi. Shu sababli funksiya
+  `handlers` dan `repository` ga ko'chirildi: bitta amal, ikkita chaqiruvchi
+  (panel va seed). `InsertMany` yo'q — har qatorga ombor id'si yozib
+  qaytariladi.
+- Namuna **qisqa**: bu kassa, yorliq va qoldiq ekranlari ishlashini ko'rsatish
+  uchun, boshlang'ich katalog emas. Rasm yo'q. Kiyimda o'lcham variantlari yo'q,
+  gulchida tayyor buket yo'q (sabablari DECISIONS'da).
+- Tavsif ham tur bo'yicha: dorixona, kiyim, gul va oziq-ovqat — har biri o'zi
+  haqida gapiradi.
+
+Jonli tekshirildi (mahalliy mongo, to'rt tur + restoran): nom, kategoriya va
+tovar sonlari, **ombor qatori har bir tovarda**, kartasi o'ziga ishora qiladi,
+`brandId` migratsiyada qo'yiladi, litr `l` ga tushadi. Restoranda hech nima
+o'zgarmadi: 7 kategoriya, 48 taom, ombor qatorlari 0.
+
+**Yo'l-yo'lakay topilgan xato:** `unitWord` (yorliq matni) litrni **112** kodi
+deb o'qirdi — bunday kod bu mahsulotda yo'q, menyu formasi 0/11/10/41/22 yozadi.
+Ya'ni litrlab sotiladigan sharbatning yorlig'ida «18 500 so'm» yozilib, nimaga
+nisbatan ekani **yozilmasdi** — birlik aynan shu tovarlar uchun kerak edi.
+Eski test ham xato kodni mustahkamlab turgan ekan; endi u forma yozadigan
+beshta kodni tekshiradi va `stockUnitOf` bilan mosligini ham.

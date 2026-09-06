@@ -361,14 +361,25 @@ func labelData(
 }
 
 // unitWord is how this product is sold, in the words the shop uses.
+//
+// ⚠️ **The classifier's codes, and the ones the panel actually writes.** This
+// read 112 for a litre — a number from no list this product uses; the menu form
+// offers 0, 11, 10, 41 and 22 (piece, kilo, gram, litre, metre). So a shop
+// selling juice by the litre printed a shelf label reading "18 500 so'm" with
+// nothing after it, and the one thing the unit is there to prevent — a price
+// that does not say what it is per — happened on exactly the goods that need it.
+//
+// ⚠️ Kept in step with `stockUnitOf`, which maps the same codes into the store's
+// own units. Two places is already one too many; a third invented word would
+// disagree with the receipt.
 func unitWord(it models.MenuItem) string {
-	// ⚠️ The state classifier's codes, which is what the field holds: 10 is a
-	// gram and 112 a litre. A word invented here would disagree with the receipt.
 	switch it.UnitCode {
-	case 10:
+	case 10, 11: // gram, kilogram — both sold and counted by the kilo
 		return "kg"
-	case 112:
+	case 41:
 		return "l"
+	case 22:
+		return "m"
 	}
 	return ""
 }

@@ -45,11 +45,19 @@ func firstProfile(cfg *config.Config) (name, description string) {
 			name = "Restoran"
 		}
 	}
-	if shop {
-		// ⚠️ No dishes in it. This sentence is printed on the site's home page
-		// until the owner writes their own, and "milliy va zamonaviy taomlar"
-		// over a pharmacy is the same mistake as the name.
+	// ⚠️ This sentence is printed on the site's home page until the owner writes
+	// their own, so it is the kind of shop rather than "a business": "milliy va
+	// zamonaviy taomlar" over a pharmacy is the same mistake as the name, and
+	// "kundalik mahsulotlar" over a boutique is the smaller version of it.
+	switch models.BusinessType(cfg.BusinessType) {
+	case models.BizGrocery:
 		return name, "Kundalik mahsulotlar — qulay narxlarda. Yetkazib berish shahar bo'ylab."
+	case models.BizPharmacy:
+		return name, "Dori-darmon va tibbiy buyumlar. Retseptsiz vositalar, har kuni ochiq."
+	case models.BizClothing:
+		return name, "Kiyim va aksessuarlar — yangi kolleksiya. O'lchamlar do'konda."
+	case models.BizFlowers:
+		return name, "Gullar va buketlar — har kuni yangi keltiriladi. Yetkazib berish shahar bo'ylab."
 	}
 	return name, "Milliy va zamonaviy taomlar — har kuni yangi mahsulotlardan tayyorlanadi. Yetkazib berish shahar bo'ylab."
 }
