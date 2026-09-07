@@ -80,6 +80,15 @@ var Untranslated = map[string]bool{
 	"fcm sozlanmagan":            true,
 	"fcm tokeni olinmadi: %s %s": true,
 
+	// ⚠️ **The operator's own sentence, wrapped.** `didox: %s: %s` carries a
+	// path and whatever Didox answered — which is already Russian, written by
+	// them, and is the only part of it worth reading ("Пользователь
+	// заблокирован", "User not registered"). Translating the wrapper would put
+	// three languages into one line and change none of the meaning; the
+	// messages this integration writes *itself* are translated like everything
+	// else, a few lines up in messages.go.
+	"didox: %s: %s": true,
+
 	// ⚠️ **A programmer's mistake, not a person's.** These come out of
 	// `internal/barcode` when it is handed something that is not a code — the
 	// caller checks its inputs, and none of these can reach a screen without a

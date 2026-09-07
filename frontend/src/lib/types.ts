@@ -1347,10 +1347,7 @@ export interface CourierLocation {
  *  rate: two figures would leave "which of these do we owe him" to whoever is
  *  reading the screen, and both answers look right. */
 export type CourierPayoutMode =
-  | "deliveryFee"
-  | "perOrder"
-  | "percent"
-  | "monthly";
+  "deliveryFee" | "perOrder" | "percent" | "monthly";
 
 export interface Courier {
   id: string;
@@ -4220,12 +4217,7 @@ export interface StaleLabel {
  *  that only a scanner looks at, and a promotion card that has to say what the
  *  price used to be. One layout is wrong for two of those. */
 export type LabelStyle =
-  | "shelf"
-  | "price"
-  | "sticker"
-  | "compact"
-  | "sale"
-  | "full";
+  "shelf" | "price" | "sticker" | "compact" | "sale" | "full";
 
 export const LABEL_STYLES: LabelStyle[] = [
   "shelf",
@@ -5263,6 +5255,115 @@ export interface ShortageRow {
   verdictNote?: string;
   verdictBy?: string;
   verdictAt?: string;
+}
+
+/** ---- The accountant's two doors ----
+ *
+ *  ⚠️ **The operator's own codes, never renamed on the way in.** A status here
+ *  is a claim about what Didox holds; a second vocabulary of ours would be a
+ *  second thing to keep in step, and the day they diverge the panel describes a
+ *  document that does not exist. Mirrors models/accounting.go. */
+export interface EdiParty {
+  name: string;
+  vatRegCode: string;
+  vatRegStatus: number;
+  account: string;
+  bankId: string;
+  address: string;
+  director: string;
+  accountant: string;
+}
+
+export interface EdiSettings {
+  provider: string;
+  enabled: boolean;
+  sandbox: boolean;
+  tin: string;
+  seller: EdiParty;
+  hasPartnerKey: boolean;
+  hasPassword: boolean;
+  lastSyncAt?: string | null;
+  lastError?: string;
+  /** How much post is waiting to become a delivery. */
+  notImported: number;
+  /** ⚠️ Always false, and read out on the screen: the one question an
+   *  accountant asks about any EDI integration is who signs. */
+  signsHere: boolean;
+}
+
+export type EdiSettingsInput = {
+  enabled: boolean;
+  sandbox: boolean;
+  tin: string;
+  partnerToken?: string;
+  password?: string;
+  seller: EdiParty;
+};
+
+export interface EdiLine {
+  no: number;
+  name: string;
+  catalogCode?: string;
+  barcode?: string;
+  packageName?: string;
+  packageCode?: string;
+  qty: number;
+  price: number;
+  sum: number;
+  vatRate?: number;
+  vatSum?: number;
+  sumWithVat: number;
+  ingredientId?: string;
+}
+
+export interface EdiDocument {
+  id: string;
+  docId: string;
+  direction: "in" | "out";
+  type: string;
+  number: string;
+  date: string;
+  status: number;
+  partnerTin?: string;
+  partnerName?: string;
+  contractNo?: string;
+  contractDate?: string;
+  total: number;
+  vatTotal?: number;
+  totalWithVat: number;
+  hasVat: boolean;
+  hasMarks: boolean;
+  /** ⚠️ Empty means "not fetched yet", not "an invoice with nothing on it":
+   *  the operator's list endpoint does not carry the lines. */
+  lines: EdiLine[];
+  purchaseId?: string;
+  importedAt?: string;
+  importedBy?: string;
+  syncedAt: string;
+}
+
+export interface EdiDocumentList {
+  documents: EdiDocument[];
+  lastSyncAt?: string | null;
+  enabled: boolean;
+}
+
+export interface OneCSettings {
+  enabled: boolean;
+  login: string;
+  hasPassword: boolean;
+  branchId?: string;
+  days: number;
+  /** The address an accountant pastes into 1C. ⚠️ Built by the server rather
+   *  than assembled by hand on the page: it is the one field that must be
+   *  exact, and a 404 reads as "the integration does not work". */
+  url: string;
+  lastSeenAt?: string | null;
+  lastType?: string;
+  lastMode?: string;
+  lastError?: string;
+  lastImported?: number;
+  lastExported?: number;
 }
 
 export interface ShortageQueue {

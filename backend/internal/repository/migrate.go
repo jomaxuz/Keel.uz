@@ -642,6 +642,27 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ---- One electronic document, one row ----
+	//
+	// ⚠️ **Unique on the operator's own id, and the uniqueness is the whole
+	// safety of the import.** The inbox is pulled on a timer and by hand, and
+	// two pulls that overlap would otherwise write the same invoice twice — and
+	// a storekeeper looking at two identical deliveries has no way to tell
+	// which one is the copy. The pull upserts on this key, so a second write of
+	// the same document updates the row rather than adding one.
+	if _, err := s.EDIDocuments.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "docId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// What the inbox screen actually asks for: this side's post, newest first.
+	if _, err := s.EDIDocuments.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "direction", Value: 1}, {Key: "date", Value: -1}},
+	}); err != nil {
+		return err
+	}
+
 	// Pre-orders: "what is this branch due to cook next", which is also what
 	// every open panel tab asks every fifteen seconds (AdminAlerts).
 	//

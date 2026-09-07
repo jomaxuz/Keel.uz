@@ -14188,3 +14188,49 @@ peshtaxta va narx pog'onasi»):
 Tekshirildi: `qa` konsoli scratch bazada (`keel_qa_biz`) ko'tarilib, to'rt
 turdagi mijoz bilan blok brauzerda ochildi — sana oralig'i, bo'sh bloklar va
 «5 kun buyurtmalardan» yozuvi ishladi; baza va admin o'chirildi.
+
+---
+
+## 2026-09-07 — Buxgalteriyaning ikki eshigi: Didox (ЭСФ) va 1C
+
+Ikkalasi ham bitta muammodan: **bir fakt ikki marta terilyapti**. Yetkazib
+beruvchining elektron schyot-fakturasi krujkalar eshikdan kirgan tongda
+Didox'da tayyor turadi, omborchi esa uni qo'lda ko'chiradi; oyning sotuvi
+bizda tayyor, buxgalter esa uni 1C'ga qo'lda ko'chiradi.
+
+**Didox** (`internal/didox`, `handlers/edi.go`, `/admin/edi`):
+kelgan hujjatlar ro'yxati, hujjatning qatorlari, va **kirimga aylantirish** —
+qator masalliqqa server taklifi bilan bog'lanadi, odam tasdiqlaydi. Yetkazib
+beruvchi **STIR** bo'yicha topiladi (yo'q bo'lsa yaratiladi), kirim sanasi —
+hujjatning o'z sanasi, jami — hujjatning o'z summasi. Chiquvchi ЭСФ qoralamasi
+ham yaratiladi.
+
+⚠️ **Imzolash yo'q va bo'lmaydi**: har bir imzo E-IMZO kaliti bilan odamning
+o'z kompyuterida yasaladi. Statusni imzosiz o'zgartiradigan tugma — Didox'da
+imzolanmagan, soliq hisobotida yo'q hujjat, ekranda esa «bajarildi». Ekran
+buni ochiq yozadi va didox.uz'ga yo'naltiradi. `didox.Sign` metodining
+**yo'qligi** testda ushlab turiladi.
+
+**1C** (`internal/onec`, `handlers/onec.go`, `/api/v1/1c/exchange`,
+`/admin/1c`): e'lon qilingan «Обмен с сайтом» protokoli (CommerceML 2) —
+`checkauth` → `init` → `file` → `import` (1C'dan nomenklatura va narxlar) va
+`query` → `success` (bizdan sotuv va kirim hujjatlari). Basic auth, o'z logini
+bilan; javob **oddiy matn**. Buxgalter uchun o'sha XML'ni qo'lda yuklab olish
+tugmasi ham bor.
+
+Uchta tuzoq kodda izohlangan va testlangan: Go o'n million so'mni `1e+07` deb
+yozadi (faktura butunlay rad etiladi), 1C ruscha element nomlarini matn
+bo'yicha o'qiydi (bitta harf xato — hujjat **jimgina** tashlab ketiladi), va
+katalog importi modul darvozasi ko'rmaydigan eshikdan keladi (ombor moduli
+qo'lda tekshiriladi).
+
+Tekshirildi: scratch bazada (`keel_qa_1c`) to'liq 1C almashinuvi
+(`checkauth`/`init`/`file`/`import`/`query`/`success`) — nomenklatura ikki
+masalliq bo'lib tushdi, so'rov sotuv va kirim hujjatlarini CommerceML'da
+qaytardi; Didox tomonida esa uch qatorli faktura kirimga aylandi (ikkitasi
+bog'landi, «Salfetka» o'tkazib yuborildi), yetkazib beruvchi STIR bilan
+yaratildi, ikkinchi import rad etildi. Panelning ikkala sahifasi brauzerda
+ochib ko'rildi. Baza va serverlar o'chirildi.
+
+Hujjatlarning o'qilgan nusxasi: `docs/vendor/didox.md`,
+`docs/vendor/1c-exchange.md`.

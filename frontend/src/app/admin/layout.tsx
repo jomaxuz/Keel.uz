@@ -54,6 +54,8 @@ import {
   LuVault,
   LuFlame,
   LuLandmark,
+  LuFileCheck,
+  LuRefreshCw,
   LuX,
 } from "react-icons/lu";
 
@@ -182,6 +184,16 @@ const ICONS: Record<string, IconType> = {
   safe: LuVault,
   expenses: LuFlame,
   payouts: LuLandmark,
+  // ---- The accountant's two doors ----
+  //
+  // ⚠️ **A stamped document and a pair of arrows, not two identical files.**
+  // They sit next to each other in one column, which is exactly where the note
+  // at the top of this map applies: what separates them is not "paperwork" but
+  // *what happens* — one is a document somebody signed and filed, the other is
+  // a conversation with a program in an office. A second file-shaped icon
+  // beside the first would make the pair read as one screen split in two.
+  edi: LuFileCheck,
+  onec: LuRefreshCw,
   users: LuUserRound,
   admins: LuShieldCheck,
   logs: LuScrollText,
@@ -463,6 +475,20 @@ const NAV_GROUPS = [
       // restaurant, and a manager who could widen one could widen their own.
       { href: "/admin/roles", key: "roles", ownerOnly: true },
       { href: "/admin/payroll", key: "payroll" },
+      // ---- The accountant's two doors ----
+      //
+      // ⚠️ **Under the money, not under the store or the settings.** Both
+      // screens are opened by whoever does the books: one is the post that
+      // arrives with a delivery, the other is what leaves for 1C. Filing the
+      // electronic invoices beside the deliveries would put them in front of a
+      // storekeeper, who cannot act on them and has no business seeing the
+      // company's outgoing invoices.
+      //
+      // ⚠️ Owner only, for the same reason the payouts and the safe are:
+      // between them these two carry the company's tax credentials and every
+      // document it has ever signed.
+      { href: "/admin/edi", key: "edi", ownerOnly: true },
+      { href: "/admin/1c", key: "onec", ownerOnly: true },
     ],
   },
   {
@@ -840,52 +866,48 @@ function SidebarGroups({
   return (
     <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
       {navFor(role, brand).map((group) => {
-                    const items = group.items;
-                    const Icon = GROUP_ICONS[group.key];
-                    const on = group.key === openGroup;
-                    return (
-                      <div key={group.key}>
-                        <button
-                          type="button"
-                          onClick={() => setPicked(on ? "" : group.key)}
-                          aria-expanded={on}
-                          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${
-                            on ? "text-ink" : "text-ink-muted hover:bg-ink/5"
-                          }`}
-                        >
-                          {Icon && (
-                            <Icon
-                              className="h-[18px] w-[18px] shrink-0"
-                              aria-hidden
-                            />
-                          )}
-                          <span className="flex-1 text-left">
-                            {t.nav.groups[group.key]}
-                          </span>
-                          {/* Points down when open. A caret that never moves is
+        const items = group.items;
+        const Icon = GROUP_ICONS[group.key];
+        const on = group.key === openGroup;
+        return (
+          <div key={group.key}>
+            <button
+              type="button"
+              onClick={() => setPicked(on ? "" : group.key)}
+              aria-expanded={on}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${
+                on ? "text-ink" : "text-ink-muted hover:bg-ink/5"
+              }`}
+            >
+              {Icon && (
+                <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+              )}
+              <span className="flex-1 text-left">
+                {t.nav.groups[group.key]}
+              </span>
+              {/* Points down when open. A caret that never moves is
                           decoration; this one is the only thing saying the
                           heading can be closed again. */}
-                          <span
-                            aria-hidden
-                            className={`text-[10px] transition-transform ${on ? "rotate-90" : ""}`}
-                          >
-                            ▶
-                          </span>
-                        </button>
-                        {on && (
-                          <div className="mb-1 ml-3 space-y-0.5 border-l border-line pl-2">
-                            <GroupLinks
-                              group={group.key}
-                              role={role}
-                              pathname={pathname}
-                              t={t}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
+              <span
+                aria-hidden
+                className={`text-[10px] transition-transform ${on ? "rotate-90" : ""}`}
+              >
+                ▶
+              </span>
+            </button>
+            {on && (
+              <div className="mb-1 ml-3 space-y-0.5 border-l border-line pl-2">
+                <GroupLinks
+                  group={group.key}
+                  role={role}
+                  pathname={pathname}
+                  t={t}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
     </nav>
   );
 }

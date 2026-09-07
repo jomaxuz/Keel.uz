@@ -38,6 +38,7 @@ func (h *Handler) AdminListSuppliers(w http.ResponseWriter, r *http.Request) {
 type supplierRequest struct {
 	Name     string `json:"name"`
 	Phone    string `json:"phone"`
+	TIN      string `json:"tin"`
 	Note     string `json:"note"`
 	Sort     int    `json:"sort"`
 	IsActive *bool  `json:"isActive"`
@@ -64,6 +65,10 @@ func (h *Handler) AdminSaveSupplier(w http.ResponseWriter, r *http.Request) {
 	set := bson.M{
 		"name":      name,
 		"phone":     clampText(req.Phone, 40),
+		// ⚠️ Digits only, because that is what an electronic invoice carries:
+		// "ИНН 302 936 161" typed with spaces would never match the number the
+		// document names, and the failure would look like a missing supplier.
+		"tin":       tinDigits(clampText(req.TIN, 20)),
 		"note":      clampText(req.Note, 300),
 		"sort":      req.Sort,
 		"updatedAt": now,

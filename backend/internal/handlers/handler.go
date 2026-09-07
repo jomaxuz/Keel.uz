@@ -21,6 +21,17 @@ type Handler struct {
 	smsMu     sync.Mutex
 	smsCached sms.Sender
 	smsKey    string
+
+	// The exchange file an office 1C is halfway through uploading.
+	//
+	// ⚠️ **In memory, and only between two requests seconds apart.** The
+	// published protocol uploads a file and then asks for it to be imported;
+	// keeping it on disk would mean a temporary file to clean up, a container
+	// permission to get right, and a way for one exchange to fill a volume the
+	// whole box shares. Losing it to a restart costs 1C one retry, which is
+	// what 1C does anyway.
+	oneCMu    sync.Mutex
+	oneCFiles map[string][]byte
 }
 
 func New(store *repository.Store, cfg *config.Config) *Handler {

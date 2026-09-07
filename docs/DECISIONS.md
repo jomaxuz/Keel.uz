@@ -3922,6 +3922,95 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   davrdan **hisoblab** olinadi, so'rovdan emas: aks holda ikki haftalik oyna
   «30 kun» deb imzolanardi.
 
+### Buxgalteriyaning ikki eshigi: Didox (ЭСФ) va 1C
+
+Ikkalasi ham bitta sababdan: **bir fakt ikki marta terilyapti**. Yetkazib
+beruvchining elektron schyot-fakturasi krujkalar eshikdan kirgan tongda
+Didox'da turadi — yigirma qator, miqdor, narx, NDS — va omborchi uni bir
+tabdan o'qib, ikkinchisiga qo'lda kiritadi. Oyning sotuvi bizda tayyor —
+buxgalter uni 1C'ga qo'lda ko'chiradi. Ikkala ko'chirish ham yangi ma'lumot
+yaratmaydi: ular bitta raqamning **ikkinchi nusxasini** yaratadi.
+
+- ⚠️ **Ikki integratsiya, bitta ekran emas.** Didox — **hujjat**: yuridik
+  dalil, ЭЦП bilan imzolanadi, kontragent ham xuddi shu qog'ozni ko'radi.
+  1C — **buxgalteriya**: buxgalterning ishchi nusxasi, o'z-o'zidan yuridik
+  kuchi yo'q. Ularni bitta tugma ortiga qo'yish — qulaylik bilan soliq
+  hujjatini bitta kalitga bog'lash.
+- ⚠️ **Biz hech nimani imzolamaymiz, va hech bir ekran imzoladik demaydi.**
+  Har bir Didox imzosi odamning o'z kompyuteridagi E-IMZO kaliti bilan
+  yasaladi; serverda kalit yo'q va bo'lmasligi kerak. Statusni imzosiz
+  o'zgartiradigan «Qabul qildim» tugmasi — Didox'da imzolanmagan, soliq
+  hisobotida yo'q hujjat, ekranda esa «bajarildi». `internal/didox` da `Sign`
+  metodi **yo'qligi** — dizayn, va uning testi bor.
+- ⚠️ **Bizdagi nusxa hech qachon haqiqat emas.** `edi_document` — ro'yxat va
+  bog'lanish uchun oyna; status esa oxirgi tortishdan beri qanday bo'lsa
+  shunday. `docId` **unique**: ikki tortish ustma-ust tushsa bitta hujjat ikki
+  qator bo'lardi, va omborchi ikkitasidan qaysi biri nusxa ekanini ajrata
+  olmaydi.
+- ⚠️ **Bitta hujjat — bitta kirim, bir marta.** Ikkinchi import — o'sha
+  javondagi ikkinchi kirim: qoldiqda ikki marta sanaladi, hisobotda ikki marta
+  to'lanadi, va ikkalasi hamma maydonda bir xil bo'lgani uchun keyin ajratib
+  bo'lmaydi. Tekshiruv **yozuvning filtri ichida** (`purchaseId: {$exists:
+  false}`), ya'ni ikki ekrandan bir vaqtda bosilgan ikki tugma ham ikkita
+  kirim yasay olmaydi.
+- ⚠️ **Qatorni mos qo'yishni server taklif qiladi, odam tasdiqlaydi.** Nomlar
+  ikki xil kompaniya tomonidan yozilgan — bu to'qqiz martadan sakkiztasida
+  to'g'ri, bittasida xato bo'ladigan taqqoslash, va o'sha bittasi go'shtni
+  sariyog' javoniga jimgina yozib qo'yadi. Taxmin **aniq nom** bo'yicha, hech
+  qanday «boshlanadi», «o'xshaydi» yoki sinonim yo'q. Bog'lanmagan qator
+  **o'tkazib yuboriladi**, taxmin qilinmaydi.
+- ⚠️ **Yetkazib beruvchi STIR bo'yicha topiladi, nom bo'yicha emas** — bitta
+  kompaniya uch qator bo'lib ketishi aynan shu (`models/supplier.go`).
+  Shuning uchun `supplier.tin` qo'shildi.
+- ⚠️ **Kirimning sanasi — hujjatning o'z sanasi**, bugungi emas
+  (`models/purchase.go`), va u **local** o'qiladi: UTC bo'lsa har tongdagi
+  faktura Toshkentda oldingi kechaga tushadi.
+- ⚠️ **Jami — hujjatning o'z summasi** (NDS bilan), bizning yaxlitlangan
+  qatorlarimizning yig'indisi emas: faktura pul haqida to'g'ri, qatorlar narx
+  haqida to'g'ri.
+- ⚠️ **Summalar JSON'ga satr sifatida yoziladi.** Go o'n million so'mni
+  `1e+07` deb yozadi — bu haqiqiy JSON va **noto'g'ri faktura**: qabul qiluvchi
+  tomon strukturani qat'iy tekshiradi va hujjatni butunlay rad etadi, xato esa
+  bizning ekranimizda normal ko'rinadigan maydonni ko'rsatadi. Testi bor.
+  Ishlatilmaydigan obyekt `{}` emas, **`null`**; sana faqat `yyyy-MM-dd`.
+
+**1C tomoni:**
+
+- ⚠️ **Almashinuvni doim 1C boshlaydi, biz hech qachon emas.** Buxgalterning
+  1C'i ofisdagi kompyuterda, internetdan ko'rinmaydi — e'lon qilingan protokol
+  aynan shuning uchun shunday (`docs/vendor/1c-exchange.md`). 1C'ga «itarib»
+  yuboradigan dizayn demonstratsiyada ishlaydi va hech bir haqiqiy ofisda
+  ishlamaydi.
+- ⚠️ **Javob — oddiy matn, birinchi so'z hamma narsa** (`success`, `progress`,
+  `failure`). Bu fayldagi handlerlar ataylab `httpx` ishlatmaydi: JSON xato 1C
+  uchun «failure, sababi — mana bu JSON» bo'lib o'qiladi va buxgalter telefonda
+  bizga `{"error":...}` ni o'qib beradi. Rad etish **HTTP 200 + `failure`**,
+  500 emas: 500 buxgalterni tarmoq muammosi deb IT'chisiga yuboradi.
+- ⚠️ **O'z logini, panel hisobi emas.** 1C parolni ofis mashinasidagi formada
+  ochiq saqlaydi va ekranda ko'rsatadi; panelni ochadigan login bu yerda
+  butun restoranni o'sha maydonga qo'yish bo'lardi. Cookie `checkauth` dan
+  keyin beriladi, lekin Basic auth **har so'rovda ham** qabul qilinadi: ba'zi
+  konfiguratsiyalar cookie yubormaydi.
+- ⚠️ **Katalog yarmi — ombor moduli, va u modul darvozasi ko'rmaydigan
+  eshikdan keladi.** `modulegate.go` `/admin/…` yo'llarini filtrlaydi; bu
+  endpoint ataylab undan tashqarida, shuning uchun modul shu yerda **qo'lda**
+  tekshiriladi. Sotuvni 1C'ga berish esa ochiq: hisobotlar hamma tarifda.
+- ⚠️ **Import hech qachon o'chirmaydi.** Kam qator kelgan nomenklatura —
+  ko'pincha 1C'da qolib ketgan filtr, mahsulotdan voz kechish emas; o'chirish
+  texkartani, javon qoldig'ini va bir yillik kirim tarixini olib ketardi.
+  Narxi nol kelgan qator ham narxni **almashtirmaydi**.
+- ⚠️ **Ikkala yarim ham beriladi: sotuv va kirim.** Faqat tushum — har qanday
+  biznesni juda foydali ko'rsatadigan yarim daftar. Kassa cheki alohida hujjat
+  emas — u `order` (`models/check.go`), shuning uchun bitta so'rov saytni ham,
+  peshtaxtani ham qamrab oladi.
+- ⚠️ **`mode=success` hech nimani belgilamaydi.** 1C «oldim» deydi; bizning
+  sotuvimiz va kirimimiz buxgalter import qilganidan qat'i nazar mavjud.
+  Bayroq qo'yish «bu sotuv bo'ldi» degan ikkinchi ma'no yaratardi.
+- ⚠️ **XML element nomlari ruscha va aynan shunday yoziladi.** 1C ularni matn
+  bo'yicha o'qiydi: bitta harf xato bo'lsa hujjat **jimgina** tashlab ketiladi
+  — na ularda xato, na bizda, faqat «sotuvlar kelmadi» degan buxgalter. Testi
+  nomlarni ushlab turadi.
+
 ### Yorliq: do'konning o'z shtrix-kodi va tsennigi
 - ⚠️ **Bu Asl Belgisi emas va bo'la olmaydi.** Davlat kodini operator ishlab
   chiqaruvchiga/importyorga beradi — dona hisobida va pullik. Qayta sotuvchi

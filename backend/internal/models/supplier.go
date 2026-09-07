@@ -34,6 +34,19 @@ type Supplier struct {
 	// and the reason a phone in somebody's contacts becomes a fact the business
 	// owns rather than one that leaves with them.
 	Phone string `bson:"phone,omitempty" json:"phone,omitempty"`
+	// СТИР — the tax number, when the supplier is a company that issues
+	// electronic invoices.
+	//
+	// ⚠️ **The only exact handle an incoming document gives us.** An electronic
+	// invoice names its sender by a nine-digit number, never by the spelling
+	// somebody typed into our list: "Makro", "makro" and "МАКРО" are one
+	// company and three strings, which is the same problem this whole file was
+	// written to solve, arriving from outside. Matching on the number means a
+	// delivery lands on the right supplier's account the first time.
+	//
+	// ⚠️ Optional and unindexed: the three regulars have one, a market run has
+	// none, and requiring it would stop suppliers being recorded at all.
+	TIN string `bson:"tin,omitempty" json:"tin,omitempty"`
 	// Free text: what they bring, which day they come, who to ask for.
 	Note      string    `bson:"note,omitempty" json:"note,omitempty"`
 	Sort      int       `bson:"sort" json:"sort"`

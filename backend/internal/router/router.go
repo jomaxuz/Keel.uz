@@ -182,6 +182,18 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// printer on the restaurant's own network.
 		r.Put("/fiscal/agent/print/{id}", h.FiscalAgentPrintResult)
 
+		// ---- The accountant's 1C, knocking ----
+		//
+		// ⚠️ **Public in the same sense the fiscal relay above is**, and for
+		// the same reason: the program on the other end has no way to hold a
+		// panel token. It sends Basic auth — the published protocol's own
+		// scheme (docs/vendor/1c-exchange.md) — and the handler checks the
+		// credentials before it so much as reads which mode was asked for.
+		//
+		// ⚠️ **One address, and it must not move**: it is pasted into a
+		// settings form on an office machine, by an accountant, once.
+		r.HandleFunc("/1c/exchange", h.OneCExchange)
+
 		// ---- Provider callbacks ----
 		//
 		// Unauthenticated by our middleware on purpose: each provider
@@ -1065,6 +1077,36 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// document until this call creates one. The pair of ids that names
 			// it goes in the body with the verdict.
 			r.Post("/admin/shortages/close", h.AdminCloseShortageCase)
+
+			// ---- The accountant's two doors ----
+			//
+			// ⚠️ **Two groups rather than one "accounting" screen**, because
+			// they answer to different people and one of them is legal
+			// evidence: Didox holds signed documents the counterparty and the
+			// tax committee also see, 1C is the accountant's own working copy.
+			// See models/accounting.go.
+			r.Get("/admin/edi", h.AdminGetEDI)
+			r.Put("/admin/edi", h.AdminUpdateEDI)
+			// Pulling the post. ⚠️ POST rather than GET: it writes our mirror,
+			// and a browser prefetch of a GET would dial the operator.
+			r.Post("/admin/edi/sync", h.AdminEDISync)
+			r.Get("/admin/edi/documents", h.AdminEDIDocuments)
+			r.Get("/admin/edi/documents/{id}", h.AdminEDIDocument)
+			// The operator's own printable form, proxied rather than redrawn:
+			// the paper filed at a desk has to be the one they issued.
+			r.Get("/admin/edi/documents/{id}/print", h.AdminEDIPrint)
+			// An electronic invoice becoming a delivery. ⚠️ Once per document
+			// — the second import is a second delivery on the same shelf.
+			r.Post("/admin/edi/documents/{id}/import", h.AdminEDIImport)
+			// A draft invoice at the operator. ⚠️ A draft: nothing is filed
+			// until somebody signs it with their own key.
+			r.Post("/admin/edi/outgoing", h.AdminEDIOutgoing)
+
+			r.Get("/admin/1c", h.AdminGetOneC)
+			r.Put("/admin/1c", h.AdminUpdateOneC)
+			// The same XML the exchange serves, downloaded by hand — for the
+			// accountant who will never switch the automatic exchange on.
+			r.Get("/admin/1c/export", h.AdminOneCExport)
 
 			// What guests owe. ⚠️ A debt is the sale itself, closed and unpaid
 			// — see debts.go.

@@ -114,6 +114,16 @@ type Store struct {
 	// till and file through the same, and folding them together would make one
 	// choice depend on the other.
 	FiscalSettings *mongo.Collection
+	// ---- The accountant's two doors ----
+	//
+	// The EDI operator's credentials and our copy of what it holds, and the
+	// login an office 1C knocks with. All three are their own collections and
+	// none of them is on `restaurant`, for the reason written at the top of
+	// every settings model here: that document is returned whole to every
+	// visitor of the website. See models/accounting.go.
+	EDISettings  *mongo.Collection
+	EDIDocuments *mongo.Collection
+	OneCSettings *mongo.Collection
 	// The phone system: one account per company.
 	PBXSettings *mongo.Collection
 	// One row per visitor per day: how many people came, not just how many
@@ -228,6 +238,9 @@ func New(db *mongo.Database) *Store {
 		POSSettings:    db.Collection("pos_settings"),
 		POSMappings:    db.Collection("pos_mapping"),
 		FiscalSettings: db.Collection("fiscal_settings"),
+		EDISettings:    db.Collection("edi_settings"),
+		EDIDocuments:   db.Collection("edi_document"),
+		OneCSettings:   db.Collection("onec_settings"),
 		PBXSettings:    db.Collection("pbx_settings"),
 		Visits:         db.Collection("visit"),
 		SMSSettings:    db.Collection("sms_settings"),

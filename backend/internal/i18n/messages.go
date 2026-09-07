@@ -2149,4 +2149,72 @@ var messages = map[string]pair{
 		"СТИР (ИНН) не введён",
 		"the taxpayer number (STIR/INN) is missing",
 	},
+	"Didox sozlamalari to'liq emas: STIR, parol va hamkor tokeni kerak": {
+		"Настройки Didox неполные: нужны ИНН, пароль и партнёрский токен",
+		"The Didox settings are incomplete: tax number, password and partner token are needed",
+	},
+	"STIR kerak": {
+		"Нужен ИНН",
+		"A tax number is needed",
+	},
+	"birorta ham qator masalliqqa bog'lanmadi": {
+		"Ни одна строка не сопоставлена с продуктом",
+		"No line was matched to a product",
+	},
+	"bu hujjat allaqachon kirim qilingan": {
+		"Этот документ уже проведён как поступление",
+		"This document has already been taken in as a delivery",
+	},
+	"elektron hujjat aylanishi yoqilmagan": {
+		"Электронный документооборот не включён",
+		"Electronic documents are switched off",
+	},
+	"faqat kiruvchi hujjat kirim bo'ladi": {
+		"Поступлением может стать только входящий документ",
+		"Only an incoming document can become a delivery",
+	},
+	"hujjat topilmadi": {
+		"Документ не найден",
+		"Document not found",
+	},
+	"qator to'liq emas: nomi va miqdori kerak": {
+		"Строка неполная: нужны наименование и количество",
+		"The line is incomplete: a name and a quantity are needed",
+	},
+	"sotuvchi ma'lumotlari to'liq emas — sozlamalarni to'ldiring": {
+		"Данные продавца неполные — заполните настройки",
+		"The seller's details are incomplete — fill in the settings",
+	},
+	"xaridorning STIRi va kamida bitta qator kerak": {
+		"Нужны ИНН покупателя и хотя бы одна строка",
+		"The buyer's tax number and at least one line are needed",
+	},
+	"login kerak": {
+		"Нужен логин",
+		"A login is needed",
+	},
+	"parol kerak": {
+		"Нужен пароль",
+		"A password is needed",
+	},
+	"parol kamida 8 belgidan iborat bo'lsin": {
+		"Пароль должен быть не короче 8 символов",
+		"The password must be at least 8 characters",
+	},
+	"1C: faylni o'qib bo'lmadi: %s": {
+		"1С: не удалось прочитать файл: %s",
+		"1C: the file could not be read: %s",
+	},
+	"didox: hujjat tanasi bo'sh": {
+		"Didox: тело документа пустое",
+		"Didox: the document body is empty",
+	},
+	"didox: hujjatni o'qib bo'lmadi: %s": {
+		"Didox: не удалось прочитать документ: %s",
+		"Didox: the document could not be read: %s",
+	},
+	"ombor moduli tarifingizga kirmaydi": {
+		"Модуль склада не входит в ваш тариф",
+		"The stockroom is not part of your plan",
+	},
 }

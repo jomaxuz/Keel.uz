@@ -158,6 +158,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   (markaziy skladdan filialga jo'natma + nakladnoy — ⚠️ **ikki filial**, va
   yuklangani bilan sanab olingani ikki alohida fakt), `production` (tsex
   partiyasi), `stocktake`,
+  `edi_settings` + `edi_document` (Didox: ulanish va **bizdagi nusxa** —
+  ⚠️ nusxa hech qachon haqiqat emas, `docId` unique, va imzo bu yerda
+  **yasalmaydi**), `onec_settings` (1C almashinuvining eshigi),
   `shortage_case` (sanoq topgan kamomadga berilgan **javob** — ⚠️ case'ning
   o'zi saqlanmaydi, navbat har o'qishda sanoqlardan quriladi;
   `(stocktakeId, ingredientId)` unique, javob bir martalik),
@@ -239,6 +242,11 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   ochiq kaliti — brauzerga beriladi, xarita kaliti bilan bir toifada).
 - **Mijoz auth** (telefon + bir martalik SMS kod): `/auth/phone/request|verify`,
   `/users/me` (+ `/orders`, `/lang`, `/phone/request|verify`, `/push`).
+- **1C almashinuvi** (`/1c/exchange`, public): buxgalterning 1C'i **o'zi**
+  murojaat qiladi va panel tokenini ushlay olmaydi — Basic auth, e'lon qilingan
+  protokolning o'z sxemasi. Javob **oddiy matn** (`success` / `progress` /
+  `failure`), JSON emas. Manzil ko'chmaydi: u ofisdagi formaga bir marta
+  yoziladi.
 - **To'lov callback'lari** (provayder chaqiradi, public): `/payments/payme`
   (JSON-RPC), `/payments/click/prepare|complete`, `/payments/uzum/*`,
   `/payments/atmos/*`. Webhook'lar: `/pbx/onlinepbx/{token}`,
@@ -272,6 +280,9 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   + `/admin/reports/suppliers`, `/admin/writeoffs`, `/admin/transfers`,
   `/admin/stocktake`, `/admin/dispatch` (+ `/stock`, `/{id}/accept` — markaziy
   skladdan filialga jo'natma), `/admin/stock/balances|movement|shopping-list`,
+  `/admin/edi` (+ `/sync`, `/documents`, `/documents/{id}/import` — kelgan
+  ЭСФ'ni kirimga aylantirish; ⚠️ **imzolash yo'q**, u E-IMZO bilan mijozning
+  kompyuterida), `/admin/1c` (+ `/export`),
   `/admin/shortages` (+ `/close` — kamomad navbati; ⚠️ **`/admin/stock/` dan
   tashqarida ataylab**: omborchining ruxsat ro'yxati prefiksli va metodni
   bilmaydi, ya'ni javonni sanagan odam o'z kamomadiga javob yozib qo'yardi).
@@ -319,6 +330,7 @@ tuzilma:
 - **Ilovalar**: `/kuryer` (PWA), `/staff` + `/staff/kitchen` (KDS) +
   `/staff/stock` (omborni sanash), `/kiosk` (filial ekrani) — har birida
   `login` sahifasi, hisobni admin beradi.
+- **Panel → Buxgalteriya**: `edi` (Didox hujjatlari), `1c` (almashinuv).
 - **Panel** — `/admin/…`: `login`, dashboard, `menu`, `categories`, `orders`,
   `reservations`, `promotions`, `reports`, `qr`, `pos`, `stop-list`, `calls`,
   `campaigns`, `users/[id]`, `couriers/[id]`, `staff/[id]`, `payroll`, `admins`, `logs`,
@@ -759,6 +771,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Taklif xabari, sovuq yozish | Taklif matni |
 | SEO, sitemap, IndexNow, Google | Qidiruv tizimlari |
 | Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |
+| Didox (ЭСФ), 1C almashinuvi, buxgalteriya | Buxgalteriyaning ikki eshigi: Didox (ЭСФ) va 1C |
 | Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar · Markirovka: kirimda skanerlash |
 | Panel yon paneli: qaysi qator, qanday tartib, qanday nom | Panel navigatsiyasi biznes turiga qarab |
 | Biznes turi qo'shish: predikat, narx pog'onasi, namuna | Biznes turlari: pishiradigan peshtaxta va narx pog'onasi |

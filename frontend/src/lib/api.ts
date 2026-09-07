@@ -10,7 +10,12 @@ import type {
   Dispatch,
   DispatchRow,
   DispatchStockRow,
+  EdiDocument,
+  EdiDocumentList,
+  EdiSettings,
+  EdiSettingsInput,
   ExpiringRow,
+  OneCSettings,
   ShortageQueue,
   ShortageVerdict,
   OnlineOrder,
@@ -738,6 +743,33 @@ export async function downloadReport(
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+/** Downloads the 1C exchange file.
+ *
+ *  ⚠️ **A fetch with the bearer header, never an `<a href>`.** The panel
+ *  authenticates with a token and a link carries no headers, so a plain link
+ *  navigates to a 403 and the owner sees "nothing happened" — the same trap the
+ *  report download and the data archive below both had to avoid. */
+export async function downloadOneCXML(days: number): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${await apiBase()}/admin/1c/export?days=${days}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  const blob = await res.blob();
+  const name =
+    /filename="([^"]+)"/.exec(
+      res.headers.get("Content-Disposition") ?? "",
+    )?.[1] ?? "keel-1c.xml";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 /** Downloads the whole-business archive.
  *
  *  A fetch with the bearer header rather than an `<a href>`, for the same
@@ -1293,10 +1325,11 @@ export const api = {
    *  be on a shelf, in a delivery and on last month's receipts — see
    *  handlers/menuvariants.go. Pressing this twice adds only what is missing. */
   generateVariants: (id: string, axes: { name: string; values: string[] }[]) =>
-    request<{ created: number; total: number }>(
-      `/admin/menu/${id}/variants`,
-      { method: "POST", body: { axes }, auth: true },
-    ),
+    request<{ created: number; total: number }>(`/admin/menu/${id}/variants`, {
+      method: "POST",
+      body: { axes },
+      auth: true,
+    }),
   /** Deliveries that are past their date or close to it.
    *
    *  ⚠️ **Built from deliveries, not from balances.** Consumption keys on the
@@ -1660,7 +1693,10 @@ export const api = {
       scope: true,
     }),
   adminDeleteSafeEntry: (id: string) =>
-    request<{ ok: boolean }>(`/admin/safe/${id}`, { method: "DELETE", auth: true }),
+    request<{ ok: boolean }>(`/admin/safe/${id}`, {
+      method: "DELETE",
+      auth: true,
+    }),
 
   // ---- Petty cash for the buying ----
   //
@@ -2187,11 +2223,65 @@ export const api = {
   // ⚠️ **Derived from the counts on every read.** There is no case document
   // until somebody answers one, which is why closing a case names it by the
   // pair of ids rather than by an id of its own.
-  adminShortages: (days?: number) =>
-    request<ShortageQueue>(
-      `/admin/shortages${days ? `?days=${days}` : ""}`,
-      { auth: true, cache: "no-store", scope: true },
+  // ---- The accountant's two doors ----
+  //
+  // ⚠️ **Nothing here signs anything**, and the API surface says so by what it
+  // does not have: there is no `adminEdiSign`. A signature is made with an
+  // E-IMZO key on the accountant's own machine, and a button that flipped a
+  // status without one would leave the document unsigned at the operator while
+  // our screen called it done. See backend/internal/didox.
+  adminEdiSettings: () =>
+    request<EdiSettings>("/admin/edi", { auth: true, cache: "no-store" }),
+  adminSaveEdiSettings: (body: EdiSettingsInput) =>
+    request<EdiSettings>("/admin/edi", { method: "PUT", auth: true, body }),
+  // Pulling the post. ⚠️ POST because it writes our mirror of the operator's
+  // documents — a GET would be prefetched by a browser and dial Didox.
+  adminEdiSync: (days?: number) =>
+    request<{ incoming: number; outgoing: number; at: string }>(
+      `/admin/edi/sync${days ? `?days=${days}` : ""}`,
+      { method: "POST", auth: true },
     ),
+  adminEdiDocuments: (q: { direction?: string; imported?: string } = {}) =>
+    request<EdiDocumentList>(
+      `/admin/edi/documents?${new URLSearchParams(
+        Object.entries(q).filter(([, v]) => v) as [string, string][],
+      ).toString()}`,
+      { auth: true, cache: "no-store" },
+    ),
+  adminEdiDocument: (id: string) =>
+    request<{
+      document: EdiDocument;
+      guess?: Record<string, string>;
+      linesError?: string;
+    }>(`/admin/edi/documents/${id}`, { auth: true, cache: "no-store" }),
+  adminEdiImport: (
+    id: string,
+    body: {
+      lines: { no: number; ingredientId: string; qty: number; price: number }[];
+      createSupplier: boolean;
+    },
+  ) =>
+    request<{ purchaseId: string; lines: number; total: number }>(
+      `/admin/edi/documents/${id}/import`,
+      { method: "POST", auth: true, body, scope: true },
+    ),
+
+  adminOneC: () =>
+    request<OneCSettings>("/admin/1c", { auth: true, cache: "no-store" }),
+  adminSaveOneC: (body: {
+    enabled: boolean;
+    login: string;
+    password?: string;
+    branchId?: string;
+    days?: number;
+  }) => request<OneCSettings>("/admin/1c", { method: "PUT", auth: true, body }),
+
+  adminShortages: (days?: number) =>
+    request<ShortageQueue>(`/admin/shortages${days ? `?days=${days}` : ""}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
   adminCloseShortage: (body: {
     stocktakeId: string;
     ingredientId: string;
@@ -2738,10 +2828,17 @@ export const api = {
    *  owner's native application read one copy — see `lib/help/articles.ts`. The
    *  language travels in the query because the phone has no cookie to send. */
   supportArticles: (lang: string) =>
-    request<{ articles: { id: string; cat: string; title: string; body: string; keys?: string[] }[] }>(
-      `/admin/support/articles?lang=${encodeURIComponent(lang)}`,
-      { auth: true },
-    ),
+    request<{
+      articles: {
+        id: string;
+        cat: string;
+        title: string;
+        body: string;
+        keys?: string[];
+      }[];
+    }>(`/admin/support/articles?lang=${encodeURIComponent(lang)}`, {
+      auth: true,
+    }),
 
   supportAsk: (body: {
     threadId?: string;
@@ -4919,10 +5016,7 @@ export const api = {
       rows: ShoppingDraftRow[];
       since: string | null;
       catalog: ShoppingCatalogRow[];
-    }>(
-      "/staff/buy/orders/draft",
-      { bearer: tillBearer(), cache: "no-store" },
-    ),
+    }>("/staff/buy/orders/draft", { bearer: tillBearer(), cache: "no-store" }),
   staffCreateBuyOrder: (body: {
     forDate: string;
     note?: string;
@@ -4960,11 +5054,20 @@ export const api = {
       body,
       bearer: tillBearer(),
     }),
-  staffFinishBuyOrder: (id: string, body: { clientId: string; supplier?: string }) =>
-    request<{ order: ShoppingOrder; purchase?: Purchase; created?: string[]; already?: boolean }>(
-      `/staff/buy/orders/${id}/finish`,
-      { method: "POST", body, bearer: tillBearer() },
-    ),
+  staffFinishBuyOrder: (
+    id: string,
+    body: { clientId: string; supplier?: string },
+  ) =>
+    request<{
+      order: ShoppingOrder;
+      purchase?: Purchase;
+      created?: string[];
+      already?: boolean;
+    }>(`/staff/buy/orders/${id}/finish`, {
+      method: "POST",
+      body,
+      bearer: tillBearer(),
+    }),
 
   staffBuyHistory: () =>
     request<{ purchases: Purchase[] }>("/staff/buy/history", {

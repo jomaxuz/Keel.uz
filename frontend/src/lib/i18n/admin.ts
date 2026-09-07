@@ -112,6 +112,8 @@ export const adminUz = {
     couriers: "Kuryerlar",
     staff: "Ishchilar",
     payroll: "Hisob-kitob",
+    edi: "Elektron hujjatlar",
+    onec: "1C almashinuvi",
     roles: "Rollar",
     cash: "Kassa",
     safe: "Seyf",
@@ -1095,7 +1097,10 @@ export const adminUz = {
     deleteAsk: (sum: string) => `${sum} xarajati o'chirilsinmi?`,
     deleteBody:
       "Seyfdagi yozuv o'z joyida qoladi — pul qutidan jismonan chiqqan, va uni o'chirish pulni qaytarmaydi.",
-    methods: { cash: "naqd", transfer: "o'tkazma", card: "karta" } as Record<string, string>,
+    methods: { cash: "naqd", transfer: "o'tkazma", card: "karta" } as Record<
+      string,
+      string
+    >,
   },
   // Perechisleniye: agregator va beznal pulini qachon va qancha berdi.
   //
@@ -1210,7 +1215,8 @@ export const adminUz = {
     amount: "Summa",
     pickStaff: "Xodimni tanlang",
     nobody: "Hech kimda podotchet yo'q.",
-    of: (issued: string, spent: string) => `${issued} berilgan · ${spent} sarflangan`,
+    of: (issued: string, spent: string) =>
+      `${issued} berilgan · ${spent} sarflangan`,
   },
   ingredients: {
     needsCare: "to'ldirilmagan",
@@ -1280,8 +1286,7 @@ export const adminUz = {
     daysLeft: (d: number) => `${d} kun`,
     passed: (d: number) => `${d} kun o'tgan`,
     // ⚠️ Ekran nima ekanini o'zi aytadi: bu javondagi qoldiq emas.
-    note:
-      "⚠️ «Kelgan miqdor» — kirimda yozilgani, javonda qolgani emas: sarf partiya bo'yicha emas, mahsulot bo'yicha hisoblanadi. Muddati o'tgan qatorni ko'rsangiz javonni tekshiring va kerak bo'lsa spisaniya qiling.",
+    note: "⚠️ «Kelgan miqdor» — kirimda yozilgani, javonda qolgani emas: sarf partiya bo'yicha emas, mahsulot bo'yicha hisoblanadi. Muddati o'tgan qatorni ko'rsangiz javonni tekshiring va kerak bo'lsa spisaniya qiling.",
   },
   purchases: {
     title: "Kirim (yetkazib berish)",
@@ -1367,12 +1372,14 @@ export const adminUz = {
       `${days} kunga · kuniga ~${daily}`,
     basisMin: "Eng kam qoldiqqa yetkazish",
     every: (days: string) => `~${days} kunda bir keladi`,
-    shelfLife: (days: string) => `muddati ~${days} kun — shunga qarab qisqartirildi`,
+    shelfLife: (days: string) =>
+      `muddati ~${days} kun — shunga qarab qisqartirildi`,
     alreadyAsked: (qty: string) => `${qty} allaqachon so'ralgan`,
     // ⚠️ Bo'sh javon — talab yo'qligi emas, tovar yo'qligi. O'sha kunlar
     // hisobdan chiqarilgan, va buni aytish shart: aks holda ekran o'zi
     // o'ylab topgan talabni ko'rsatgan bo'lardi.
-    stockOuts: (n: number) => `${n} kun sotuvda bo'lmagan — o'sha kunlarsiz hisoblandi`,
+    stockOuts: (n: number) =>
+      `${n} kun sotuvda bo'lmagan — o'sha kunlarsiz hisoblandi`,
     since: (d: string) =>
       `Qoldiq ${d} dagi sanashdan beri hisoblangan — bu taxmin.`,
     neverCounted:
@@ -1532,6 +1539,98 @@ export const adminUz = {
   // five answers do not include "somebody took it": a shortfall covers every
   // shift between two counts, which is the weakest possible evidence about a
   // person and the strongest possible evidence about a process.
+  // ---- The accountant's two doors ----
+  //
+  // ⚠️ **The sentence about signing is the important one on the page**, and it
+  // is written plainly in all three languages: an integration that let somebody
+  // believe a document had been filed would be worse than no integration.
+  edi: {
+    title: "Elektron hujjatlar",
+    intro:
+      "Didox'dagi hujjatlar: kelgan schyot-fakturani qo'lda ko'chirmasdan kirimga aylantirasiz. Raqamlar hujjatning o'zidan olinadi.",
+    signHint:
+      "⚠️ Imzolash bu yerda emas: ЭЦП kaliti sizning kompyuteringizda. Hujjatni imzolash yoki rad etish uchun",
+    incoming: "Kelgan",
+    outgoing: "Yuborilgan",
+    sync: "Didox'dan yangilash",
+    settings: "Ulanish sozlamalari",
+    lastSync: (at: string) => `Oxirgi yangilash: ${at}`,
+    synced: (inn: number, out: number) =>
+      `Yangi hujjat: kelgan ${inn} ta, yuborilgan ${out} ta`,
+    empty: "Hujjat yo'q. «Didox'dan yangilash» tugmasini bosing.",
+    docNo: "Hujjat",
+    docDate: "Sana",
+    partner: "Kontragent",
+    total: "Summa",
+    status: "Holati",
+    statusName: (code: number) =>
+      ({
+        0: "Qoralama",
+        1: "Hamkor imzosini kutmoqda",
+        2: "Sizning imzoingizni kutmoqda",
+        3: "Imzolangan",
+        4: "Rad etilgan",
+        5: "O'chirilgan",
+        6: "Agent imzosini kutmoqda",
+        8: "Agent imzolagan",
+        40: "Haqiqiy emas",
+      })[code] ?? String(code),
+    openImport: "Ochish va kirim qilish",
+    openView: "Ochish",
+    alreadyImported: "Kirim qilingan",
+    lineName: "Nomi",
+    qty: "Miqdor",
+    price: "Narx",
+    matchTo: "Masalliq",
+    skipLine: "— o'tkazib yuborish —",
+    guessed: "avtomatik topildi — tekshiring",
+    importAsPurchase: "Kirim qilish",
+    matchedCount: (n: number, all: number) =>
+      `${all} qatordan ${n} tasi bog'landi`,
+    imported: (n: number, sum: string) => `Kirim yaratildi: ${n} qator, ${sum}`,
+    enabled: "Yoqilgan",
+    sandbox: "Test rejimi (testapi3.didox.uz)",
+    tin: "STIR",
+    password: "Didox paroli",
+    partnerToken: "Hamkor tokeni",
+    stored: "saqlangan — o'zgartirmasangiz bo'sh qoldiring",
+    sellerTitle: "Chiquvchi hujjatlar uchun sotuvchi ma'lumotlari",
+    sellerHint:
+      "Bu maydonlar chiqadigan schyot-fakturaga yoziladi. Qabul qiluvchi tomon ularni qat'iy tekshiradi.",
+    name: "Nomi",
+    vatRegCode: "NDS ro'yxat kodi",
+    account: "Hisob raqami",
+    bankId: "MFO",
+    address: "Manzil",
+    director: "Direktor",
+    accountant: "Buxgalter",
+  },
+  onec: {
+    title: "1C almashinuvi",
+    intro:
+      "Buxgalteringizning 1C'i shu manzilga o'zi murojaat qiladi: nomenklaturani yuboradi, sotuv va kirim hujjatlarini oladi. 1C'da «Обмен с сайтом» sozlamasiga manzil, login va parolni kiriting.",
+    urlLabel: "Almashinuv manzili",
+    urlHint:
+      "1C'da «Обмен с сайтом» → «Адрес сайта» maydoniga aynan shu manzil yoziladi.",
+    enabled: "Yoqilgan",
+    login: "Login",
+    password: "Parol",
+    passwordHint: "Kamida 8 belgi. Bu parol panelga kirmaydi — faqat 1C uchun.",
+    stored: "saqlangan — o'zgartirmasangiz bo'sh qoldiring",
+    days: "Qancha kunlik hujjat beriladi",
+    daysHint:
+      "1C «oxirgi martadan beri» deb so'raydi, lekin bizning davrimizni bilmaydi. Bu — yuqori chegara.",
+    lastSeen: (at: string) => `Oxirgi murojaat: ${at}`,
+    never: "1C hali murojaat qilmagan",
+    lastResult: (kind: string, mode: string) => `${kind} · ${mode}`,
+    imported: (n: number) => `Oxirgi importda ${n} ta tovar yozildi`,
+    exported: (n: number) => `Oxirgi so'rovda ${n} ta hujjat berildi`,
+    download: "XML faylni yuklab olish",
+    downloadHint:
+      "Avtomatik almashinuvni yoqmasangiz ham bo'ladi: shu faylni 1C'ga qo'lda yuklang.",
+    copy: "Nusxa olish",
+    copied: "Nusxa olindi",
+  },
   shortages: {
     title: "Kamomad",
     intro:
@@ -1547,8 +1646,7 @@ export const adminUz = {
     coverageTitleGoods: "Omborga bog'langan sotuv",
     coverage: "Sotuvning shu qismi texkarta bilan hisoblangan.",
     coverageGoods: "Sotuvning shu qismi ombordan yechiladi.",
-    weak:
-      "Qamrov past: kutilgan qoldiq kartasi bor taomlardan hisoblanadi, shuning uchun bu qatorlar kamomadni emas, yetishmayotgan texkartalarni ko'rsatayotgan bo'lishi mumkin. Avval qamrovni to'ldiring — keyin bu raqamlarga ishonsa bo'ladi.",
+    weak: "Qamrov past: kutilgan qoldiq kartasi bor taomlardan hisoblanadi, shuning uchun bu qatorlar kamomadni emas, yetishmayotgan texkartalarni ko'rsatayotgan bo'lishi mumkin. Avval qamrovni to'ldiring — keyin bu raqamlarga ishonsa bo'ladi.",
     weakGoods:
       "Qamrov past: sotuvning bir qismi ombordan hech nima yechmayapti — ya'ni o'sha tovarlar omborga bog'lanmagan. Bunda bu qatorlar kamomadni emas, katalogdagi bo'shliqni ko'rsatadi. Avval «Tovarlar»da bog'lanmaganlarini tuzating.",
     empty: "Bu davrda kamomad topilmadi.",
@@ -1582,7 +1680,8 @@ export const adminUz = {
       swap: "Kassada boshqasi urilgan — juftida ortiqcha chiqadi",
       lost: "Topilmadi — tushuntirib bo'lmadi",
     },
-    notePh: "Nima bo'lgan? Masalan: juma kuni muzlatgich buzildi, go'sht tashlandi.",
+    notePh:
+      "Nima bo'lgan? Masalan: juma kuni muzlatgich buzildi, go'sht tashlandi.",
     notePhGoods:
       "Nima bo'lgan? Masalan: muddati o'tgan sut chiqarib tashlandi.",
     save: "Javobni saqlash",
@@ -1693,7 +1792,8 @@ export const adminUz = {
     listTitle: "Ro'yxat",
     shortTitle: "Ombor bo'yicha kam qolganlar",
     search: "Masalliq nomi — yozing va tanlang",
-    nothingShort: "Hozircha hech narsa kam emas. Qidiruvga yozsangiz katalogdan tanlanadi.",
+    nothingShort:
+      "Hozircha hech narsa kam emas. Qidiruvga yozsangiz katalogdan tanlanadi.",
     unitIs: (unit: string) => `o'lchovi: ${unit}`,
     loadFailed: "Masalliqlar ro'yxatini ochib bo'lmadi",
     addNew: (name: string) => `«${name}» ni ro'yxatga qo'shish`,
@@ -2559,11 +2659,13 @@ export const adminUz = {
         ? "Jami 13 xona — tarozi shunday chop etadi."
         : `Jami ${n} xona. Tarozi 13 xonali kod chop etadi — bu sozlama bilan hech bir yorliq o'qilmaydi.`,
     sample: "Yorliqni sinab ko'ring",
-    sampleHint: "Haqiqiy stikerdagi kodni kiriting — quyida nima chiqishini ko'rasiz.",
+    sampleHint:
+      "Haqiqiy stikerdagi kodni kiriting — quyida nima chiqishini ko'rasiz.",
     sampleItem: (code: string) => `Tovar kodi: ${code}`,
     sampleKg: (kg: number) => `${kg} kg`,
     samplePrice: (p: number) => `${p} so'm`,
-    sampleNo: "Bu kod sozlamaga to'g'ri kelmadi — uzunlik yoki prefiksni tekshiring.",
+    sampleNo:
+      "Bu kod sozlamaga to'g'ri kelmadi — uzunlik yoki prefiksni tekshiring.",
   },
   till: {
     // The till and the floor screen. Uzbek is the source of truth: AdminDict is
@@ -4671,11 +4773,13 @@ export const adminUz = {
     hint: "Kelgan tovarning DataMatrix kodlarini shu yerda skanerlang. Shundan keyin kassada «bu kod kirimda yo'q» xatosi mijoz oldida emas, ombor xonasida bilinadi. ⚠️ Tekshiruv filial sozlamasida yoqilgan bo'lsa ishlaydi.",
     product: "Qaysi tovar",
     productAny: "Ko'rsatilmasin",
-    productHint: "Ixtiyoriy: koddagi GTIN davlat katalogidagi mahsulotni ataydi, u sizning menyungiz emas.",
+    productHint:
+      "Ixtiyoriy: koddagi GTIN davlat katalogidagi mahsulotni ataydi, u sizning menyungiz emas.",
     held: "Omborda (sotilmagan)",
     scan: "Skaner",
     scanPlaceholder: "Kodni skanerlang — Enter bilan qo'shiladi",
-    pending: (n: number) => (n === 0 ? "Hali hech nima skanerlanmadi" : `${n} ta kod saqlashga tayyor`),
+    pending: (n: number) =>
+      n === 0 ? "Hali hech nima skanerlanmadi" : `${n} ta kod saqlashga tayyor`,
     save: "Saqlash",
     clear: "Tozalash",
     remove: "olib tashlash",
@@ -4717,7 +4821,8 @@ export const adminUz = {
       feed: "Kesishdan oldin bo'sh qator",
       // ⚠️ Nega kerakligi bilan: yarmidan kesilgan shtrix-kod umuman
       // o'qilmaydi, va buni faqat kassada bilib qolishadi.
-      feedHint: "Kesish chizig'i shtrix-koddan pastda bo'lishi uchun. Yarmidan kesilgan kodni skaner o'qimaydi.",
+      feedHint:
+        "Kesish chizig'i shtrix-koddan pastda bo'lishi uchun. Yarmidan kesilgan kodni skaner o'qimaydi.",
       fields: "Qo'shimcha qatorlar",
       field: {
         shop: "Do'kon nomi",
@@ -4740,8 +4845,10 @@ export const adminUz = {
       } as Record<string, string>,
       styleHint: {
         shelf: "Nomi, do'kon, narxi va kodi. Standart ko'rinish.",
-        price: "Faqat narx, eng katta o'lchamda. Shtrix-kod chiqmaydi — bu javon tsennigi, paketga yopishtiriladigan stiker emas.",
-        sticker: "Nomi bir qatorda va shtrix-kod. Eng kichik, 30 mm stikerlar uchun.",
+        price:
+          "Faqat narx, eng katta o'lchamda. Shtrix-kod chiqmaydi — bu javon tsennigi, paketga yopishtiriladigan stiker emas.",
+        sticker:
+          "Nomi bir qatorda va shtrix-kod. Eng kichik, 30 mm stikerlar uchun.",
         compact: "Nomi va narxi bitta qatorda — rulonni tejaydi.",
         sale: "Eski narx va yangi narx. ⚠️ Narx tushmagan bo'lsa bu dizayn oddiy javon yorlig'iga o'tadi: javonda yo'q chegirmani yozib bo'lmaydi.",
         full: "Do'kon nomi, tovar, narx va bosilgan sana.",
@@ -5041,6 +5148,8 @@ export const adminRu: AdminDict = {
     couriers: "Курьеры",
     staff: "Сотрудники",
     payroll: "Расчёты",
+    edi: "Электронные документы",
+    onec: "Обмен с 1С",
     roles: "Роли",
     cash: "Касса",
     safe: "Сейф",
@@ -5943,7 +6052,10 @@ export const adminRu: AdminDict = {
     deleteAsk: (sum: string) => `Удалить расход на ${sum}?`,
     deleteBody:
       "Запись в сейфе останется — деньги физически вышли из коробки, и удаление расхода их не возвращает.",
-    methods: { cash: "наличные", transfer: "перевод", card: "карта" } as Record<string, string>,
+    methods: { cash: "наличные", transfer: "перевод", card: "карта" } as Record<
+      string,
+      string
+    >,
   },
   money: {
     title: "Где деньги",
@@ -6050,7 +6162,8 @@ export const adminRu: AdminDict = {
     amount: "Сумма",
     pickStaff: "Выберите сотрудника",
     nobody: "Подотчётных сумм нет.",
-    of: (issued: string, spent: string) => `выдано ${issued} · потрачено ${spent}`,
+    of: (issued: string, spent: string) =>
+      `выдано ${issued} · потрачено ${spent}`,
   },
   ingredients: {
     needsCare: "не заполнен",
@@ -6112,8 +6225,7 @@ export const adminRu: AdminDict = {
     empty: "В этот срок ничего не истекает.",
     daysLeft: (d: number) => `${d} дн.`,
     passed: (d: number) => `просрочено на ${d} дн.`,
-    note:
-      "⚠️ «Пришло» — это то, что записано в приходе, а не остаток на полке: расход считается по товару, а не по серии. Увидев просроченную строку, проверьте полку и при необходимости спишите.",
+    note: "⚠️ «Пришло» — это то, что записано в приходе, а не остаток на полке: расход считается по товару, а не по серии. Увидев просроченную строку, проверьте полку и при необходимости спишите.",
   },
   purchases: {
     title: "Приход (поставки)",
@@ -6321,6 +6433,95 @@ export const adminRu: AdminDict = {
     savedSummary: (v: string) => `Инвентаризация сохранена. Разница: ${v}`,
     empty: "Список ингредиентов пуст",
   },
+  edi: {
+    title: "Электронные документы",
+    intro:
+      "Документы из Didox: входящий счёт-фактура превращается в поступление без ручного ввода. Цифры берутся из самого документа.",
+    signHint:
+      "⚠️ Подписание не здесь: ключ ЭЦП находится на вашем компьютере. Чтобы подписать или отклонить документ, откройте",
+    incoming: "Входящие",
+    outgoing: "Исходящие",
+    sync: "Обновить из Didox",
+    settings: "Настройки подключения",
+    lastSync: (at: string) => `Последнее обновление: ${at}`,
+    synced: (inn: number, out: number) =>
+      `Новых документов: входящих ${inn}, исходящих ${out}`,
+    empty: "Документов нет. Нажмите «Обновить из Didox».",
+    docNo: "Документ",
+    docDate: "Дата",
+    partner: "Контрагент",
+    total: "Сумма",
+    status: "Статус",
+    statusName: (code: number) =>
+      ({
+        0: "Черновик",
+        1: "Ждёт подписи партнёра",
+        2: "Ждёт вашей подписи",
+        3: "Подписан",
+        4: "Отказ от подписи",
+        5: "Удалён",
+        6: "Ждёт подписи агента",
+        8: "Подписан агентом",
+        40: "Недействительный",
+      })[code] ?? String(code),
+    openImport: "Открыть и оприходовать",
+    openView: "Открыть",
+    alreadyImported: "Оприходован",
+    lineName: "Наименование",
+    qty: "Количество",
+    price: "Цена",
+    matchTo: "Продукт",
+    skipLine: "— пропустить —",
+    guessed: "подобрано автоматически — проверьте",
+    importAsPurchase: "Оприходовать",
+    matchedCount: (n: number, all: number) =>
+      `Сопоставлено ${n} из ${all} строк`,
+    imported: (n: number, sum: string) =>
+      `Поступление создано: ${n} строк, ${sum}`,
+    enabled: "Включено",
+    sandbox: "Тестовый режим (testapi3.didox.uz)",
+    tin: "ИНН",
+    password: "Пароль Didox",
+    partnerToken: "Партнёрский токен",
+    stored: "сохранён — оставьте пустым, если не меняете",
+    sellerTitle: "Данные продавца для исходящих документов",
+    sellerHint:
+      "Эти поля попадают в исходящий счёт-фактуру. Принимающая сторона проверяет их строго.",
+    name: "Наименование",
+    vatRegCode: "Рег. код плательщика НДС",
+    account: "Расчётный счёт",
+    bankId: "МФО",
+    address: "Адрес",
+    director: "Директор",
+    accountant: "Бухгалтер",
+  },
+  onec: {
+    title: "Обмен с 1С",
+    intro:
+      "1С вашего бухгалтера сама обращается по этому адресу: отправляет номенклатуру и забирает документы продаж и поступлений. В 1С укажите адрес, логин и пароль в настройке «Обмен с сайтом».",
+    urlLabel: "Адрес обмена",
+    urlHint:
+      "В 1С «Обмен с сайтом» → «Адрес сайта» вписывается именно этот адрес.",
+    enabled: "Включено",
+    login: "Логин",
+    password: "Пароль",
+    passwordHint:
+      "Не короче 8 символов. Этот пароль не открывает панель — только обмен.",
+    stored: "сохранён — оставьте пустым, если не меняете",
+    days: "За сколько дней отдавать документы",
+    daysHint:
+      "1С просит «всё с прошлого раза», но нашего периода не знает. Это верхняя граница.",
+    lastSeen: (at: string) => `Последнее обращение: ${at}`,
+    never: "1С ещё не обращалась",
+    lastResult: (kind: string, mode: string) => `${kind} · ${mode}`,
+    imported: (n: number) => `В последнем импорте записано товаров: ${n}`,
+    exported: (n: number) => `В последнем запросе отдано документов: ${n}`,
+    download: "Скачать XML",
+    downloadHint:
+      "Автоматический обмен включать не обязательно: этот файл можно загрузить в 1С вручную.",
+    copy: "Копировать",
+    copied: "Скопировано",
+  },
   shortages: {
     title: "Недостачи",
     intro:
@@ -6333,8 +6534,7 @@ export const adminRu: AdminDict = {
     coverageTitleGoods: "Продажи, связанные со складом",
     coverage: "Столько продаж списывается со склада по техкартам.",
     coverageGoods: "Столько продаж списывается со склада.",
-    weak:
-      "Покрытие низкое: ожидаемый остаток считается только по блюдам с картой, поэтому эти строки могут показывать не недостачу, а нехватку техкарт. Сначала заполните карты — потом этим цифрам можно верить.",
+    weak: "Покрытие низкое: ожидаемый остаток считается только по блюдам с картой, поэтому эти строки могут показывать не недостачу, а нехватку техкарт. Сначала заполните карты — потом этим цифрам можно верить.",
     weakGoods:
       "Покрытие низкое: часть продаж ничего не списывает со склада — эти товары со складом не связаны. Тогда строки ниже показывают не недостачу, а дыру в каталоге. Сначала поправьте несвязанные товары в разделе «Товары».",
     empty: "За этот период недостач не найдено.",
@@ -7272,7 +7472,8 @@ export const adminRu: AdminDict = {
         ? "Всего 13 знаков — именно так печатают весы."
         : `Всего ${n} знаков. Весы печатают 13 — с такой настройкой ни одна этикетка не прочитается.`,
     sample: "Проверьте этикетку",
-    sampleHint: "Введите код с реального стикера — ниже увидите, что получится.",
+    sampleHint:
+      "Введите код с реального стикера — ниже увидите, что получится.",
     sampleItem: (code: string) => `Код товара: ${code}`,
     sampleKg: (kg: number) => `${kg} кг`,
     samplePrice: (p: number) => `${p} сум`,
@@ -9199,11 +9400,15 @@ export const adminRu: AdminDict = {
     hint: "Отсканируйте DataMatrix пришедшего товара. После этого ошибка «кода нет на приходе» появится не на кассе перед клиентом, а на складе. ⚠️ Проверка работает, если она включена в настройках филиала.",
     product: "Какой товар",
     productAny: "Не указывать",
-    productHint: "Необязательно: GTIN внутри кода называет товар в государственном каталоге, а не в вашем меню.",
+    productHint:
+      "Необязательно: GTIN внутри кода называет товар в государственном каталоге, а не в вашем меню.",
     held: "На складе (не продано)",
     scan: "Сканер",
     scanPlaceholder: "Отсканируйте код — добавится по Enter",
-    pending: (n: number) => (n === 0 ? "Пока ничего не отсканировано" : `${n} кодов готовы к сохранению`),
+    pending: (n: number) =>
+      n === 0
+        ? "Пока ничего не отсканировано"
+        : `${n} кодов готовы к сохранению`,
     save: "Сохранить",
     clear: "Очистить",
     remove: "убрать",
@@ -9236,7 +9441,8 @@ export const adminRu: AdminDict = {
       width: "Ширина бумаги",
       lang: "Язык этикетки",
       feed: "Пустых строк перед отрезом",
-      feedHint: "Чтобы линия отреза была ниже штрихкода. Разрезанный пополам код сканер не читает.",
+      feedHint:
+        "Чтобы линия отреза была ниже штрихкода. Разрезанный пополам код сканер не читает.",
       fields: "Дополнительные строки",
       field: {
         shop: "Название магазина",
@@ -9257,8 +9463,10 @@ export const adminRu: AdminDict = {
       } as Record<string, string>,
       styleHint: {
         shelf: "Название, магазин, цена и код. Обычный вид.",
-        price: "Только цена, самым крупным шрифтом. Штрихкод не печатается — это ценник для полки, а не стикер на пачку.",
-        sticker: "Название в одну строку и штрихкод. Самый маленький, для стикеров 30 мм.",
+        price:
+          "Только цена, самым крупным шрифтом. Штрихкод не печатается — это ценник для полки, а не стикер на пачку.",
+        sticker:
+          "Название в одну строку и штрихкод. Самый маленький, для стикеров 30 мм.",
         compact: "Название и цена в одной строке — экономит рулон.",
         sale: "Старая и новая цена. ⚠️ Если цена не снижена, макет переключается на обычный: скидку, которой нет, печатать нельзя.",
         full: "Магазин, товар, цена и дата печати.",
@@ -9544,6 +9752,8 @@ export const adminEn: AdminDict = {
     couriers: "Couriers",
     staff: "Staff",
     payroll: "Payroll",
+    edi: "Electronic documents",
+    onec: "1C exchange",
     roles: "Roles",
     cash: "Cash drawer",
     safe: "Safe",
@@ -10438,12 +10648,15 @@ export const adminEn: AdminDict = {
     deleteAsk: (sum: string) => `Delete the ${sum} cost?`,
     deleteBody:
       "The safe's row stays — the money physically left the box, and deleting the cost does not bring it back.",
-    methods: { cash: "cash", transfer: "transfer", card: "card" } as Record<string, string>,
+    methods: { cash: "cash", transfer: "transfer", card: "card" } as Record<
+      string,
+      string
+    >,
   },
   money: {
     title: "Where the money is",
     intro:
-      "Cash, money in the bank, and money not yet transferred — three separate answers. ⚠️ They are deliberately not added up: cash can be spent tonight, the bank this week, and a marketplace's balance when it decides. One \"we have X\" would be the most quotable and least true figure here.",
+      'Cash, money in the bank, and money not yet transferred — three separate answers. ⚠️ They are deliberately not added up: cash can be spent tonight, the bank this week, and a marketplace\'s balance when it decides. One "we have X" would be the most quotable and least true figure here.',
     cash: "Cash",
     cashHint: "Safe, open drawers, couriers and buyers",
     bank: "In the bank",
@@ -10496,7 +10709,7 @@ export const adminEn: AdminDict = {
     receivedAt: "Arrived on",
     account: "Account / note",
     formHint:
-      "All three figures are entered as the statement reads them — \"received\" is never computed. When they disagree the difference is shown: a refund, a penalty, or last month's correction.",
+      'All three figures are entered as the statement reads them — "received" is never computed. When they disagree the difference is shown: a refund, a penalty, or last month\'s correction.',
     owedSince: (day: string) => `Sales after ${day} (not transferred yet)`,
     soldEver: "Sold through this rail (no payout recorded yet)",
     receivedTotal: (net: string, fee: string) =>
@@ -10517,7 +10730,8 @@ export const adminEn: AdminDict = {
     intro:
       "Where the restaurant's cash physically is. ⚠️ Not a profit and loss: money that left the safe has not necessarily been spent — it may only have changed place. The till drawer and petty cash are separate accounts.",
     balance: "In the safe",
-    negative: "The safe is negative — something that went in was probably not recorded.",
+    negative:
+      "The safe is negative — something that went in was probably not recorded.",
     inOut: (i: string, o: string) => `${i} in · ${o} out`,
     kind: "Kind",
     kindIn: "In",
@@ -10607,8 +10821,7 @@ export const adminEn: AdminDict = {
     empty: "Nothing expires in this window.",
     daysLeft: (d: number) => `${d} days`,
     passed: (d: number) => `${d} days ago`,
-    note:
-      "⚠️ \"Delivered\" is what the delivery recorded, not what is on the shelf: consumption is counted per product, not per batch. If you see an expired row, check the shelf and write it off if needed.",
+    note: '⚠️ "Delivered" is what the delivery recorded, not what is on the shelf: consumption is counted per product, not per batch. If you see an expired row, check the shelf and write it off if needed.',
   },
   purchases: {
     title: "Deliveries",
@@ -10685,7 +10898,8 @@ export const adminEn: AdminDict = {
     every: (days: string) => `arrives about every ${days} days`,
     shelfLife: (days: string) => `keeps ~${days} days — the horizon was capped`,
     alreadyAsked: (qty: string) => `${qty} already asked for`,
-    stockOuts: (n: number) => `out of stock on ${n} days — measured without them`,
+    stockOuts: (n: number) =>
+      `out of stock on ${n} days — measured without them`,
     since: (d: string) =>
       `Stock is measured from the count on ${d} — an estimate.`,
     neverCounted:
@@ -10814,6 +11028,94 @@ export const adminEn: AdminDict = {
     savedSummary: (v: string) => `Count saved. Difference: ${v}`,
     empty: "The ingredient list is empty",
   },
+  edi: {
+    title: "Electronic documents",
+    intro:
+      "Documents held at Didox: an incoming invoice becomes a delivery without being retyped. The figures come from the document itself.",
+    signHint:
+      "⚠️ Signing does not happen here: the E-IMZO key is on your own computer. To sign or reject a document, open",
+    incoming: "Incoming",
+    outgoing: "Outgoing",
+    sync: "Refresh from Didox",
+    settings: "Connection settings",
+    lastSync: (at: string) => `Last refreshed: ${at}`,
+    synced: (inn: number, out: number) =>
+      `New documents: ${inn} incoming, ${out} outgoing`,
+    empty: "No documents. Press “Refresh from Didox”.",
+    docNo: "Document",
+    docDate: "Date",
+    partner: "Counterparty",
+    total: "Total",
+    status: "Status",
+    statusName: (code: number) =>
+      ({
+        0: "Draft",
+        1: "Waiting for the partner's signature",
+        2: "Waiting for your signature",
+        3: "Signed",
+        4: "Rejected",
+        5: "Deleted",
+        6: "Waiting for the agent's signature",
+        8: "Signed by the agent",
+        40: "Not valid",
+      })[code] ?? String(code),
+    openImport: "Open and take in",
+    openView: "Open",
+    alreadyImported: "Taken in",
+    lineName: "Name",
+    qty: "Quantity",
+    price: "Price",
+    matchTo: "Product",
+    skipLine: "— skip —",
+    guessed: "matched automatically — check it",
+    importAsPurchase: "Take in as a delivery",
+    matchedCount: (n: number, all: number) => `${n} of ${all} lines matched`,
+    imported: (n: number, sum: string) =>
+      `Delivery created: ${n} lines, ${sum}`,
+    enabled: "Switched on",
+    sandbox: "Test rails (testapi3.didox.uz)",
+    tin: "Tax number",
+    password: "Didox password",
+    partnerToken: "Partner token",
+    stored: "stored — leave blank unless you are changing it",
+    sellerTitle: "Seller details for outgoing documents",
+    sellerHint:
+      "These fields are printed onto an outgoing invoice. The receiving side validates them strictly.",
+    name: "Name",
+    vatRegCode: "VAT registration code",
+    account: "Bank account",
+    bankId: "Bank code",
+    address: "Address",
+    director: "Director",
+    accountant: "Accountant",
+  },
+  onec: {
+    title: "1C exchange",
+    intro:
+      "Your accountant's 1C knocks on this address itself: it sends the nomenclature and collects the sales and delivery documents. In 1C, put the address, login and password into “Exchange with the site”.",
+    urlLabel: "Exchange address",
+    urlHint:
+      "In 1C, “Exchange with the site” → “Site address” takes exactly this address.",
+    enabled: "Switched on",
+    login: "Login",
+    password: "Password",
+    passwordHint:
+      "At least 8 characters. This password does not open the panel — only the exchange.",
+    stored: "stored — leave blank unless you are changing it",
+    days: "How many days of documents to hand over",
+    daysHint:
+      "1C asks for “everything since last time” and has no memory of our period. This is the ceiling.",
+    lastSeen: (at: string) => `Last knock: ${at}`,
+    never: "1C has not knocked yet",
+    lastResult: (kind: string, mode: string) => `${kind} · ${mode}`,
+    imported: (n: number) => `The last import wrote ${n} products`,
+    exported: (n: number) => `The last query handed over ${n} documents`,
+    download: "Download the XML",
+    downloadHint:
+      "The automatic exchange is optional: this file can be loaded into 1C by hand.",
+    copy: "Copy",
+    copied: "Copied",
+  },
   shortages: {
     title: "Shortfalls",
     intro:
@@ -10826,8 +11128,7 @@ export const adminEn: AdminDict = {
     coverageTitleGoods: "Sales linked to the store",
     coverage: "This share of sales takes something off a shelf.",
     coverageGoods: "This share of sales takes something off a shelf.",
-    weak:
-      "Coverage is low: the expected balance is built only from dishes that have a card, so these rows may be showing missing cards rather than missing stock. Fill the cards first — then these figures can be trusted.",
+    weak: "Coverage is low: the expected balance is built only from dishes that have a card, so these rows may be showing missing cards rather than missing stock. Fill the cards first — then these figures can be trusted.",
     weakGoods:
       "Coverage is low: some sales take nothing off a shelf — those products are not linked to the store. The rows below would then be showing a gap in the catalogue rather than missing stock. Fix the unlinked products under Goods first.",
     empty: "No shortfalls found in this period.",
@@ -10835,8 +11136,7 @@ export const adminEn: AdminDict = {
     period: (from: string, to: string) => `over ${from} — ${to}`,
     periodNever: (to: string) => `${to} — the first count, so all of time`,
     countedBy: (who: string) => `counted by ${who}`,
-    expected: (exp: number, got: number) =>
-      `expected ${exp} · counted ${got}`,
+    expected: (exp: number, got: number) => `expected ${exp} · counted ${got}`,
     shareOfCount: (p: number) => `${p}% of this count's shortfall`,
     countNote: (note: string) => `Count note: ${note}`,
     perDay: (money: string) => `~${money} a day`,
@@ -10955,7 +11255,8 @@ export const adminEn: AdminDict = {
     listTitle: "The list",
     shortTitle: "What the store is short of",
     search: "Ingredient name — type to pick",
-    nothingShort: "Nothing is short right now. Type to pick from the catalogue.",
+    nothingShort:
+      "Nothing is short right now. Type to pick from the catalogue.",
     unitIs: (unit: string) => `unit: ${unit}`,
     loadFailed: "Could not load the ingredient list",
     addNew: (name: string) => `Add "${name}" to the list`,
@@ -11762,11 +12063,13 @@ export const adminEn: AdminDict = {
         ? "Thirteen digits in total — which is what a scale prints."
         : `${n} digits in total. A scale prints thirteen; with this layout no label decodes at all.`,
     sample: "Try a label",
-    sampleHint: "Type the code from a real sticker — you will see what it decodes to.",
+    sampleHint:
+      "Type the code from a real sticker — you will see what it decodes to.",
     sampleItem: (code: string) => `Item code: ${code}`,
     sampleKg: (kg: number) => `${kg} kg`,
     samplePrice: (p: number) => `${p}`,
-    sampleNo: "That code does not fit this layout — check the length or the prefix.",
+    sampleNo:
+      "That code does not fit this layout — check the length or the prefix.",
   },
   till: {
     title: "Till",
@@ -13681,18 +13984,20 @@ export const adminEn: AdminDict = {
   markingInbound: {
     title: "Marking: check on goods-in",
     enabled: "Refuse a code that was never received into the store",
-    hint: "With this on, the till passes only codes taken in on the \"Marking → scan on goods-in\" screen. ⚠️ Start scanning deliveries first: otherwise every marked product is refused in front of a customer.",
+    hint: 'With this on, the till passes only codes taken in on the "Marking → scan on goods-in" screen. ⚠️ Start scanning deliveries first: otherwise every marked product is refused in front of a customer.',
   },
   marking: {
     title: "Marking: scan on goods-in",
-    hint: "Scan the DataMatrix codes off what arrived. After that, \"this code was never received\" turns up in the store room rather than at the counter with a customer waiting. ⚠️ The check runs only where the branch has switched it on.",
+    hint: 'Scan the DataMatrix codes off what arrived. After that, "this code was never received" turns up in the store room rather than at the counter with a customer waiting. ⚠️ The check runs only where the branch has switched it on.',
     product: "Which product",
     productAny: "Do not say",
-    productHint: "Optional: the GTIN inside a code names a product in the national catalogue, which is not your menu.",
+    productHint:
+      "Optional: the GTIN inside a code names a product in the national catalogue, which is not your menu.",
     held: "Held (unsold)",
     scan: "Scanner",
     scanPlaceholder: "Scan a code — Enter adds it",
-    pending: (n: number) => (n === 0 ? "Nothing scanned yet" : `${n} codes ready to save`),
+    pending: (n: number) =>
+      n === 0 ? "Nothing scanned yet" : `${n} codes ready to save`,
     save: "Save",
     clear: "Clear",
     remove: "remove",
@@ -13702,7 +14007,7 @@ export const adminEn: AdminDict = {
   },
   labels: {
     title: "Labels",
-    hint: "Goods whose price moved, and goods with no barcode. Labels go to a printer with the \"label\" kind ticked, not to the till's (Settings → Printers).",
+    hint: 'Goods whose price moved, and goods with no barcode. Labels go to a printer with the "label" kind ticked, not to the till\'s (Settings → Printers).',
     allGood: "Every shelf says the right thing.",
     copies: "Copies",
     print: "Print",
@@ -13725,7 +14030,8 @@ export const adminEn: AdminDict = {
       width: "Paper width",
       lang: "Label language",
       feed: "Blank lines before the cut",
-      feedHint: "So the tear-off is below the barcode. A code cut in half scans as nothing.",
+      feedHint:
+        "So the tear-off is below the barcode. A code cut in half scans as nothing.",
       fields: "Optional lines",
       field: {
         shop: "Shop name",
@@ -13746,8 +14052,10 @@ export const adminEn: AdminDict = {
       } as Record<string, string>,
       styleHint: {
         shelf: "Name, shop, price and code. The ordinary one.",
-        price: "The price and almost nothing else, as large as the head can draw it. No barcode — this is a tag for a shelf, not a sticker for a packet.",
-        sticker: "One line of name and the bars. The smallest, for 30 mm stickers.",
+        price:
+          "The price and almost nothing else, as large as the head can draw it. No barcode — this is a tag for a shelf, not a sticker for a packet.",
+        sticker:
+          "One line of name and the bars. The smallest, for 30 mm stickers.",
         compact: "Name and price on one line — saves roll.",
         sale: "What it cost and what it costs now. ⚠️ With nothing reduced this design steps aside for the plain one: a discount that did not happen cannot be printed.",
         full: "Shop, product, price and the date it was printed.",
