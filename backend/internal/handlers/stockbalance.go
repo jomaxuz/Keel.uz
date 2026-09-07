@@ -397,7 +397,7 @@ func (h *Handler) saleDocs(
 		match["at"] = rng
 	}
 	day := bson.M{"$dateToString": bson.M{
-		"format": "%Y-%m-%d", "date": "$at", "timezone": time.Local.String(),
+		"format": "%Y-%m-%d", "date": "$at", "timezone": mongoTZ(),
 	}}
 	cur, err := h.Store.StockMoves.Aggregate(r.Context(), mongo.Pipeline{
 		{{Key: "$match", Value: match}},

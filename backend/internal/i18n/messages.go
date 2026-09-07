@@ -685,6 +685,14 @@ var messages = map[string]pair{
 		"на этой странице нет готовых данных, а автоматическое чтение не включено",
 		"this page has no ready data, and automatic reading is off",
 	},
+	"bu kamomad allaqachon izohlangan": {
+		"по этой недостаче объяснение уже есть",
+		"this shortfall has already been explained",
+	},
+	"bu qatorda kamomad yo'q": {
+		"в этой строке нет недостачи",
+		"there is no shortfall on this line",
+	},
 	"bu sana juda uzoq": {
 		"эта дата слишком далеко",
 		"that date is too far ahead",
@@ -1705,6 +1713,10 @@ var messages = map[string]pair{
 		"роль не найдена",
 		"role not found",
 	},
+	"sababini tanlang": {
+		"выберите причину",
+		"pick a reason",
+	},
 	"sababini tanlang yoki yozing": {
 		"выберите или напишите причину",
 		"pick a reason, or write one",
@@ -1712,6 +1724,10 @@ var messages = map[string]pair{
 	"sababini yozing": {
 		"укажите причину",
 		"give a reason",
+	},
+	"sanoq topilmadi": {
+		"пересчёт не найден",
+		"the count was not found",
 	},
 	"sahifani ochib bo'lmadi: %s": {
 		"страницу не удалось открыть: %s",

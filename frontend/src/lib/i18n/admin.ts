@@ -99,6 +99,7 @@ export const adminUz = {
     suppliers: "Yetkazib beruvchilar",
     shopping: "Xarid ro'yxati",
     stocktake: "Inventarizatsiya",
+    shortages: "Kamomad",
     expiring: "Muddati tugayapti",
     labels: "Yorliqlar",
     marking: "Markirovka",
@@ -1350,8 +1351,27 @@ export const adminUz = {
   },
   shopping: {
     title: "Xarid ro'yxati",
+    // ⚠️ Ro'yxat endi ikki qoidadan: eng kam qoldiq (ega o'zi qo'ygan chiziq) va
+    // prognoz (keyingi kirimgacha qancha ketadi). Matn ikkalasini ham aytadi,
+    // chunki miqdorning **qaysi qoidadan** kelgani qatorda yozilgan.
     intro:
-      "Eng kam qoldig'idan pastga tushgan masalliqlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor — eng kam qoldiqqa yetkazish uchun kerak bo'lgani: qancha olish sizning qaroringiz.",
+      "Keyingi kirimgacha yetmaydigan masalliqlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor ikki qoidadan kattarog'i: haftaning shu kunlaridagi sarf bo'yicha prognoz yoki eng kam qoldiqqa yetkazish. Qancha olish — sizning qaroringiz.",
+    introGoods:
+      "Keyingi kirimgacha yetmaydigan tovarlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor ikki qoidadan kattarog'i: haftaning shu kunlaridagi sotuv bo'yicha prognoz yoki eng kam qoldiqqa yetkazish. Qancha olish — sizning qaroringiz.",
+    why: "Nega shuncha",
+    // ⚠️ Prognoz qatori o'z hisobini aytadi: necha kunga, kuniga qancha.
+    // Raqamni ochib bera olmaydigan ekran — yo ko'r-ko'rona bajariladi, yo
+    // umuman o'qilmaydi.
+    basisForecast: (days: number, daily: string) =>
+      `${days} kunga · kuniga ~${daily}`,
+    basisMin: "Eng kam qoldiqqa yetkazish",
+    every: (days: string) => `~${days} kunda bir keladi`,
+    shelfLife: (days: string) => `muddati ~${days} kun — shunga qarab qisqartirildi`,
+    alreadyAsked: (qty: string) => `${qty} allaqachon so'ralgan`,
+    // ⚠️ Bo'sh javon — talab yo'qligi emas, tovar yo'qligi. O'sha kunlar
+    // hisobdan chiqarilgan, va buni aytish shart: aks holda ekran o'zi
+    // o'ylab topgan talabni ko'rsatgan bo'lardi.
+    stockOuts: (n: number) => `${n} kun sotuvda bo'lmagan — o'sha kunlarsiz hisoblandi`,
     since: (d: string) =>
       `Qoldiq ${d} dagi sanashdan beri hisoblangan — bu taxmin.`,
     neverCounted:
@@ -1445,6 +1465,69 @@ export const adminUz = {
   // same editor draws both, and a restaurant that reads them as one thing
   // writes a yield into a dish or forgets one on a sauce — which underprices
   // everything the sauce is in, silently.
+  // ---- The shortfall queue ----
+  //
+  // ⚠️ **A question, never an accusation.** Every word here is chosen so the
+  // screen can be read aloud in front of the person who counted the shelf. The
+  // five answers do not include "somebody took it": a shortfall covers every
+  // shift between two counts, which is the weakest possible evidence about a
+  // person and the strongest possible evidence about a process.
+  shortages: {
+    title: "Kamomad",
+    intro:
+      "Sanoqlar topgan yetishmovchilik — so'mda, kattasi tepada. Har bir qator bitta savol: bu qayerga ketdi? Javob bir marta yoziladi va o'zgartirilmaydi.",
+    window: (d: number) => `${d} kun`,
+    openValue: "Javobsiz kamomad",
+    openCount: (n: number) => `${n} ta savol javobsiz`,
+    total: "Davrdagi jami kamomad",
+    coverageTitle: "Texkarta qamrovi",
+    // ⚠️ Do'kon uchun boshqa so'z: dorixonada texkarta yo'q va bo'lmaydi —
+    // tovarning bir qatorli kartasini server yozadi. Raqam bir xil, savol
+    // boshqacha: sotuvning qancha qismi ombordan yechiladi.
+    coverageTitleGoods: "Omborga bog'langan sotuv",
+    coverage: "Sotuvning shu qismi texkarta bilan hisoblangan.",
+    coverageGoods: "Sotuvning shu qismi ombordan yechiladi.",
+    weak:
+      "Qamrov past: kutilgan qoldiq kartasi bor taomlardan hisoblanadi, shuning uchun bu qatorlar kamomadni emas, yetishmayotgan texkartalarni ko'rsatayotgan bo'lishi mumkin. Avval qamrovni to'ldiring — keyin bu raqamlarga ishonsa bo'ladi.",
+    weakGoods:
+      "Qamrov past: sotuvning bir qismi ombordan hech nima yechmayapti — ya'ni o'sha tovarlar omborga bog'lanmagan. Bunda bu qatorlar kamomadni emas, katalogdagi bo'shliqni ko'rsatadi. Avval «Tovarlar»da bog'lanmaganlarini tuzating.",
+    empty: "Bu davrda kamomad topilmadi.",
+    more: (n: number) => `Yana ${n} ta kichik qator ko'rsatilmadi.`,
+    period: (from: string, to: string) => `${from} — ${to} oralig'ida`,
+    periodNever: (to: string) =>
+      `${to} — birinchi sanoq, ya'ni butun vaqt uchun`,
+    countedBy: (who: string) => `sanadi: ${who}`,
+    expected: (exp: number, got: number) => `kutilgan ${exp} · sanaldi ${got}`,
+    shareOfCount: (p: number) => `sanoq kamomadining ${p}%`,
+    countNote: (note: string) => `Sanoq izohi: ${note}`,
+    // ⚠️ Bir xil so'm ikki xil hodisa bo'lishi mumkin — tezligi aytadi.
+    perDay: (money: string) => `kuniga ~${money}`,
+    pct: (p: number) => `kutilganning ${p}% i`,
+    // ⚠️ Bu ekrandagi eng kuchli gap: kartalar bu masalliqni umuman
+    // sarflamagan bo'lsa, farq — kamomad emas, karta bo'shlig'i.
+    noUse:
+      "Bu davrda hech bir texkarta buni sarflamagan — ya'ni bu kamomad emas, karta bo'shlig'i bo'lishi mumkin",
+    noUseGoods:
+      "Bu davrda bu tovar sotuvda ombordan yechilmagan — ya'ni bu kamomad emas, katalog bo'shlig'i bo'lishi mumkin",
+    used: (qty: string) => `kartalar bo'yicha sarf: ${qty}`,
+    repeat: (n: number) => `${n} sanoqda ketma-ket kam chiqdi`,
+    twin: (name: string) =>
+      `O'sha sanoqda «${name}» xuddi shuncha pulga ortiqcha chiqqan — kassada almashtirilgan bo'lishi mumkin`,
+    answer: "Javob berish",
+    verdicts: {
+      miscount: "Sanoq xato — qayta sanaldi",
+      waste: "Isrof: buzilgan, to'kilgan, tashlangan",
+      card: "Texkarta noto'g'ri — ko'p yozilgan",
+      paperwork: "Hujjat kiritilmagan (kirim, ko'chirish, partiya)",
+      swap: "Kassada boshqasi urilgan — juftida ortiqcha chiqadi",
+      lost: "Topilmadi — tushuntirib bo'lmadi",
+    },
+    notePh: "Nima bo'lgan? Masalan: juma kuni muzlatgich buzildi, go'sht tashlandi.",
+    notePhGoods:
+      "Nima bo'lgan? Masalan: muddati o'tgan sut chiqarib tashlandi.",
+    save: "Javobni saqlash",
+    onceHint: "Javob bir marta yoziladi — keyin o'zgartirib bo'lmaydi.",
+  },
   techCards: {
     title: "Texkartalar",
     intro:
@@ -4885,6 +4968,7 @@ export const adminRu: AdminDict = {
     suppliers: "Поставщики",
     shopping: "Список закупки",
     stocktake: "Инвентаризация",
+    shortages: "Недостачи",
     expiring: "Истекает срок",
     labels: "Этикетки",
     marking: "Маркировка",
@@ -6035,7 +6119,17 @@ export const adminRu: AdminDict = {
   shopping: {
     title: "Список закупки",
     intro:
-      "Ингредиенты, опустившиеся ниже минимального остатка, сгруппированные по тому, кто привозил их в последний раз. Количество — сколько не хватает до минимума: сколько брать, решаете вы.",
+      "Ингредиенты, которых не хватит до следующего прихода, сгруппированы по тому, кто привозил их в последний раз. Количество — большее из двух правил: прогноз по расходу в эти дни недели или добор до минимального остатка. Сколько брать — решаете вы.",
+    introGoods:
+      "Товары, которых не хватит до следующего прихода, сгруппированы по тому, кто привозил их в последний раз. Количество — большее из двух правил: прогноз по продажам в эти дни недели или добор до минимального остатка. Сколько брать — решаете вы.",
+    why: "Почему столько",
+    basisForecast: (days: number, daily: string) =>
+      `на ${days} дн. · ~${daily} в день`,
+    basisMin: "Добор до минимального остатка",
+    every: (days: string) => `приходит примерно раз в ${days} дн.`,
+    shelfLife: (days: string) => `срок годности ~${days} дн. — горизонт урезан`,
+    alreadyAsked: (qty: string) => `${qty} уже заказано`,
+    stockOuts: (n: number) => `${n} дн. не было в наличии — посчитано без них`,
     since: (d: string) =>
       `Остаток посчитан от инвентаризации ${d} — это оценка.`,
     neverCounted:
@@ -6119,6 +6213,58 @@ export const adminRu: AdminDict = {
     save: (n: number) => `Сохранить ${n} позиций`,
     savedSummary: (v: string) => `Инвентаризация сохранена. Разница: ${v}`,
     empty: "Список ингредиентов пуст",
+  },
+  shortages: {
+    title: "Недостачи",
+    intro:
+      "Что нашли инвентаризации — в сумах, крупное сверху. Каждая строка — один вопрос: куда это делось? Ответ пишется один раз и не меняется.",
+    window: (d: number) => `${d} дней`,
+    openValue: "Недостача без ответа",
+    openCount: (n: number) => `${n} вопросов без ответа`,
+    total: "Всего за период",
+    coverageTitle: "Покрытие техкартами",
+    coverageTitleGoods: "Продажи, связанные со складом",
+    coverage: "Столько продаж списывается со склада по техкартам.",
+    coverageGoods: "Столько продаж списывается со склада.",
+    weak:
+      "Покрытие низкое: ожидаемый остаток считается только по блюдам с картой, поэтому эти строки могут показывать не недостачу, а нехватку техкарт. Сначала заполните карты — потом этим цифрам можно верить.",
+    weakGoods:
+      "Покрытие низкое: часть продаж ничего не списывает со склада — эти товары со складом не связаны. Тогда строки ниже показывают не недостачу, а дыру в каталоге. Сначала поправьте несвязанные товары в разделе «Товары».",
+    empty: "За этот период недостач не найдено.",
+    more: (n: number) => `Ещё ${n} мелких строк не показаны.`,
+    period: (from: string, to: string) => `за период ${from} — ${to}`,
+    periodNever: (to: string) =>
+      `${to} — первая инвентаризация, то есть за всё время`,
+    countedBy: (who: string) => `считал: ${who}`,
+    expected: (exp: number, got: number) =>
+      `ожидалось ${exp} · посчитано ${got}`,
+    shareOfCount: (p: number) => `${p}% недостачи этого подсчёта`,
+    countNote: (note: string) => `Комментарий к подсчёту: ${note}`,
+    perDay: (money: string) => `~${money} в день`,
+    pct: (p: number) => `${p}% от ожидаемого`,
+    noUse:
+      "За этот период ни одна техкарта это не списывала — значит это может быть не недостача, а дыра в картах",
+    noUseGoods:
+      "За этот период продажи этого товара ничего не списывали со склада — значит это может быть не недостача, а дыра в каталоге",
+    used: (qty: string) => `списано по картам: ${qty}`,
+    repeat: (n: number) => `не сходится ${n} подсчёта подряд`,
+    twin: (name: string) =>
+      `В том же подсчёте «${name}» дал излишек примерно на ту же сумму — возможно, на кассе пробили не то`,
+    answer: "Ответить",
+    verdicts: {
+      miscount: "Ошибка подсчёта — пересчитали",
+      waste: "Порча: испортилось, разлилось, выбросили",
+      card: "Техкарта завышена — списывает больше",
+      paperwork: "Документ не внесён (приход, перемещение, партия)",
+      swap: "На кассе пробили не то — в паре есть излишек",
+      lost: "Не нашли — объяснения нет",
+    },
+    notePh:
+      "Что произошло? Например: в пятницу сломался холодильник, мясо выбросили.",
+    notePhGoods:
+      "Что произошло? Например: просроченное молоко списали и выбросили.",
+    save: "Сохранить ответ",
+    onceHint: "Ответ пишется один раз — изменить его потом нельзя.",
   },
   techCards: {
     title: "Техкарты",
@@ -9278,6 +9424,7 @@ export const adminEn: AdminDict = {
     suppliers: "Suppliers",
     shopping: "Shopping list",
     stocktake: "Stocktake",
+    shortages: "Shortfalls",
     expiring: "Expiring soon",
     labels: "Labels",
     marking: "Marking",
@@ -10420,7 +10567,17 @@ export const adminEn: AdminDict = {
   shopping: {
     title: "Shopping list",
     intro:
-      "Ingredients below their minimum, grouped by whoever delivered them last. The quantity is the gap to the minimum: how much to actually buy is your call.",
+      "What will not last until the next delivery, grouped by whoever brought it last. The quantity is the larger of two rules: a forecast from what these weekdays actually consume, or the gap back up to the reorder point. How much to buy is your call.",
+    introGoods:
+      "What will not last until the next delivery, grouped by whoever brought it last. The quantity is the larger of two rules: a forecast from what these weekdays actually sell, or the gap back up to the reorder point. How much to buy is your call.",
+    why: "Why this much",
+    basisForecast: (days: number, daily: string) =>
+      `for ${days} days · ~${daily} a day`,
+    basisMin: "Back up to the reorder point",
+    every: (days: string) => `arrives about every ${days} days`,
+    shelfLife: (days: string) => `keeps ~${days} days — the horizon was capped`,
+    alreadyAsked: (qty: string) => `${qty} already asked for`,
+    stockOuts: (n: number) => `out of stock on ${n} days — measured without them`,
     since: (d: string) =>
       `Stock is measured from the count on ${d} — an estimate.`,
     neverCounted:
@@ -10502,6 +10659,57 @@ export const adminEn: AdminDict = {
     save: (n: number) => `Save ${n} ingredients`,
     savedSummary: (v: string) => `Count saved. Difference: ${v}`,
     empty: "The ingredient list is empty",
+  },
+  shortages: {
+    title: "Shortfalls",
+    intro:
+      "What the counts found, in som, worst first. Each row is one question: where did this go? An answer is written once and cannot be changed.",
+    window: (d: number) => `${d} days`,
+    openValue: "Unanswered shortfall",
+    openCount: (n: number) => `${n} questions unanswered`,
+    total: "Total for the period",
+    coverageTitle: "Tech card coverage",
+    coverageTitleGoods: "Sales linked to the store",
+    coverage: "This share of sales takes something off a shelf.",
+    coverageGoods: "This share of sales takes something off a shelf.",
+    weak:
+      "Coverage is low: the expected balance is built only from dishes that have a card, so these rows may be showing missing cards rather than missing stock. Fill the cards first — then these figures can be trusted.",
+    weakGoods:
+      "Coverage is low: some sales take nothing off a shelf — those products are not linked to the store. The rows below would then be showing a gap in the catalogue rather than missing stock. Fix the unlinked products under Goods first.",
+    empty: "No shortfalls found in this period.",
+    more: (n: number) => `${n} smaller rows are not shown.`,
+    period: (from: string, to: string) => `over ${from} — ${to}`,
+    periodNever: (to: string) => `${to} — the first count, so all of time`,
+    countedBy: (who: string) => `counted by ${who}`,
+    expected: (exp: number, got: number) =>
+      `expected ${exp} · counted ${got}`,
+    shareOfCount: (p: number) => `${p}% of this count's shortfall`,
+    countNote: (note: string) => `Count note: ${note}`,
+    perDay: (money: string) => `~${money} a day`,
+    pct: (p: number) => `${p}% of what was expected`,
+    noUse:
+      "No tech card consumed this over the period — so this may be a gap in the cards rather than a shortfall",
+    noUseGoods:
+      "Selling this took nothing off the shelf over the period — so this may be a gap in the catalogue rather than a shortfall",
+    used: (qty: string) => `cards accounted for ${qty}`,
+    repeat: (n: number) => `short at ${n} counts in a row`,
+    twin: (name: string) =>
+      `"${name}" came up over by about the same money on the same count — the till may have rung the wrong one`,
+    answer: "Answer",
+    verdicts: {
+      miscount: "Counted wrong — recounted",
+      waste: "Waste: spoiled, spilled, thrown away",
+      card: "The card takes more than the kitchen does",
+      paperwork: "A document was never entered (delivery, transfer, batch)",
+      swap: "The wrong item was rung up — its twin shows a surplus",
+      lost: "Not found — no explanation",
+    },
+    notePh:
+      "What happened? For example: the freezer broke down on Friday, the meat was thrown out.",
+    notePhGoods:
+      "What happened? For example: milk past its date was thrown out.",
+    save: "Save the answer",
+    onceHint: "An answer is written once — it cannot be edited afterwards.",
   },
   techCards: {
     title: "Tech cards",

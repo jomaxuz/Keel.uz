@@ -20,11 +20,17 @@ import { api, ApiError } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
-import type { ShoppingGroup } from "@/lib/types";
+import { sellsGoods } from "@/lib/types";
+import type { ShoppingGroup, ShoppingRow } from "@/lib/types";
 
 export default function ShoppingPage() {
   const t = useAdminT();
   const scope = useAdminScope();
+  // ⚠️ Words only. What is short, and by how much, is the same arithmetic in a
+  // kitchen and a pharmacy — see backend/internal/handlers/orderplan.go, and
+  // models/businesstype.go for why the stock module is deliberately not
+  // tailored.
+  const goods = sellsGoods(scope.brand);
   const [groups, setGroups] = useState<ShoppingGroup[]>([]);
   const [cost, setCost] = useState(0);
   const [since, setSince] = useState<string | null>(null);
@@ -49,7 +55,9 @@ export default function ShoppingPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">{t.shopping.title}</h1>
-        <p className="mt-1 text-sm text-ink-soft">{t.shopping.intro}</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          {goods ? t.shopping.introGoods : t.shopping.intro}
+        </p>
         {/* ⚠️ The same caveat the balance carries, for the same reason: a
             suggestion to buy nine kilos is worth a different amount of trust
             depending on whether the shelf was counted last night or in March. */}
@@ -100,6 +108,7 @@ export default function ShoppingPage() {
                     <th className="px-3 py-1.5 text-right">
                       {t.shopping.buy}
                     </th>
+                    <th className="px-3 py-1.5">{t.shopping.why}</th>
                     <th className="px-3 py-1.5 text-right">
                       {t.shopping.cost}
                     </th>
@@ -130,6 +139,13 @@ export default function ShoppingPage() {
                         <td className="px-3 py-2 text-right font-medium tabular-nums">
                           {row.suggested} {unit}
                         </td>
+                        {/* ⚠️ **The reasoning travels with the number.** A
+                            quantity an owner cannot take apart is one they
+                            either follow blindly or ignore, and both are worse
+                            than the notebook this screen replaced. */}
+                        <td className="px-3 py-2 text-xs text-ink-muted">
+                          <Why row={row} unit={unit} />
+                        </td>
                         <td className="px-3 py-2 text-right tabular-nums text-ink-soft">
                           {formatPrice(row.cost)}
                         </td>
@@ -151,5 +167,40 @@ export default function ShoppingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Where one row's quantity came from, in the fewest words that survive being
+ *  read at seven in the morning.
+ *
+ *  ⚠️ **The horizon's own reasons are on the second line**, and only when there
+ *  is something to say: a delivery rhythm the number was built from, a shelf
+ *  life that cut it short, or a quantity somebody has already gone to buy. A
+ *  row with none of those says one thing and stops. */
+function Why({ row, unit }: { row: ShoppingRow; unit: string }) {
+  const t = useAdminT();
+  const notes: string[] = [];
+  if (row.every) notes.push(t.shopping.every(String(row.every)));
+  if (row.shelfLife && row.cover && row.shelfLife <= row.cover + 1) {
+    notes.push(t.shopping.shelfLife(String(row.shelfLife)));
+  }
+  if (row.requested) {
+    notes.push(t.shopping.alreadyAsked(`${row.requested} ${unit}`));
+  }
+  // ⚠️ **Said out loud, because the forecast deliberately ignored those days.**
+  // An empty shelf is not a quiet one, and leaving the days out is a judgement
+  // this screen made on the reader's behalf — one they are entitled to see.
+  if (row.stockOuts) notes.push(t.shopping.stockOuts(row.stockOuts));
+  return (
+    <>
+      <div>
+        {row.basis === "forecast" && row.cover
+          ? t.shopping.basisForecast(row.cover, `${row.daily ?? 0} ${unit}`)
+          : t.shopping.basisMin}
+      </div>
+      {notes.length > 0 && (
+        <div className="text-ink-muted/70">{notes.join(" · ")}</div>
+      )}
+    </>
   );
 }

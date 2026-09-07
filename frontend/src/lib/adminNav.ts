@@ -102,6 +102,10 @@ export const SHOP_STOCK_ORDER = [
   "writeoffs",
   "transfers",
   "stocktake",
+  // And what the count found. ⚠️ After it for the same reason it is after it
+  // everywhere: a shortfall is a count's second half, and a shop reads the two
+  // in that order.
+  "shortages",
 ];
 
 /** Puts one group in the order this business reads it in.

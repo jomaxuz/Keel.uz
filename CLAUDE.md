@@ -155,6 +155,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   migratsiyalar markeri), `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
   `warehouse`, `ingredient_placement`, `purchase` (kirim), `writeoff`,
   `stock_transfer` (ko'chirish), `production` (tsex partiyasi), `stocktake`,
+  `shortage_case` (sanoq topgan kamomadga berilgan **javob** — ⚠️ case'ning
+  o'zi saqlanmaydi, navbat har o'qishda sanoqlardan quriladi;
+  `(stocktakeId, ingredientId)` unique, javob bir martalik),
   `supplier`, `print_job`. Texkarta
   esa alohida kolleksiya emas — `menu_item.recipe` (taom kartasi) va
   `ingredient.recipe` + `output` (zagotovka: sous, xamir, sushi guruchi).
@@ -264,7 +267,10 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   filial masalliqni qaysi omborda saqlaydi), `/admin/warehouses`,
   `/admin/purchases` (+ `/{id}` PUT tahrir, `/{id}/pay`), `/admin/suppliers`
   + `/admin/reports/suppliers`, `/admin/writeoffs`, `/admin/transfers`,
-  `/admin/stocktake`, `/admin/stock/balances|movement|shopping-list`.
+  `/admin/stocktake`, `/admin/stock/balances|movement|shopping-list`,
+  `/admin/shortages` (+ `/close` — kamomad navbati; ⚠️ **`/admin/stock/` dan
+  tashqarida ataylab**: omborchining ruxsat ro'yxati prefiksli va metodni
+  bilmaydi, ya'ni javonni sanagan odam o'z kamomadiga javob yozib qo'yardi).
 - **Texkarta**: `PUT /admin/menu/{id}/recipe` (bitta maydonning `$set`'i).
   ⚠️ **Taom formasi endi `recipe` ni umuman yubormaydi** — karta o'z ekranida
   yoziladi, va `UpdateMenuItem` butun hujjatni almashtiradi: `keepRecipe`
@@ -315,7 +321,8 @@ tuzilma:
   `settings`, `account`.
 - **Panel → Ombor bo'limi**: `stock` (qoldiqlar), `shopping` (xarid ro'yxati),
   `ingredients`, `tech-cards` (zagotovka + taom kartalari), `purchases`,
-  `suppliers`, `writeoffs`, `transfers`, `stocktake`.
+  `suppliers`, `writeoffs`, `transfers`, `stocktake`, `shortages` (kamomad
+  navbati — sanoqning ikkinchi yarmi).
 - Til prefikslari (`/ru/`, `/en/`) faqat public sahifalarda —
   `isLocalizedPath()` (§10 "Til URL'lari").
 
@@ -561,6 +568,15 @@ va undan kun boshini olish butun oynani bir kun oldinga suradi.
   timestamp'dan kesib olmaydi.
 - Testda ushlash uchun sana **`.UTC()` bilan** beriladi — aynan drayver
   qaytaradigan ko'rinishda (`TestTenantPeriodAnchorsFromUTCDates`).
+- ⚠️ **Uchinchi yuzi: `time.Local.String()` har doim ham mintaqa nomi emas.**
+  `TZ` berilmagan bo'lsa (konteynerda beriladi, noutbukda yo'q) soat to'g'ri
+  ishlaydi, lekin nom **"Local"** bo'lib qoladi — Mongo esa `$dateToString` /
+  `$dayOfWeek` uchun buni `unrecognized time zone identifier` deb rad etadi.
+  Hech nima yiqilmaydi: agregatsiya xato qaytaradi, funksiya bo'sh xarita
+  beradi, ekran esa **bo'sh** chiziladi. Shuning uchun mintaqa nomi
+  `handlers.mongoTZ()` orqali beriladi (nomi bo'lmasa — joriy UTC ofseti), va
+  buning testi bor: `time.Local.String()` to'g'ridan-to'g'ri quvurga
+  berilmaydi.
 
 ### ⚠️ Tuzoq: Next.js `rewrites()` build vaqtida muhrlanadi
 `next.config.ts` dagi `rewrites()` **build paytida** marshrutlar manifestiga
@@ -699,6 +715,8 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Stol: QR, bron, zal | QR menyu · Stol bron qilish · Kassa (POS) va zal |
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
 | Ombor, tannarx, sanash | Tannarx va ombor |
+| Kamomad, sanoq topilmasi, javob | Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi |
+| Xarid qarori, prognoz, kirim ritmi, muddat | Xarid qarori: qancha va qachongacha |
 | Kartasiz sotuv, qamrov, manfiy qoldiq | Ombor qamrovi: sotuvning qancha qismi kartalar bilan qoplangan |
 | Spisaniya, void, chek bekor, backfill | Spisaniya hujjati: chekka urilganda yoziladi |
 | Harakat hisoboti, partiya, kunlik sotuv | Harakat hisoboti nima uchun o'z jamiga yetmasdi |

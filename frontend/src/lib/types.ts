@@ -4255,6 +4255,33 @@ export interface ShoppingRow {
   suggested: number;
   price: number;
   cost: number;
+
+  /** Which rule decided the quantity: "forecast" — what it will take before
+   *  the next delivery arrives; "min" — the gap back up to the reorder point.
+   *
+   *  ⚠️ **Shown, not hidden.** "Min" is a line somebody drew once and may never
+   *  have revisited; "forecast" is this month's cooking. A quantity an owner
+   *  cannot take apart is one they either follow blindly or ignore. */
+  basis: "forecast" | "min";
+  /** Days the branch traded and this line moved nothing, on a line that
+   *  otherwise moves nearly every day. ⚠️ An empty shelf is not a quiet one:
+   *  these days are left out of the rate the forecast is built from, or an item
+   *  that ran out is ordered less and runs out again. */
+  stockOuts?: number;
+  /** How many days ahead the suggestion is meant to last, and the forecast
+   *  daily rate over them. Present only where the forecast had a say. */
+  cover?: number;
+  daily?: number;
+  /** Measured days between deliveries and how many were measured — so the
+   *  screen can say where the horizon came from. */
+  every?: number;
+  deliveries?: number;
+  /** Measured shelf life in days, where dates are entered. It caps the
+   *  horizon, so a short cover has a reason beside it. */
+  shelfLife?: number;
+  /** Already asked for on a list somebody is out with, and therefore already
+   *  subtracted from the suggestion. */
+  requested?: number;
 }
 
 /** One call to make. ⚠️ Grouped by supplier because that is how shopping is
@@ -5077,6 +5104,96 @@ export interface TillPayee {
  *  against a box — consumption keys on the ingredient — so a screen that read
  *  this as a shelf count would be inventing a number, and a pharmacist who
  *  finds one stock figure wrong stops believing every other one. */
+/** What a shortfall turned out to be.
+ *
+ *  ⚠️ **Six answers and no "other", because the list is the product.** A free
+ *  sentence alone makes the queue a pile of prose nobody can count; the kind is
+ *  what lets a month of them say "half of ours are deliveries nobody entered",
+ *  which is a fixable sentence about a process. The sentence is still required —
+ *  the kind says which class, and only the words say which delivery. */
+export type ShortageVerdict =
+  | "miscount"
+  | "waste"
+  | "card"
+  | "paperwork"
+  /** Rung up as something else: this row is short and its twin is over.
+   *  ⚠️ Offered everywhere, and a shop cannot do without it — see
+   *  lib/shortages.ts. */
+  | "swap"
+  | "lost";
+
+/** One shortfall: one ingredient, on one count, in one store. */
+export interface ShortageRow {
+  /** ⚠️ The pair **is** the id — there is no case document until somebody
+   *  answers one, so nothing else could be. */
+  stocktakeId: string;
+  ingredientId: string;
+  name: string;
+  unit: string;
+  branchId?: string;
+  branch?: string;
+  warehouseId?: string;
+  warehouse?: string;
+  /** When it was found, and the previous count of that store — the stretch it
+   *  accumulated over. ⚠️ Absent where the store had never been counted: that
+   *  shortfall is measured from the beginning of time and must not be read as
+   *  a month's loss. */
+  at: string;
+  since?: string;
+  expected: number;
+  counted: number;
+  diff: number;
+  /** What is missing, in som, positive. */
+  value: number;
+  by?: string;
+  /** The whole count's note and shortfall — a count's note covers forty lines,
+   *  and `share` is how much of it this one is. */
+  countNote?: string;
+  countLoss: number;
+  share: number;
+
+  /** How long the period was, and what the shortfall works out to a day.
+   *  ⚠️ A million som over ninety days is shrinkage; the same million over four
+   *  days is still happening, and money alone cannot tell them apart. */
+  days?: number;
+  perDay?: number;
+  /** What share of what should have been there is gone. Twelve kilos out of
+   *  four hundred is trade; twelve out of fourteen is an event. */
+  pct?: number;
+  /** What the tech cards accounted for over the same period.
+   *  ⚠️ **Zero is the most important thing this screen can say**, and it is not
+   *  a shortfall: where nothing consumed the ingredient, the whole counted
+   *  difference is a gap in the cards rather than something that left. */
+  used: number;
+  /** How many of this store's counts in the window found it short. Twice is a
+   *  pattern; once is an evening. */
+  repeat?: number;
+  /** A surplus on the same count worth about the same — the mis-scan, named
+   *  before somebody calls it a loss. A question, never a verdict. */
+  twin?: string;
+  verdict?: ShortageVerdict;
+  verdictNote?: string;
+  verdictBy?: string;
+  verdictAt?: string;
+}
+
+export interface ShortageQueue {
+  rows: ShortageRow[];
+  /** Rows past the cap. ⚠️ Sent so the screen can say the list is not all of
+   *  it, rather than quietly implying it is. */
+  more: number;
+  from: string;
+  to: string;
+  days: number;
+  open: number;
+  openValue: number;
+  total: number;
+  /** What share of sales the tech cards account for over the same window, and
+   *  whether it is low enough that these figures do not mean what they say. */
+  coverage: number;
+  weak: boolean;
+}
+
 export interface ExpiringRow {
   ingredientId: string;
   name: string;

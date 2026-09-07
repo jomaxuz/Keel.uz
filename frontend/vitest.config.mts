@@ -115,6 +115,12 @@ export default defineConfig({
       // somebody else's work — which is what a chemist reading "Masalliqlar"
       // over a shelf of paracetamol was looking at.
       "src/lib/adminNav.test.ts",
+      // Which answers a shortfall may be given in this business. Here for the
+      // same reason as the row above: from a restaurant every one of these is
+      // correct, and the wrong answer is wrong for every chemist on the
+      // platform at once — a shop offered "the tech card takes more than the
+      // kitchen does" is being offered a reason that cannot be true.
+      "src/lib/shortages.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

@@ -1037,6 +1037,24 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// The explanation, given after the count is locked. A separate step
 			// because the sheet is blind — see the handler.
 			r.Post("/admin/stocktake/{id}/explain", h.AdminExplainStocktake)
+			// And what the counts found, as work rather than as documents:
+			// every shortfall of the last quarter, worst first, with the ones
+			// nobody has answered on top. ⚠️ Derived from the counts on every
+			// read — only the answer is stored. See shortagecases.go.
+			//
+			// ⚠️ **Deliberately not under `/admin/stock/`, and the address is
+			// the gate.** That prefix is on the storekeeper's allow-list
+			// (stocklogin.go), which has no notion of methods — so a queue
+			// served from it would let the person who counted the shelf write
+			// the verdict on their own shortfall. That is the exact failure the
+			// blind count sheet exists to prevent, one screen along. Here the
+			// path itself is off their list, and a storekeeper is refused both
+			// halves.
+			r.Get("/admin/shortages", h.AdminShortageCases)
+			// ⚠️ Not `/{id}/…`: a case has no id of its own, because it has no
+			// document until this call creates one. The pair of ids that names
+			// it goes in the body with the verdict.
+			r.Post("/admin/shortages/close", h.AdminCloseShortageCase)
 
 			// What guests owe. ⚠️ A debt is the sale itself, closed and unpaid
 			// — see debts.go.

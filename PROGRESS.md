@@ -13842,3 +13842,166 @@ bloklangan, JWT_SECRET boot-guard, path-traversal ikki qavat, sirlar `json:"-"`,
 
 Backend `go build/vet/test ./...` toza, control testlari toza, frontend
 `tsc --noEmit` toza, 251 test yashil. Qaror `docs/DECISIONS.md` da.
+
+---
+
+## 2026-09-07 (6) — Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi ✅
+
+Qaror qatlamining birinchi imkoniyati (dizayn hujjati: «Qaror qatlami», 6
+imkoniyat). Yangi arifmetika **yozilmadi** — sanoq allaqachon har qator uchun
+kutilgan/sanalgan/farq/qiymatni muzlatib saqlaydi. Yetishmagani navbat edi:
+topilma bitta hujjatni ochib qirq qator o'qish bilan yetib boradigan joyda
+turardi, va muhim 12 kg go'sht bir gramm farq qilgan ikki qator petrushka
+orasida edi.
+
+**Backend** — `internal/handlers/shortagecases.go`,
+`internal/models/shortagecase.go`, `shortage_case` kolleksiyasi:
+- `GET /admin/shortages` — navbat: filial × masalliq, **so'mda**, javobsizlari
+  tepada. Har qator davrini aytadi (o'sha ombordagi **oldingi** sanoq; birinchi
+  sanoqda `null`), kim sanaganini, sanoq izohini va `share` (butun sanoq
+  kamomadining necha foizi) ni.
+- `POST /admin/shortages/close` — javob: besh sabab (`miscount`, `waste`,
+  `card`, `paperwork`, `lost`) + **majburiy jumla**. `InsertOne` + unique
+  indeks: ikkinchi javob rad etiladi (409), sanoqning o'z izohi bilan bir
+  qoida.
+- Case **saqlanmaydi**, faqat javob saqlanadi — navbat har o'qishda
+  sanoqlardan quriladi (`provisionStatus` darsining teskarisi).
+- Qatorlarni quradigan qism **alohida funksiya** (`shortageRows`) va javob
+  faqat undan o'tadi — `downloadsJSON` darsining o'zi.
+
+**Ikki darvoza:**
+- Manzil `/admin/stock/` dan **tashqarida**: omborchining ruxsat ro'yxati
+  metodni bilmaydigan prefikslar, ya'ni o'sha prefiksdan berilgan navbatni
+  javonni **o'zi sanagan** odam yopib qo'yardi.
+- Narxi: hech nima meros olinmaydi, shuning uchun `modulegate.go` ga alohida
+  qator (`ModStock`) va uning testi — aks holda modulni sotib olmagan restoran
+  uchun ochiq qolardi. Live tekshiruvda aynan shu chiqdi.
+
+**Frontend** — `/admin/shortages` («Kamomad»), yon panelda
+Inventarizatsiyadan keyin, uch tilda. Uchta plitka: **javobsiz kamomad**
+(bosh raqam — jami emas, jami faqat o'sadi), davrdagi jami, texkarta qamrovi.
+Qamrov 70% dan past bo'lsa sariq ogohlantirish: kutilgan qoldiq faqat kartasi
+bor taomlardan hisoblanadi, ya'ni past qamrovda navbat **o'ylab topilgan**
+kamomadlar bilan to'ladi.
+
+**Jonli tekshirildi** (mahalliy mongo + panel): 20 kg → 8 kg sanoq → navbatda
+«Mol go'shti −12 kg · 1 080 000 so'm», filial/ombor/davr/kim sanagani joyida;
+javob saqlandi, ikkinchisi 409 («bu kamomad allaqachon izohlangan», ruschada
+ham), izohsiz va noto'g'ri sabab rad etildi, kamomadi yo'q qatorga javob
+yozib bo'lmadi. Sinov ma'lumotlari tozalandi.
+
+`go build/vet/test ./...` toza (8 yangi test), frontend `tsc` + lint toza,
+251 test yashil. Qaror `docs/DECISIONS.md` → «Kamomad-case».
+
+**Yo'l-yo'lakay topilgan (tuzatilmadi):** `text-warn` / `bg-warn` klasslari
+Tailwind konfiguratsiyasida **umuman yo'q** (7 joyda ishlatilgan, shundan
+`/admin/expiring` ning "muddati yaqin" qatori) — `danger` bilan bo'lgan xato
+takrorlangan: matn joyida, rangi jimgina oddiy siyoh.
+
+---
+
+## 2026-09-07 (7) — Har bir imkoniyat biznes turiga qarab to'g'ri ishlashi kerak
+
+Foydalanuvchi qo'ygan shart: kamomad, xarid qarori va qolganlari **har biri
+biznes turiga qarab** to'g'ri ishlashi kerak. Ikki ish bajarildi.
+
+### 1. Kamomad-case: dorixonaga bo'lishi mumkin bo'lmagan sabab taklif qilinmaydi
+
+Ekran oshxona so'zlari bilan chiqqan edi: paratsetamol javoni ustida
+«Texkarta qamrovi», va grocery/dorixona/kiyim do'koni **bera olmaydigan** javob
+(«texkarta ko'p yozadi» — tovarning bir qatorli kartasini server yozadi, uni
+shishirib bo'lmaydi).
+
+- `frontend/src/lib/shortages.ts` — `verdictsFor(brand)`, testi bilan
+  (`adminNav.ts` bilan bir doktrina: qoida — komponent ichida emas, o'z faylida).
+  **Yashiriladi, rad etilmaydi**: server oltalasini ham qabul qiladi, chunki
+  saqlangan javob har installda bir xil ma'noda bo'lishi kerak.
+- **Oltinchi sabab — `swap`** (kassada boshqasi urilgan, juftida ortiqcha).
+  Busiz do'kon har noto'g'ri skanerni `lost` ga yozadi, va oyning yakuni
+  shtrix-kod muammosi bo'lgan do'kon haqida «o'g'rilik» deb o'qiladi.
+- Do'kon so'zlari: qamrov plitkasi, past qamrov ogohlantirishi va izoh
+  namunasi.
+
+### 2. Xarid qarori (2-imkoniyat): taxmindan buyruqqa
+
+`internal/handlers/orderplan.go` + xarid ro'yxatiga ikkinchi qoida. Uchta
+o'lchov, hammasi mavjud hujjatlardan: **hafta kuni bo'yicha sarf**
+(`stock_movement`), **kirim ritmi** (mediana oraliq) va **yaroqlilik muddati**
+(mediana, gorizontni qisqartiradi). `kerak = prognoz(gorizont) − qoldiq −
+allaqachon so'ralgan`; ikki qoidadan kattarog'i g'olib, `basis` qaysi biri
+ekanini aytadi va ekran hisobini yozadi («6 kunga · kuniga ~13.3 kg»).
+
+Biznes turi **kodda emas, ma'lumotda**: kiyim do'koni o'zini o'zi himoya qiladi
+(prognoz uchun uch xil kunda sotuv **va** ikkita kirim shart), dorixonaning
+yogurtida gorizont muddat bilan qisqaradi.
+
+**Jonli tekshirildi** (alohida `qa_orderplan` bazasi, 8 haftalik sotuv + 4
+kunlik kirim ritmi, keyin o'chirildi): go'sht — ritm 4 kun → gorizont 6 kun →
+prognoz 80 kg (dam olish kunlari ichida) − 8 = **72 kg**; sut — gorizont **5
+kunga qisqardi** (muddat 5 kun) → 14 l; ko'ylak — ikki kunlik sotuv, prognoz
+jim, eski qoida → 1 dona. Ochiq bozorlik ro'yxatiga 40 kg go'sht yozilgach,
+taklif **32 kg** ga tushdi.
+
+### ⚠️ Yo'l-yo'lakay topilgan jimgina xato: `time.Local.String()` = "Local"
+
+`TZ` berilmagan bo'lsa (noutbukda — normal holat) soat to'g'ri, lekin mintaqa
+nomi «Local» bo'lib qoladi va Mongo `$dayOfWeek`/`$dateToString` ni **rad
+etadi**. Hech nima yiqilmaydi: funksiya bo'sh xarita qaytaradi, ekran bo'sh
+chiziladi. Prognoz aynan shunday jim turgan; **allaqachon jonli bo'lgan**
+`stockbalance.go` dagi «kunlik sotuv» qatorlari va `insightgrowth.go` ham shu
+holatda edi. Endi `handlers.mongoTZ()` (nomi bo'lmasa — UTC ofseti) va uning
+testi; CLAUDE.md dagi UTC tuzog'iga uchinchi yuzi qo'shildi.
+
+Backend `go build/vet/test ./...` toza (7 yangi test), frontend `tsc` + lint
+toza, 257 test yashil. Qarorlar `docs/DECISIONS.md` da.
+
+---
+
+## 2026-09-07 (8) — Ikkala algoritmning aniqligi: nima noto'g'ri edi va nima tuzatildi
+
+Ikkalasi ham "ishlayapti" edi, lekin har birida **jimgina va bir tomonlama**
+xato bor edi. Har biri tuzatildi va har birining testi bor.
+
+### Xarid qarori
+
+1. **Gorizont kam edi.** Bugungi buyurtma bugun javonga chiqmaydi: u keyingi
+   kirim bilan keladi va undan keyingisigacha yetishi kerak. Endi
+   `gorizont = keyingi kirimgacha + bitta sikl + zaxira` (lead + review +
+   safety), uchala hadi ham o'lchangan. Eski `sikl + zaxira` faqat kirim
+   endigina ketgan ertalab to'g'ri edi.
+2. **Bo'sh javon "talab yo'q" deb o'qilardi** — sodda prognozni doimiy ravishda
+   kam buyurtiradigan qiladigan xato (tugadi → kam buyurtirildi → yana tugadi).
+   Endi bo'linuvchi — filial **savdo qilgan** kunlar, va har kuni sotiladigan
+   qator (savdo kunlarining ≥2/3 ida sotilgan) uchun sotilmagan kunlar
+   bo'linuvchidan chiqariladi hamda ekranda aytiladi. 2/3 chegarasi baland:
+   faqat dam olish kunlari sotiladigan qatorning nollari **haqiqiy**.
+3. **Yaxlitlash**: yuqoriga, dona esa butun songa. 71.9 kilodan 71 ga tushirish
+   hech nima tejamaydi va ekran oldini olishi kerak bo'lgan holatga qaytaradi.
+
+### Kamomad
+
+Navbat pul bo'yicha tartiblanadi, lekin pul aytolmaydigan narsalar endi qator
+yonida — har biri mavjud faktlar ustidagi arifmetika, yangi da'vo emas:
+
+- `days` / `perDay` — 90 kunda bir million (tabiiy yo'qotish) va 4 kunda o'sha
+  million (hozir ham davom etyapti) farqi.
+- `pct` — kutilganning necha foizi (400 kg dan 12 kg ≠ 14 kg dan 12 kg).
+- `repeat` — shu omborda necha sanoqda ketma-ket kam chiqqani.
+- **`used` — o'sha davrda kartalar qancha sarflagani.** ⚠️ Nol bo'lsa bu kamomad
+  emas: hech nima uni sarflamagan, demak farq — kartadagi bo'shliq. Yuqoridagi
+  qamrov foizi buni ayta olmaydi — u restoran haqidagi fakt, bu esa qator
+  haqidagi.
+- **`twin` — o'sha sanoqdagi shuncha pulga ortiqcha qator** (farqi ¼ dan kam).
+  Ikki o'xshash paket va bitta shtrix-kod aynan shu juftlikni beradi; navbat
+  faqat kamomadni ko'rsatgani uchun tushuntiradigan yarmi ko'rinmasdi. Savol,
+  hukm emas.
+
+**Jonli tekshirildi** (`qa_orderplan`, 8 haftalik sotuv + 3 kunlik sun'iy
+tugash + juftlik sanog'i; keyin o'chirildi): go'sht — 15 kunlik davr, kuniga
+72 000 so'm, kutilganning 60% i, kartalar 190 kg sarflagan (ya'ni haqiqiy
+kamomad); **Guruch A — `used: 0` va `twin: "Guruch B"`** (ikkalasi bir sanoqda,
+teng pulga), ya'ni ekran uni kamomad deb emas, savol deb ko'rsatadi. Xaridda:
+sut — gorizont muddat bilan 5 kunga qisqardi (14 l), go'sht — 72 kg va «3 kun
+sotuvda bo'lmagan — o'sha kunlarsiz hisoblandi».
+
+Backend `go build/vet/test ./...` toza, frontend `tsc` + lint toza, 257 test.
