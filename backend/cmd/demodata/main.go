@@ -28,6 +28,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"strings"
@@ -955,7 +956,7 @@ func (w *world) stockroom(ctx context.Context) {
 			continue
 		}
 		_, err := w.store.Menu.UpdateByID(ctx, d.ID,
-			bson.M{"$set": bson.M{"recipe": lines, "cost": cost}})
+			bson.M{"$set": bson.M{"recipe": recipeUnits(lines, ings), "cost": cost}})
 		if err == nil {
 			w.recipes[d.ID] = lines
 			written++
@@ -999,11 +1000,37 @@ func (w *world) deliveries(ctx context.Context) {
 			q = round(in, 3) // something nobody has cooked with yet
 		}
 		counted[in.ID] = q
+		// ⚠️ **Most lines agree, and that is what makes the few that do not
+		// worth looking at.** Two per cent off on every single ingredient — the
+		// first version of this — is not a count any kitchen has ever taken:
+		// it fills the shortfall queue with two hundred identical rows, which
+		// is the screen that queue exists to replace. A handful short, one of
+		// them badly, and the occasional surplus (a delivery booked twice) is
+		// what a real sheet looks like.
+		expected := q
+		switch n := rng.Intn(100); {
+		case n < 8:
+			expected = q + round(in, q*(0.08+rng.Float64()*0.07)) // gone
+		case n < 25:
+			expected = q + round(in, q*(0.01+rng.Float64()*0.02)) // shrinkage
+		case n < 30:
+			expected = q - round(in, q*(0.01+rng.Float64()*0.04)) // found more
+		}
+		diff := round(in, q-expected)
+		// ⚠️ **The value of the *difference*, signed — not of what is on the
+		// shelf.** `StocktakeLine.Value` is what the count was out by (see
+		// models/stocktake.go); writing the counted stock's worth here made
+		// every line look like a surplus the size of the whole shelf, so the
+		// shortfall queue found nothing to show and the count's own total
+		// claimed the kitchen had gained a store room. The save path computes
+		// it exactly this way — a demo that disagrees with the product is a
+		// demo of a different product.
+		lineValue := int(diff * float64(in.Price))
 		lines = append(lines, models.StocktakeLine{
-			IngredientID: in.ID, Counted: q, Expected: q + round(in, q*0.02),
-			Diff: -round(in, q*0.02), Value: int(q * float64(in.Price)),
+			IngredientID: in.ID, Counted: q, Expected: expected,
+			Diff: diff, Value: lineValue,
 		})
-		value += int(q * float64(in.Price))
+		value += lineValue
 	}
 	_, err := w.store.Stocktakes.InsertOne(ctx, models.Stocktake{
 		ID: oid(), BranchID: w.branch.ID, WarehouseID: w.mainStore, At: countAt,
@@ -1033,7 +1060,20 @@ func (w *world) deliveries(ctx context.Context) {
 				// A week's cooking, plus a little. After the count there are
 				// two deliveries left before today, so the shelf lands at
 				// roughly ten days of stock — full, and nowhere near negative.
-				qty := round(in, daily[in.ID]*7*(1.1+rng.Float64()*0.2))
+				share := 1.1 + rng.Float64()*0.2
+				// ⚠️ **Except for a handful of lines on the last delivery, and
+				// that exception is the point of the screen.** A store where
+				// every shelf is full is a store with an empty shopping list —
+				// and this tool exists because an empty screen is not a
+				// screenshot of a working product. A real kitchen is
+				// comfortable on most things and ringing the butcher about
+				// three; every fifth ingredient is deliberately under-bought on
+				// the most recent delivery so that today it sits below its
+				// reorder point, without ever going negative.
+				if week == 0 && i%5 == 0 {
+					share = 0.2 + rng.Float64()*0.2
+				}
+				qty := round(in, daily[in.ID]*7*share)
 				if qty <= 0 {
 					qty = round(in, 2)
 				}
@@ -1140,6 +1180,48 @@ func (w *world) assumeUsage() {
 			w.used[l.IngredientID] += l.Qty * perDay * float64(w.days)
 		}
 	}
+}
+
+// recipeUnits converts a card from the shelf's units into the card's own.
+//
+// ⚠️ **The two vocabularies that this whole file computes in one of, and the
+// product stores in the other.** A shelf is bought, counted and priced in kilos,
+// litres and pieces; a technical card is written in grams, millilitres and
+// pieces, and every reader of `menu_item.recipe` divides by `PerUnit` to get
+// back to the shelf (`consumedBy`, `recipeCost`, the stop list). This tool sizes
+// portions against prices, so it works in purchase units throughout — and it
+// used to store them unconverted.
+//
+// ⚠️ **The failure was total and completely silent.** Three hundred and twenty
+// grams of rice went in as 0.32 *grams*: a thousandth of what the kitchen
+// actually uses. Consumption then rounded to zero, so no shelf ever fell, so the
+// shopping list on every demo tenant was permanently empty — which is the exact
+// screen this tool exists to fill — while the food cost read as a fraction of a
+// per cent on the one page a restaurant checks the money on. Nothing errored,
+// and `dona` lines were right (PerUnit is 1), which is why a spot check passed.
+//
+// Converted here, at the single point where the tool's numbers become the
+// product's document, rather than at the two places that add consumption up:
+// this file's arithmetic is priced arithmetic and belongs in purchase units.
+func recipeUnits(
+	lines []models.RecipeLine, ings []models.Ingredient,
+) []models.RecipeLine {
+	unit := map[primitive.ObjectID]string{}
+	for _, in := range ings {
+		unit[in.ID] = in.Unit
+	}
+	out := make([]models.RecipeLine, 0, len(lines))
+	for _, l := range lines {
+		per := float64(models.PerUnit(unit[l.IngredientID]))
+		qty := l.Qty * per
+		// Whole grams and whole pieces: a card asking for 316.8 g reads as
+		// generated, and the third decimal of a gram is not a portion anybody
+		// weighs.
+		out = append(out, models.RecipeLine{
+			IngredientID: l.IngredientID, Qty: math.Round(qty),
+		})
+	}
+	return out
 }
 
 // recipeFor invents a plausible tech card: a protein or a base, two or three
