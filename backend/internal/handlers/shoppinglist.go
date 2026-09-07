@@ -53,6 +53,37 @@ type shoppingRow struct {
 	// What that much cost last time, and therefore roughly what this will.
 	Price int `json:"price"`
 	Cost  int `json:"cost"`
+
+	// ---- Why this quantity, and until when ----
+	//
+	// ⚠️ **Shown rather than trusted.** A number an owner cannot take apart is
+	// a number they either follow blindly or ignore entirely, and both are
+	// worse than the notebook this screen replaced. Each of these is a
+	// measurement from documents the restaurant already writes — see
+	// orderplan.go.
+
+	// Which rule decided the quantity: "forecast" — what it will take before
+	// the next delivery; "min" — the gap back up to the reorder point.
+	//
+	// ⚠️ **Named, because the two mean different things.** "Min" is a line
+	// somebody drew once and may never have revisited; "forecast" is this
+	// month's cooking. An owner reading a quantity deserves to know which of
+	// those they are looking at.
+	Basis string `json:"basis"`
+	// How many days ahead this order is meant to last.
+	Cover int `json:"cover,omitempty"`
+	// Forecast consumption per day over that horizon, in purchase units.
+	Daily float64 `json:"daily,omitempty"`
+	// Measured days between deliveries, and how many were measured. Zero when
+	// there have not been two.
+	Every      float64 `json:"every,omitempty"`
+	Deliveries int     `json:"deliveries,omitempty"`
+	// Measured shelf life in days, where the dates are entered — it is what
+	// caps the horizon, so a screen showing a short cover can say why.
+	ShelfLife float64 `json:"shelfLife,omitempty"`
+	// Already asked for on a list somebody is out with, and therefore already
+	// subtracted from the suggestion.
+	Requested float64 `json:"requested,omitempty"`
 }
 
 type shoppingGroup struct {
@@ -98,6 +129,17 @@ func (h *Handler) shoppingList(
 	placed := h.placementsIn(r.Context(), branch)
 	lastSupplier := h.lastSupplierOf(r, scope)
 
+	// ---- What the shelf actually consumes, and how it is refilled ----
+	//
+	// ⚠️ **Three measurements rather than a setting**, all read from documents
+	// the restaurant already writes — see orderplan.go for why each one is
+	// measured instead of asked for.
+	now := time.Now()
+	profile := h.demandProfile(r.Context(), scope,
+		now.AddDate(0, 0, -7*demandWeeks), now)
+	refill := h.deliveryRhythm(r.Context(), scope, now.AddDate(0, 0, -rhythmDays))
+	requested := h.requestedQty(r.Context(), branch)
+
 	named := map[primitive.ObjectID]models.Supplier{}
 	if cur, err := h.Store.Suppliers.Find(r.Context(), Scope{BrandID: brand}.brandFilter(bson.M{})); err == nil {
 		var rows []models.Supplier
@@ -110,22 +152,63 @@ func (h *Handler) shoppingList(
 	groups := map[primitive.ObjectID]*shoppingGroup{}
 	total := 0
 	for _, in := range ingredients {
-		// ⚠️ **Only where a minimum was set**, and a prep item never: nobody
-		// tracks a minimum for cinnamon, and a sauce is cooked rather than
-		// bought — putting either on a shopping list is how a list stops being
-		// read.
-		if in.MinQty <= 0 || in.DerivedOnly() {
+		// ⚠️ **A prep item never.** A sauce is cooked rather than bought, and
+		// putting one on a shopping list is how a list stops being read.
+		if in.DerivedOnly() {
 			continue
 		}
 		onHand := byWarehouse[placed[in.ID]][in.ID]
-		if onHand >= in.MinQty {
-			continue
-		}
-		// ⚠️ A shelf that has gone negative is still only short by its minimum:
+		// ⚠️ A shelf that has gone negative is treated as empty and no worse:
 		// the negative half is a measurement error (an unentered delivery, a
 		// card that overstates), and ordering against it would buy twice.
-		short := in.MinQty - math.Max(onHand, 0)
-		price := in.PriceAt(time.Now())
+		have := math.Max(onHand, 0) + requested[in.ID]
+
+		// ---- The two rules, and the one that asks for more wins ----
+		//
+		// ⚠️ **Both, rather than the forecast replacing the minimum.** A
+		// minimum is a line an owner drew deliberately — often for something
+		// whose absence stops service rather than something that sells fast —
+		// and a forecast that quietly overrode it would take away a control
+		// people already rely on. Whichever asks for more is the honest answer,
+		// and `basis` says which one it was.
+		//
+		// ⚠️ **Only where a minimum was set**: nobody tracks a minimum for
+		// cinnamon, and a list where every ingredient eventually appears is a
+		// list nobody reads.
+		short := 0.0
+		if in.MinQty > 0 && have < in.MinQty {
+			short = in.MinQty - have
+		}
+		basis := "min"
+
+		// ⚠️ **The forecast needs a history before it is allowed to speak.**
+		// Three separate selling days is a thing that sells; anything less is a
+		// rate invented from one event — a dress that left the rail once, and
+		// an order for three more of it. See forecastMinDays.
+		want := profile[in.ID]
+		fill := refill[in.ID]
+		cover := coverDays(fill)
+		// ⚠️ **And a delivery history, which is the guard that keeps this
+		// screen from filling up.** "How much until the next delivery" has no
+		// meaning where nobody records deliveries: the horizon would be a
+		// made-up week, and every fast-moving ingredient in the catalogue would
+		// appear every morning — which is how a list stops being read. A
+		// restaurant that does not enter its purchases keeps exactly the screen
+		// it had: minimums only.
+		forecastable := want.days >= forecastMinDays && fill.deliveries >= 2
+		need := 0.0
+		if forecastable {
+			need = want.forecast(now, cover) - have
+			if need > short {
+				short = need
+				basis = "forecast"
+			}
+		}
+		if short <= 0 {
+			continue
+		}
+
+		price := in.PriceAt(now)
 		row := shoppingRow{
 			IngredientID: in.ID.Hex(),
 			Name:         in.Name,
@@ -135,6 +218,18 @@ func (h *Handler) shoppingList(
 			Suggested:    round3(short),
 			Price:        price,
 			Cost:         int(math.Round(float64(price) * short)),
+			Basis:        basis,
+			Requested:    round3(requested[in.ID]),
+			Every:        round3(fill.every),
+			Deliveries:   fill.deliveries,
+			ShelfLife:    round3(fill.shelfLife),
+		}
+		// The horizon and the rate only travel with a row the forecast had a
+		// say in: printed beside a minimum-driven quantity they would look like
+		// its reasoning, which they are not.
+		if forecastable {
+			row.Cover = cover
+			row.Daily = round3(want.forecast(now, cover) / float64(cover))
 		}
 		sup := lastSupplier[in.ID]
 		g, ok := groups[sup]

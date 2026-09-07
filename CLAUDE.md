@@ -568,6 +568,15 @@ va undan kun boshini olish butun oynani bir kun oldinga suradi.
   timestamp'dan kesib olmaydi.
 - Testda ushlash uchun sana **`.UTC()` bilan** beriladi — aynan drayver
   qaytaradigan ko'rinishda (`TestTenantPeriodAnchorsFromUTCDates`).
+- ⚠️ **Uchinchi yuzi: `time.Local.String()` har doim ham mintaqa nomi emas.**
+  `TZ` berilmagan bo'lsa (konteynerda beriladi, noutbukda yo'q) soat to'g'ri
+  ishlaydi, lekin nom **"Local"** bo'lib qoladi — Mongo esa `$dateToString` /
+  `$dayOfWeek` uchun buni `unrecognized time zone identifier` deb rad etadi.
+  Hech nima yiqilmaydi: agregatsiya xato qaytaradi, funksiya bo'sh xarita
+  beradi, ekran esa **bo'sh** chiziladi. Shuning uchun mintaqa nomi
+  `handlers.mongoTZ()` orqali beriladi (nomi bo'lmasa — joriy UTC ofseti), va
+  buning testi bor: `time.Local.String()` to'g'ridan-to'g'ri quvurga
+  berilmaydi.
 
 ### ⚠️ Tuzoq: Next.js `rewrites()` build vaqtida muhrlanadi
 `next.config.ts` dagi `rewrites()` **build paytida** marshrutlar manifestiga
@@ -707,6 +716,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
 | Ombor, tannarx, sanash | Tannarx va ombor |
 | Kamomad, sanoq topilmasi, javob | Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi |
+| Xarid qarori, prognoz, kirim ritmi, muddat | Xarid qarori: qancha va qachongacha |
 | Kartasiz sotuv, qamrov, manfiy qoldiq | Ombor qamrovi: sotuvning qancha qismi kartalar bilan qoplangan |
 | Spisaniya, void, chek bekor, backfill | Spisaniya hujjati: chekka urilganda yoziladi |
 | Harakat hisoboti, partiya, kunlik sotuv | Harakat hisoboti nima uchun o'z jamiga yetmasdi |

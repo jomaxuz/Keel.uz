@@ -13897,3 +13897,60 @@ yozib bo'lmadi. Sinov ma'lumotlari tozalandi.
 Tailwind konfiguratsiyasida **umuman yo'q** (7 joyda ishlatilgan, shundan
 `/admin/expiring` ning "muddati yaqin" qatori) — `danger` bilan bo'lgan xato
 takrorlangan: matn joyida, rangi jimgina oddiy siyoh.
+
+---
+
+## 2026-09-07 (7) — Har bir imkoniyat biznes turiga qarab to'g'ri ishlashi kerak
+
+Foydalanuvchi qo'ygan shart: kamomad, xarid qarori va qolganlari **har biri
+biznes turiga qarab** to'g'ri ishlashi kerak. Ikki ish bajarildi.
+
+### 1. Kamomad-case: dorixonaga bo'lishi mumkin bo'lmagan sabab taklif qilinmaydi
+
+Ekran oshxona so'zlari bilan chiqqan edi: paratsetamol javoni ustida
+«Texkarta qamrovi», va grocery/dorixona/kiyim do'koni **bera olmaydigan** javob
+(«texkarta ko'p yozadi» — tovarning bir qatorli kartasini server yozadi, uni
+shishirib bo'lmaydi).
+
+- `frontend/src/lib/shortages.ts` — `verdictsFor(brand)`, testi bilan
+  (`adminNav.ts` bilan bir doktrina: qoida — komponent ichida emas, o'z faylida).
+  **Yashiriladi, rad etilmaydi**: server oltalasini ham qabul qiladi, chunki
+  saqlangan javob har installda bir xil ma'noda bo'lishi kerak.
+- **Oltinchi sabab — `swap`** (kassada boshqasi urilgan, juftida ortiqcha).
+  Busiz do'kon har noto'g'ri skanerni `lost` ga yozadi, va oyning yakuni
+  shtrix-kod muammosi bo'lgan do'kon haqida «o'g'rilik» deb o'qiladi.
+- Do'kon so'zlari: qamrov plitkasi, past qamrov ogohlantirishi va izoh
+  namunasi.
+
+### 2. Xarid qarori (2-imkoniyat): taxmindan buyruqqa
+
+`internal/handlers/orderplan.go` + xarid ro'yxatiga ikkinchi qoida. Uchta
+o'lchov, hammasi mavjud hujjatlardan: **hafta kuni bo'yicha sarf**
+(`stock_movement`), **kirim ritmi** (mediana oraliq) va **yaroqlilik muddati**
+(mediana, gorizontni qisqartiradi). `kerak = prognoz(gorizont) − qoldiq −
+allaqachon so'ralgan`; ikki qoidadan kattarog'i g'olib, `basis` qaysi biri
+ekanini aytadi va ekran hisobini yozadi («6 kunga · kuniga ~13.3 kg»).
+
+Biznes turi **kodda emas, ma'lumotda**: kiyim do'koni o'zini o'zi himoya qiladi
+(prognoz uchun uch xil kunda sotuv **va** ikkita kirim shart), dorixonaning
+yogurtida gorizont muddat bilan qisqaradi.
+
+**Jonli tekshirildi** (alohida `qa_orderplan` bazasi, 8 haftalik sotuv + 4
+kunlik kirim ritmi, keyin o'chirildi): go'sht — ritm 4 kun → gorizont 6 kun →
+prognoz 80 kg (dam olish kunlari ichida) − 8 = **72 kg**; sut — gorizont **5
+kunga qisqardi** (muddat 5 kun) → 14 l; ko'ylak — ikki kunlik sotuv, prognoz
+jim, eski qoida → 1 dona. Ochiq bozorlik ro'yxatiga 40 kg go'sht yozilgach,
+taklif **32 kg** ga tushdi.
+
+### ⚠️ Yo'l-yo'lakay topilgan jimgina xato: `time.Local.String()` = "Local"
+
+`TZ` berilmagan bo'lsa (noutbukda — normal holat) soat to'g'ri, lekin mintaqa
+nomi «Local» bo'lib qoladi va Mongo `$dayOfWeek`/`$dateToString` ni **rad
+etadi**. Hech nima yiqilmaydi: funksiya bo'sh xarita qaytaradi, ekran bo'sh
+chiziladi. Prognoz aynan shunday jim turgan; **allaqachon jonli bo'lgan**
+`stockbalance.go` dagi «kunlik sotuv» qatorlari va `insightgrowth.go` ham shu
+holatda edi. Endi `handlers.mongoTZ()` (nomi bo'lmasa — UTC ofseti) va uning
+testi; CLAUDE.md dagi UTC tuzog'iga uchinchi yuzi qo'shildi.
+
+Backend `go build/vet/test ./...` toza (7 yangi test), frontend `tsc` + lint
+toza, 257 test yashil. Qarorlar `docs/DECISIONS.md` da.

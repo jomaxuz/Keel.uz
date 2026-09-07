@@ -17,8 +17,14 @@ func TestANegativeShelfIsOrderedAsEmptyNotAsNegative(t *testing.T) {
 	// against a function that computes nothing.
 	fn := between(t, src, "func (h *Handler) shoppingList", "\n}\n")
 
-	if !strings.Contains(fn, "in.MinQty - math.Max(onHand, 0)") {
+	// ⚠️ The expression moved when the forecast arrived — what is on hand is
+	// now "the shelf, floored at zero, plus what is already on somebody's
+	// list" — but the floor is the same fact and both rules read it.
+	if !strings.Contains(fn, "have := math.Max(onHand, 0) + requested[in.ID]") {
 		t.Fatal("a shelf below zero is being ordered against its negative figure")
+	}
+	if strings.Contains(fn, "in.MinQty - onHand") {
+		t.Fatal("the minimum rule reads the raw balance again")
 	}
 }
 
@@ -35,8 +41,21 @@ func TestTheListOnlyHoldsThingsSomebodyAskedToBeWarnedAbout(t *testing.T) {
 	src := readSource(t, "shoppinglist.go")
 	fn := between(t, src, "func (h *Handler) shoppingList", "\n}\n")
 
-	if !strings.Contains(fn, "in.MinQty <= 0 || in.DerivedOnly()") {
-		t.Fatal("the shopping list stopped being opt-in per ingredient")
+	// ⚠️ **The minimum rule is still opt-in**, and the forecast is not allowed
+	// to smuggle every ingredient onto the list past it: it speaks only for a
+	// row that has sold on enough separate days *and* has a delivery history to
+	// measure a horizon from. Without the second guard a restaurant that never
+	// enters purchases would get an invented week of cover for its whole
+	// catalogue, every morning.
+	if !strings.Contains(fn, "if in.MinQty > 0 && have < in.MinQty {") {
+		t.Fatal("the minimum rule stopped being opt-in per ingredient")
+	}
+	if !strings.Contains(fn, "in.DerivedOnly()") {
+		t.Fatal("a prep item can reach the shopping list — it is cooked, not bought")
+	}
+	if !strings.Contains(fn,
+		"want.days >= forecastMinDays && fill.deliveries >= 2") {
+		t.Fatal("the forecast speaks without a selling history or a delivery rhythm")
 	}
 }
 

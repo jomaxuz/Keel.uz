@@ -1351,8 +1351,23 @@ export const adminUz = {
   },
   shopping: {
     title: "Xarid ro'yxati",
+    // ⚠️ Ro'yxat endi ikki qoidadan: eng kam qoldiq (ega o'zi qo'ygan chiziq) va
+    // prognoz (keyingi kirimgacha qancha ketadi). Matn ikkalasini ham aytadi,
+    // chunki miqdorning **qaysi qoidadan** kelgani qatorda yozilgan.
     intro:
-      "Eng kam qoldig'idan pastga tushgan masalliqlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor — eng kam qoldiqqa yetkazish uchun kerak bo'lgani: qancha olish sizning qaroringiz.",
+      "Keyingi kirimgacha yetmaydigan masalliqlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor ikki qoidadan kattarog'i: haftaning shu kunlaridagi sarf bo'yicha prognoz yoki eng kam qoldiqqa yetkazish. Qancha olish — sizning qaroringiz.",
+    introGoods:
+      "Keyingi kirimgacha yetmaydigan tovarlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor ikki qoidadan kattarog'i: haftaning shu kunlaridagi sotuv bo'yicha prognoz yoki eng kam qoldiqqa yetkazish. Qancha olish — sizning qaroringiz.",
+    why: "Nega shuncha",
+    // ⚠️ Prognoz qatori o'z hisobini aytadi: necha kunga, kuniga qancha.
+    // Raqamni ochib bera olmaydigan ekran — yo ko'r-ko'rona bajariladi, yo
+    // umuman o'qilmaydi.
+    basisForecast: (days: number, daily: string) =>
+      `${days} kunga · kuniga ~${daily}`,
+    basisMin: "Eng kam qoldiqqa yetkazish",
+    every: (days: string) => `~${days} kunda bir keladi`,
+    shelfLife: (days: string) => `muddati ~${days} kun — shunga qarab qisqartirildi`,
+    alreadyAsked: (qty: string) => `${qty} allaqachon so'ralgan`,
     since: (d: string) =>
       `Qoldiq ${d} dagi sanashdan beri hisoblangan — bu taxmin.`,
     neverCounted:
@@ -6087,7 +6102,16 @@ export const adminRu: AdminDict = {
   shopping: {
     title: "Список закупки",
     intro:
-      "Ингредиенты, опустившиеся ниже минимального остатка, сгруппированные по тому, кто привозил их в последний раз. Количество — сколько не хватает до минимума: сколько брать, решаете вы.",
+      "Ингредиенты, которых не хватит до следующего прихода, сгруппированы по тому, кто привозил их в последний раз. Количество — большее из двух правил: прогноз по расходу в эти дни недели или добор до минимального остатка. Сколько брать — решаете вы.",
+    introGoods:
+      "Товары, которых не хватит до следующего прихода, сгруппированы по тому, кто привозил их в последний раз. Количество — большее из двух правил: прогноз по продажам в эти дни недели или добор до минимального остатка. Сколько брать — решаете вы.",
+    why: "Почему столько",
+    basisForecast: (days: number, daily: string) =>
+      `на ${days} дн. · ~${daily} в день`,
+    basisMin: "Добор до минимального остатка",
+    every: (days: string) => `приходит примерно раз в ${days} дн.`,
+    shelfLife: (days: string) => `срок годности ~${days} дн. — горизонт урезан`,
+    alreadyAsked: (qty: string) => `${qty} уже заказано`,
     since: (d: string) =>
       `Остаток посчитан от инвентаризации ${d} — это оценка.`,
     neverCounted:
@@ -10515,7 +10539,16 @@ export const adminEn: AdminDict = {
   shopping: {
     title: "Shopping list",
     intro:
-      "Ingredients below their minimum, grouped by whoever delivered them last. The quantity is the gap to the minimum: how much to actually buy is your call.",
+      "What will not last until the next delivery, grouped by whoever brought it last. The quantity is the larger of two rules: a forecast from what these weekdays actually consume, or the gap back up to the reorder point. How much to buy is your call.",
+    introGoods:
+      "What will not last until the next delivery, grouped by whoever brought it last. The quantity is the larger of two rules: a forecast from what these weekdays actually sell, or the gap back up to the reorder point. How much to buy is your call.",
+    why: "Why this much",
+    basisForecast: (days: number, daily: string) =>
+      `for ${days} days · ~${daily} a day`,
+    basisMin: "Back up to the reorder point",
+    every: (days: string) => `arrives about every ${days} days`,
+    shelfLife: (days: string) => `keeps ~${days} days — the horizon was capped`,
+    alreadyAsked: (qty: string) => `${qty} already asked for`,
     since: (d: string) =>
       `Stock is measured from the count on ${d} — an estimate.`,
     neverCounted:

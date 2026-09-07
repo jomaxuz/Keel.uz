@@ -459,7 +459,7 @@ func (h *Handler) factQuietHours(
 			// instant, which is UTC — a Tashkent lunch peak lands at seven in
 			// the morning and the card names the wrong hours entirely.
 			"_id": bson.M{"$hour": bson.M{
-				"date": "$createdAt", "timezone": time.Local.String(),
+				"date": "$createdAt", "timezone": mongoTZ(),
 			}},
 			"orders": bson.M{"$sum": 1},
 			"money":  bson.M{"$sum": "$total"},

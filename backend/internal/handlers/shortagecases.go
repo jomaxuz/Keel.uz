@@ -539,14 +539,6 @@ func (h *Handler) warehouseNames(
 	return out
 }
 
-// local is a database time in the restaurant's own hours.
-//
-// ⚠️ **The driver decodes every time as UTC**, whatever `TZ` says — CLAUDE.md
-// pays for this twice. It changes nothing for a full timestamp the browser
-// parses, and everything for the moment anybody formats one; converting here
-// means the next person to print a date on this screen cannot get yesterday.
-func local(t time.Time) time.Time { return t.In(time.Local) }
-
 // hexOrEmpty is an id, or nothing where there is no id.
 //
 // ⚠️ **Never the zero hex.** `omitempty` does not apply to an ObjectID (it is

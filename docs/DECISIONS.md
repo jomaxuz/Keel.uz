@@ -5144,6 +5144,64 @@ ombor ekranlari shu sababdan **bitta filialni talab qiladi** (§5).
   restoran aks holda kechaning 6% ini tasvirlaydigan ustunga qarab qaror
   qabul qilardi.
 
+### Xarid qarori: qancha va qachongacha
+
+Xarid ro'yxati nima tugaganini bilardi, **qanchalik tez ketishini** esa yo'q.
+Eng kam qoldiq — ega bir marta, tinch haftada chizgan chiziq: "javonda to'qqiz
+kilodan kam qolsa ayting" deydi va to'qqiz kilo ertangi ovqatmi yoki keyingi
+oyning zaxirasimi — ayta olmaydi. Shuning uchun ro'yxat buyruq emas, eslatma
+edi, undagi miqdor esa (chiziqqacha yetkazish) eng kichik himoyalanadigan son
+edi, to'g'risi emas.
+
+Endi yonida ikkinchi qoida turadi va **kattarog'i g'olib** (`basis` qaysi biri
+ekanini aytadi). Uchta o'lchov, uchalasi ham restoran allaqachon yozadigan
+hujjatlardan (`internal/handlers/orderplan.go`):
+
+1. **Hafta kunlari bo'yicha sarf** — `stock_movement` dan. ⚠️ **O'rtacha emas,
+   aynan hafta kuni bo'yicha**: dushanba shanba emas. Tekis o'rtacha har hafta
+   dam olish kunlarini kam, hafta boshini ko'p buyurtiradi — va aynan dam olish
+   kunlari savdo bo'lgan joylarda. Prognoz **qoplanadigan kunlarni yuradi**:
+   payshanbada olingan uch kunlik zaxira juma-shanba-yakshanba demakdir.
+2. **Kirim ritmi** — o'sha masalliq kirimlari orasidagi **mediana** oraliq.
+   ⚠️ **O'lchanadi, so'ralmaydi**: "lead time" maydoni — hech kim to'ldirmaydigan
+   forma, va aslida savol "yetkazib beruvchi qancha kutadi" emas, "keyingi kirim
+   odatda qachon keladi". Mediana, chunki bayramda o'tkazib yuborilgan bitta
+   kirim o'rtachani buzadi.
+3. **Yaroqlilik muddati** — kirim sanasi bilan `expiresAt` orasidagi mediana,
+   sana yozilgan joyda. U **gorizontni qisqartiradi**: besh kun turadigan
+   mahsulotga uch haftalik zaxira — to'la javon emas, kechiktirilgan chiqim.
+
+`gorizont = ritm + ritmning yarmi (ko'pi bilan 7 kun)`, so'ng muddat bilan
+cheklanadi; `kerak = prognoz(gorizont) − javondagi − allaqachon so'ralgan`.
+
+⚠️ **Allaqachon so'ralgani ayiriladi** (`shopping_order`, `sent`). Ro'yxat
+ertalab ham, tushdan keyin ham ochiladi — busiz ikkinchi o'qish bozorchi aynan
+o'sha daqiqada qo'lida ushlab turgan narsani yana taklif qiladi, javonda esa
+ikki barobar bo'ladi (muddatli mahsulotda bu bir haftada chiqim).
+
+⚠️ **Biznes turiga qarab hech nima o'zgarmaydi, va bu ataylab** — `models/
+businesstype.go` butun ombor moduli haqida shu chiziqni chizadi: biznes turiga
+qarab o'zgaradigan arifmetika — hech kim tekshira olmaydigan arifmetika, va
+aynan shu yerda noto'g'ri raqam **jimgina** bo'ladi. Farq **kodda emas,
+ma'lumotda** ko'rinadi: dorixonaning kirimi ikki haftada bir, yogurtida muddat
+bor — gorizonti uzun chiqadi va keyin qisqaradi; oshxonaning go'shti haftada
+ikki marta keladi va hech qachon sanasi bo'lmaydi.
+
+⚠️ **Kiyim do'koni o'zini o'zi himoya qiladi.** Ko'ylak bir marta sotiladi, va
+unga "yana 3 ta oling" degan ishonchli maslahat — bema'nilik. Qoida turga emas
+**ma'lumotga** qo'yilgan: prognoz gapirishi uchun qatorda kamida **uch xil
+kunda** sotuv **va** kamida **ikkita kirim** bo'lishi kerak. Ikkalasi ham
+yo'q — qator eski qoidaga (eng kam qoldiq) qaytadi, ya'ni ekran o'zgarmaydi.
+Ikkinchi shart bir vaqtning o'zida ro'yxatning to'lib ketishidan saqlaydi:
+kirimlarini yozmaydigan restoranda "keyingi kirimgacha" degan savolning ma'nosi
+yo'q, va o'ylab topilgan bir haftalik gorizont butun katalogni har kuni
+ro'yxatga chiqarardi.
+
+⚠️ **Hisob qator yonida yozilgan** (`nega shuncha`: necha kunga, kuniga qancha,
+kirim ritmi, muddat qisqartirganmi, allaqachon so'ralganmi). Ochib bo'lmaydigan
+raqam — yo ko'r-ko'rona bajariladi, yo umuman o'qilmaydi; ikkalasi ham bu ekran
+o'rnini bosgan daftardan yomonroq.
+
 ### Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi
 
 Arifmetika allaqachon tugagan edi: sanoq har qator uchun **kutilgan**,

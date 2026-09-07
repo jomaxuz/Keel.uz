@@ -4255,6 +4255,28 @@ export interface ShoppingRow {
   suggested: number;
   price: number;
   cost: number;
+
+  /** Which rule decided the quantity: "forecast" — what it will take before
+   *  the next delivery arrives; "min" — the gap back up to the reorder point.
+   *
+   *  ⚠️ **Shown, not hidden.** "Min" is a line somebody drew once and may never
+   *  have revisited; "forecast" is this month's cooking. A quantity an owner
+   *  cannot take apart is one they either follow blindly or ignore. */
+  basis: "forecast" | "min";
+  /** How many days ahead the suggestion is meant to last, and the forecast
+   *  daily rate over them. Present only where the forecast had a say. */
+  cover?: number;
+  daily?: number;
+  /** Measured days between deliveries and how many were measured — so the
+   *  screen can say where the horizon came from. */
+  every?: number;
+  deliveries?: number;
+  /** Measured shelf life in days, where dates are entered. It caps the
+   *  horizon, so a short cover has a reason beside it. */
+  shelfLife?: number;
+  /** Already asked for on a list somebody is out with, and therefore already
+   *  subtracted from the suggestion. */
+  requested?: number;
 }
 
 /** One call to make. ⚠️ Grouped by supplier because that is how shopping is
