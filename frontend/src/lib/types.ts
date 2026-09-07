@@ -5104,6 +5104,59 @@ export interface TillPayee {
  *  against a box — consumption keys on the ingredient — so a screen that read
  *  this as a shelf count would be inventing a number, and a pharmacist who
  *  finds one stock figure wrong stops believing every other one. */
+/** One line of a van load: what was put on it, and what came off.
+ *
+ *  ⚠️ **`got` absent is not zero** — it is a crate nobody has counted off yet,
+ *  which reads differently on every screen than one that arrived empty. */
+export interface DispatchLine {
+  ingredientId: string;
+  /** Frozen at the moment the slip was printed: three people sign it, and a
+   *  renamed ingredient must not rewrite a piece of paper. */
+  name: string;
+  unit: string;
+  qty: number;
+  got?: number;
+}
+
+/** One van load: one branch's store sending goods to another's.
+ *
+ *  ⚠️ **Not a transfer** — that one moves between two shelves of the same
+ *  branch. This is the central kitchen's van, and it is the movement a chain
+ *  has every morning. */
+export interface Dispatch {
+  id: string;
+  brandId?: string;
+  fromBranchId: string;
+  toBranchId: string;
+  /** What the paper calls itself: the day and that day's number. */
+  number: string;
+  at: string;
+  lines: DispatchLine[];
+  /** What is on the van in money. ⚠️ Carried, not created — it never reaches
+   *  the financial report's expenses. */
+  value: number;
+  driver?: string;
+  note?: string;
+  by?: string;
+  acceptedAt?: string;
+  acceptedBy?: string;
+}
+
+/** A dispatch with both branch names resolved, as the list draws it. */
+export interface DispatchRow {
+  dispatch: Dispatch;
+  from: string;
+  to: string;
+}
+
+/** One line of what this store is holding, for loading a van. */
+export interface DispatchStockRow {
+  id: string;
+  name: string;
+  unit: string;
+  qty: number;
+}
+
 /** What a shortfall turned out to be.
  *
  *  ⚠️ **Six answers and no "other", because the list is the product.** A free

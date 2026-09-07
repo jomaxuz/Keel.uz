@@ -57,6 +57,11 @@ var stockPaths = []string{
 	"/admin/suppliers",
 	"/admin/writeoffs",
 	"/admin/transfers",
+	// ⚠️ **The storekeeper's own document.** The paper this replaces is signed
+	// "Sklad boshlig'i" — loading the van and printing the slip is the job, and
+	// a screen the person doing it cannot open is a screen that gets replaced
+	// by a notebook.
+	"/admin/dispatch",
 	"/admin/stocktake",
 	"/admin/stock/",
 	"/admin/production",

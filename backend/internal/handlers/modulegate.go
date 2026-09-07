@@ -60,6 +60,9 @@ var moduleRoutes = []gatedPrefix{
 	{"/admin/suppliers", models.ModStock},
 	{"/admin/writeoffs", models.ModStock},
 	{"/admin/transfers", models.ModStock},
+	// The central store's van is the store module too — it moves the same
+	// shelves, through a different door.
+	{"/admin/dispatch", models.ModStock},
 	{"/admin/stocktake", models.ModStock},
 	// ⚠️ **The shortfall queue too, and it is a different address on purpose.**
 	// It is served from `/admin/shortages` rather than from under

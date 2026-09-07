@@ -121,6 +121,12 @@ export default defineConfig({
       // platform at once — a shop offered "the tech card takes more than the
       // kitchen does" is being offered a reason that cannot be true.
       "src/lib/shortages.test.ts",
+      // The slip that travels with the van. Here because it is a piece of
+      // paper: nobody sees it on a screen, the person who does is holding it
+      // in a store room, and the things that would be wrong with it — a
+      // missing signature line, a slip split across two pages, a form with no
+      // room to write a crate in by hand — are invisible from the panel.
+      "src/lib/nakladnoy.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

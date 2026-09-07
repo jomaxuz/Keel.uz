@@ -7,6 +7,9 @@ import type {
   AIQuota,
   AlertSettings,
   BriefingCard,
+  Dispatch,
+  DispatchRow,
+  DispatchStockRow,
   ExpiringRow,
   ShortageQueue,
   ShortageVerdict,
@@ -2125,6 +2128,49 @@ export const api = {
       method: "POST",
       auth: true,
       body,
+      scope: true,
+    }),
+
+  // ---- The central store's van ----
+  //
+  // ⚠️ **Not a transfer.** A transfer moves between two shelves of one branch;
+  // this moves between branches, and the two ends are two facts — what was
+  // loaded and what was signed for.
+  adminDispatches: (from?: string, to?: string) =>
+    request<{ rows: DispatchRow[] }>(
+      `/admin/dispatch${from ? `?from=${from}${to ? `&to=${to}` : ""}` : ""}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  /** What this store is holding, for loading a van. */
+  adminDispatchStock: () =>
+    request<{ rows: DispatchStockRow[] }>("/admin/dispatch/stock", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminCreateDispatch: (body: {
+    toBranchId: string;
+    at?: string;
+    driver?: string;
+    note?: string;
+    lines: { ingredientId: string; qty: number }[];
+  }) =>
+    request<Dispatch>("/admin/dispatch", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+  /** Sign for a van. ⚠️ Only lines that differ need sending — silence means
+   *  "what was on the slip is what arrived". */
+  adminAcceptDispatch: (
+    id: string,
+    lines: { ingredientId: string; got: number }[],
+  ) =>
+    request<{ ok: boolean }>(`/admin/dispatch/${id}/accept`, {
+      method: "POST",
+      auth: true,
+      body: { lines },
       scope: true,
     }),
 

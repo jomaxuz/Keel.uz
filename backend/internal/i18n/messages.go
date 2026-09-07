@@ -685,6 +685,10 @@ var messages = map[string]pair{
 		"на этой странице нет готовых данных, а автоматическое чтение не включено",
 		"this page has no ready data, and automatic reading is off",
 	},
+	"bu jo'natma allaqachon qabul qilingan": {
+		"эта накладная уже принята",
+		"this delivery note has already been accepted",
+	},
 	"bu kamomad allaqachon izohlangan": {
 		"по этой недостаче объяснение уже есть",
 		"this shortfall has already been explained",
@@ -1037,6 +1041,10 @@ var messages = map[string]pair{
 		"не доставлено ни на одно устройство",
 		"it reached no device",
 	},
+	"hech bo'lmasa bitta mahsulot kerak": {
+		"нужен хотя бы один товар",
+		"at least one item is needed",
+	},
 	"hech bo'lmasa bitta masalliq kerak": {
 		"нужен хотя бы один ингредиент",
 		"at least one ingredient is required",
@@ -1108,6 +1116,10 @@ var messages = map[string]pair{
 	"javobni o'qib bo'lmadi: %s": {
 		"ответ не удалось прочитать: %s",
 		"the answer could not be read: %s",
+	},
+	"jo'natuvchi va qabul qiluvchi filial bir xil": {
+		"филиал-отправитель и филиал-получатель совпадают",
+		"the sending and receiving branches are the same",
 	},
 	"joriy parol noto'g'ri": {
 		"текущий пароль неверный",
@@ -1625,6 +1637,10 @@ var messages = map[string]pair{
 		"укажите время повторного звонка",
 		"give a time for the call back",
 	},
+	"qabul qiluvchi filialni tanlang": {
+		"выберите филиал-получатель",
+		"pick the receiving branch",
+	},
 	"qaytarish sababini yozing": {
 		"укажите причину возврата",
 		"give a reason for the refund",
@@ -2056,6 +2072,10 @@ var messages = map[string]pair{
 	"yakunlangan buyurtmani ko'chirib bo'lmaydi": {
 		"завершённый заказ переместить нельзя",
 		"a finished order cannot be moved",
+	},
+	"yarim tayyor mahsulot javonda o'zi bo'lib turmaydi: uni tashkil qilgan masalliqlarni jo'nating": {
+		"полуфабрикат не лежит на полке сам по себе: отправьте ингредиенты, из которых он делается",
+		"a prep item does not sit on a shelf as itself: send what it is made from",
 	},
 	"yarim tayyor mahsulot javonda o'zi bo'lib turmaydi: uni tashkil qilgan masalliqlarni ko'chiring": {
 		"полуфабрикат сам по себе на полке не лежит: перемещайте ингредиенты, из которых он состоит",

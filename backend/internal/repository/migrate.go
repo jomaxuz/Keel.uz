@@ -429,6 +429,11 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// which is this index read backwards — and it runs before every
 		// expected-stock figure, including the one behind "running out".
 		{s.Stocktakes, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// Both ends of the van: what this branch sent, and what it is owed.
+		// ⚠️ Two indexes rather than one on a shared field — a dispatch names
+		// two branches and every screen asks about one of them at a time.
+		{s.Dispatches, bson.D{{Key: "fromBranchId", Value: 1}, {Key: "at", Value: -1}}},
+		{s.Dispatches, bson.D{{Key: "toBranchId", Value: 1}, {Key: "at", Value: -1}}},
 		// The shortfall queue asks "which of these counts has been answered",
 		// for every count in a quarter, on a screen that is left open.
 		// ⚠️ Its unique twin is created below, on the pair of ids: the same keys

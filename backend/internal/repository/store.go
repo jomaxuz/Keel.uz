@@ -23,7 +23,11 @@ type Store struct {
 	ShortageCases *mongo.Collection
 	Warehouses    *mongo.Collection
 	Transfers     *mongo.Collection
-	Productions   *mongo.Collection
+	// One branch's store sending goods to another's — the central kitchen's van.
+	// ⚠️ Not a transfer: that one moves between two shelves of the same branch.
+	// See models/dispatch.go.
+	Dispatches  *mongo.Collection
+	Productions *mongo.Collection
 	// What sales took off the shelf. ⚠️ The **source** for stock consumption,
 	// not a journal beside it — see models/stockmovement.go.
 	StockMoves *mongo.Collection
@@ -175,6 +179,7 @@ func New(db *mongo.Database) *Store {
 		ShortageCases:   db.Collection("shortage_case"),
 		Warehouses:      db.Collection("warehouse"),
 		Transfers:       db.Collection("stock_transfer"),
+		Dispatches:      db.Collection("dispatch"),
 		Productions:     db.Collection("production"),
 		StockMoves:      db.Collection("stock_movement"),
 		Advances:        db.Collection("staff_advance"),
