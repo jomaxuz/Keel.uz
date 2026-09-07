@@ -5725,6 +5725,69 @@ qismi aynan shunday).
   **haqiqiy sahifa** (qolgani langar), shuning uchun u `localePath` orqali
   o'tadi. Busiz rus tashrifchi o'zbekcha maqolalar to'plamiga tushardi.
 
+### Markaziy sklad va nakladnoy: filialga jo'natish
+
+Tsex allaqachon bor edi (partiya, `warehouse.kind="production"`), **jo'natish**
+yo'q edi. Mavjud `stock_transfer` bitta filialning ikki javoni orasida ishlaydi
+(«barmen podvaldan tonik oldi»), zanjirning har kungi harakati esa boshqa:
+markaziy sklad go'shtni oladi, dushanba kuni marinovka qiladi va **to'rt
+filialga** jo'natadi. Buni soxtalashtirishning ikkala yo'li ham yolg'on:
+chiqim — hech kim isrof qilmagan mahsulotni isrof hisobotiga qo'yadi, narigi
+uchidagi kirim esa narx tarixiga xarid narxini yozadi va o'sha masalliq
+kiradigan har bir taomni qimmatlashtiradi.
+
+`dispatch` hujjati — **ikki javon va orasidagi mashina**:
+
+- ⚠️ **Hujjatda ombor yo'q**, va bu kamchilik emas: nima qayerda turishi
+  filial + masalliq haqidagi fakt (`ingredient_placement`), shuning uchun
+  jo'natma **kirim kabi** har ikki uchida o'zini o'zi yo'naltiradi. Omborchidan
+  har qator uchun ikki xonani so'rash — shoshilinch paytda noto'g'ri javob
+  beriladigan savol, va noto'g'ri javob sanashgacha ko'rinmaydi.
+- ⚠️ **Jo'natilgan va kelgan — ikki fakt.** Jo'natuvchining javonidan
+  **yuklangani** chiqadi; qabul qiluvchining javoniga **sanab olingani**
+  tushadi; farqi esa **hech kimning javonida emas** — u yo'l haqidagi topilma.
+  Qog'ozdagi uchta imzo (sklad boshlig'i, haydovchi, filial brigadiri) aynan
+  shuning uchun bor. Ikkovini jimgina tenglashtirish — o'sha uchta imzo
+  yaratadigan yagona raqamni o'chirish.
+- ⚠️ **Imzolanmaguncha hech nima kelmaydi.** Aks holda filial pishira olmaydigan
+  qoldiqni ko'radi va **stop list** o'sha raqamlarni o'qigani uchun sotuvga
+  ruxsat beradi.
+- ⚠️ Jo'natuvchi — **ko'rinishdagi filial** (`stockBranch`), tanadagi id emas:
+  aks holda bir filial boshqasining javonini id yozib bo'shatardi, va mahsulot
+  haqiqiy joyga borgani uchun hech bir ekran xato ko'rsatmasdi.
+- ⚠️ Faqat **qabul qiluvchi filial** imzolaydi, va filial **filtr ichida**
+  (`toBranchId`), tekshiruvda emas. Imzolash bir marta: `acceptedAt` ning
+  yo'qligi ham filtrning bir qismi.
+- ⚠️ Ikki uchi ham **kutilgan qoldiqqa** qo'shildi (`expectedStockByWarehouse`
+  ning yettinchi fakti) va harakat hisobotiga ustun bo'lib chiqdi. Busiz
+  markaziy sklad **jo'natgan hamma narsasi bo'yicha kamomad** ko'rsatardi — va
+  keyingi sanoqda uni sanagan odamning aybi bo'lib chiqardi.
+- Qiymat **tashiladi, yaratilmaydi** (ko'chirish bilan bir qoida): moliyaviy
+  hisobotning xarajatiga kirmaydi.
+
+**Nakladnoy** (`frontend/src/lib/nakladnoy.ts`) — bu avval qog'oz, keyin ekran:
+
+- **Bitta A4 (albom) da to'rtta yo'rtma**, har filialga bittadan — restoranlar
+  ishlatadigan blankaning aynan o'zi. Beshinchi filial yangi varaqdan boshlanadi;
+  yo'rtma ikki betga bo'linmaydi — bo'lingan yo'rtmani imzolab bo'lmaydi.
+- ⚠️ **Bo'sh qatorlar — bezak emas.** Tizim biladigan qatorlar bilangina
+  chegaralangan blanka — mashina yuklanayotganda filial telefon qilib so'ragan
+  ikki yashikni yozib bo'lmaydigan blanka, va o'shanda yozuv chetga tushadi yoki
+  umuman yozilmaydi. Bo'sh qatorlar ham **raqamlangan**.
+- ⚠️ **Tili chop etish paytida tanlanadi, paneldan olinmaydi**: omborchi bir
+  tilda ishlaydi, narigi uchida imzolaydigan brigadir boshqa tilda o'qishi
+  mumkin — va bu har jo'natmada o'zgaradi. Shuning uchun modul lug'atni
+  **argument** sifatida oladi (hook emas), sahifada esa uch tilli tugma turadi.
+- ⚠️ **Sarlavha ikki qatorda va qat'iy.** Bir qatorda eng uzun filial nomi eng
+  uzun tilda ("Филиал Beshqayrag'och — дата: ...") 70 mm yo'rtmadan chiqib
+  ketadi va **yilni** olib ketadi — butun hujjat aynan sana bo'yicha
+  saqlanadi. Qat'iy ikki qator to'rtta yo'rtmani bir sathda ushlaydi.
+- ⚠️ **Nomlar matn sifatida yoziladi** (DOM tugunlari, HTML satri emas):
+  qatorlarda restoranning o'z nomlari turadi — hech kim tozalamaydigan matn.
+  Chek printeri bilan bir qoida.
+- Popup emas, **ekrandan tashqaridagi iframe**: popup omborchining brauzerida
+  bloklanadi, va bu nosozlik printerda qog'oz tugaganday ko'rinadi.
+
 ### Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati
 `pos-reja.md` §7 kechiktirgan uchtadan qolgan ikkitasi (ko'chirish allaqachon
 bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**

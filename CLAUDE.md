@@ -154,7 +154,10 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `docs/DECISIONS.md` → "Spisaniya hujjati"), `migration_state` (bir martalik
   migratsiyalar markeri), `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
   `warehouse`, `ingredient_placement`, `purchase` (kirim), `writeoff`,
-  `stock_transfer` (ko'chirish), `production` (tsex partiyasi), `stocktake`,
+  `stock_transfer` (ko'chirish — ⚠️ **bitta filial ichida**), `dispatch`
+  (markaziy skladdan filialga jo'natma + nakladnoy — ⚠️ **ikki filial**, va
+  yuklangani bilan sanab olingani ikki alohida fakt), `production` (tsex
+  partiyasi), `stocktake`,
   `shortage_case` (sanoq topgan kamomadga berilgan **javob** — ⚠️ case'ning
   o'zi saqlanmaydi, navbat har o'qishda sanoqlardan quriladi;
   `(stocktakeId, ingredientId)` unique, javob bir martalik),
@@ -267,7 +270,8 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   filial masalliqni qaysi omborda saqlaydi), `/admin/warehouses`,
   `/admin/purchases` (+ `/{id}` PUT tahrir, `/{id}/pay`), `/admin/suppliers`
   + `/admin/reports/suppliers`, `/admin/writeoffs`, `/admin/transfers`,
-  `/admin/stocktake`, `/admin/stock/balances|movement|shopping-list`,
+  `/admin/stocktake`, `/admin/dispatch` (+ `/stock`, `/{id}/accept` — markaziy
+  skladdan filialga jo'natma), `/admin/stock/balances|movement|shopping-list`,
   `/admin/shortages` (+ `/close` — kamomad navbati; ⚠️ **`/admin/stock/` dan
   tashqarida ataylab**: omborchining ruxsat ro'yxati prefiksli va metodni
   bilmaydi, ya'ni javonni sanagan odam o'z kamomadiga javob yozib qo'yardi).
@@ -321,7 +325,8 @@ tuzilma:
   `settings`, `account`.
 - **Panel → Ombor bo'limi**: `stock` (qoldiqlar), `shopping` (xarid ro'yxati),
   `ingredients`, `tech-cards` (zagotovka + taom kartalari), `purchases`,
-  `suppliers`, `writeoffs`, `transfers`, `stocktake`, `shortages` (kamomad
+  `suppliers`, `writeoffs`, `transfers`, `dispatch` (jo'natma + nakladnoy),
+  `stocktake`, `shortages` (kamomad
   navbati — sanoqning ikkinchi yarmi).
 - Til prefikslari (`/ru/`, `/en/`) faqat public sahifalarda —
   `isLocalizedPath()` (§10 "Til URL'lari").
@@ -723,6 +728,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Texkarta: zagotovka, taom kartasi | Texkarta o'z ekranida |
 | Bilim bazasi, yordam, screenshot | Bilim bazasi (keel.uz/help) |
 | Markaziy oshxona, tsex, partiya | Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati |
+| Markaziy sklad, jo'natma, nakladnoy, chop etish | Markaziy sklad va nakladnoy: filialga jo'natish |
 | Stop list (3 ro'yxat) | Stop list · Kassa buyurtmani qabul qildimi |
 | POS: iiko/Syrve/Poster/Clopos/r_keeper | POS integratsiyasi · Kassa buyurtmani qabul qildimi |
 | Onlayn to'lov, callback | Onlayn to'lov: Payme / Click / Uzum / ATMOS |

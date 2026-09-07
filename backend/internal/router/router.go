@@ -1028,6 +1028,16 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/writeoffs", h.AdminCreateWriteOff)
 			r.Delete("/admin/writeoffs/{id}", h.AdminDeleteWriteOff)
 
+			// The central store's van: what one branch sent another, and what
+			// the far end signed for. ⚠️ Not a transfer — that one moves
+			// between two shelves of the same branch. See dispatch.go.
+			r.Get("/admin/dispatch", h.AdminDispatches)
+			r.Get("/admin/dispatch/stock", h.AdminDispatchStock)
+			r.Post("/admin/dispatch", h.AdminCreateDispatch)
+			// ⚠️ Only the receiving branch signs, and the branch is inside the
+			// filter rather than checked afterwards.
+			r.Post("/admin/dispatch/{id}/accept", h.AdminAcceptDispatch)
+
 			// Counting the store. ⚠️ The difference is the product — the
 			// expected figure is the server's and is frozen when the count is
 			// saved (see stocktake.go).

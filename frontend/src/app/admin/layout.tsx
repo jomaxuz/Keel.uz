@@ -360,6 +360,12 @@ const NAV_GROUPS = [
       // ⚠️ Neither of the two above: stock that only moved. Recording it as
       // either one lies — see models/transfer.go.
       { href: "/admin/transfers", key: "transfers" },
+      // ⚠️ **Beside the transfer and named apart from it**, because the two are
+      // one word away and a chain uses both: a transfer moves between this
+      // branch's own shelves, a dispatch puts food on a van to another branch.
+      // A restaurant with one kitchen opens this once, reads that it is not for
+      // them, and never returns — the same trade the production row makes.
+      { href: "/admin/dispatch", key: "dispatch" },
       // ⚠️ Beside the transfer and after it, because that is the order the food
       // travels in a chain: a batch is made in the central kitchen and then
       // moved to the branch that will sell it. A restaurant with one kitchen

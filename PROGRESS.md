@@ -14040,3 +14040,50 @@ ba'zilarida «tugagan kunlar»); **kamomadda 3 qator**, biri `kartalar sarfi 0`
 
 ⚠️ `yamato` va `krevetkauz` demo tenantlarida ham 1-xato bor — `demodata` qayta
 ishga tushirilsa tuzaladi.
+
+---
+
+## 2026-09-07 (10) — Markaziy sklad → filial jo'natmasi va nakladnoy ✅
+
+Foydalanuvchi so'rovi: bitta brendda **markaziy sklad va zavod** bo'ladi,
+masalliq avval o'sha yerga tushadi, u yerda zagotovka qilinadi va filiallarga
+jo'natiladi; omborchi esa **nakladnoy** chiqaradi (namuna: `nakladnoy.jpg`).
+
+Tsex qismi allaqachon bor edi (`production`, `warehouse.kind="production"`).
+Yetishmagani — **filialga jo'natish**: `stock_transfer` bitta filialning ikki
+javoni orasida ishlaydi, zanjirning har kungi harakati esa ikki **filial**
+orasida.
+
+**Backend** — `dispatch` kolleksiyasi (`models/dispatch.go`,
+`handlers/dispatch.go`):
+- `GET /admin/dispatch` (ikkala uchi ham bitta ro'yxatda), `/dispatch/stock`
+  (javondagi qoldiq bilan), `POST /admin/dispatch`, `POST /{id}/accept`.
+- **Jo'natilgan va kelgan — ikki fakt**: jo'natuvchidan yuklangani chiqadi,
+  qabul qiluvchiga sanab olingani tushadi, farqi hech kimning javonida emas
+  (yo'lda yo'qolgan). Imzolanmaguncha filial javoniga **hech nima tushmaydi**.
+- Ikki uchi ham `expectedStockByWarehouse` ga (yettinchi fakt) va harakat
+  hisobotiga qo'shildi — busiz markaziy sklad jo'natgan hamma narsasi bo'yicha
+  kamomad ko'rsatardi.
+- Darvozalar: jo'natuvchi — ko'rinishdagi filial; qabul qiluvchi filial
+  **filtr ichida**; brend ikkala uchida bir xil; o'ziga jo'natib bo'lmaydi;
+  imzo bir marta. Omborchi (`stock` roli) ochadi — qog'ozni u imzolaydi.
+
+**Frontend** — `/admin/dispatch` («Jo'natma»), yon panelda Ko'chirishdan keyin;
+`lib/nakladnoy.ts` — chop etish.
+- **Bitta A4 albomda to'rtta yo'rtma**, blankaning aynan o'zi: sarlavha (filial
+  + sana), `№ | XOM-ASHYO | O'lchov | SONI`, **raqamlangan bo'sh qatorlar** va
+  uchta imzo (sklad boshlig'i, haydovchi, filial brigadiri) — nomlari bosilgan,
+  yonida qalam uchun chiziq.
+- ⚠️ **Tili chop etish paytida tanlanadi** (uch tilli tugma), paneldan
+  olinmaydi: narigi uchida imzolaydigan odam boshqa tilda o'qishi mumkin.
+
+**Jonli tekshirildi**: markaziy sklad (200 kg go'sht, 100 qatlama) → Sergili va
+G'unchaga ikki jo'natma → skladda 160/76 qoldi, Sergili javonida **0** (hali
+imzolanmagan) → 10 kg o'rniga 9 kg qabul qilindi → Sergilida 9 kg, 1 kg yo'lda
+yo'qolgan; ikkinchi imzo, birovning jo'natmasini imzolash va o'ziga jo'natish
+rad etildi; harakat hisoboti: 0 + 200 − 40 = 160, ikkala `dispatch_out` qatori
+manzili bilan. Nakladnoy o'zbekcha va ruscha chop etib ko'rildi (skrinshot).
+
+Backend `go build/vet/test ./...` toza (6 yangi test), frontend `tsc` + lint
+toza, **263 test** (nakladnoy uchun 6 ta yangi). Qaror `docs/DECISIONS.md` →
+«Markaziy sklad va nakladnoy».

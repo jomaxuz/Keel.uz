@@ -249,6 +249,12 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 	// production.go gives: a batch puts a prep item on the shelf and takes its
 	// inputs off, and either half alone is a different lie.
 	batched, batchTook := h.producedInPeriod(r, scope, from, to)
+	// ⚠️ **The seventh fact, and the report has to name it too.** The opening
+	// and closing figures already count what the vans carried
+	// (expectedStockByWarehouse); a column that did not would make this screen
+	// fail to add up on exactly the branches that have a central store — and
+	// this is the screen somebody opens *to explain* a difference.
+	vanOut, vanIn := h.dispatchedInPeriod(r, scope, from, to)
 
 	// The documents behind those totals, so a difference has somewhere to be
 	// looked at rather than only being reported.
@@ -339,6 +345,47 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 	// receipt (there is no write-off document per sale, by design: see the note
 	// on this file), but it can be cut into days and named by dish, which is
 	// what the argument in the stockroom is actually about.
+	// ⚠️ **Both directions, named as such.** A branch that received a crate and
+	// sent one on is not a branch that received nothing, and the netted figure
+	// cannot tell them apart — the same rule the transfer rows follow.
+	dispatchFilter := bson.M{"at": bson.M{"$gte": *from, "$lt": *to},
+		"lines.ingredientId": id}
+	if cond, ok := branchCond(scope); ok {
+		dispatchFilter["$or"] = []bson.M{
+			{"fromBranchId": cond}, {"toBranchId": cond},
+		}
+	}
+	if cur, err := h.Store.Dispatches.Find(r.Context(), dispatchFilter); err == nil {
+		var rows []models.Dispatch
+		_ = cur.All(r.Context(), &rows)
+		mine := func(b primitive.ObjectID) bool { return false }
+		if cond, ok := branchCond(scope); ok {
+			mine = matcher(cond)
+		}
+		names := h.branchNames(r)
+		for _, d := range rows {
+			for _, l := range d.Lines {
+				if l.IngredientID != id {
+					continue
+				}
+				if mine(d.FromBranchID) {
+					docs = append(docs, movementDoc{
+						At: d.At, Kind: "dispatch_out", Qty: -l.Qty,
+						Note: names[d.ToBranchID],
+					})
+				}
+				// ⚠️ Only once it is signed for: until then the crate is on a
+				// van, and a row saying it arrived is a row the branch would
+				// cook against.
+				if mine(d.ToBranchID) && d.Accepted() {
+					docs = append(docs, movementDoc{
+						At: d.At, Kind: "dispatch_in", Qty: l.Arrived(),
+						Note: names[d.FromBranchID],
+					})
+				}
+			}
+		}
+	}
 	docs = append(docs, h.saleDocs(r, scope, from, to, id)...)
 	sort.SliceStable(docs, func(i, j int) bool { return docs[i].At.Before(docs[j].At) })
 
@@ -364,8 +411,14 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 		// nets them cannot answer the question it was opened for.
 		"produced":     round3(batched[id]),
 		"producedUsed": round3(batchTook[id]),
-		"closing":      round3(closingAll[store][id]),
-		"docs":         docs,
+		// What a van brought in and what a van took away. Named apart from the
+		// transfer columns for the reason those are named apart from `in` and
+		// `used`: a crate that went to another branch was not thrown away, and
+		// a report that nets them cannot answer the question it was opened for.
+		"vanIn":   round3(vanIn[id]),
+		"vanOut":  round3(vanOut[id]),
+		"closing": round3(closingAll[store][id]),
+		"docs":    docs,
 	})
 }
 

@@ -435,6 +435,14 @@ func (h *Handler) expectedStockByWarehouse(
 		// creates sauce out of nothing, counting only the second would make it
 		// a write-off with no waste. See models/production.go.
 		batched, batchTook := h.producedInPeriod(r, scope, from, &at)
+		// ⚠️ **The seventh fact, and a chain with a central store has it every
+		// morning.** A van takes food off one branch's shelf and puts it on
+		// another's; without it the sending store reports a shortfall the size
+		// of everything it dispatched — attributed, at the next count, to
+		// whoever counted it — and the receiving branch a surplus it cannot
+		// explain. Both halves, for the reason production has both: either one
+		// alone is a different lie. See dispatch.go.
+		vanOut, vanIn := h.dispatchedInPeriod(r, scope, from, &at)
 		add := func(m map[primitive.ObjectID]float64, sign float64) {
 			for id, q := range m {
 				if home[id] != wh {
@@ -446,10 +454,12 @@ func (h *Handler) expectedStockByWarehouse(
 		add(in, 1)
 		add(movedIn, 1)
 		add(batched, 1)
+		add(vanIn, 1)
 		add(used, -1)
 		add(written, -1)
 		add(movedOut, -1)
 		add(batchTook, -1)
+		add(vanOut, -1)
 	}
 	return out, since, nil
 }
