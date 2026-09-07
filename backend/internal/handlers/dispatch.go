@@ -50,9 +50,35 @@ var (
 	errDispatchEmpty = errors.New("hech bo'lmasa bitta mahsulot kerak")
 	errDispatchTo    = errors.New("qabul qiluvchi filialni tanlang")
 	errDispatchPrep  = errors.New("yarim tayyor mahsulot javonda o'zi bo'lib turmaydi: uni tashkil qilgan masalliqlarni jo'nating")
+	errDispatchTwice = errors.New("bitta filialga ikkita ustun to'ldirilgan")
 )
 
+// dispatchLine is one row of one slip, as the panel sends it.
+type dispatchLineIn struct {
+	IngredientID string  `json:"ingredientId"`
+	Qty          float64 `json:"qty"`
+}
+
+// dispatchIn is one slip: a branch and what is on the van for it.
+type dispatchIn struct {
+	ToBranchID string           `json:"toBranchId"`
+	Lines      []dispatchLineIn `json:"lines"`
+}
+
 // AdminCreateDispatch loads a van: what leaves this store, and for whom.
+//
+// ⚠️ **One call loads the whole morning, not one branch.** The central store
+// does not send one van and then think about the next: it stands at a shelf
+// with five slips and writes down the rows across all of them, which is why the
+// paper form is four slips on one sheet. A screen that made somebody fill the
+// same form five times would be five times the typing for one act — and, worse,
+// five separate saves, so a failure halfway leaves two branches loaded and
+// three not, with a driver already holding the paper.
+//
+// The body accepts either shape: one slip (`toBranchId` + `lines`) or a
+// morning's worth (`branches`). Both go through the same builder, because two
+// implementations of "what leaves this shelf" is the thing this codebase pays
+// for over and over.
 func (h *Handler) AdminCreateDispatch(w http.ResponseWriter, r *http.Request) {
 	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
@@ -61,43 +87,24 @@ func (h *Handler) AdminCreateDispatch(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = scope
 	var req struct {
-		ToBranchID string    `json:"toBranchId"`
-		At         time.Time `json:"at"`
-		Driver     string    `json:"driver"`
-		Note       string    `json:"note"`
-		Lines      []struct {
-			IngredientID string  `json:"ingredientId"`
-			Qty          float64 `json:"qty"`
-		} `json:"lines"`
+		// One slip, the way a single dispatch is written.
+		ToBranchID string           `json:"toBranchId"`
+		Lines      []dispatchLineIn `json:"lines"`
+		// Or a morning of them.
+		Branches []dispatchIn `json:"branches"`
+
+		At     time.Time `json:"at"`
+		Driver string    `json:"driver"`
+		Note   string    `json:"note"`
 	}
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	to, err := objectID(req.ToBranchID)
-	if err != nil {
-		httpx.Error(w, http.StatusBadRequest, errDispatchTo.Error())
-		return
+	slips := req.Branches
+	if len(slips) == 0 {
+		slips = []dispatchIn{{ToBranchID: req.ToBranchID, Lines: req.Lines}}
 	}
-	if to == branch {
-		httpx.Error(w, http.StatusBadRequest, errDispatchSame.Error())
-		return
-	}
-	// ⚠️ **The receiving branch has to be one of ours, and of the same brand.**
-	// An ingredient id means "the beef in this brand's catalogue"; sending it to
-	// another brand's branch would put a line on a shelf whose counts, recipes
-	// and prices come from a different list, and every screen at the far end
-	// would show a name it has no row for.
-	var dest models.Branch
-	filter := bson.M{"_id": to}
-	if !brand.IsZero() {
-		filter["brandId"] = brand
-	}
-	if err := h.Store.Branches.FindOne(r.Context(), filter).Decode(&dest); err != nil {
-		httpx.Error(w, http.StatusNotFound, "filial topilmadi")
-		return
-	}
-
 	ings := map[primitive.ObjectID]models.Ingredient{}
 	for _, in := range h.scopedIngredients(r.Context(), brand) {
 		ings[in.ID] = in
@@ -107,65 +114,131 @@ func (h *Handler) AdminCreateDispatch(w http.ResponseWriter, r *http.Request) {
 	if at.IsZero() || at.After(time.Now()) {
 		at = time.Now()
 	}
+	// ⚠️ **The morning's numbering is worked out once and then counted up.**
+	// Asking the database per slip would give five slips the same number when
+	// they are written in the same second — and the number is what somebody
+	// holding two of them tells them apart by.
+	next := h.dispatchCount(r.Context(), branch, at) + 1
 
-	lines := make([]models.DispatchLine, 0, len(req.Lines))
-	value := 0.0
-	for _, l := range req.Lines {
-		id, err := objectID(l.IngredientID)
-		if err != nil || l.Qty <= 0 {
-			continue
-		}
-		in, ok := ings[id]
-		if !ok {
-			continue
-		}
-		// ⚠️ **A sauce made as the kitchen goes is not on a shelf as itself**,
-		// so it cannot be loaded onto a van — what it was made from is what
-		// moves. A batched prep item *is* on a shelf (it is a tub in a fridge),
-		// and that distinction is exactly why `DerivedOnly` exists.
-		if in.DerivedOnly() {
-			httpx.Error(w, http.StatusBadRequest, errDispatchPrep.Error())
+	docs := make([]models.Dispatch, 0, len(slips))
+	seen := map[primitive.ObjectID]bool{}
+	for _, slip := range slips {
+		to, err := objectID(slip.ToBranchID)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, errDispatchTo.Error())
 			return
 		}
-		qty := round3(l.Qty)
-		lines = append(lines, models.DispatchLine{
-			IngredientID: id, Name: in.Name, Unit: in.Unit, Qty: qty,
+		if to == branch {
+			httpx.Error(w, http.StatusBadRequest, errDispatchSame.Error())
+			return
+		}
+		// ⚠️ **One slip per branch per save.** Two slips for the same branch in
+		// one morning is somebody having typed a column twice — and the second
+		// would take stock off the shelf again while looking, on paper, like a
+		// legitimate second van.
+		if seen[to] {
+			httpx.Error(w, http.StatusBadRequest, errDispatchTwice.Error())
+			return
+		}
+		seen[to] = true
+
+		// ⚠️ **The receiving branch has to be one of ours, and of the same
+		// brand.** An ingredient id means "the beef in this brand's catalogue";
+		// sending it to another brand's branch would put a line on a shelf
+		// whose counts, recipes and prices come from a different list, and
+		// every screen at the far end would show a name it has no row for.
+		var dest models.Branch
+		filter := bson.M{"_id": to}
+		if !brand.IsZero() {
+			filter["brandId"] = brand
+		}
+		if err := h.Store.Branches.FindOne(r.Context(), filter).Decode(&dest); err != nil {
+			httpx.Error(w, http.StatusNotFound, "filial topilmadi")
+			return
+		}
+
+		lines := make([]models.DispatchLine, 0, len(slip.Lines))
+		value := 0.0
+		for _, l := range slip.Lines {
+			id, err := objectID(l.IngredientID)
+			if err != nil || l.Qty <= 0 {
+				continue
+			}
+			in, ok := ings[id]
+			if !ok {
+				continue
+			}
+			// ⚠️ **A sauce made as the kitchen goes is not on a shelf as
+			// itself**, so it cannot be loaded onto a van — what it was made
+			// from is what moves. A batched prep item *is* on a shelf (a tub in
+			// a fridge), which is exactly why `DerivedOnly` exists.
+			if in.DerivedOnly() {
+				httpx.Error(w, http.StatusBadRequest, errDispatchPrep.Error())
+				return
+			}
+			qty := round3(l.Qty)
+			lines = append(lines, models.DispatchLine{
+				IngredientID: id, Name: in.Name, Unit: in.Unit, Qty: qty,
+			})
+			// ⚠️ **Value is carried, not created** — the rule a transfer
+			// follows. Nothing was bought and nothing was lost, so this never
+			// reaches the financial report's expenses; it is here so a
+			// storekeeper sees what is on the van in money as well as in kilos.
+			value += qty * float64(models.PerUnit(in.Unit)) * rates[id]
+		}
+		// ⚠️ **A branch with nothing on the van is skipped, not refused.** A
+		// morning's sheet has a column per branch and some columns are empty —
+		// the branch that ordered nothing today. Refusing the whole save
+		// because of one empty column would make the storekeeper hunt for which
+		// one it was.
+		if len(lines) == 0 {
+			continue
+		}
+
+		docs = append(docs, models.Dispatch{
+			BrandID:      brand,
+			FromBranchID: branch,
+			ToBranchID:   to,
+			Number:       fmt.Sprintf("%s/%d", local(at).Format("02.01"), next),
+			At:           at,
+			Lines:        lines,
+			Value:        int(math.Round(value)),
+			Driver:       clampText(req.Driver, 120),
+			Note:         clampText(req.Note, 400),
+			By:           h.adminName(r),
+			CreatedAt:    time.Now(),
 		})
-		// ⚠️ **Value is carried, not created** — the same rule a transfer
-		// follows. Nothing was bought and nothing was lost, so this figure
-		// never reaches the financial report's expenses; it is here so a
-		// storekeeper can see what is on the van in money as well as in kilos.
-		value += qty * float64(models.PerUnit(in.Unit)) * rates[id]
+		next++
 	}
-	if len(lines) == 0 {
+	if len(docs) == 0 {
 		httpx.Error(w, http.StatusBadRequest, errDispatchEmpty.Error())
 		return
 	}
 
-	doc := models.Dispatch{
-		BrandID:      brand,
-		FromBranchID: branch,
-		ToBranchID:   to,
-		Number:       h.dispatchNumber(r.Context(), branch, at),
-		At:           at,
-		Lines:        lines,
-		Value:        int(math.Round(value)),
-		Driver:       clampText(req.Driver, 120),
-		Note:         clampText(req.Note, 400),
-		By:           h.adminName(r),
-		CreatedAt:    time.Now(),
+	// ⚠️ **The whole morning is written in one call.** Five separate saves mean
+	// a failure halfway leaves two branches loaded and three not — with a
+	// driver already holding the paper for all five.
+	rows := make([]any, 0, len(docs))
+	for _, d := range docs {
+		rows = append(rows, d)
 	}
-	res, err := h.Store.Dispatches.InsertOne(r.Context(), doc)
+	res, err := h.Store.Dispatches.InsertMany(r.Context(), rows)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	doc.ID = oidOf(res.InsertedID)
-	h.logAction(r, "dispatch.create", "dispatch", doc.ID.Hex(), "", doc.Number)
-	httpx.JSON(w, http.StatusCreated, doc)
+	for i := range docs {
+		if i < len(res.InsertedIDs) {
+			docs[i].ID = oidOf(res.InsertedIDs[i])
+		}
+		h.logAction(r, "dispatch.create", "dispatch", docs[i].ID.Hex(), "",
+			docs[i].Number)
+	}
+	httpx.JSON(w, http.StatusCreated, map[string]any{"dispatches": docs})
 }
 
-// dispatchNumber is what the slip calls itself: the day, and that day's count.
+// dispatchCount is how many vans have already left this store today — the
+// number the morning's slips carry on from.
 //
 // ⚠️ **Per sending branch and per day, not a running total.** The number exists
 // so somebody holding two slips can tell them apart, and "07.09/3" says
@@ -176,9 +249,9 @@ func (h *Handler) AdminCreateDispatch(w http.ResponseWriter, r *http.Request) {
 // deliberate: this is a label on paper, not an identity. The document's id is
 // its identity, and making a person wait for a lock to print a slip is a worse
 // trade than two "07.09/3" in a folder.
-func (h *Handler) dispatchNumber(
+func (h *Handler) dispatchCount(
 	ctx context.Context, branch primitive.ObjectID, at time.Time,
-) string {
+) int {
 	day := local(at)
 	start := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, time.Local)
 	n, err := h.Store.Dispatches.CountDocuments(ctx, bson.M{
@@ -188,7 +261,7 @@ func (h *Handler) dispatchNumber(
 	if err != nil {
 		n = 0
 	}
-	return fmt.Sprintf("%s/%d", day.Format("02.01"), n+1)
+	return int(n)
 }
 
 // AdminDispatches lists the vans this branch sent and the ones it is owed.
