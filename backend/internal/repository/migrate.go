@@ -429,6 +429,12 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// which is this index read backwards — and it runs before every
 		// expected-stock figure, including the one behind "running out".
 		{s.Stocktakes, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// The shortfall queue asks "which of these counts has been answered",
+		// for every count in a quarter, on a screen that is left open.
+		// ⚠️ Its unique twin is created below, on the pair of ids: the same keys
+		// with different options is the one thing Mongo refuses, and the refusal
+		// used to take every index after it down with it.
+		{s.ShortageCases, bson.D{{Key: "stocktakeId", Value: 1}}},
 		// The card resolver asks "which dishes use this ingredient" when one
 		// is deleted, and the flow report asks it for every dish sold.
 		{s.Menu, bson.D{{Key: "recipe.ingredientId", Value: 1}}},
@@ -470,6 +476,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 	// only symptom is a complaint the restaurant cannot reproduce.
 	if _, err := s.PushSubscriptions.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "endpoint", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
+	// ⚠️ **One answer per shortfall, enforced rather than assumed.** Two
+	// managers read the same queue, both see an open case and both write a
+	// verdict; without this the second insert succeeds and the screen then
+	// shows whichever of the two `Find` reaches first — so a shortfall's
+	// explanation changes between refreshes with nobody having edited it. The
+	// handler relies on this index to refuse the second one, exactly as the
+	// count's own explanation relies on a filter to.
+	if _, err := s.ShortageCases.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "stocktakeId", Value: 1}, {Key: "ingredientId", Value: 1},
+		},
 		Options: options.Index().SetUnique(true),
 	}); err != nil {
 		return err

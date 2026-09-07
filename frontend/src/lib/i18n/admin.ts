@@ -99,6 +99,7 @@ export const adminUz = {
     suppliers: "Yetkazib beruvchilar",
     shopping: "Xarid ro'yxati",
     stocktake: "Inventarizatsiya",
+    shortages: "Kamomad",
     expiring: "Muddati tugayapti",
     labels: "Yorliqlar",
     marking: "Markirovka",
@@ -1445,6 +1446,46 @@ export const adminUz = {
   // same editor draws both, and a restaurant that reads them as one thing
   // writes a yield into a dish or forgets one on a sauce — which underprices
   // everything the sauce is in, silently.
+  // ---- The shortfall queue ----
+  //
+  // ⚠️ **A question, never an accusation.** Every word here is chosen so the
+  // screen can be read aloud in front of the person who counted the shelf. The
+  // five answers do not include "somebody took it": a shortfall covers every
+  // shift between two counts, which is the weakest possible evidence about a
+  // person and the strongest possible evidence about a process.
+  shortages: {
+    title: "Kamomad",
+    intro:
+      "Sanoqlar topgan yetishmovchilik — so'mda, kattasi tepada. Har bir qator bitta savol: bu qayerga ketdi? Javob bir marta yoziladi va o'zgartirilmaydi.",
+    window: (d: number) => `${d} kun`,
+    openValue: "Javobsiz kamomad",
+    openCount: (n: number) => `${n} ta savol javobsiz`,
+    total: "Davrdagi jami kamomad",
+    coverageTitle: "Texkarta qamrovi",
+    coverage: "Sotuvning shu qismi texkarta bilan hisoblangan.",
+    weak:
+      "Qamrov past: kutilgan qoldiq kartasi bor taomlardan hisoblanadi, shuning uchun bu qatorlar kamomadni emas, yetishmayotgan texkartalarni ko'rsatayotgan bo'lishi mumkin. Avval qamrovni to'ldiring — keyin bu raqamlarga ishonsa bo'ladi.",
+    empty: "Bu davrda kamomad topilmadi.",
+    more: (n: number) => `Yana ${n} ta kichik qator ko'rsatilmadi.`,
+    period: (from: string, to: string) => `${from} — ${to} oralig'ida`,
+    periodNever: (to: string) =>
+      `${to} — birinchi sanoq, ya'ni butun vaqt uchun`,
+    countedBy: (who: string) => `sanadi: ${who}`,
+    expected: (exp: number, got: number) => `kutilgan ${exp} · sanaldi ${got}`,
+    shareOfCount: (p: number) => `sanoq kamomadining ${p}%`,
+    countNote: (note: string) => `Sanoq izohi: ${note}`,
+    answer: "Javob berish",
+    verdicts: {
+      miscount: "Sanoq xato — qayta sanaldi",
+      waste: "Isrof: buzilgan, to'kilgan, tashlangan",
+      card: "Texkarta noto'g'ri — ko'p yozilgan",
+      paperwork: "Hujjat kiritilmagan (kirim, ko'chirish, partiya)",
+      lost: "Topilmadi — tushuntirib bo'lmadi",
+    },
+    notePh: "Nima bo'lgan? Masalan: juma kuni muzlatgich buzildi, go'sht tashlandi.",
+    save: "Javobni saqlash",
+    onceHint: "Javob bir marta yoziladi — keyin o'zgartirib bo'lmaydi.",
+  },
   techCards: {
     title: "Texkartalar",
     intro:
@@ -4885,6 +4926,7 @@ export const adminRu: AdminDict = {
     suppliers: "Поставщики",
     shopping: "Список закупки",
     stocktake: "Инвентаризация",
+    shortages: "Недостачи",
     expiring: "Истекает срок",
     labels: "Этикетки",
     marking: "Маркировка",
@@ -6119,6 +6161,41 @@ export const adminRu: AdminDict = {
     save: (n: number) => `Сохранить ${n} позиций`,
     savedSummary: (v: string) => `Инвентаризация сохранена. Разница: ${v}`,
     empty: "Список ингредиентов пуст",
+  },
+  shortages: {
+    title: "Недостачи",
+    intro:
+      "Что нашли инвентаризации — в сумах, крупное сверху. Каждая строка — один вопрос: куда это делось? Ответ пишется один раз и не меняется.",
+    window: (d: number) => `${d} дней`,
+    openValue: "Недостача без ответа",
+    openCount: (n: number) => `${n} вопросов без ответа`,
+    total: "Всего за период",
+    coverageTitle: "Покрытие техкартами",
+    coverage: "Столько продаж списывается со склада по техкартам.",
+    weak:
+      "Покрытие низкое: ожидаемый остаток считается только по блюдам с картой, поэтому эти строки могут показывать не недостачу, а нехватку техкарт. Сначала заполните карты — потом этим цифрам можно верить.",
+    empty: "За этот период недостач не найдено.",
+    more: (n: number) => `Ещё ${n} мелких строк не показаны.`,
+    period: (from: string, to: string) => `за период ${from} — ${to}`,
+    periodNever: (to: string) =>
+      `${to} — первая инвентаризация, то есть за всё время`,
+    countedBy: (who: string) => `считал: ${who}`,
+    expected: (exp: number, got: number) =>
+      `ожидалось ${exp} · посчитано ${got}`,
+    shareOfCount: (p: number) => `${p}% недостачи этого подсчёта`,
+    countNote: (note: string) => `Комментарий к подсчёту: ${note}`,
+    answer: "Ответить",
+    verdicts: {
+      miscount: "Ошибка подсчёта — пересчитали",
+      waste: "Порча: испортилось, разлилось, выбросили",
+      card: "Техкарта завышена — списывает больше",
+      paperwork: "Документ не внесён (приход, перемещение, партия)",
+      lost: "Не нашли — объяснения нет",
+    },
+    notePh:
+      "Что произошло? Например: в пятницу сломался холодильник, мясо выбросили.",
+    save: "Сохранить ответ",
+    onceHint: "Ответ пишется один раз — изменить его потом нельзя.",
   },
   techCards: {
     title: "Техкарты",
@@ -9278,6 +9355,7 @@ export const adminEn: AdminDict = {
     suppliers: "Suppliers",
     shopping: "Shopping list",
     stocktake: "Stocktake",
+    shortages: "Shortfalls",
     expiring: "Expiring soon",
     labels: "Labels",
     marking: "Marking",
@@ -10502,6 +10580,40 @@ export const adminEn: AdminDict = {
     save: (n: number) => `Save ${n} ingredients`,
     savedSummary: (v: string) => `Count saved. Difference: ${v}`,
     empty: "The ingredient list is empty",
+  },
+  shortages: {
+    title: "Shortfalls",
+    intro:
+      "What the counts found, in som, worst first. Each row is one question: where did this go? An answer is written once and cannot be changed.",
+    window: (d: number) => `${d} days`,
+    openValue: "Unanswered shortfall",
+    openCount: (n: number) => `${n} questions unanswered`,
+    total: "Total for the period",
+    coverageTitle: "Tech card coverage",
+    coverage: "This share of sales takes something off a shelf.",
+    weak:
+      "Coverage is low: the expected balance is built only from dishes that have a card, so these rows may be showing missing cards rather than missing stock. Fill the cards first — then these figures can be trusted.",
+    empty: "No shortfalls found in this period.",
+    more: (n: number) => `${n} smaller rows are not shown.`,
+    period: (from: string, to: string) => `over ${from} — ${to}`,
+    periodNever: (to: string) => `${to} — the first count, so all of time`,
+    countedBy: (who: string) => `counted by ${who}`,
+    expected: (exp: number, got: number) =>
+      `expected ${exp} · counted ${got}`,
+    shareOfCount: (p: number) => `${p}% of this count's shortfall`,
+    countNote: (note: string) => `Count note: ${note}`,
+    answer: "Answer",
+    verdicts: {
+      miscount: "Counted wrong — recounted",
+      waste: "Waste: spoiled, spilled, thrown away",
+      card: "The card takes more than the kitchen does",
+      paperwork: "A document was never entered (delivery, transfer, batch)",
+      lost: "Not found — no explanation",
+    },
+    notePh:
+      "What happened? For example: the freezer broke down on Friday, the meat was thrown out.",
+    save: "Save the answer",
+    onceHint: "An answer is written once — it cannot be edited afterwards.",
   },
   techCards: {
     title: "Tech cards",

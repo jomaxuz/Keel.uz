@@ -5144,6 +5144,79 @@ ombor ekranlari shu sababdan **bitta filialni talab qiladi** (§5).
   restoran aks holda kechaning 6% ini tasvirlaydigan ustunga qarab qaror
   qabul qilardi.
 
+### Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi
+
+Arifmetika allaqachon tugagan edi: sanoq har qator uchun **kutilgan**,
+**sanalgan**, **farq** va **so'mdagi qiymatini** muzlatib saqlaydi
+(`stocktake.go`). Faqat bularning hech biri hech kimga aytilmasdi — topilma
+bitta hujjatni ochib qirq qator o'qish bilan yetib boradigan joyda edi, va
+o'sha qirq qatorda muhim bo'lgan 12 kg go'sht bir gramm farq qilgan ikki qator
+petrushka orasida turardi. Restoranda topilma bor edi, **navbat** yo'q edi.
+
+`/admin/shortages` — o'sha topilma ish sifatida. Yangi raqam **yaratilmaydi**;
+qo'shiladigan uch narsa qatorni case'ga aylantiradi:
+
+1. **So'm, tartiblangan.** Bir kilo petrushka va bir kilo go'sht — birlikda
+   bitta qator, ertalabda ikki xil narsa. So'm bo'yicha birinchi uch qator
+   deyarli doim butun javob.
+2. **Davr, nomi bilan.** Kamomad **o'sha ombornikidagi ikki sanoq orasidagi**
+   vaqtga tegishli, topilgan kunga emas. Buni yozmaslik uni "kecha kechqurun"
+   deb o'qitadi. `since` — o'sha ombordagi **oldingi** sanoq (bo'lmasa `null`:
+   "birinchi sanoq, ya'ni butun vaqt uchun").
+3. **Javob, bir marta.** Besh sabab + majburiy jumla.
+
+⚠️ **Case saqlanmaydi — javob saqlanadi.** Navbat har o'qishda sanoqlardan
+qayta quriladi; `shortage_case` da faqat odam yozgan qism yotadi. Saqlangan
+navbat aynan `provisionStatus` kabi eskirardi: keyingi sanoq bekor qilgan
+kamomadni "hozir ochiq" deb turgan ekranda ko'rsatib.
+
+⚠️ **Besh sabab, va ularning ichida "o'g'irlangan" yo'q**: `miscount`, `waste`,
+`card`, `paperwork`, `lost`. Kamomad ikki sanoq orasidagi **har bir smenani**
+qamraydi — odam haqida bu eng zaif dalil, jarayon haqida esa eng kuchlisi.
+Sabab **turi** oyiga bir marta "kamomadlarimizning yarmi kiritilmagan kirim"
+degan tuzatib bo'ladigan jumlani beradi; **jumlaning o'zi** esa qaysi kirim
+ekanini aytadi — shuning uchun ikkalasi ham majburiy.
+
+⚠️ **Javob `InsertOne`, unique indeks esa ikkinchisini rad etadi**
+(`(stocktakeId, ingredientId)`). Upsert bo'lsa bir xil navbatni o'qigan ikki
+menejerdan **ikkinchi bosgani** jimgina g'olib chiqardi, va ekrandagi izoh hech
+kim tahrirlamagan holda yangilanishlar orasida o'zgarardi. Sanoqning o'z izohi
+ham xuddi shu sababdan bir martalik.
+
+⚠️ **Qamrov past bo'lsa raqamlar aytgan narsasini anglatmaydi.** Kutilgan
+qoldiq faqat **kartasi bor** taomlardan hisoblanadi, ya'ni tushumining yarmi
+kartasiz ketadigan restoranda navbat ishonchli, aniq va **o'ylab topilgan**
+kamomadlar bilan to'ladi — va ega tekshirgan birinchi qator unga ekranga bo'lgan
+ishonchini yo'qottiradi. Shuning uchun `stockcoverage` ulushi **o'sha oyna
+uchun** hisoblanadi va 70% dan past bo'lsa ekran tepasida ogohlantirish turadi.
+Navbat baribir chiziladi: yashirish "hammasi joyida" degan yolg'on bo'lardi.
+
+⚠️ **Manzili `/admin/stock/` dan tashqarida, va bu ataylab.** Omborchining
+ruxsat ro'yxati (`stocklogin.go`) — metodni bilmaydigan prefikslar ro'yxati,
+ya'ni `/admin/stock/…` dan berilgan navbatni **javonni o'zi sanagan odam**
+yopib qo'yardi. Ko'r sanoq varaqasi aynan shundan himoya qiladi, bir ekran
+narida. Narxi: `/admin/shortages` hech nimani meros olmaydi — shuning uchun
+`modulegate.go` ga alohida qator kerak bo'ldi (aks holda modulni sotib olmagan
+restoran uchun ochiq qolardi), va uning testi bor.
+
+⚠️ **Filiallar bo'ylab, boshqa ombor ekranlaridan farqli.** Ular bitta filialni
+talab qiladi, chunki "kompaniyada 9 kg go'sht" — sanab ham, buyurtma berib ham
+bo'lmaydigan raqam. Bu yerda hech nima **qo'shilmaydi**: har qator o'z filiali
+va o'z omborini aytadi, tartib esa so'm bo'yicha — ya'ni uch filialli ega
+so'raydigan yagona savol ("eng yomoni qayerda?") uch ekranni qo'lda
+solishtirmasdan javob oladi.
+
+⚠️ **Ortiqcha (surplus) navbatga tushmaydi.** U ham haqiqiy topilma, lekin
+boshqasi — odatda ikki marta kiritilgan kirim — va "eng yomoni tepada" deb
+tartiblangan ro'yxat ikkalasini sig'dira olmaydi: birining eng yomoni
+ikkinchisining eng yaxshisi. Besh sababning hech biri unga to'g'ri kelmaydi
+ham.
+
+Qatorda yana: `share` — bu qator butun sanoq kamomadining necha foizi. Qirq
+qatorga tarqalgan ikki million bilan yolg'iz go'shtdagi ikki million ikki xil
+hodisa (birinchisi — jarayon, ikkinchisi — bitta voqea), va qator qiymati
+ikkalasida bir xil.
+
 ### Ombor qamrovi: sotuvning qancha qismi kartalar bilan qoplangan
 
 ⚠️ **"Kartasiz taomlar bor" — noto'g'ri savol, va uni so'rash bu ekranni

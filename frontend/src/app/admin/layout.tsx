@@ -371,6 +371,16 @@ const NAV_GROUPS = [
       { href: "/admin/production", key: "production", needs: "composes" },
       // And the count that turns the difference between them into an answer.
       { href: "/admin/stocktake", key: "stocktake" },
+      // ⚠️ **Directly under the count, because it is the count's second
+      // half.** A count freezes what was missing and what it was worth, per
+      // line, and then said it to nobody: the finding was reachable only by
+      // opening one document and reading down forty rows. This is that finding
+      // as work — worst first, in money, answered once.
+      //
+      // ⚠️ **Not on the storekeeper's list**, and the server agrees
+      // (handlers/stocklogin.go): the person who counted the shelf must not be
+      // the one who writes the verdict on their own shortfall.
+      { href: "/admin/shortages", key: "shortages" },
       // ⚠️ **A pharmacy is inspected on this and a grocery loses money to
       // it.** A restaurant's kitchen cares too, but its dates live on a
       // handful of dairy lines rather than on every box in the room — and two

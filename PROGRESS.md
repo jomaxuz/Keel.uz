@@ -13842,3 +13842,58 @@ bloklangan, JWT_SECRET boot-guard, path-traversal ikki qavat, sirlar `json:"-"`,
 
 Backend `go build/vet/test ./...` toza, control testlari toza, frontend
 `tsc --noEmit` toza, 251 test yashil. Qaror `docs/DECISIONS.md` da.
+
+---
+
+## 2026-09-07 (6) — Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi ✅
+
+Qaror qatlamining birinchi imkoniyati (dizayn hujjati: «Qaror qatlami», 6
+imkoniyat). Yangi arifmetika **yozilmadi** — sanoq allaqachon har qator uchun
+kutilgan/sanalgan/farq/qiymatni muzlatib saqlaydi. Yetishmagani navbat edi:
+topilma bitta hujjatni ochib qirq qator o'qish bilan yetib boradigan joyda
+turardi, va muhim 12 kg go'sht bir gramm farq qilgan ikki qator petrushka
+orasida edi.
+
+**Backend** — `internal/handlers/shortagecases.go`,
+`internal/models/shortagecase.go`, `shortage_case` kolleksiyasi:
+- `GET /admin/shortages` — navbat: filial × masalliq, **so'mda**, javobsizlari
+  tepada. Har qator davrini aytadi (o'sha ombordagi **oldingi** sanoq; birinchi
+  sanoqda `null`), kim sanaganini, sanoq izohini va `share` (butun sanoq
+  kamomadining necha foizi) ni.
+- `POST /admin/shortages/close` — javob: besh sabab (`miscount`, `waste`,
+  `card`, `paperwork`, `lost`) + **majburiy jumla**. `InsertOne` + unique
+  indeks: ikkinchi javob rad etiladi (409), sanoqning o'z izohi bilan bir
+  qoida.
+- Case **saqlanmaydi**, faqat javob saqlanadi — navbat har o'qishda
+  sanoqlardan quriladi (`provisionStatus` darsining teskarisi).
+- Qatorlarni quradigan qism **alohida funksiya** (`shortageRows`) va javob
+  faqat undan o'tadi — `downloadsJSON` darsining o'zi.
+
+**Ikki darvoza:**
+- Manzil `/admin/stock/` dan **tashqarida**: omborchining ruxsat ro'yxati
+  metodni bilmaydigan prefikslar, ya'ni o'sha prefiksdan berilgan navbatni
+  javonni **o'zi sanagan** odam yopib qo'yardi.
+- Narxi: hech nima meros olinmaydi, shuning uchun `modulegate.go` ga alohida
+  qator (`ModStock`) va uning testi — aks holda modulni sotib olmagan restoran
+  uchun ochiq qolardi. Live tekshiruvda aynan shu chiqdi.
+
+**Frontend** — `/admin/shortages` («Kamomad»), yon panelda
+Inventarizatsiyadan keyin, uch tilda. Uchta plitka: **javobsiz kamomad**
+(bosh raqam — jami emas, jami faqat o'sadi), davrdagi jami, texkarta qamrovi.
+Qamrov 70% dan past bo'lsa sariq ogohlantirish: kutilgan qoldiq faqat kartasi
+bor taomlardan hisoblanadi, ya'ni past qamrovda navbat **o'ylab topilgan**
+kamomadlar bilan to'ladi.
+
+**Jonli tekshirildi** (mahalliy mongo + panel): 20 kg → 8 kg sanoq → navbatda
+«Mol go'shti −12 kg · 1 080 000 so'm», filial/ombor/davr/kim sanagani joyida;
+javob saqlandi, ikkinchisi 409 («bu kamomad allaqachon izohlangan», ruschada
+ham), izohsiz va noto'g'ri sabab rad etildi, kamomadi yo'q qatorga javob
+yozib bo'lmadi. Sinov ma'lumotlari tozalandi.
+
+`go build/vet/test ./...` toza (8 yangi test), frontend `tsc` + lint toza,
+251 test yashil. Qaror `docs/DECISIONS.md` → «Kamomad-case».
+
+**Yo'l-yo'lakay topilgan (tuzatilmadi):** `text-warn` / `bg-warn` klasslari
+Tailwind konfiguratsiyasida **umuman yo'q** (7 joyda ishlatilgan, shundan
+`/admin/expiring` ning "muddati yaqin" qatori) — `danger` bilan bo'lgan xato
+takrorlangan: matn joyida, rangi jimgina oddiy siyoh.

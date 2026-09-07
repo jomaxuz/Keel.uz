@@ -5077,6 +5077,72 @@ export interface TillPayee {
  *  against a box — consumption keys on the ingredient — so a screen that read
  *  this as a shelf count would be inventing a number, and a pharmacist who
  *  finds one stock figure wrong stops believing every other one. */
+/** What a shortfall turned out to be.
+ *
+ *  ⚠️ **Five answers and no "other", because the list is the product.** A free
+ *  sentence alone makes the queue a pile of prose nobody can count; the kind is
+ *  what lets a month of them say "half of ours are deliveries nobody entered",
+ *  which is a fixable sentence about a process. The sentence is still required —
+ *  the kind says which class, and only the words say which delivery. */
+export type ShortageVerdict =
+  | "miscount"
+  | "waste"
+  | "card"
+  | "paperwork"
+  | "lost";
+
+/** One shortfall: one ingredient, on one count, in one store. */
+export interface ShortageRow {
+  /** ⚠️ The pair **is** the id — there is no case document until somebody
+   *  answers one, so nothing else could be. */
+  stocktakeId: string;
+  ingredientId: string;
+  name: string;
+  unit: string;
+  branchId?: string;
+  branch?: string;
+  warehouseId?: string;
+  warehouse?: string;
+  /** When it was found, and the previous count of that store — the stretch it
+   *  accumulated over. ⚠️ Absent where the store had never been counted: that
+   *  shortfall is measured from the beginning of time and must not be read as
+   *  a month's loss. */
+  at: string;
+  since?: string;
+  expected: number;
+  counted: number;
+  diff: number;
+  /** What is missing, in som, positive. */
+  value: number;
+  by?: string;
+  /** The whole count's note and shortfall — a count's note covers forty lines,
+   *  and `share` is how much of it this one is. */
+  countNote?: string;
+  countLoss: number;
+  share: number;
+  verdict?: ShortageVerdict;
+  verdictNote?: string;
+  verdictBy?: string;
+  verdictAt?: string;
+}
+
+export interface ShortageQueue {
+  rows: ShortageRow[];
+  /** Rows past the cap. ⚠️ Sent so the screen can say the list is not all of
+   *  it, rather than quietly implying it is. */
+  more: number;
+  from: string;
+  to: string;
+  days: number;
+  open: number;
+  openValue: number;
+  total: number;
+  /** What share of sales the tech cards account for over the same window, and
+   *  whether it is low enough that these figures do not mean what they say. */
+  coverage: number;
+  weak: boolean;
+}
+
 export interface ExpiringRow {
   ingredientId: string;
   name: string;

@@ -61,6 +61,13 @@ var moduleRoutes = []gatedPrefix{
 	{"/admin/writeoffs", models.ModStock},
 	{"/admin/transfers", models.ModStock},
 	{"/admin/stocktake", models.ModStock},
+	// ⚠️ **The shortfall queue too, and it is a different address on purpose.**
+	// It is served from `/admin/shortages` rather than from under
+	// `/admin/stock/` so the storekeeper's allow-list does not reach it
+	// (stocklogin.go) — which means it does not inherit the stock module's gate
+	// either, and a restaurant that never bought the module would have found
+	// the one screen that reads its counts wide open.
+	{"/admin/shortages", models.ModStock},
 	{"/admin/stock/", models.ModStock},
 	{"/admin/reports/stock", models.ModStock},
 	{"/admin/reports/suppliers", models.ModStock},

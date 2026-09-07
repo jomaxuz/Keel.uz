@@ -60,6 +60,14 @@ func TestLongestPrefixWins(t *testing.T) {
 		"/admin/ingredients":        models.ModStock,
 		"/admin/ingredients/abc123": models.ModStock,
 		"/staff/stocktake/sheet":    models.ModStock,
+		// ⚠️ **The shortfall queue reads the counts, so it is the stock
+		// module.** Its address sits outside `/admin/stock/` deliberately (the
+		// storekeeper's allow-list is prefixes with no methods), and the cost
+		// of that choice is that it inherits nothing — a line here is the only
+		// thing standing between a restaurant that never bought the module and
+		// the screen that reads its counts.
+		"/admin/shortages":       models.ModStock,
+		"/admin/shortages/close": models.ModStock,
 		// ⚠️ **Somebody else's till is ungated, and this asserts it stays that
 		// way.** It was behind Pro, and the defect was the one this file's
 		// neighbours describe: a website-only restaurant could connect its iiko,

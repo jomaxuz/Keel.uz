@@ -17,9 +17,13 @@ type Store struct {
 	BankBalances    *mongo.Collection
 	Collections     *mongo.Collection
 	Stocktakes      *mongo.Collection
-	Warehouses      *mongo.Collection
-	Transfers       *mongo.Collection
-	Productions     *mongo.Collection
+	// What a shortfall on a count turned out to be. ⚠️ Only the answer is
+	// stored — the case list itself is derived from the counts on every read.
+	// See models/shortagecase.go.
+	ShortageCases *mongo.Collection
+	Warehouses    *mongo.Collection
+	Transfers     *mongo.Collection
+	Productions   *mongo.Collection
 	// What sales took off the shelf. ⚠️ The **source** for stock consumption,
 	// not a journal beside it — see models/stockmovement.go.
 	StockMoves *mongo.Collection
@@ -168,6 +172,7 @@ func New(db *mongo.Database) *Store {
 		BankBalances:    db.Collection("bank_balance"),
 		Collections:     db.Collection("collection"),
 		Stocktakes:      db.Collection("stocktake"),
+		ShortageCases:   db.Collection("shortage_case"),
 		Warehouses:      db.Collection("warehouse"),
 		Transfers:       db.Collection("stock_transfer"),
 		Productions:     db.Collection("production"),

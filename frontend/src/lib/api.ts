@@ -8,6 +8,8 @@ import type {
   AlertSettings,
   BriefingCard,
   ExpiringRow,
+  ShortageQueue,
+  ShortageVerdict,
   OnlineOrder,
   LossAlert,
   LossRow,
@@ -2120,6 +2122,29 @@ export const api = {
     lines: { ingredientId: string; counted: number }[];
   }) =>
     request<Stocktake>("/admin/stocktake", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+
+  // ---- Shortfalls, as work rather than as documents ----
+  //
+  // ⚠️ **Derived from the counts on every read.** There is no case document
+  // until somebody answers one, which is why closing a case names it by the
+  // pair of ids rather than by an id of its own.
+  adminShortages: (days?: number) =>
+    request<ShortageQueue>(
+      `/admin/shortages${days ? `?days=${days}` : ""}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminCloseShortage: (body: {
+    stocktakeId: string;
+    ingredientId: string;
+    verdict: ShortageVerdict;
+    note: string;
+  }) =>
+    request<{ ok: boolean }>("/admin/shortages/close", {
       method: "POST",
       auth: true,
       body,
