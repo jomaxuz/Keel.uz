@@ -273,3 +273,36 @@ func (r rewriteTo) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	return next.RoundTrip(target)
 }
+
+// ⚠️ **A product's barcode is not a payment code, and the till should say so
+// before the bank does.** FastPay documents a floor of forty characters; a
+// cashier who scans the wrong thing — a barcode, a loyalty card, a CLICK code
+// into the Uzum field — otherwise waits for a round trip to be told "wrong
+// prefix" in a machine word. Checked against the live error table
+// (developer.uzumbank.uz/fastpay, re-read 2026-09-07).
+func TestAShortCodeIsRefusedWithoutAskingTheBank(t *testing.T) {
+	charger, err := New(Config{
+		Provider: UzumFastPay, ServiceID: "1", UserID: "8461",
+		SecretKey: "secret", Cashbox: "kassa-1",
+		// ⚠️ A host nothing may reach: the point of the guard is that a short
+		// code never leaves the building, so a call would fail the test by
+		// failing to connect rather than by reaching Uzum.
+		BaseURL: "http://127.0.0.1:1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := charger.Charge(context.Background(), Charge{
+		Amount: 10000, OTPData: "4780123456789", OrderID: "1", TxnID: "t",
+	})
+	if err == nil {
+		t.Fatal("a thirteen-digit barcode was accepted as a payment code")
+	}
+	if res.Status != StatusFailed {
+		t.Errorf("status %q, want failed", res.Status)
+	}
+	// And the sentence is the cashier's next action, not the bank's word.
+	if !strings.Contains(err.Error(), "QR") {
+		t.Errorf("message %q does not tell the cashier what to do", err)
+	}
+}

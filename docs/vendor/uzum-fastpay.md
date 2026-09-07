@@ -1,6 +1,7 @@
 # Uzum FastPay (v2) — do'kon ichida to'lov (kassir mehmonning QR'ini skanerlaydi)
 
-Manba: https://developer.uzumbank.uz/en/fastpay/ (o'qildi 2026-08-30).
+Manba: https://developer.uzumbank.uz/fastpay/ (o'qildi 2026-08-30, **qayta
+tekshirildi 2026-09-07** — endpointlar, maydonlar, birlik va imzo o'zgarmagan).
 ⚠️ Docusaurus + Redocly SPA — brauzerda o'qildi, nusxasi shu yerda.
 
 Xizmat: QR orqali bir zumda to'lov va kassa tizimlari (POS / fiskal kassa)
@@ -89,3 +90,39 @@ belgi bo'lishi kerak), `apelsin.pay.user.otp.data.expired` (QR muddati o'tgan �
 mijoz qurilmasidagi vaqt noto'g'ri bo'lishi mumkin), `qr.duplicated`,
 `order.id.duplicated`, `transaction.duplicated`, `apelsin.pay.reverse.not.allowed`,
 `operation.is.inProcess`, `unsupported.fiscal.url`.
+
+## Xato kodlari (2026-09-07 da qayta o'qildi)
+
+⚠️ **Har bir metod HTTP 200 qaytaradi**, rad etilganda ham. Muvaffaqiyat
+o'lchovi — `error_code == 0`, HTTP statusi emas.
+
+| Kod | Sabab |
+|---|---|
+| 0 | Muvaffaqiyat |
+| 400 | `otp_data` 40 belgidan qisqa; `amount` 0/null/manfiy; servis bloklangan; karta faol emas; mablag' yetarli emas; `payment_id` noto'g'ri yoki bo'sh |
+| 401 | `Authorization` formati noto'g'ri (`^\d*:(\d{40}):\d*$`); `merchant_id` / `service_id` / `merchant_service_user_id` faol emas; xesh mos kelmadi; `service_id` bu hamkorga tegishli emas |
+| 403 | Authorization vaqti bilan so'rov qayta ishlangan vaqt orasi **50 soniyadan** ko'p ⚠️ — `msStamp` noto'g'ri o'qilganda aynan shu chiqadi (instore.go dagi izohga qarang) |
+| 404 | `payment_id` bo'yicha operatsiya topilmadi |
+| 416 | Karta Safe Mode'da: yangi foydalanuvchi Uzum ilovasida 3 marta to'lashi kerak |
+| 503 | Servis topilmadi yoki faol emas |
+
+`error_message` qiymatlari (kassirga tarjimasi `uzumMessage` da):
+`apelsin.pay.authorization.error`, `apelsin.pay.safe.mode.on`,
+`apelsin.pay.service.not.working`, `apelsin.pay.wrong.prefix.otp.data`,
+`apelsin.pay.unsupported.operation`, `apelsin.pay.reverse.not.allowed`,
+`unsupported.fiscal.url`, `order.id.duplicated`, `transaction.duplicated`,
+`apelsin.pay.user.otp.data.expired`, `device.not.registered`,
+`operation.not.found`, `qr.duplicated`, `receipt.qr.only.yours`,
+`user.card.not.found`, `user.does.not.exist`, `external.service.unavailable`,
+`limit.was.set`, `operation.failed`, `operation.forbidden`,
+`operation.is.inProcess`.
+
+⚠️ **`operation.is.inProcess` — chekni yopmaydi**: bank hali javob bermagan,
+qayta to'lov yuborilmaydi, `payment/status` bilan so'raladi.
+
+## QR kodining shakli
+
+`otp_data` — kamida **40 belgi** (xato matni 43 belgi va prefiks haqida
+gapiradi). Adapter 40 dan qisqasini **bankka yubormasdan** rad etadi: kassir
+mahsulotning shtrix-kodini yoki CLICK kodini skanerlasa, javobni ekranning
+o'zidan oladi.

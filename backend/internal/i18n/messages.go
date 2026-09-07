@@ -176,13 +176,41 @@ var messages = map[string]pair{
 		"Сначала введите и сохраните токен бота.",
 		"Enter and save the bot token first.",
 	},
+	"Bank hali javob bermadi — statusni tekshiring, qayta urinmang": {
+		"Банк ещё не ответил — проверьте статус, не повторяйте оплату",
+		"the bank has not answered yet — check the status, do not retry",
+	},
+	"Bank to'lovni rad etdi — boshqa karta yoki naqd": {
+		"банк отклонил оплату — другая карта или наличные",
+		"the bank declined the payment — another card or cash",
+	},
 	"Botni shu guruhga qo'shdingizmi va admin qildingizmi?": {
 		"Вы добавили бота в эту группу и сделали его админом?",
 		"Have you added the bot to this group and made it an admin?",
 	},
+	"Bu QR Uzum to'lov kodi emas — mijoz ilovada «To'lash» QR'ini ochsin": {
+		"это не платёжный QR Uzum — пусть гость откроет QR «Оплатить» в приложении",
+		"this is not a Uzum payment QR — ask the guest to open the pay QR in the app",
+	},
+	"Bu QR bilan allaqachon to'langan — mijozdan yangi QR so'rang": {
+		"по этому QR уже оплачено — попросите гостя открыть новый",
+		"this QR has already been paid — ask the guest for a new one",
+	},
 	"Bu QR kod allaqachon ishlatilgan — ekrandagi yangi kodni skaner qiling": {
 		"Этот QR-код уже использован — отсканируйте новый код с экрана",
 		"This QR code has already been used — scan the new one on the screen",
+	},
+	"Bu chek uchun to'lov allaqachon yuborilgan": {
+		"оплата по этому чеку уже отправлена",
+		"a payment for this check has already been sent",
+	},
+	"Bu hamkor uchun qaytarish ruxsat etilmagan": {
+		"возврат для этого партнёра не разрешён",
+		"refunds are not allowed for this partner",
+	},
+	"Bu karta turi qabul qilinmaydi — boshqa karta yoki naqd": {
+		"этот тип карты не принимается — другая карта или наличные",
+		"this card type is not accepted — another card or cash",
 	},
 	"Buyurtma bekor qilindi": {
 		"Заказ отменён",
@@ -240,6 +268,10 @@ var messages = map[string]pair{
 		"Зарплата записана",
 		"Pay was recorded",
 	},
+	"Kartaga bank tomonidan cheklov qo'yilgan — boshqa karta yoki naqd": {
+		"на карту установлено ограничение банка — другая карта или наличные",
+		"the bank has limited this card — another card or cash",
+	},
 	"Kassa smenasi": {
 		"Кассовая смена",
 		"The cash shift",
@@ -255,6 +287,18 @@ var messages = map[string]pair{
 	"Mehmon fikri": {
 		"Отзыв гостя",
 		"A guest's review",
+	},
+	"Mijoz kartasi Safe Mode'da — Uzum ilovasida o'chirilishi kerak": {
+		"карта гостя в режиме Safe Mode — его нужно отключить в приложении Uzum",
+		"the guest's card is in Safe Mode — it has to be switched off in the Uzum app",
+	},
+	"Mijozning kartasi Uzum tizimida topilmadi — boshqa karta yoki naqd": {
+		"карта гостя не найдена в системе Uzum — другая карта или наличные",
+		"the guest's card was not found in Uzum — another card or cash",
+	},
+	"Mijozning telefoni Uzum tizimida ro'yxatdan o'tmagan": {
+		"устройство гостя не зарегистрировано в системе Uzum",
+		"the guest's device is not registered with Uzum",
 	},
 	"Naqd qabul qilindi": {
 		"Наличные приняты",
@@ -312,6 +356,10 @@ var messages = map[string]pair{
 		"QR-код не прочитан — отсканируйте ещё раз",
 		"the QR code was not read — scan it again",
 	},
+	"QR kodning muddati o'tgan — mijozdan yangisini ochishini so'rang": {
+		"срок действия QR истёк — попросите гостя открыть новый",
+		"the QR has expired — ask the guest to open a new one",
+	},
 	"SMS shlyuzi sozlanmagan — sozlamalardan provayderni ulang va sinov SMS yuboring": {
 		"SMS-шлюз не настроен — подключите провайдера в настройках и отправьте тестовое SMS",
 		"the SMS gateway is not set up — connect a provider in the settings and send a test SMS",
@@ -364,6 +412,10 @@ var messages = map[string]pair{
 		"Uzum FastPay: нужны service id, id кассы и секретный ключ",
 		"Uzum FastPay: the service id, till id and secret key are all needed",
 	},
+	"Uzum tomonida vaqtincha nosozlik — naqd yoki boshqa usul bilan oling": {
+		"временный сбой на стороне Uzum — примите наличными или другим способом",
+		"a temporary failure on Uzum's side — take cash or another method",
+	},
 	"Yangi buyurtma": {
 		"Новый заказ",
 		"A new order",
@@ -376,6 +428,10 @@ var messages = map[string]pair{
 	"%s: o'lcham yoki rangni tanlang": {
 		"%s: выберите размер или цвет",
 		"%s: choose a size or colour",
+	},
+	"to'lov rad etildi": {
+		"оплата отклонена",
+		"the payment was declined",
 	},
 	"variantning varianti bo'lmaydi": {
 		"вариант варианта не бывает",

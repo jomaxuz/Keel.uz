@@ -145,7 +145,23 @@ func uzumResult(r uzumReply) Result {
 	}
 }
 
+// uzumOTPMin is the shortest string FastPay will look at.
+//
+// ⚠️ **Documented as a minimum of 40 and refused at 43 with the wrong prefix**,
+// which is not a contradiction to resolve here — it is a floor we can check
+// without a round trip. A cashier who scans a product's barcode, or the guest's
+// loyalty card, or a CLICK code into the Uzum field, gets an answer from the
+// screen in front of them instead of a bank refusal half a second later with a
+// machine word in it.
+const uzumOTPMin = 40
+
 func (u *uzumFastPay) Charge(ctx context.Context, ch Charge) (Result, error) {
+	// ⚠️ Refused here rather than by the bank: same outcome, one round trip
+	// less, and a sentence that says what to do next.
+	if len(strings.TrimSpace(ch.OTPData)) < uzumOTPMin {
+		return Result{Status: StatusFailed}, fmt.Errorf(
+			"Bu QR Uzum to'lov kodi emas — mijoz ilovada «To'lash» QR'ini ochsin")
+	}
 	reply, err := u.call(ctx, http.MethodPost, "/api/apelsin-pay/merchant/v2/payment",
 		map[string]any{
 			// ⚠️ **Tiyin.** The unit CLICK does not use, in the file next door.
@@ -253,6 +269,22 @@ func uzumMessage(r uzumReply) string {
 		return "Bu chek uchun to'lov allaqachon yuborilgan"
 	case "apelsin.pay.reverse.not.allowed":
 		return "Bu hamkor uchun qaytarish ruxsat etilmagan"
+	// ⚠️ The four below are the guest's problem and the cashier can say so in
+	// one sentence — which is the difference between "the till is broken" and
+	// "your card will not go through, do you have another". Read from the live
+	// error table (developer.uzumbank.uz/fastpay, 2026-09-07).
+	case "user.card.not.found", "user.does.not.exist":
+		return "Mijozning kartasi Uzum tizimida topilmadi — boshqa karta yoki naqd"
+	case "limit.was.set":
+		return "Kartaga bank tomonidan cheklov qo'yilgan — boshqa karta yoki naqd"
+	case "operation.forbidden":
+		return "Bu karta turi qabul qilinmaydi — boshqa karta yoki naqd"
+	case "device.not.registered":
+		return "Mijozning telefoni Uzum tizimida ro'yxatdan o'tmagan"
+	case "operation.failed":
+		return "Bank to'lovni rad etdi — boshqa karta yoki naqd"
+	case "external.service.unavailable", "apelsin.pay.service.not.working":
+		return "Uzum tomonida vaqtincha nosozlik — naqd yoki boshqa usul bilan oling"
 	case "":
 		if r.ErrorCode != 0 {
 			return "to'lov rad etildi (kod " + strconv.Itoa(r.ErrorCode) + ")"

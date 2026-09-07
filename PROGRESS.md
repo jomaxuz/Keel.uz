@@ -14115,3 +14115,37 @@ marta to'ldirish kerak bo'lardi.
 (07.09/1…/4, bo'sh ustun o'tkazildi), sklad qoldig'i 200/150/120 → 110/91/20;
 ikki ustun va bo'sh saqlash rad etildi; ekranda jadval, qizil «59 / 20 kg»
 ogohlantirishi va bitta bosishda yana 4 hujjat (07.09/6…/9). Skrinshotlar bilan.
+
+---
+
+## 2026-09-07 (12) — Uzum FastPay hujjati qayta o'qildi: mos, ikkita yaxshilash
+
+Foydalanuvchi hujjat havolasini berdi (`developer.uzumbank.uz/fastpay`). Sayt —
+SPA, `curl` va WebFetch faqat «Loading API documentation...» qaytardi (repodagi
+`docs/vendor/` qoidasi yana tasdiqlandi), shuning uchun brauzerda ochib o'qildi.
+
+**Adapter hujjatga to'liq mos**: `/api/apelsin-pay/merchant/v2/payment` (summa
+**tiyinda**), fiskalizatsiya, `PUT .../v2/payment/reversal/{orderId}`, status,
+`Authorization: merchant_service_user_id:hash:timestamp` va
+`sha1(timestamp + secret_key)`. Bitta noaniqlik (timestamp «UTC+5 da
+millisekund») kodda allaqachon izohlangan va alomati (403) yozilgan — hujjatda
+ham aniqlashtirilmagan, ya'ni taxmin qilinmadi.
+
+Ikki yaxshilash:
+
+1. **Qisqa kod bankka umuman yuborilmaydi.** Hujjat `otp_data` uchun kamida 40
+   belgi deydi. Kassir mahsulotning shtrix-kodini yoki CLICK kodini Uzum
+   maydoniga skanerlasa, endi javobni **ekranning o'zidan** oladi, bankdan
+   yarim soniya keyin mashina so'zi bilan emas. Testi bor.
+2. ⚠️ **Kassaga chiqadigan to'lov xabarlari umuman tarjima qilinmagan ekan.**
+   `finishScan` ularni `httpx.T` orqali o'tkazadi, lekin `messages.go` da
+   birortasi yo'q edi — ya'ni ruscha ishlaydigan kassir o'zbekcha jumla
+   ko'rardi. `TestEveryMessageIsTranslated` buni ushlamagan, chunki u
+   `fmt.Errorf`/`httpx.Error` shaklidagi satrlarni qidiradi, bu jumlalar esa
+   `switch` dan qaytariladi. 14 ta xabar uch tilga o'tkazildi, va jonli xato
+   jadvalidan kassir hal qila oladigan yana oltitasi qo'shildi (karta topilmadi,
+   bank cheklovi, karta turi, qurilma ro'yxatdan o'tmagan, bank rad etdi,
+   Uzum tomonida nosozlik).
+
+`docs/vendor/uzum-fastpay.md` — qayta o'qilgan sana, to'liq xato kodlari jadvali
+(400/401/403/404/416/503) va QR shakli qo'shildi.
