@@ -25,7 +25,6 @@ import (
 	"context"
 	"net/http"
 	"sort"
-	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -91,17 +90,20 @@ type bizRow struct {
 func (h *Handler) BusinessBreakdown(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// ⚠️ Thirty days by default so the per-order figure and the monthly
-	// subscription beside it describe the same length of time.
-	days := 30
-	if v := r.URL.Query().Get("days"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 366 {
-			days = n
-		}
+	// ⚠️ **The same window resolver the overview screen uses**, so that "7
+	// days" means one thing on this platform. It also gives this screen the two
+	// typed dates for free — and a question like "how did the shops trade over
+	// Ramadan" is exactly the one this cut of the platform is opened for, and
+	// the one no fixed button can ask.
+	//
+	// ⚠️ Thirty days when nothing is asked for, so the per-order figure and the
+	// monthly subscription beside it describe the same length of time.
+	fromKey, toKey, rangeErr := overviewWindow(r)
+	if rangeErr != nil {
+		httpx.Error(w, http.StatusBadRequest, rangeErr.Error())
+		return
 	}
-	to := time.Now().In(time.Local)
-	from := to.AddDate(0, 0, -(days - 1))
-	fromKey, toKey := from.Format("2006-01-02"), to.Format("2006-01-02")
+	days := inclusiveDays(fromKey, toKey)
 
 	// ⚠️ **Suspended and deleted customers are left out entirely.** They are
 	// sites we switched off; counting them as "idle" would put our own decision
@@ -274,4 +276,23 @@ func (h *Handler) tenantSums(
 		}
 	}
 	return out, nil
+}
+
+// inclusiveDays is how many calendar days the window covers, both ends counted.
+//
+// ⚠️ **Counted from the two dates rather than taken from the request**, because
+// the request may not carry a number at all: a hand-typed range is two dates,
+// and the figure beside "ours per order" has to say how long that actually was.
+// One day is a window, not zero — the button labelled "today" asks for exactly
+// that.
+func inclusiveDays(from, to string) int {
+	f, e1 := time.ParseInLocation("2006-01-02", from, time.Local)
+	t, e2 := time.ParseInLocation("2006-01-02", to, time.Local)
+	if e1 != nil || e2 != nil {
+		return 0
+	}
+	// ⚠️ Rounded to the nearest day rather than truncated: an hour lost to a
+	// clock change would otherwise turn a week into six days, and the figure is
+	// printed beside money.
+	return int((t.Sub(f)+12*time.Hour)/(24*time.Hour)) + 1
 }

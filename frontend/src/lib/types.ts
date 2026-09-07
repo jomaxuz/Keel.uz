@@ -1776,10 +1776,18 @@ export interface Brand {
 export type BusinessType =
   | ""
   | "fastfood"
+  // Makers: a counter that cooks. They compose what they sell and seat nobody.
+  | "coffee"
+  | "bakery"
+  | "pastry"
+  // Shops: what was delivered is what is sold.
   | "grocery"
+  | "butcher"
   | "clothing"
+  | "cosmetics"
   | "flowers"
-  | "pharmacy";
+  | "pharmacy"
+  | "hardware";
 
 /** Everything this build knows how to tailor for. ⚠️ The empty string is a
  *  restaurant, deliberately: it is what every brand written before the field
@@ -1787,10 +1795,16 @@ export type BusinessType =
 const BUSINESS_TYPES: readonly string[] = [
   "",
   "fastfood",
+  "coffee",
+  "bakery",
+  "pastry",
   "grocery",
+  "butcher",
   "clothing",
+  "cosmetics",
   "flowers",
   "pharmacy",
+  "hardware",
 ];
 
 /** Collapses anything this build does not recognise to a restaurant.
@@ -1832,10 +1846,17 @@ export function hasTables(brand?: { businessType?: string } | null): boolean {
  *  dish needs a recipe and a prep workshop needs batches. A shop sells the
  *  object it bought: the server keeps its one-line card in step, and a screen
  *  inviting somebody to edit that card by hand is a screen that can only break
- *  it. */
+ *  it.
+ *
+ *  ⚠️ **Cooked *to order* is the test, not "has an oven".** A bakery and a
+ *  pastry shop bake in batches before the doors open — their document is a
+ *  production batch, not a ticket somebody watches — so a kitchen screen there
+ *  would sit empty all day beside the screen they actually need. A coffee house
+ *  makes every cup after somebody asks for it, which is the shape of a kitchen
+ *  ticket even though nothing is cooked. */
 export function hasKitchen(brand?: { businessType?: string } | null): boolean {
   const t = known(brand);
-  return t === "" || t === "fastfood";
+  return t === "" || t === "fastfood" || t === "coffee";
 }
 
 /** Is what this brand sells assembled from other things it stocks?
@@ -1848,7 +1869,18 @@ export function hasKitchen(brand?: { businessType?: string } | null): boolean {
  *  costs and what a bad week threw out. Mirrors `BusinessType.Composes`. */
 export function composes(brand?: { businessType?: string } | null): boolean {
   const t = known(brand);
-  return t === "" || t === "fastfood" || t === "flowers";
+  // ⚠️ **The florist's lesson, arriving three more times.** Bread is flour,
+  // water and salt; a cappuccino is a shot and milk; a cake is six lines and a
+  // box. Take the cards away from these and each loses the one screen that says
+  // what its own counter costs it.
+  return (
+    t === "" ||
+    t === "fastfood" ||
+    t === "flowers" ||
+    t === "bakery" ||
+    t === "coffee" ||
+    t === "pastry"
+  );
 }
 
 /** Does this brand sell one product in sizes and colours?
@@ -1870,9 +1902,12 @@ export function hasVariants(brand?: { businessType?: string } | null): boolean {
 export function sellsGoods(brand?: { businessType?: string } | null): boolean {
   switch (known(brand)) {
     case "grocery":
+    case "butcher":
     case "clothing":
+    case "cosmetics":
     case "flowers":
     case "pharmacy":
+    case "hardware":
       return true;
     default:
       return false;

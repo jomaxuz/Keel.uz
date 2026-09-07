@@ -20,108 +20,216 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { business, type BizRow, type BizTenant } from "@/lib/api";
+import { BIZ_TYPES, bizLabel } from "@/lib/biz";
 import { useT } from "@/lib/i18n/client";
 
+/** The three the screen is usually read at. ⚠️ Shortest first, and the typed
+ *  range last: the common press is a week or a month, and a row that opens on
+ *  two date boxes makes the frequent answer the furthest to reach. */
 const WINDOWS = [7, 30, 90];
 
 export default function BusinessBreakdown() {
   const { t } = useT();
   const [rows, setRows] = useState<BizRow[]>([]);
   const [days, setDays] = useState(30);
+  /** Whether the two boxes are the question being asked. ⚠️ Held apart from the
+   *  dates themselves so that switching to a shorthand and back does not wipe
+   *  what was typed. */
+  const [custom, setCustom] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  /** What the server says it answered — printed rather than assumed, because a
+   *  typed range and the label beside the money have to be the same window. */
+  const [covered, setCovered] = useState({ from: "", to: "", days: 30 });
   const [now, setNow] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const load = useCallback(() => {
-    setLoading(true);
-    business(days)
-      .then((d) => {
-        setRows(d.rows);
-        setNow(d.now);
-        setError("");
-      })
-      .catch(() => setError(t.dash.loadFailed))
-      .finally(() => setLoading(false));
-  }, [days, t.dash.loadFailed]);
+  const load = useCallback(
+    (q: { days?: number; from?: string; to?: string }) => {
+      setLoading(true);
+      business(q)
+        .then((d) => {
+          setRows(d.rows);
+          setNow(d.now);
+          setCovered({ from: d.from, to: d.to, days: d.days });
+          setError("");
+        })
+        .catch(() => setError(t.dash.loadFailed))
+        .finally(() => setLoading(false));
+    },
+    [t.dash.loadFailed],
+  );
 
-  useEffect(load, [load]);
+  // ⚠️ Only the shorthand buttons reload on their own. A typed range waits for
+  // the button: refetching on every keystroke in a date input means a request
+  // for the year 0002 while somebody types 2026.
+  useEffect(() => {
+    if (!custom) load({ days });
+  }, [custom, days, load]);
 
-  const label = (type: string) =>
-    t.biz.types[type as keyof typeof t.biz.types] ?? type;
+  // ⚠️ **A block for every kind we sell to, not only for the kinds that turned
+  // up in the answer.** A type with no customer is itself the finding — we
+  // decided to sell to bakeries and there are none — and a screen that simply
+  // omits the row leaves nobody to notice. The server orders what it has by
+  // what it earns; the empty ones follow, in the order the console offers them.
+  const seen = new Set(rows.map((r) => r.type));
+  const blocks: BizRow[] = [
+    ...rows,
+    ...BIZ_TYPES.filter((b) => !seen.has(b)).map((type) => emptyRow(type)),
+  ];
 
   return (
     <div>
-      <h2 className="font-display text-lg font-semibold text-ink">{t.biz.title}</h2>
+      <h2 className="font-display text-lg font-semibold text-ink">
+        {t.biz.title}
+      </h2>
       <p className="mt-1 max-w-3xl text-sm text-ink-muted">{t.biz.intro}</p>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {WINDOWS.map((d) => (
           <button
             key={d}
             type="button"
-            onClick={() => setDays(d)}
+            onClick={() => {
+              setCustom(false);
+              setDays(d);
+            }}
             className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${
-              d === days ? "border-signal-500 bg-signal-500/10" : "border-line"
+              !custom && d === days
+                ? "border-signal-500 bg-signal-500/10"
+                : "border-line"
             }`}
           >
             {t.biz.window(d)}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setCustom(true)}
+          className={`rounded-lg border px-3 py-1.5 text-sm font-semibold ${
+            custom ? "border-signal-500 bg-signal-500/10" : "border-line"
+          }`}
+        >
+          {t.dash.ovRangeCustom}
+        </button>
+        {/* ⚠️ The window the numbers actually cover, printed beside the
+            buttons: a typed range and a shorthand look identical once the page
+            has redrawn, and this row is what makes a figure quotable. */}
+        {covered.from && (
+          <span className="text-xs text-ink-muted">
+            {covered.from} — {covered.to} · {t.biz.window(covered.days)}
+          </span>
+        )}
       </div>
 
-      {error && <p className="mt-4 text-sm text-rose-600">{error}</p>}
-      {loading && <p className="mt-6 text-sm text-ink-muted">{t.dash.loading}</p>}
+      {custom && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <label className="text-xs text-ink-muted">{t.biz.from}</label>
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink"
+          />
+          <label className="text-xs text-ink-muted">{t.biz.to}</label>
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink"
+          />
+          <button
+            type="button"
+            // ⚠️ Disabled until both are filled. One date is not a window, and
+            // the server would answer a question nobody asked.
+            disabled={!from || !to}
+            onClick={() => load({ from, to })}
+            className="rounded-lg bg-ink px-3 py-1.5 text-sm font-semibold text-page disabled:opacity-40"
+          >
+            {t.dash.ovApply}
+          </button>
+        </div>
+      )}
 
+      {error && <p className="mt-4 text-sm text-rose-600">{error}</p>}
+      {loading && (
+        <p className="mt-6 text-sm text-ink-muted">{t.dash.loading}</p>
+      )}
       {!loading && rows.length === 0 && (
         <p className="mt-6 text-sm text-ink-muted">{t.biz.empty}</p>
       )}
 
       <div className="mt-6 space-y-4">
-        {rows.map((r) => (
+        {blocks.map((r) => (
           <section
             key={r.type}
             className="rounded-3xl border border-line bg-surface p-5"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h2 className="font-display text-lg font-semibold">{label(r.type)}</h2>
+              <h2 className="font-display text-lg font-semibold">
+                {bizLabel(t, r.type)}
+              </h2>
               {/* ⚠️ **Two figures side by side, never one.** The till is a
                   monthly subscription and the website is billed per order;
                   added together they would be a number matching no invoice we
                   have ever issued. */}
-              <p className="text-sm text-ink-muted">
-                {t.biz.ours}:{" "}
-                <span className="font-semibold text-ink">
-                  {money(r.subscription)}
-                </span>{" "}
-                {t.biz.perMonth} + <span className="font-semibold text-ink">
-                  {money(r.perOrder)}
-                </span>{" "}
-                {t.biz.perOrder(days)}
-              </p>
+              {/* ⚠️ Not drawn for a kind with nobody in it: "Bizga: 0 oyiga +
+                  0" is a sum of nothing, and a zero beside money reads as a
+                  figure somebody measured. */}
+              {r.tenants > 0 && (
+                <p className="text-sm text-ink-muted">
+                  {t.biz.ours}:{" "}
+                  <span className="font-semibold text-ink">
+                    {money(r.subscription)}
+                  </span>{" "}
+                  {t.biz.perMonth} +{" "}
+                  <span className="font-semibold text-ink">
+                    {money(r.perOrder)}
+                  </span>{" "}
+                  {t.biz.perOrder(covered.days)}
+                </p>
+              )}
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-              <Stat label={t.biz.tenants} value={String(r.tenants)} />
-              {/* ⚠️ Unknown is not "down": Docker unreachable means nothing is
+            {/* ⚠️ **A kind we sell to and have nobody in says so in words.** Six
+                zeroed statistics and two empty "best and worst" cards read as a
+                loading failure; one sentence reads as the finding it is. */}
+            {r.tenants === 0 ? (
+              <p className="mt-3 text-sm text-ink-muted">{t.biz.none}</p>
+            ) : (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                  <Stat label={t.biz.tenants} value={String(r.tenants)} />
+                  {/* ⚠️ Unknown is not "down": Docker unreachable means nothing is
                   known about anybody, and a dash says that where a 0 would lie. */}
-              <Stat
-                label={t.biz.online}
-                value={r.onlineKnown ? `${r.online} / ${r.tenants}` : "—"}
-              />
-              <Stat label={t.biz.idle} value={String(r.idle)} tone={r.idle > 0 ? "warn" : ""} />
-              <Stat label={t.biz.ops} value={String(r.ops)} />
-              <Stat label={t.biz.revenue} value={money(r.revenue)} />
-              <Stat label={t.biz.lastSale} value={ago(r.lastSale, now, t)} />
-            </div>
+                  <Stat
+                    label={t.biz.online}
+                    value={r.onlineKnown ? `${r.online} / ${r.tenants}` : "—"}
+                  />
+                  <Stat
+                    label={t.biz.idle}
+                    value={String(r.idle)}
+                    tone={r.idle > 0 ? "warn" : ""}
+                  />
+                  <Stat label={t.biz.ops} value={String(r.ops)} />
+                  <Stat label={t.biz.revenue} value={money(r.revenue)} />
+                  <Stat
+                    label={t.biz.lastSale}
+                    value={ago(r.lastSale, now, t)}
+                  />
+                </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Best row={r.top} label={t.biz.top} t={t} />
-              <Best row={r.bottom} label={t.biz.bottom} t={t} />
-            </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <Best row={r.top} label={t.biz.top} t={t} />
+                  <Best row={r.bottom} label={t.biz.bottom} t={t} />
+                </div>
 
-            <p className="mt-3 text-xs text-ink-muted">
-              {t.biz.split(r.orders, r.tillChecks, r.visitors)}
-            </p>
+                <p className="mt-3 text-xs text-ink-muted">
+                  {t.biz.split(r.orders, r.tillChecks, r.visitors)}
+                </p>
+              </>
+            )}
           </section>
         ))}
       </div>
@@ -200,7 +308,11 @@ function money(n: number): string {
  *  ⚠️ **The server sends "now".** A console open on a machine whose clock is a
  *  day out would shift every "how long ago" on the screen, and the number it
  *  shifted is the one somebody rings a customer about. */
-function ago(date: string | undefined, now: string, t: ReturnType<typeof useT>["t"]): string {
+function ago(
+  date: string | undefined,
+  now: string,
+  t: ReturnType<typeof useT>["t"],
+): string {
   if (!date) return t.biz.never;
   const then = new Date(`${date}T00:00:00`);
   const today = new Date(now);
@@ -211,4 +323,27 @@ function ago(date: string | undefined, now: string, t: ReturnType<typeof useT>["
   );
   if (days <= 0) return t.biz.today;
   return t.biz.daysAgo(days);
+}
+
+/** A kind of business we sell to and have nobody in yet.
+ *
+ *  ⚠️ **Built here rather than sent by the server**, because the server reports
+ *  what it found and this is a fact about what we decided to sell. `onlineKnown`
+ *  is false: nothing is known about nobody, and a "0 / 0 answering" would be a
+ *  claim rather than a reading. */
+function emptyRow(type: string): BizRow {
+  return {
+    type,
+    tenants: 0,
+    online: 0,
+    onlineKnown: false,
+    idle: 0,
+    orders: 0,
+    tillChecks: 0,
+    ops: 0,
+    revenue: 0,
+    visitors: 0,
+    subscription: 0,
+    perOrder: 0,
+  };
 }

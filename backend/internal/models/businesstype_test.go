@@ -115,3 +115,57 @@ func TestAFloristStartsWithDeliveryOn(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **A maker is not a shop, and the ladder is not the catalogue.** A bakery,
+// a coffee house and a pastry shop are sold at a shop's price (the console's
+// question, answered in control/internal/billing) while composing everything
+// they sell (this file's question). Reading the cheap price as "sells the thing
+// it bought" would take the technical cards, the batches and the cost per loaf
+// away from the three businesses whose whole counter is a recipe.
+func TestAMakerComposesWithoutBeingAShop(t *testing.T) {
+	for _, b := range []BusinessType{BizBakery, BizCoffee, BizPastry} {
+		if b.SellsGoods() {
+			t.Errorf("%q was read as a shop: its counter is what it made", b)
+		}
+		if !b.Composes() {
+			t.Errorf("%q lost its technical cards", b)
+		}
+		if b.HasTables() {
+			t.Errorf("%q was given a floor plan", b)
+		}
+		if !b.Defaults().Pickup {
+			t.Errorf("%q cannot hand anything over its own counter", b)
+		}
+	}
+}
+
+// ⚠️ **Baked in batches before the doors open is not cooked to order.** A
+// kitchen screen in a bakery is a screen that stays empty all day; the document
+// those two need is a production batch, and it is `Composes` that gives it to
+// them. A coffee house is the opposite case and proves the two are different
+// questions: nothing is cooked and every cup is still made after somebody asks.
+func TestBatchBakersHaveNoTicketScreen(t *testing.T) {
+	for _, b := range []BusinessType{BizBakery, BizPastry} {
+		if b.HasKitchen() {
+			t.Errorf("%q was given a ticket screen for work done before opening", b)
+		}
+	}
+	if !BizCoffee.HasKitchen() {
+		t.Error("a coffee house makes every cup to order")
+	}
+}
+
+// The shops added beside the first four sell the packet that was delivered.
+func TestTheNewerShopsStillSellWhatTheyBought(t *testing.T) {
+	for _, b := range []BusinessType{BizButcher, BizCosmetics, BizHardware} {
+		if !b.SellsGoods() || !b.ScansToSell() {
+			t.Errorf("%q does not sell goods", b)
+		}
+		if b.Composes() {
+			t.Errorf("%q composes nothing: the packet sold is the packet delivered", b)
+		}
+		if b.HasKitchen() || b.HasTables() {
+			t.Errorf("%q was given a kitchen or a floor plan by default", b)
+		}
+	}
+}

@@ -9,14 +9,24 @@ import { adminEn, adminRu, adminUz } from "@/lib/i18n/admin";
 // that answer is a reason that cannot be true. Offering it is how a screen
 // teaches a shop that the panel was built for somebody else.
 describe("which answers a business is offered", () => {
+  // ⚠️ A bakery, a coffee house and a pastry shop are here for the florist's
+  // reason: they compose everything on their counter, so "the card takes more
+  // than the oven does" is the answer a short bag of flour usually has.
   it("keeps the card answer where something is composed", () => {
-    for (const type of ["", "fastfood", "flowers"]) {
+    for (const type of ["", "fastfood", "flowers", "bakery", "coffee", "pastry"]) {
       expect(verdictsFor({ businessType: type })).toContain("card");
     }
   });
 
   it("drops it where the packet on the shelf is the packet that was sold", () => {
-    for (const type of ["grocery", "pharmacy", "clothing"]) {
+    for (const type of [
+      "grocery",
+      "pharmacy",
+      "clothing",
+      "butcher",
+      "cosmetics",
+      "hardware",
+    ]) {
       expect(verdictsFor({ businessType: type })).not.toContain("card");
     }
   });

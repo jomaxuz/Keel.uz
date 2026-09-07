@@ -358,10 +358,22 @@ func ensureMenu(ctx context.Context, store *repository.Store, cfg *config.Config
 	// them one at a time before entering anything of their own. See shop.go for
 	// what each kind of shop starts with, and why every row goes through the
 	// panel's own stock code on the way in.
+	//
+	// ⚠️ **And a maker gets neither.** Forty-eight dishes in a bakery is the
+	// pharmacy's problem with bread in it — the owner's first job is deleting a
+	// plov they do not sell — while a shop's catalogue would mark every loaf as
+	// its own stock row and break the first technical card they write. The three
+	// counters that cook without a dining room get a short menu of their own.
 	biz := models.BusinessType(cfg.BusinessType)
 	if biz.SellsGoods() {
 		if err := writeShopCatalogue(ctx, store, biz); err != nil {
 			log.Printf("seed: write shop catalogue: %v", err)
+		}
+		return
+	}
+	if _, maker := makerCatalogues[biz]; maker {
+		if err := writeMakerCatalogue(ctx, store, biz); err != nil {
+			log.Printf("seed: write maker catalogue: %v", err)
 		}
 		return
 	}

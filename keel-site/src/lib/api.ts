@@ -906,15 +906,28 @@ export type BizTenant = {
 };
 
 /** ⚠️ Thirty days by default so the per-order figure and the monthly
- *  subscription beside it describe the same length of time. */
-export const business = (days = 30) =>
-  req<{
+ *  subscription beside it describe the same length of time.
+ *
+ *  ⚠️ **Two typed dates win over the day count**, the same rule the overview
+ *  follows and the same resolver behind it: somebody who filled both boxes
+ *  asked a specific question, and quietly answering a different one is worse
+ *  than refusing. */
+export const business = (q: { days?: number; from?: string; to?: string } = {}) => {
+  const p = new URLSearchParams();
+  if (q.from && q.to) {
+    p.set("from", q.from);
+    p.set("to", q.to);
+  } else {
+    p.set("days", String(q.days ?? 30));
+  }
+  return req<{
     rows: BizRow[];
     from: string;
     to: string;
     days: number;
     now: string;
-  }>(`/business?days=${days}`);
+  }>(`/business?${p.toString()}`);
+};
 
 // ---- The blog ----
 

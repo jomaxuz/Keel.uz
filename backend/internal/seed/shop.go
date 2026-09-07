@@ -200,6 +200,180 @@ var shopCatalogues = map[models.BusinessType][]shopCategory{
 			},
 		},
 	},
+	models.BizButcher: {
+		// ⚠️ **Everything here is priced per kilo**, because that is the row that
+		// proves the counter scale, the weight barcode and the "/ kg" on the
+		// shelf label all agree — and a butcher whose sample was priced per piece
+		// would find that out at the counter with a queue.
+		{
+			Name: "Mol go'shti", NameRu: "Говядина", NameEn: "Beef",
+			Slug: "mol-goshti",
+			Items: []shopItem{
+				{Name: "Mol go'shti, suyaksiz", NameRu: "Говядина без кости", NameEn: "Beef, boneless", Price: 105000, Unit: 11},
+				{Name: "Mol go'shti, suyakli", NameRu: "Говядина на кости", NameEn: "Beef on the bone", Price: 85000, Unit: 11},
+				{Name: "Qiyma", NameRu: "Фарш", NameEn: "Minced beef", Price: 95000, Unit: 11},
+			},
+		},
+		{
+			Name: "Qo'y go'shti", NameRu: "Баранина", NameEn: "Lamb",
+			Slug: "qoy-goshti",
+			Items: []shopItem{
+				{Name: "Qo'y go'shti", NameRu: "Баранина", NameEn: "Lamb", Price: 130000, Unit: 11},
+				{Name: "Dumba", NameRu: "Курдюк", NameEn: "Fat tail", Price: 70000, Unit: 11},
+			},
+		},
+		{
+			Name: "Parranda va baliq", NameRu: "Птица и рыба", NameEn: "Poultry and fish",
+			Slug: "parranda-baliq",
+			Items: []shopItem{
+				{Name: "Tovuq go'shti", NameRu: "Курица", NameEn: "Chicken", Price: 42000, Unit: 11},
+				{Name: "Tovuq filesi", NameRu: "Куриное филе", NameEn: "Chicken fillet", Price: 68000, Unit: 11},
+				{Name: "Zog'ora baliq", NameRu: "Карп", NameEn: "Carp", Price: 55000, Unit: 11},
+			},
+		},
+	},
+	models.BizCosmetics: {
+		{
+			Name: "Yuz parvarishi", NameRu: "Уход за лицом", NameEn: "Face care",
+			Slug: "yuz-parvarishi",
+			Items: []shopItem{
+				{Name: "Yuvinish geli", NameRu: "Гель для умывания", NameEn: "Face wash", Price: 65000},
+				{Name: "Namlantiruvchi krem", NameRu: "Увлажняющий крем", NameEn: "Moisturiser", Price: 120000},
+				{Name: "Quyoshdan himoya, SPF 50", NameRu: "Солнцезащитный крем, SPF 50", NameEn: "Sunscreen, SPF 50", Price: 145000},
+			},
+		},
+		{
+			Name: "Bo'yanish", NameRu: "Макияж", NameEn: "Make-up",
+			Slug: "boyanish",
+			Items: []shopItem{
+				{Name: "Tush", NameRu: "Тушь для ресниц", NameEn: "Mascara", Price: 85000},
+				{Name: "Lab bo'yog'i", NameRu: "Помада", NameEn: "Lipstick", Price: 75000},
+			},
+		},
+		{
+			Name: "Soch va tana", NameRu: "Волосы и тело", NameEn: "Hair and body",
+			Slug: "soch-tana",
+			Items: []shopItem{
+				{Name: "Shampun", NameRu: "Шампунь", NameEn: "Shampoo", Price: 58000},
+				{Name: "Tana loson", NameRu: "Лосьон для тела", NameEn: "Body lotion", Price: 69000},
+			},
+		},
+	},
+	models.BizHardware: {
+		{
+			Name: "Asboblar", NameRu: "Инструменты", NameEn: "Tools",
+			Slug: "asboblar",
+			Items: []shopItem{
+				{Name: "Bolg'a", NameRu: "Молоток", NameEn: "Hammer", Price: 45000},
+				{Name: "Otvyortka to'plami", NameRu: "Набор отвёрток", NameEn: "Screwdriver set", Price: 120000},
+				{Name: "Ruletka, 5 m", NameRu: "Рулетка, 5 м", NameEn: "Tape measure, 5 m", Price: 30000},
+			},
+		},
+		{
+			Name: "Mahkamlagichlar", NameRu: "Крепёж", NameEn: "Fixings",
+			Slug: "mahkamlagichlar",
+			Items: []shopItem{
+				// Sold by the kilo, the way a hardware shop actually sells them.
+				{Name: "Mix", NameRu: "Гвозди", NameEn: "Nails", Price: 18000, Unit: 11},
+				{Name: "Sho'rup", NameRu: "Саморезы", NameEn: "Screws", Price: 26000, Unit: 11},
+			},
+		},
+		{
+			Name: "Bo'yoq va elektr", NameRu: "Краски и электрика", NameEn: "Paint and electrics",
+			Slug: "boyoq-elektr",
+			Items: []shopItem{
+				{Name: "Suvli bo'yoq, 1 l", NameRu: "Водоэмульсионная краска, 1 л", NameEn: "Emulsion paint, 1 l", Price: 42000, Unit: 41},
+				{Name: "Kabel, 2×1.5", NameRu: "Кабель, 2×1.5", NameEn: "Cable, 2×1.5", Price: 12000, Unit: 22},
+				{Name: "LED lampa", NameRu: "LED лампа", NameEn: "LED bulb", Price: 22000},
+			},
+		},
+	},
+}
+
+// makerCatalogues is what a counter that *makes* what it sells starts with.
+//
+// ⚠️ **A separate map from the shops', and separately written, because these
+// rows are not stock rows.** A bakery's loaf is flour an hour ago: what it sells
+// is a menu item with a technical card behind it, not a packet that is its own
+// balance. Writing them through the shop's path would mark each one
+// `SellsItself` — and the first tech card the baker wrote would be a card on a
+// product that is also its own ingredient, which is a loop the cost report
+// cannot answer.
+//
+// ⚠️ **No cards in the sample either, for the florist's reason** (see the
+// flowers catalogue above): a recipe pointing at flour this bakery does not buy
+// would cost its bread wrongly on the one screen it is bought for. The rows are
+// there so the till, the site and the receipt have something real to show; the
+// cards are the owner's first real piece of work.
+var makerCatalogues = map[models.BusinessType][]shopCategory{
+	models.BizBakery: {
+		{
+			Name: "Non", NameRu: "Хлеб", NameEn: "Bread",
+			Slug: "non",
+			Items: []shopItem{
+				{Name: "Obi non", NameRu: "Лепёшка", NameEn: "Obi non", Price: 4000},
+				{Name: "Patir", NameRu: "Патыр", NameEn: "Patir", Price: 8000},
+				{Name: "Bulochka", NameRu: "Булочка", NameEn: "Bun", Price: 3500},
+			},
+		},
+		{
+			Name: "Yopilgan mahsulot", NameRu: "Выпечка", NameEn: "Baked goods",
+			Slug: "yopilgan",
+			Items: []shopItem{
+				{Name: "Somsa", NameRu: "Самса", NameEn: "Somsa", Price: 12000},
+				{Name: "Qatlama", NameRu: "Слоёная лепёшка", NameEn: "Qatlama", Price: 10000},
+			},
+		},
+	},
+	models.BizCoffee: {
+		{
+			Name: "Qahva", NameRu: "Кофе", NameEn: "Coffee",
+			Slug: "qahva",
+			Items: []shopItem{
+				{Name: "Espresso", NameRu: "Эспрессо", NameEn: "Espresso", Price: 15000},
+				{Name: "Amerikano", NameRu: "Американо", NameEn: "Americano", Price: 18000},
+				{Name: "Kapuchino", NameRu: "Капучино", NameEn: "Cappuccino", Price: 25000},
+				{Name: "Latte", NameRu: "Латте", NameEn: "Latte", Price: 27000},
+			},
+		},
+		{
+			Name: "Boshqa ichimliklar", NameRu: "Другие напитки", NameEn: "Other drinks",
+			Slug: "boshqa-ichimliklar",
+			Items: []shopItem{
+				{Name: "Choy", NameRu: "Чай", NameEn: "Tea", Price: 12000},
+				{Name: "Issiq shokolad", NameRu: "Горячий шоколад", NameEn: "Hot chocolate", Price: 28000},
+			},
+		},
+		{
+			Name: "Yoniga", NameRu: "К кофе", NameEn: "With coffee",
+			Slug: "yoniga",
+			Items: []shopItem{
+				{Name: "Kruassan", NameRu: "Круассан", NameEn: "Croissant", Price: 20000},
+				{Name: "Chizkeyk, bo'lak", NameRu: "Чизкейк, кусок", NameEn: "Cheesecake, slice", Price: 32000},
+			},
+		},
+	},
+	models.BizPastry: {
+		{
+			Name: "Tortlar", NameRu: "Торты", NameEn: "Cakes",
+			Slug: "tortlar",
+			Items: []shopItem{
+				// ⚠️ Priced per kilo: a cake shop's whole till works that way, and
+				// a sample priced per piece would teach the wrong habit on day one.
+				{Name: "Medovik", NameRu: "Медовик", NameEn: "Honey cake", Price: 150000, Unit: 11},
+				{Name: "Napoleon", NameRu: "Наполеон", NameEn: "Napoleon", Price: 160000, Unit: 11},
+			},
+		},
+		{
+			Name: "Shirinliklar", NameRu: "Десерты", NameEn: "Desserts",
+			Slug: "shirinliklar",
+			Items: []shopItem{
+				{Name: "Keks", NameRu: "Кекс", NameEn: "Muffin", Price: 15000},
+				{Name: "Ekler", NameRu: "Эклер", NameEn: "Éclair", Price: 18000},
+				{Name: "Pirojnoe", NameRu: "Пирожное", NameEn: "Pastry", Price: 20000},
+			},
+		},
+	},
 }
 
 // writeShopCatalogue creates the sample a shop starts with.
@@ -258,6 +432,63 @@ func writeShopCatalogue(
 			}
 			items++
 		}
+	}
+	log.Printf("seed: created sample catalogue for %s (%d items)", biz, items)
+	return nil
+}
+
+// writeMakerCatalogue creates the short menu a bakery, a coffee house or a
+// pastry shop starts with.
+//
+// ⚠️ **Ordinary menu items, written in bulk, with no stock row and no
+// `SellsItself`.** What a maker sells is not a packet on a shelf: the loaf is
+// costed through a technical card over flour and yeast, which are the stock
+// rows. Marking these as their own stock — the shop path above — would make the
+// first card an owner writes point a product at itself.
+func writeMakerCatalogue(
+	ctx context.Context, store *repository.Store, biz models.BusinessType,
+) error {
+	cats, ok := makerCatalogues[biz]
+	if !ok {
+		return nil
+	}
+	now := time.Now()
+	items := 0
+	for ci, cat := range cats {
+		res, err := store.Categories.InsertOne(ctx, models.Category{
+			Name:      cat.Name,
+			NameRu:    cat.NameRu,
+			NameEn:    cat.NameEn,
+			Slug:      cat.Slug,
+			SortOrder: ci,
+			IsActive:  true,
+		})
+		if err != nil {
+			return fmt.Errorf("insert category %q: %w", cat.Name, err)
+		}
+		catID, _ := res.InsertedID.(primitive.ObjectID)
+
+		docs := make([]any, 0, len(cat.Items))
+		for i, it := range cat.Items {
+			docs = append(docs, models.MenuItem{
+				CategoryID:  catID,
+				Name:        it.Name,
+				NameRu:      it.NameRu,
+				NameEn:      it.NameEn,
+				Price:       it.Price,
+				UnitCode:    it.Unit,
+				IsAvailable: true,
+				SortOrder:   i,
+				UpdatedAt:   now,
+			})
+		}
+		if len(docs) == 0 {
+			continue
+		}
+		if _, err := store.Menu.InsertMany(ctx, docs); err != nil {
+			return fmt.Errorf("insert %q: %w", cat.Name, err)
+		}
+		items += len(docs)
 	}
 	log.Printf("seed: created sample catalogue for %s (%d items)", biz, items)
 	return nil

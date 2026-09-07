@@ -38,10 +38,24 @@ const (
 	// shipped. Same rule as an empty `mapProvider` meaning 2GIS.
 	BizRestaurant BusinessType = ""
 	BizFastFood   BusinessType = "fastfood"
-	BizGrocery    BusinessType = "grocery"
-	BizClothing   BusinessType = "clothing"
-	BizFlowers    BusinessType = "flowers"
-	BizPharmacy   BusinessType = "pharmacy"
+	// ---- Makers: they turn what they buy into what they sell ----
+	//
+	// ⚠️ **A bakery is not a shop, though it looks like one from the street.**
+	// What is on its counter was flour an hour ago, which means a technical card,
+	// a batch document and a cost per loaf — the whole half of the product a
+	// grocery never opens. Reading it as a shop would take those screens away and
+	// leave it counting bread it cannot cost.
+	BizBakery BusinessType = "bakery"
+	BizCoffee BusinessType = "coffee"
+	BizPastry BusinessType = "pastry"
+	// ---- Shops: what was delivered is what is sold ----
+	BizGrocery   BusinessType = "grocery"
+	BizButcher   BusinessType = "butcher"
+	BizClothing  BusinessType = "clothing"
+	BizCosmetics BusinessType = "cosmetics"
+	BizFlowers   BusinessType = "flowers"
+	BizPharmacy  BusinessType = "pharmacy"
+	BizHardware  BusinessType = "hardware"
 )
 
 // BusinessTypes is what the console offers, in the order it offers them.
@@ -49,8 +63,15 @@ const (
 // ⚠️ Ordered by how many of them there are rather than alphabetically: the list
 // is read by somebody creating a customer, and the common answer belongs at the
 // top.
+//
+// ⚠️ **Kitchens first, then shops**, because that is the question the person
+// creating a customer has already answered before they open the list: they know
+// whether the place cooks. Interleaving the two by popularity would make them
+// read the whole list every time.
 var BusinessTypes = []BusinessType{
-	BizRestaurant, BizFastFood, BizGrocery, BizClothing, BizFlowers, BizPharmacy,
+	BizRestaurant, BizFastFood, BizCoffee, BizBakery, BizPastry,
+	BizGrocery, BizButcher, BizClothing, BizCosmetics, BizFlowers,
+	BizPharmacy, BizHardware,
 }
 
 // Valid reports whether a stored value is one this build knows.
@@ -90,7 +111,8 @@ func (b BusinessType) known() BusinessType {
 // one — and every screen that differs, differs because of this.
 func (b BusinessType) SellsGoods() bool {
 	switch b.known() {
-	case BizGrocery, BizClothing, BizFlowers, BizPharmacy:
+	case BizGrocery, BizButcher, BizClothing, BizCosmetics,
+		BizFlowers, BizPharmacy, BizHardware:
 		return true
 	}
 	return false
@@ -112,9 +134,18 @@ func (b BusinessType) HasTables() bool { return b.known() == BizRestaurant }
 //
 // ⚠️ A default, not a rule: a flower shop with a coffee machine switches the
 // kitchen screen back on in the panel, and nothing here stops it.
+// ⚠️ **Cooked *to order* is the test, not "has an oven".** A bakery and a
+// pastry shop bake in batches before the doors open — their document is a
+// production batch, not a ticket a cook watches — so a kitchen screen there
+// would sit empty all day beside the screen they actually need. A coffee house
+// makes every cup after somebody asks for it, which is the same shape as a
+// kitchen ticket even though nothing is cooked.
 func (b BusinessType) HasKitchen() bool {
-	k := b.known()
-	return k == BizRestaurant || k == BizFastFood
+	switch b.known() {
+	case BizRestaurant, BizFastFood, BizCoffee:
+		return true
+	}
+	return false
 }
 
 // Composes reports whether what is sold is assembled from other things it
@@ -130,9 +161,16 @@ func (b BusinessType) HasKitchen() bool {
 // ⚠️ A grocery, a clothes shop and a pharmacy genuinely do not compose: the
 // packet on the shelf is the packet that was delivered, and their products keep
 // the one-line card the server writes for them.
+//
+// ⚠️ **A bakery, a coffee house and a pastry shop compose without a floor and
+// mostly without a kitchen screen**, which is the florist's lesson arriving
+// three more times: bread is flour, water and salt, a cappuccino is a shot and
+// milk, a cake is six lines and a box. Take the cards away and each of them
+// loses the one screen that says what its own counter costs it.
 func (b BusinessType) Composes() bool {
 	switch b.known() {
-	case BizRestaurant, BizFastFood, BizFlowers:
+	case BizRestaurant, BizFastFood, BizFlowers,
+		BizBakery, BizCoffee, BizPastry:
 		return true
 	}
 	return false
@@ -156,7 +194,12 @@ func (b BusinessType) Defaults() BrandFeatures {
 		// A shop hands the goods over at the counter. Delivery is off rather
 		// than impossible — a pharmacy that starts delivering turns it on.
 		return BrandFeatures{Delivery: false, Pickup: true, DineIn: false, Booking: false}
-	case b.known() == BizFastFood:
+	case b.known() == BizFastFood, b.known() == BizBakery,
+		b.known() == BizCoffee, b.known() == BizPastry:
+		// ⚠️ **A counter that cooks: hands it over and carries it, but seats
+		// nobody.** A bakery's morning bread goes to shops and offices and a
+		// pastry shop's cakes are ordered and delivered — switching delivery off
+		// for them would be the florist's mistake with a different date on it.
 		return BrandFeatures{Delivery: true, Pickup: true, DineIn: false, Booking: false}
 	default:
 		return BrandFeatures{Delivery: true, Pickup: true, DineIn: true, Booking: true}

@@ -761,6 +761,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |
 | Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar · Markirovka: kirimda skanerlash |
 | Panel yon paneli: qaysi qator, qanday tartib, qanday nom | Panel navigatsiyasi biznes turiga qarab |
+| Biznes turi qo'shish: predikat, narx pog'onasi, namuna | Biznes turlari: pishiradigan peshtaxta va narx pog'onasi |
 | Yorliq, tsennik, ichki shtrix-kod | Yorliq: do'konning o'z shtrix-kodi va tsennigi |
 | Menyu importi, havoladan | Menyuni havoladan import qilish |
 | Boshqa POS'dan ko'chirish (iiko, Poster…) | Boshqa POS'dan ko'chirish |

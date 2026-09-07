@@ -50,6 +50,9 @@ const PHARMACY = { businessType: "pharmacy" };
 // this order: its cards and its batches fell to the bottom of the section
 // because the order named neither.
 const FLOWERS = { businessType: "flowers" };
+// ⚠️ **A counter that cooks and sells nothing it bought.** It is neither of the
+// two readings this file was written for, which is exactly why it is here.
+const BAKERY = { businessType: "bakery" };
 
 describe("the store section, by business", () => {
   // ⚠️ **A florist composes and has no kitchen**, which is the pair of facts
@@ -258,5 +261,30 @@ describe("what a printer prints, and which receipts exist", () => {
     expect(receiptKindsFor({ businessType: "fastfood" }, false)).toContain(
       "kitchen",
     );
+  });
+});
+
+// ⚠️ **A bakery is neither a shop nor a restaurant, and the sidebar has to read
+// as one thing to it.** What it sells was flour an hour ago, so it keeps the
+// technical cards and the batch document a grocery never opens — and its stock
+// list is still "Masalliqlar", because flour is exactly that. The mistake to
+// avoid is the florist's in reverse: reading "not a shop" as "a restaurant"
+// would hand it a floor plan and a booking list for a counter nobody sits at.
+describe("a counter that cooks", () => {
+  it("keeps its cards and its batches", () => {
+    const rows = shown(BAKERY);
+    expect(rows).toContain("techCards");
+    expect(rows).toContain("production");
+  });
+
+  it("calls its shelf by the kitchen's word, not the shop's", () => {
+    expect(navLabel("ingredients", adminUz, BAKERY)).toBe(adminUz.nav.ingredients);
+    expect(navLabel("ingredients", adminUz, GROCERY)).toBe(adminUz.nav.goodsList);
+  });
+
+  it("is not given a floor plan", () => {
+    expect(needsMet("tables", BAKERY)).toBe(false);
+    expect(needsMet("composes", BAKERY)).toBe(true);
+    expect(needsMet("goods", BAKERY)).toBe(false);
   });
 });

@@ -3878,6 +3878,50 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   bu allaqachon `known()` bilan tuzatilgan va izohi ham yozilgan edi; panel
   qolib ketgan. Endi `known()` frontendda ham bor.
 
+### Biznes turlari: pishiradigan peshtaxta va narx pog'onasi
+
+- ⚠️ **Ro'yxat o'n ikkitaga chiqdi** (`models/businesstype.go`): restoran, fast
+  food, **qahvaxona, nonvoyxona, qandolatxona**, oziq-ovqat, **go'sht do'koni**,
+  kiyim, **kosmetika**, gul, dorixona, **xo'jalik mollari**. Tartib — oshxonalar
+  oldin, do'konlar keyin: mijoz yaratayotgan odam «pishiradimi yo'qmi» degan
+  savolga ro'yxatni ochishdan oldin javob bergan bo'ladi.
+- ⚠️ **«Sotgani = olgani» (`SellsGoods`) va «arzon pog'ona» — ikki xil savol,
+  va ularni bitta ro'yxat qilish nonvoyxonada xato bo'lardi.** Nonvoyxona,
+  qahvaxona va qandolatxona sotadigan narsa bir soat oldin un edi: ular
+  **kompozitsiya qiladi** (texkarta, partiya, tannarx — gulchining darsi yana
+  uch marta), lekin peshtaxta sifatida do'kon narxida sotiladi. Katalog savoli
+  tenantda (`SellsGoods`), narx savoli konsolda (`billing.shopLadder`), va
+  ikkinchisi birinchisining ustiga uch turni qo'shadi. Birini ikkinchisi deb
+  o'qish — yo non pechiga 450 000 hisoblash, yo o'z nonining tannarxini
+  tortib olish.
+- ⚠️ **«Buyurtmadan keyin tayyorlanadi» — oshxona ekranining sharti, «pech bor»
+  emas.** Nonvoyxona va qandolatxona eshik ochilmasdan **partiya** bilan
+  yopadi: ularning hujjati — `production`, KDS emas, va KDS u yerda kun bo'yi
+  bo'sh turadi. Qahvaxona esa teskari isbot: hech nima pishirilmaydi, lekin har
+  stakan so'ralgandan keyin tayyorlanadi.
+- ⚠️ **Namuna katalogi ham ikkiga bo'lindi** (`seed/shop.go`). Do'konning
+  namunasi `SellsItself: true` bilan yoziladi (o'zi ombor qatori); pishiradigan
+  peshtaxtaniki — **oddiy menyu qatori**, chunki aks holda ustaning yozadigan
+  birinchi texkartasi mahsulotni o'ziga ko'rsatardi. Restoranning 48 taomi esa
+  nonvoyxonada dorixonadagi bilan bir xil xato.
+- ⚠️ **Tarozi biznes turiga qarab yoqilmaydi** (go'sht do'konida ham).
+  `scale.enabled` — jimgina pul xatosi beradigan sozlama (qarang «Yorliq»):
+  namuna narxlari kilogrammda, lekin prefiksni odam o'zi yoqadi.
+- ⚠️ **Konsoldagi ro'yxat endi bitta** (`keel-site/src/lib/biz.ts`): forma ham,
+  «Biznes turlari bo'yicha» bloki ham shundan o'qiydi. Ilgari ikkita ro'yxat va
+  ikkita lug'at bor edi — yangi tur bittasida ko'rinib, ikkinchisida
+  «Restoran» bo'lib o'qilardi: xato ham, bo'shliq ham emas, shunchaki nima
+  ko'p sotishni hal qiladigan ekranda restoranlar orasiga qo'shilgan nonvoyxona.
+- ⚠️ **Har bir tur uchun alohida blok, mijozi yo'q turlar ham.** Mijozi yo'q
+  tur — topilmaning o'zi («biz bu turni sotamiz, hech kim yo'q»), va blokni
+  umuman chizmaslik shu savolni ko'rinmas qiladi. Bo'sh blokda oltita nol
+  emas, bitta jumla: nol statistikalar yuklanmagan ekran bo'lib o'qiladi.
+- ⚠️ **Muddat tugmalari yonida ikkita sana** — server `overviewWindow` ni,
+  ya'ni umumiy ekran bilan **bitta** rezolverni ishlatadi (7 kun ikki ekranda
+  bir xil 7 kun bo'lsin), va «(N kun buyurtmalardan)» yozuvi qo'lda yozilgan
+  davrdan **hisoblab** olinadi, so'rovdan emas: aks holda ikki haftalik oyna
+  «30 kun» deb imzolanardi.
+
 ### Yorliq: do'konning o'z shtrix-kodi va tsennigi
 - ⚠️ **Bu Asl Belgisi emas va bo'la olmaydi.** Davlat kodini operator ishlab
   chiqaruvchiga/importyorga beradi — dona hisobida va pullik. Qayta sotuvchi

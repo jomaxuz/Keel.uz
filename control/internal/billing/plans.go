@@ -240,7 +240,7 @@ var plans = []Plan{
 // perfectly consistent with the plan stored on the tenant.
 func PlansFor(businessType string) []Plan {
 	kind := ""
-	if sellsGoods(businessType) {
+	if shopLadder(businessType) {
 		kind = KindShop
 	}
 	out := []Plan{}
@@ -259,23 +259,35 @@ func PlansFor(businessType string) []Plan {
 // is the rule. The console is not the only thing that posts here.
 func PlanFitsBusiness(p Plan, businessType string) bool {
 	want := ""
-	if sellsGoods(businessType) {
+	if shopLadder(businessType) {
 		want = KindShop
 	}
 	return p.Kind == want
 }
 
-// sellsGoods mirrors models.BusinessType.SellsGoods on the tenant side.
+// shopLadder reports whether this business is sold the cheap ladder.
 //
-// ⚠️ **A copy, and it has to be.** The control plane does not import the
-// restaurant's packages, and the two lists are joined by a test rather than by
-// the compiler — see plans_test.go. Anything unrecognised is a restaurant, so a
-// business type from a newer console cannot silently move a customer onto the
-// cheaper ladder.
-func sellsGoods(businessType string) bool {
+// ⚠️ **A price question, not a catalogue question, and they are not one list.**
+// `models.BusinessType.SellsGoods` answers "is what it sells the thing it
+// bought", which decides technical cards, batches and shelf labels on the
+// tenant. This decides what we charge. A bakery, a coffee house and a pastry
+// shop compose everything they sell — so they keep every kitchen screen — and
+// are still small counters sold at a counter's price. Reading either list as
+// the other would bill them 450 000 for a bread oven, or take the cost of their
+// own bread away from them.
+//
+// ⚠️ **A copy of a list that lives in another repository, and it has to be.**
+// The control plane does not import the restaurant's packages, so the two are
+// joined by a test rather than by the compiler — see plans_test.go. Anything
+// unrecognised is a restaurant, so a business type from a newer console cannot
+// silently move a customer onto the cheaper ladder.
+func shopLadder(businessType string) bool {
 	switch strings.ToLower(strings.TrimSpace(businessType)) {
-	case "grocery", "clothing", "flowers", "pharmacy":
-		return true
+	case "grocery", "butcher", "clothing", "cosmetics",
+		"flowers", "pharmacy", "hardware":
+		return true // shops: what was delivered is what is sold
+	case "bakery", "coffee", "pastry":
+		return true // makers: a counter that cooks, at a counter's price
 	}
 	return false
 }

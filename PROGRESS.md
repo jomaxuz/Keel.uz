@@ -14149,3 +14149,42 @@ Ikki yaxshilash:
 
 `docs/vendor/uzum-fastpay.md` — qayta o'qilgan sana, to'liq xato kodlari jadvali
 (400/401/403/404/416/503) va QR shakli qo'shildi.
+
+---
+
+## 2026-09-07 — Biznes turlari o'n ikkitaga, va konsolning «Biznes turlari bo'yicha» bloki
+
+**Yangi turlar** (`models/businesstype.go`): **qahvaxona, nonvoyxona,
+qandolatxona** (pishiradigan peshtaxta) va **go'sht do'koni, kosmetika,
+xo'jalik mollari** (do'kon). Jami: restoran, fast food + shu oltitasi + oziq-ovqat,
+kiyim, gul, dorixona.
+
+Uchta qaror, uchalasi ham «bir ro'yxatni ikkinchisi deb o'qish» xatosidan
+qochish uchun (tafsiloti `docs/DECISIONS.md` → «Biznes turlari: pishiradigan
+peshtaxta va narx pog'onasi»):
+
+1. **Katalog savoli ≠ narx savoli.** Nonvoyxona **kompozitsiya qiladi**
+   (texkarta, partiya, tannarx — gulchining darsi yana uch marta), lekin narx
+   pog'onasi **do'konniki** (149 000 dan). Shuning uchun konsoldagi
+   `billing.sellsGoods` → `billing.shopLadder` bo'ldi va tenantdagi
+   `SellsGoods` bilan bir xil emas — testi ikkalasini ushlab turadi.
+2. **KDS sharti — «buyurtmadan keyin tayyorlanadi»**, «pech bor» emas:
+   nonvoyxona va qandolatxonada `production` (partiya), qahvaxonada esa KDS.
+3. **Namuna katalogi ikkiga bo'lindi** (`seed/shop.go`): do'konniki
+   `SellsItself` bilan (o'zi ombor qatori), pishiradiganiki — oddiy menyu
+   qatori, aks holda ustaning birinchi texkartasi mahsulotni o'ziga
+   ko'rsatardi. Uchala yangi do'kon va uchala yangi «usta» uchun ham namuna,
+   profil matni va nomi (Nonvoyxona / Qahvaxona / Qandolatxona) yozildi.
+
+**Konsol bloki** (`BusinessBreakdown`):
+- 7 / 30 / 90 kun yonida **«Davrni tanlash»** — ikkita sana va «Ko'rsatish».
+  Server `overviewWindow` ni ishlatadi, ya'ni umumiy ekran bilan **bitta**
+  rezolver; «(N kun buyurtmalardan)» yozuvi javobdagi oynadan hisoblanadi.
+- **Har bir tur — alohida blok, mijozi yo'q turlar ham** («Bu turdagi mijoz
+  hali yo'q» — nol statistikalar yuklanmagan ekran bo'lib o'qiladi).
+- Turlar ro'yxati endi **bitta joyda** (`keel-site/src/lib/biz.ts`): forma ham,
+  blok ham shundan o'qiydi, va `t.dash.biz*` dublikat lug'ati o'chirildi.
+
+Tekshirildi: `qa` konsoli scratch bazada (`keel_qa_biz`) ko'tarilib, to'rt
+turdagi mijoz bilan blok brauzerda ochildi — sana oralig'i, bo'sh bloklar va
+«5 kun buyurtmalardan» yozuvi ishladi; baza va admin o'chirildi.

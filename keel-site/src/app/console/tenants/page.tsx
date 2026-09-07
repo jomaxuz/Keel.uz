@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
+import { BIZ_TYPES, bizLabel } from "@/lib/biz";
 import { me, type Me } from "@/lib/api";
 import { AttentionBadge, Field, StatusBadge, statusLabel } from "@/components/dash";
 import { BreakdownChart } from "@/components/Charts";
@@ -515,31 +516,6 @@ function NewTenantForm({
  *  list in and the wrong one to compare magnitudes in. */
 function chartRows(rows: TenantRow[]): TenantRow[] {
   return [...rows].sort((a, b) => b.billable - a.billable).slice(0, 10);
-}
-
-/** The business types the console offers, in the order the server lists them.
- *
- *  ⚠️ **Empty is a restaurant and is first.** Every brand written before this
- *  field existed has no value, and the list is read by somebody creating a
- *  customer — so the common answer belongs at the top rather than in
- *  alphabetical order. Mirrors `models.BusinessTypes`. */
-const BIZ_TYPES = ["", "fastfood", "grocery", "clothing", "flowers", "pharmacy"] as const;
-
-function bizLabel(t: ReturnType<typeof useT>["t"], v: string): string {
-  switch (v) {
-    case "fastfood":
-      return t.dash.bizFastFood;
-    case "grocery":
-      return t.dash.bizGrocery;
-    case "clothing":
-      return t.dash.bizClothing;
-    case "flowers":
-      return t.dash.bizFlowers;
-    case "pharmacy":
-      return t.dash.bizPharmacy;
-    default:
-      return t.dash.bizRestaurant;
-  }
 }
 
 function BizTypeField({

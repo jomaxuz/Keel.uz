@@ -157,3 +157,62 @@ func TestEveryShopTypeHasASample(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **A counter that cooks gets neither the restaurant's menu nor a shop's
+// shelf.** Forty-eight dishes in a bakery is the pharmacy's problem with bread
+// in it; a shop's catalogue is worse than wrong, because every loaf would be
+// written as its own stock row and the first technical card the baker writes
+// would point a product at itself. The one that would be missed is whichever
+// maker was added last.
+func TestEveryMakerTypeHasItsOwnShortMenu(t *testing.T) {
+	for _, biz := range models.BusinessTypes {
+		if biz.SellsGoods() || !biz.Composes() || biz.HasTables() {
+			continue // shops have their own test; a restaurant has the demo menu
+		}
+		if biz == models.BizFastFood {
+			continue // a fast food is a restaurant's menu, shorter
+		}
+		cats, ok := makerCatalogues[biz]
+		if !ok || len(cats) == 0 {
+			t.Errorf("%s starts with an empty catalogue", biz)
+			continue
+		}
+		for _, c := range cats {
+			if len(c.Items) == 0 {
+				t.Errorf("%s: category %q is empty", biz, c.Name)
+			}
+			for _, it := range c.Items {
+				if it.Price <= 0 {
+					t.Errorf("%s: %q has no price", biz, it.Name)
+				}
+				if it.NameRu == "" || it.NameEn == "" {
+					t.Errorf("%s: %q is not named in all three languages", biz, it.Name)
+				}
+			}
+		}
+	}
+}
+
+// ⚠️ **What a bakery sells is not its own stock row.** The loaf is costed
+// through a card over flour and yeast; marking it `SellsItself` — the shop
+// path — would make that card point the product at itself, and the cost report
+// cannot answer a loop.
+func TestAMakersSampleIsNotWrittenAsShopStock(t *testing.T) {
+	fn := between(t, source(t, "shop.go"), "func writeMakerCatalogue(", "\n\tlog.Printf")
+	if strings.Contains(fn, "SellsItself") {
+		t.Error("a maker's sample is written as goods that sell themselves")
+	}
+	if strings.Contains(fn, "SyncProductStock") {
+		t.Error("a maker's menu item was given a stock row of its own")
+	}
+	// And the branch is taken before the restaurant's demo menu is reached.
+	menu := between(t, source(t, "menu.go"), "func ensureMenu(", "\n}\n")
+	maker := strings.Index(menu, "writeMakerCatalogue")
+	demo := strings.Index(menu, "WriteMenu(")
+	if maker < 0 || demo < 0 || maker > demo {
+		t.Error("a maker is given the restaurant's demo menu")
+	}
+	if !strings.Contains(menu[maker:demo], "return") {
+		t.Error("a maker is given the restaurant menu as well as its own")
+	}
+}

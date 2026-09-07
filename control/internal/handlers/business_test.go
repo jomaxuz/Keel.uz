@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -120,5 +121,49 @@ func TestACustomerWithNoRowsIsSimplyIdle(t *testing.T) {
 	s := sums[id]
 	if s.Orders != 0 || s.LastSale != "" {
 		t.Errorf("a customer with nothing in the window reads %+v", s)
+	}
+}
+
+// ⚠️ **A window is two dates, and the length beside the money is counted from
+// them.** The per-order figure is printed as "(N kun buyurtmalardan)", and a
+// hand-typed range carries no day count of its own — taking one from the query
+// string would label a fortnight as thirty days beside a number that was not.
+func TestTheWindowLengthIsCountedFromBothEnds(t *testing.T) {
+	cases := []struct {
+		from, to string
+		want     int
+	}{
+		{"2026-09-07", "2026-09-07", 1}, // "today" is a day, not zero
+		{"2026-09-01", "2026-09-07", 7},
+		{"2026-08-09", "2026-09-07", 30},
+		{"2026-01-01", "2026-12-31", 365},
+	}
+	for _, c := range cases {
+		if got := inclusiveDays(c.from, c.to); got != c.want {
+			t.Errorf("%s..%s = %d days, want %d", c.from, c.to, got, c.want)
+		}
+	}
+	// A date that could not be parsed says nothing rather than lying with a
+	// plausible number.
+	if got := inclusiveDays("", ""); got != 0 {
+		t.Errorf("an unreadable window claimed %d days", got)
+	}
+}
+
+// ⚠️ **The two typed dates win over the shorthand, here as on the overview.**
+// One resolver means "7 days" is the same seven days on both screens — and this
+// screen is the one somebody opens to ask how the shops traded over a fortnight
+// that no button names.
+func TestTheBreakdownReadsTheSameWindowAsTheOverview(t *testing.T) {
+	b, err := os.ReadFile("business.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(b)
+	if !strings.Contains(src, "overviewWindow(r)") {
+		t.Fatal("the breakdown resolves its own window: two screens, two meanings of \"7 days\"")
+	}
+	if strings.Contains(src, `Query().Get("days")`) {
+		t.Error("a second reading of the day count is left beside the resolver")
 	}
 }

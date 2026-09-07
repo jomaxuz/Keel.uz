@@ -36,12 +36,22 @@ func Bootstrap(ctx context.Context, store *repository.Store, cfg *config.Config)
 // thing it is. "Do'kon" is wrong for nobody who runs a shop; "My Restaurant" is
 // wrong for all of them.
 func firstProfile(cfg *config.Config) (name, description string) {
-	shop := models.BusinessType(cfg.BusinessType).SellsGoods()
+	biz := models.BusinessType(cfg.BusinessType)
 	name = cfg.BrandName
 	if name == "" {
-		if shop {
+		// ⚠️ **A maker is neither.** "Restoran" over a bakery is the same
+		// mistake as "My Restaurant" over a pharmacy, only quieter: it is a
+		// word an owner half-accepts and leaves on their own receipts.
+		switch {
+		case biz.SellsGoods():
 			name = "Do'kon"
-		} else {
+		case biz == models.BizBakery:
+			name = "Nonvoyxona"
+		case biz == models.BizCoffee:
+			name = "Qahvaxona"
+		case biz == models.BizPastry:
+			name = "Qandolatxona"
+		default:
 			name = "Restoran"
 		}
 	}
@@ -49,7 +59,7 @@ func firstProfile(cfg *config.Config) (name, description string) {
 	// their own, so it is the kind of shop rather than "a business": "milliy va
 	// zamonaviy taomlar" over a pharmacy is the same mistake as the name, and
 	// "kundalik mahsulotlar" over a boutique is the smaller version of it.
-	switch models.BusinessType(cfg.BusinessType) {
+	switch biz {
 	case models.BizGrocery:
 		return name, "Kundalik mahsulotlar — qulay narxlarda. Yetkazib berish shahar bo'ylab."
 	case models.BizPharmacy:
@@ -58,6 +68,18 @@ func firstProfile(cfg *config.Config) (name, description string) {
 		return name, "Kiyim va aksessuarlar — yangi kolleksiya. O'lchamlar do'konda."
 	case models.BizFlowers:
 		return name, "Gullar va buketlar — har kuni yangi keltiriladi. Yetkazib berish shahar bo'ylab."
+	case models.BizCosmetics:
+		return name, "Parvarish va bo'yanish vositalari — asl mahsulotlar. Maslahat bilan tanlaymiz."
+	case models.BizHardware:
+		return name, "Qurilish va xo'jalik mollari — asbob, bo'yoq, mahkamlagich. Do'kondan olib ketasiz."
+	case models.BizButcher:
+		return name, "Har kuni yangi go'sht — tarozida tortib beriladi. Buyurtmani oldindan qoldirsangiz bo'ladi."
+	case models.BizBakery:
+		return name, "Har kuni yangi yopilgan non va patir — issiqligicha. Do'konlarga yetkazib beramiz."
+	case models.BizCoffee:
+		return name, "Qahva va ichimliklar — har bir stakan buyurtmadan keyin tayyorlanadi."
+	case models.BizPastry:
+		return name, "Tort, keks va shirinliklar — buyurtmaga tayyorlanadi. Yetkazib berish shahar bo'ylab."
 	}
 	return name, "Milliy va zamonaviy taomlar — har kuni yangi mahsulotlardan tayyorlanadi. Yetkazib berish shahar bo'ylab."
 }

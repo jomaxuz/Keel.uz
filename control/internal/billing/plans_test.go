@@ -261,7 +261,10 @@ func TestTheLaddersDoNotCross(t *testing.T) {
 			t.Errorf("business %q may be put on %q", biz, shop.ID)
 		}
 	}
-	for _, biz := range []string{"grocery", "clothing", "flowers", "pharmacy"} {
+	for _, biz := range []string{
+		"grocery", "butcher", "clothing", "cosmetics", "flowers", "pharmacy",
+		"hardware", "bakery", "coffee", "pastry",
+	} {
 		list := PlansFor(biz)
 		if len(list) == 0 {
 			t.Fatalf("business %q is offered no plans at all", biz)
@@ -278,26 +281,33 @@ func TestTheLaddersDoNotCross(t *testing.T) {
 	}
 }
 
-// ⚠️ **`sellsGoods` here is a copy of the tenant's own predicate**, because the
-// control plane does not import the restaurant's packages. The compiler cannot
-// join them, so this does: the list below is `models.BusinessType.SellsGoods`,
-// and a type added there and forgotten here is a shop quietly sold — and
-// billed — as a restaurant.
+// ⚠️ **`shopLadder` here is a list that lives in another repository**, because
+// the control plane does not import the restaurant's packages. The compiler
+// cannot join them, so this does: the list below is every business type in
+// `models.BusinessTypes`, and a type added there and forgotten here is a
+// customer quietly billed on the wrong ladder — three times the agreed price,
+// or a third of it, with an invoice that agrees with itself either way.
 func TestTheBusinessTypesMatchTheTenants(t *testing.T) {
-	goods := []string{"grocery", "clothing", "flowers", "pharmacy"}
-	notGoods := []string{"", "fastfood"}
-	for _, b := range goods {
-		if !sellsGoods(b) {
-			t.Errorf("%q sells goods on the tenant and not here", b)
+	cheap := []string{
+		// Shops: what was delivered is what is sold.
+		"grocery", "butcher", "clothing", "cosmetics",
+		"flowers", "pharmacy", "hardware",
+		// Makers: they compose everything they sell and are still counters.
+		"bakery", "coffee", "pastry",
+	}
+	full := []string{"", "fastfood"}
+	for _, b := range cheap {
+		if !shopLadder(b) {
+			t.Errorf("%q is a counter on the tenant and a restaurant here", b)
 		}
 	}
-	for _, b := range notGoods {
-		if sellsGoods(b) {
-			t.Errorf("%q does not sell goods on the tenant but does here", b)
+	for _, b := range full {
+		if shopLadder(b) {
+			t.Errorf("%q is a restaurant on the tenant and a counter here", b)
 		}
 	}
 	// Padding and case come from a form, not from a bug.
-	if !sellsGoods(" Grocery ") {
+	if !shopLadder(" Grocery ") {
 		t.Error("a padded business type stopped being a shop")
 	}
 }
