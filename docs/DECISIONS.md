@@ -5171,8 +5171,37 @@ hujjatlardan (`internal/handlers/orderplan.go`):
    sana yozilgan joyda. U **gorizontni qisqartiradi**: besh kun turadigan
    mahsulotga uch haftalik zaxira — to'la javon emas, kechiktirilgan chiqim.
 
-`gorizont = ritm + ritmning yarmi (ko'pi bilan 7 kun)`, so'ng muddat bilan
-cheklanadi; `kerak = prognoz(gorizont) − javondagi − allaqachon so'ralgan`.
+**Gorizont uchta vaqt oralig'idan iborat**, va birinchisini tashlab ketish
+birinchi versiyani kam buyurtiradigan qilgan edi. Bugun berilgan buyurtma bugun
+javonga chiqmaydi: u **keyingi kirim bilan keladi**, keyin esa **undan
+keyingisigacha** yetishi kerak:
+
+```
+gorizont = keyingi kirimgacha + bitta to'liq sikl + zaxira
+         = (ritm − oxirgi kirimdan beri)  +  ritm  +  ritmning yarmi (max 7)
+```
+
+Bu — klassik davriy qayta ko'rish formulasi (lead time + review period +
+safety), faqat uchala hadi ham **o'lchangan**, forma orqali yozilgan emas.
+Birinchi versiya faqat siklni qoplagan: kirim endigina ketgan ertalab to'g'ri,
+qolgan har ertalab bir haftagacha kam. So'ng muddat bilan cheklanadi.
+
+`kerak = prognoz(gorizont) − javondagi − allaqachon so'ralgan`, va natija
+**yuqoriga yaxlitlanadi** (dona — butun songa): 71.9 kilodan 71 ga tushirish
+hech nima tejamaydi, ekran esa aynan o'zi oldini olishi kerak bo'lgan holatga
+qaytadi. Uzun gorizont xavfsiz, chunki javondagi ham, so'ralgani ham ayiriladi —
+kunda ikki marta ochilgan ro'yxat ikki marta buyurtma bermaydi.
+
+⚠️ **Bo'sh javon — talab yo'qligi emas, tovar yo'qligi**, va ma'lumotda ikkalasi
+bir xil ko'rinadi (nol). Bu — sodda prognozni **doimiy va bir tomonlama**
+noto'g'ri qiladigan nuqta: uch kun tugab qolgan mahsulot "uch kun hech kimga
+kerak bo'lmagan" bo'lib o'qiladi, demak kamroq buyurtiriladi, demak yana tugaydi.
+Shuning uchun: filial **savdo qilgan** kunlar (`tradingDays`) bo'linuvchi bo'ladi,
+va **har kuni sotiladigan** qator (savdo kunlarining ≥ 2/3 ida sotilgan) uchun
+sotilmagan kunlar bo'linuvchidan **chiqariladi** hamda ekranda «N kun sotuvda
+bo'lmagan — o'sha kunlarsiz hisoblandi» deb yoziladi. 2/3 chegarasi ataylab
+baland: faqat dam olish kunlari sotiladigan qatorning nollari **haqiqiy**, va
+ularni tugash deb o'qish yo'q talabni o'ylab topish bo'lardi.
 
 ⚠️ **Allaqachon so'ralgani ayiriladi** (`shopping_order`, `sent`). Ro'yxat
 ertalab ham, tushdan keyin ham ochiladi — busiz ikkinchi o'qish bozorchi aynan
@@ -5270,10 +5299,31 @@ tartiblangan ro'yxat ikkalasini sig'dira olmaydi: birining eng yomoni
 ikkinchisining eng yaxshisi. Besh sababning hech biri unga to'g'ri kelmaydi
 ham.
 
-Qatorda yana: `share` — bu qator butun sanoq kamomadining necha foizi. Qirq
-qatorga tarqalgan ikki million bilan yolg'iz go'shtdagi ikki million ikki xil
-hodisa (birinchisi — jarayon, ikkinchisi — bitta voqea), va qator qiymati
-ikkalasida bir xil.
+**Bir xil so'm — bir xil hodisa emas.** Navbat pul bo'yicha tartiblanadi
+(qaror puldan boshlanadi), lekin pul ayta olmaydigan narsalar qator yonida
+yoziladi, va har biri ekrandagi faktlar ustidagi arifmetika — yangi da'vo emas:
+
+- `share` — bu qator butun sanoq kamomadining necha foizi. Qirq qatorga
+  tarqalgan ikki million (jarayon) va yolg'iz go'shtdagi ikki million (bitta
+  voqea) — qator qiymati ikkalasida bir xil.
+- `days` va `perDay` — 90 kunda bir million **tabiiy yo'qotish**, 4 kunda o'sha
+  million esa **hozir ham davom etyapti**.
+- `pct` — kutilganning necha foizi yo'q. 400 kilodan 12 kilo — savdo; 14 kilodan
+  12 kilo — hodisa. Pul ham, miqdor ham bir xil.
+- `repeat` — shu ombor sanoqlarida bu masalliq necha marta kam chiqqan. Ikki
+  marta — naqsh, bir marta — kechqurun; odam qiladigan ish ham har xil.
+- `used` — **o'sha davrda kartalar qancha sarfladi**. ⚠️ **Nol — bu ekranning
+  eng kuchli gapi, va u kamomad emas**: hech bir karta masalliqni sarflamagan
+  bo'lsa, «kutilgan» — bu shunchaki kelgan hamma narsa, va farq — kartadagi
+  bo'shliq. Qamrov foizi buni ayta olmaydi, chunki u **restoran** haqidagi fakt:
+  faqat kartali taomlarda ishlatiladigan masalliq 30% qamrovda ham ishonchli,
+  kartasiz taomlarda ishlatilgani esa 90% da ham emas.
+- `twin` — **o'sha sanoqda taxminan shuncha pulga ortiqcha chiqqan qator**. Ikki
+  o'xshash paket va bitta shtrix-kod aynan shu juftlikni beradi, navbat esa faqat
+  kamomadni ko'rsatadi — ya'ni tushuntiradigan yarmi ko'rinmaydi. Pul bo'yicha
+  solishtiriladi (12 kg go'sht va 12 kg piyoz bir xil miqdor, lekin hech kim
+  ularni kassada adashtirmaydi), farqi ¼ dan kam bo'lsa. Bu — **savol**, hukm
+  emas: javobni baribir odam tanlaydi.
 
 ### Ombor qamrovi: sotuvning qancha qismi kartalar bilan qoplangan
 

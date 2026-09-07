@@ -233,7 +233,49 @@ export default function ShortagesPage() {
                       {t.shortages.shareOfCount(Math.round(r.share * 100))}
                     </span>
                   )}
+                  {/* ⚠️ **How fast, and against what.** The same money is
+                      shrinkage over a quarter and an event over four days, and
+                      twelve kilos out of four hundred is trade while twelve out
+                      of fourteen is not — the queue is sorted by money, so the
+                      row has to carry what money cannot say. */}
+                  {r.perDay ? (
+                    <span className="font-medium text-ink-soft">
+                      {t.shortages.perDay(formatPrice(r.perDay))}
+                    </span>
+                  ) : null}
+                  {r.pct ? (
+                    <span>{t.shortages.pct(Math.round(r.pct * 100))}</span>
+                  ) : null}
+                  {r.used > 0 && (
+                    <span>
+                      {t.shortages.used(`${r.used} ${r.unit}`)}
+                    </span>
+                  )}
+                  {/* Twice is a pattern; once is an evening. */}
+                  {r.repeat ? (
+                    <span className="font-medium text-ink-soft">
+                      {t.shortages.repeat(r.repeat)}
+                    </span>
+                  ) : null}
                 </div>
+
+                {/* ⚠️ **The strongest sentence this screen has.** Where no card
+                    consumed the ingredient over the period, "expected" is
+                    everything that ever arrived and the difference is a gap in
+                    the cards — not a loss. The coverage figure at the top
+                    cannot say it: that is a fact about the restaurant, and this
+                    is a fact about this row. */}
+                {r.used === 0 && (
+                  <p className="mt-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+                    {goods ? t.shortages.noUseGoods : t.shortages.noUse}
+                  </p>
+                )}
+                {/* The mis-scan, offered as a question. */}
+                {r.twin && (
+                  <p className="mt-2 text-xs text-ink-muted">
+                    {t.shortages.twin(r.twin)}
+                  </p>
+                )}
 
                 {r.countNote && (
                   <p className="mt-2 text-xs text-ink-muted">

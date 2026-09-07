@@ -187,6 +187,10 @@ function Why({ row, unit }: { row: ShoppingRow; unit: string }) {
   if (row.requested) {
     notes.push(t.shopping.alreadyAsked(`${row.requested} ${unit}`));
   }
+  // ⚠️ **Said out loud, because the forecast deliberately ignored those days.**
+  // An empty shelf is not a quiet one, and leaving the days out is a judgement
+  // this screen made on the reader's behalf — one they are entitled to see.
+  if (row.stockOuts) notes.push(t.shopping.stockOuts(row.stockOuts));
   return (
     <>
       <div>

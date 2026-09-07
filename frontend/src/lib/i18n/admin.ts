@@ -1368,6 +1368,10 @@ export const adminUz = {
     every: (days: string) => `~${days} kunda bir keladi`,
     shelfLife: (days: string) => `muddati ~${days} kun — shunga qarab qisqartirildi`,
     alreadyAsked: (qty: string) => `${qty} allaqachon so'ralgan`,
+    // ⚠️ Bo'sh javon — talab yo'qligi emas, tovar yo'qligi. O'sha kunlar
+    // hisobdan chiqarilgan, va buni aytish shart: aks holda ekran o'zi
+    // o'ylab topgan talabni ko'rsatgan bo'lardi.
+    stockOuts: (n: number) => `${n} kun sotuvda bo'lmagan — o'sha kunlarsiz hisoblandi`,
     since: (d: string) =>
       `Qoldiq ${d} dagi sanashdan beri hisoblangan — bu taxmin.`,
     neverCounted:
@@ -1496,6 +1500,19 @@ export const adminUz = {
     expected: (exp: number, got: number) => `kutilgan ${exp} · sanaldi ${got}`,
     shareOfCount: (p: number) => `sanoq kamomadining ${p}%`,
     countNote: (note: string) => `Sanoq izohi: ${note}`,
+    // ⚠️ Bir xil so'm ikki xil hodisa bo'lishi mumkin — tezligi aytadi.
+    perDay: (money: string) => `kuniga ~${money}`,
+    pct: (p: number) => `kutilganning ${p}% i`,
+    // ⚠️ Bu ekrandagi eng kuchli gap: kartalar bu masalliqni umuman
+    // sarflamagan bo'lsa, farq — kamomad emas, karta bo'shlig'i.
+    noUse:
+      "Bu davrda hech bir texkarta buni sarflamagan — ya'ni bu kamomad emas, karta bo'shlig'i bo'lishi mumkin",
+    noUseGoods:
+      "Bu davrda bu tovar sotuvda ombordan yechilmagan — ya'ni bu kamomad emas, katalog bo'shlig'i bo'lishi mumkin",
+    used: (qty: string) => `kartalar bo'yicha sarf: ${qty}`,
+    repeat: (n: number) => `${n} sanoqda ketma-ket kam chiqdi`,
+    twin: (name: string) =>
+      `O'sha sanoqda «${name}» xuddi shuncha pulga ortiqcha chiqqan — kassada almashtirilgan bo'lishi mumkin`,
     answer: "Javob berish",
     verdicts: {
       miscount: "Sanoq xato — qayta sanaldi",
@@ -6112,6 +6129,7 @@ export const adminRu: AdminDict = {
     every: (days: string) => `приходит примерно раз в ${days} дн.`,
     shelfLife: (days: string) => `срок годности ~${days} дн. — горизонт урезан`,
     alreadyAsked: (qty: string) => `${qty} уже заказано`,
+    stockOuts: (n: number) => `${n} дн. не было в наличии — посчитано без них`,
     since: (d: string) =>
       `Остаток посчитан от инвентаризации ${d} — это оценка.`,
     neverCounted:
@@ -6222,6 +6240,16 @@ export const adminRu: AdminDict = {
       `ожидалось ${exp} · посчитано ${got}`,
     shareOfCount: (p: number) => `${p}% недостачи этого подсчёта`,
     countNote: (note: string) => `Комментарий к подсчёту: ${note}`,
+    perDay: (money: string) => `~${money} в день`,
+    pct: (p: number) => `${p}% от ожидаемого`,
+    noUse:
+      "За этот период ни одна техкарта это не списывала — значит это может быть не недостача, а дыра в картах",
+    noUseGoods:
+      "За этот период продажи этого товара ничего не списывали со склада — значит это может быть не недостача, а дыра в каталоге",
+    used: (qty: string) => `списано по картам: ${qty}`,
+    repeat: (n: number) => `не сходится ${n} подсчёта подряд`,
+    twin: (name: string) =>
+      `В том же подсчёте «${name}» дал излишек примерно на ту же сумму — возможно, на кассе пробили не то`,
     answer: "Ответить",
     verdicts: {
       miscount: "Ошибка подсчёта — пересчитали",
@@ -10549,6 +10577,7 @@ export const adminEn: AdminDict = {
     every: (days: string) => `arrives about every ${days} days`,
     shelfLife: (days: string) => `keeps ~${days} days — the horizon was capped`,
     alreadyAsked: (qty: string) => `${qty} already asked for`,
+    stockOuts: (n: number) => `out of stock on ${n} days — measured without them`,
     since: (d: string) =>
       `Stock is measured from the count on ${d} — an estimate.`,
     neverCounted:
@@ -10656,6 +10685,16 @@ export const adminEn: AdminDict = {
       `expected ${exp} · counted ${got}`,
     shareOfCount: (p: number) => `${p}% of this count's shortfall`,
     countNote: (note: string) => `Count note: ${note}`,
+    perDay: (money: string) => `~${money} a day`,
+    pct: (p: number) => `${p}% of what was expected`,
+    noUse:
+      "No tech card consumed this over the period — so this may be a gap in the cards rather than a shortfall",
+    noUseGoods:
+      "Selling this took nothing off the shelf over the period — so this may be a gap in the catalogue rather than a shortfall",
+    used: (qty: string) => `cards accounted for ${qty}`,
+    repeat: (n: number) => `short at ${n} counts in a row`,
+    twin: (name: string) =>
+      `"${name}" came up over by about the same money on the same count — the till may have rung the wrong one`,
     answer: "Answer",
     verdicts: {
       miscount: "Counted wrong — recounted",

@@ -84,6 +84,15 @@ type shoppingRow struct {
 	// Already asked for on a list somebody is out with, and therefore already
 	// subtracted from the suggestion.
 	Requested float64 `json:"requested,omitempty"`
+	// Days the branch traded and this line moved nothing, on a line that
+	// otherwise moves nearly every day.
+	//
+	// ⚠️ **An empty shelf is not a quiet one, and the data cannot tell them
+	// apart on its own.** These days are left out of the rate the forecast is
+	// built from — otherwise an item that ran out is ordered less and runs out
+	// again — and reported so the screen can say the forecast was measured
+	// without them rather than quietly inventing demand.
+	StockOuts int `json:"stockOuts,omitempty"`
 }
 
 type shoppingGroup struct {
@@ -207,6 +216,11 @@ func (h *Handler) shoppingList(
 		if short <= 0 {
 			continue
 		}
+		// ⚠️ **Rounded up, and the cost follows the rounded figure.** A price
+		// worked out from 71.93 kilos beside an order for 72 is two numbers
+		// that do not belong to each other, and the one somebody checks against
+		// the invoice is the second.
+		short = orderQty(short, in.Unit)
 
 		price := in.PriceAt(now)
 		row := shoppingRow{
@@ -215,7 +229,7 @@ func (h *Handler) shoppingList(
 			Unit:         in.Unit,
 			OnHand:       round3(onHand),
 			MinQty:       in.MinQty,
-			Suggested:    round3(short),
+			Suggested:    short,
 			Price:        price,
 			Cost:         int(math.Round(float64(price) * short)),
 			Basis:        basis,
@@ -223,6 +237,7 @@ func (h *Handler) shoppingList(
 			Every:        round3(fill.every),
 			Deliveries:   fill.deliveries,
 			ShelfLife:    round3(fill.shelfLife),
+			StockOuts:    want.stockouts,
 		}
 		// The horizon and the rate only travel with a row the forecast had a
 		// say in: printed beside a minimum-driven quantity they would look like

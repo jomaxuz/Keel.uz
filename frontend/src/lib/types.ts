@@ -4263,6 +4263,11 @@ export interface ShoppingRow {
    *  have revisited; "forecast" is this month's cooking. A quantity an owner
    *  cannot take apart is one they either follow blindly or ignore. */
   basis: "forecast" | "min";
+  /** Days the branch traded and this line moved nothing, on a line that
+   *  otherwise moves nearly every day. ⚠️ An empty shelf is not a quiet one:
+   *  these days are left out of the rate the forecast is built from, or an item
+   *  that ran out is ordered less and runs out again. */
+  stockOuts?: number;
   /** How many days ahead the suggestion is meant to last, and the forecast
    *  daily rate over them. Present only where the forecast had a say. */
   cover?: number;
@@ -5146,6 +5151,26 @@ export interface ShortageRow {
   countNote?: string;
   countLoss: number;
   share: number;
+
+  /** How long the period was, and what the shortfall works out to a day.
+   *  ⚠️ A million som over ninety days is shrinkage; the same million over four
+   *  days is still happening, and money alone cannot tell them apart. */
+  days?: number;
+  perDay?: number;
+  /** What share of what should have been there is gone. Twelve kilos out of
+   *  four hundred is trade; twelve out of fourteen is an event. */
+  pct?: number;
+  /** What the tech cards accounted for over the same period.
+   *  ⚠️ **Zero is the most important thing this screen can say**, and it is not
+   *  a shortfall: where nothing consumed the ingredient, the whole counted
+   *  difference is a gap in the cards rather than something that left. */
+  used: number;
+  /** How many of this store's counts in the window found it short. Twice is a
+   *  pattern; once is an evening. */
+  repeat?: number;
+  /** A surplus on the same count worth about the same — the mis-scan, named
+   *  before somebody calls it a loss. A question, never a verdict. */
+  twin?: string;
   verdict?: ShortageVerdict;
   verdictNote?: string;
   verdictBy?: string;

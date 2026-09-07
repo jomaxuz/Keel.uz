@@ -38,6 +38,7 @@ package handlers
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -45,6 +46,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"restaurant-backend/internal/httpx"
@@ -73,6 +75,11 @@ const shortageMax = 200
 // the screen. Below the line the queue still draws, and says what it is: a
 // coverage problem wearing a shortage's clothes.
 const shortageTrustFrom = 70
+
+// How close in money a surplus has to be before it is offered as this
+// shortfall's twin. A quarter: a mis-scan is rarely exact — the two packets
+// differ a little, and part of the pair may be genuine.
+const twinTolerance = 0.25
 
 // shortageRow is one shortfall: one ingredient, on one count, in one store.
 type shortageRow struct {
@@ -117,6 +124,54 @@ type shortageRow struct {
 	CountLoss int     `json:"countLoss"`
 	Share     float64 `json:"share"`
 
+	// ---- What makes one shortfall worse than another the same size ----
+	//
+	// ⚠️ **Money alone ranks a quarter's slow shrinkage above a week's theft.**
+	// These are the four figures that separate them, and every one of them is
+	// arithmetic over facts already on the screen — none is a new claim.
+
+	// How long the period was, and what the shortfall works out to a day.
+	//
+	// ⚠️ **The figure that reorders the queue in an owner's head.** A million
+	// som over ninety days is shrinkage; the same million over four days is
+	// something that is still happening. Sorting stays on the total — that is
+	// the money — but a row that cannot say which of the two it is cannot be
+	// acted on either.
+	Days   int `json:"days,omitempty"`
+	PerDay int `json:"perDay,omitempty"`
+
+	// What share of what should have been there is gone. ⚠️ Twelve kilos out of
+	// four hundred is trade; twelve out of fourteen is an event. The same
+	// twelve kilos and the same money.
+	Pct float64 `json:"pct,omitempty"`
+
+	// How much of this ingredient the tech cards accounted for over the same
+	// period, in purchase units.
+	//
+	// ⚠️ **Zero is the most important thing this screen can say, and it is not
+	// a shortfall.** If nothing consumed the ingredient in the books, then
+	// "expected" is simply everything that ever arrived and the whole counted
+	// difference is a gap in the cards — an unwritten recipe, a dish sold
+	// uncarded — rather than something that left. Reported per row because the
+	// coverage percentage at the top is a fact about the *restaurant*: an
+	// ingredient used only by carded dishes is trustworthy at 30% coverage, and
+	// one used by uncarded dishes is not at 90%.
+	Used float64 `json:"used"`
+
+	// How many of this store's counts in the window found this ingredient
+	// short. ⚠️ Two is a pattern and one is an evening — and the pattern is
+	// what a person can actually do something about.
+	Repeat int `json:"repeat,omitempty"`
+
+	// A surplus on the same count worth about as much as this shortfall.
+	//
+	// ⚠️ **The mis-scan, named before somebody calls it a loss.** Two similar
+	// packets and one barcode leave this row short and its twin over by nearly
+	// the same money on the same day — and a queue that shows only shortfalls
+	// hides exactly the half that explains this one. It is a question, never a
+	// verdict: the manager still picks the answer.
+	Twin string `json:"twin,omitempty"`
+
 	// The answer, once there is one.
 	Verdict     models.ShortageVerdict `json:"verdict,omitempty"`
 	VerdictNote string                 `json:"verdictNote,omitempty"`
@@ -154,8 +209,22 @@ func (h *Handler) AdminShortageCases(w http.ResponseWriter, r *http.Request) {
 	stores := h.warehouseNames(r.Context(), scope)
 	branches := h.branchNames(r)
 
+	// ⚠️ **Read from the oldest period start, not from the window's start.**
+	// The first count in a ninety-day window is measured from whenever that
+	// store was counted before — which may be months earlier — and a
+	// consumption figure that began later would report part of a period as
+	// unaccounted for, on the one screen whose whole job is to say what is
+	// unaccounted for.
+	oldest := from
+	for _, t := range since {
+		if t != nil && t.Before(oldest) {
+			oldest = *t
+		}
+	}
+	used := h.consumedByDay(r.Context(), scope, oldest)
+
 	got := shortageRows(takes, shortageNames{
-		ingredients: ing, stores: stores, branches: branches,
+		ingredients: ing, stores: stores, branches: branches, usedByDay: used,
 	}, since, answered)
 
 	// ⚠️ **The caveat is computed over the same window the rows are.** Asked
@@ -190,6 +259,9 @@ type shortageNames struct {
 	ingredients map[primitive.ObjectID]models.Ingredient
 	stores      map[primitive.ObjectID]string
 	branches    map[primitive.ObjectID]string
+	// What the cards accounted for, per ingredient per day, over the whole
+	// window — so each row's own period can be summed without another query.
+	usedByDay map[primitive.ObjectID]map[string]float64
 }
 
 // shortageQueue is the answer: the rows, and the totals a screen leads with.
@@ -261,6 +333,27 @@ func shortageRows(
 			if t.Value < 0 {
 				row.Share = float64(-l.Value) / float64(-t.Value)
 			}
+			// ---- How bad, how fast, and against what ----
+			if row.Since != nil {
+				days := int(math.Round(row.At.Sub(*row.Since).Hours() / 24))
+				if days < 1 {
+					// ⚠️ Two counts on one day is one day, not zero: a per-day
+					// figure divided by nothing is an infinity on a screen.
+					days = 1
+				}
+				row.Days = days
+				row.PerDay = row.Value / days
+			}
+			// ⚠️ Against what *should* have been there, not against what was
+			// found: a shelf counted at zero would otherwise be short by an
+			// infinite percentage, and one counted above expectation is not on
+			// this list at all.
+			if l.Expected > 0 {
+				row.Pct = math.Abs(l.Diff) / l.Expected
+			}
+			row.Used = round3(usedIn(names.usedByDay[l.IngredientID],
+				row.Since, row.At))
+			row.Twin = twinOf(t, l, names.ingredients)
 			if v, ok := answered[caseKey{t.ID, l.IngredientID}]; ok {
 				row.Verdict = v.Verdict
 				row.VerdictNote = v.Note
@@ -273,6 +366,40 @@ func shortageRows(
 			}
 			out.Total += -l.Value
 			out.Rows = append(out.Rows, row)
+		}
+	}
+
+	// ---- How many times this has happened here ----
+	//
+	// ⚠️ **Counted across the rows themselves rather than queried.** Every count
+	// in the window is already in hand, so "the third time this store has been
+	// short of beef" costs a pass over a slice — and it is the difference
+	// between an evening and a habit, which is the difference between what a
+	// manager says and what they do.
+	seen := map[storeKey]map[string]int{}
+	for i := range out.Rows {
+		key := storeKey{}
+		if id, err := primitive.ObjectIDFromHex(out.Rows[i].BranchID); err == nil {
+			key.branch = id
+		}
+		if id, err := primitive.ObjectIDFromHex(out.Rows[i].WarehouseID); err == nil {
+			key.store = id
+		}
+		if seen[key] == nil {
+			seen[key] = map[string]int{}
+		}
+		seen[key][out.Rows[i].IngredientID]++
+	}
+	for i := range out.Rows {
+		key := storeKey{}
+		if id, err := primitive.ObjectIDFromHex(out.Rows[i].BranchID); err == nil {
+			key.branch = id
+		}
+		if id, err := primitive.ObjectIDFromHex(out.Rows[i].WarehouseID); err == nil {
+			key.store = id
+		}
+		if n := seen[key][out.Rows[i].IngredientID]; n > 1 {
+			out.Rows[i].Repeat = n
 		}
 	}
 
@@ -390,6 +517,135 @@ func (h *Handler) AdminCloseShortageCase(w http.ResponseWriter, r *http.Request)
 	h.logAction(r, "shortage.close", "stocktake", takeID.Hex(),
 		string(req.Verdict), note)
 	httpx.JSON(w, http.StatusCreated, map[string]any{"ok": true})
+}
+
+// usedIn is what the cards took off this shelf between two counts.
+//
+// ⚠️ **Summed from a per-day map rather than queried per row.** A quarter's
+// queue is a few hundred rows over a dozen counts; one aggregation bucketed by
+// day answers all of them, and a query per row would be a screen nobody opens
+// twice.
+//
+// ⚠️ **Both ends in the restaurant's own days.** The buckets are day strings
+// built in Mongo with the restaurant's timezone (mongoTZ), so the bounds are
+// formatted the same way — comparing them against UTC timestamps would move an
+// evening's cooking into the wrong period, and here that is the difference
+// between "the cards account for this" and "nothing does".
+func usedIn(byDay map[string]float64, from *time.Time, to time.Time) float64 {
+	if len(byDay) == 0 {
+		return 0
+	}
+	end := local(to).Format("2006-01-02")
+	start := ""
+	if from != nil {
+		start = local(*from).Format("2006-01-02")
+	}
+	total := 0.0
+	for day, qty := range byDay {
+		if day > end {
+			continue
+		}
+		// ⚠️ The opening day itself belongs to the previous period — it was
+		// counted, so whatever left the shelf before that moment is already in
+		// the figure the count froze.
+		if start != "" && day <= start {
+			continue
+		}
+		total += qty
+	}
+	return total
+}
+
+// twinOf names a surplus on the same count worth about what this line is short.
+//
+// ⚠️ **A question, not a verdict.** Two similar packets and one barcode leave
+// this row short and its twin over by nearly the same money on the same day;
+// the queue shows only shortfalls, so without this the half that explains the
+// row is invisible. What it produces is a name beside a number — the manager
+// still picks the answer, and "swap" is one of six.
+//
+// ⚠️ **By money and not by quantity**, because that is what makes it evidence:
+// twelve kilos of beef and twelve kilos of onions are the same quantity and
+// nobody confuses them at a till. A tolerance of a quarter, because a mis-scan
+// is rarely exact — the packets differ a little, and some of the pair may be
+// genuine.
+func twinOf(
+	t models.Stocktake, short models.StocktakeLine,
+	ing map[primitive.ObjectID]models.Ingredient,
+) string {
+	best, bestGap := "", 0.0
+	want := float64(-short.Value)
+	if want <= 0 {
+		return ""
+	}
+	for _, l := range t.Lines {
+		if l.Value <= 0 || l.IngredientID == short.IngredientID {
+			continue
+		}
+		gap := math.Abs(float64(l.Value)-want) / want
+		if gap > twinTolerance {
+			continue
+		}
+		if best == "" || gap < bestGap {
+			best, bestGap = ing[l.IngredientID].Name, gap
+		}
+	}
+	return best
+}
+
+// consumedByDay is what the cards took off each shelf, per ingredient per day.
+//
+// ⚠️ **One aggregation for the whole queue.** The alternative is
+// `consumedInPeriod` once per row, which on a quarter of counts is hundreds of
+// passes over the movement collection for a screen that is opened every
+// morning.
+//
+// ⚠️ **The day is the restaurant's**, built in Mongo with mongoTZ for the
+// reason every other pipeline here is: the driver speaks UTC, and an evening's
+// cooking filed under tomorrow lands in the wrong count's period — which is
+// exactly the boundary this figure exists to describe.
+func (h *Handler) consumedByDay(
+	ctx context.Context, scope bson.M, from time.Time,
+) map[primitive.ObjectID]map[string]float64 {
+	out := map[primitive.ObjectID]map[string]float64{}
+	match := bson.M{"reversedAt": nil, "at": bson.M{"$gte": from}}
+	for k, v := range scope {
+		match[k] = v
+	}
+	cur, err := h.Store.StockMoves.Aggregate(ctx, mongo.Pipeline{
+		{{Key: "$match", Value: match}},
+		{{Key: "$unwind", Value: "$lines"}},
+		{{Key: "$group", Value: bson.M{
+			"_id": bson.M{
+				"ing": "$lines.ingredientId",
+				"day": bson.M{"$dateToString": bson.M{
+					"format": "%Y-%m-%d", "date": "$at", "timezone": mongoTZ(),
+				}},
+			},
+			"qty": bson.M{"$sum": bson.M{"$multiply": []any{"$lines.qty", "$qty"}}},
+		}}},
+	})
+	if err != nil {
+		return out
+	}
+	defer cur.Close(ctx)
+	var rows []struct {
+		ID struct {
+			Ing primitive.ObjectID `bson:"ing"`
+			Day string             `bson:"day"`
+		} `bson:"_id"`
+		Qty float64 `bson:"qty"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return out
+	}
+	for _, row := range rows {
+		if out[row.ID.Ing] == nil {
+			out[row.ID.Ing] = map[string]float64{}
+		}
+		out[row.ID.Ing][row.ID.Day] = row.Qty
+	}
+	return out
 }
 
 // ---- The reads behind the queue ----

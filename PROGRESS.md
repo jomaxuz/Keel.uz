@@ -13954,3 +13954,54 @@ testi; CLAUDE.md dagi UTC tuzog'iga uchinchi yuzi qo'shildi.
 
 Backend `go build/vet/test ./...` toza (7 yangi test), frontend `tsc` + lint
 toza, 257 test yashil. Qarorlar `docs/DECISIONS.md` da.
+
+---
+
+## 2026-09-07 (8) — Ikkala algoritmning aniqligi: nima noto'g'ri edi va nima tuzatildi
+
+Ikkalasi ham "ishlayapti" edi, lekin har birida **jimgina va bir tomonlama**
+xato bor edi. Har biri tuzatildi va har birining testi bor.
+
+### Xarid qarori
+
+1. **Gorizont kam edi.** Bugungi buyurtma bugun javonga chiqmaydi: u keyingi
+   kirim bilan keladi va undan keyingisigacha yetishi kerak. Endi
+   `gorizont = keyingi kirimgacha + bitta sikl + zaxira` (lead + review +
+   safety), uchala hadi ham o'lchangan. Eski `sikl + zaxira` faqat kirim
+   endigina ketgan ertalab to'g'ri edi.
+2. **Bo'sh javon "talab yo'q" deb o'qilardi** — sodda prognozni doimiy ravishda
+   kam buyurtiradigan qiladigan xato (tugadi → kam buyurtirildi → yana tugadi).
+   Endi bo'linuvchi — filial **savdo qilgan** kunlar, va har kuni sotiladigan
+   qator (savdo kunlarining ≥2/3 ida sotilgan) uchun sotilmagan kunlar
+   bo'linuvchidan chiqariladi hamda ekranda aytiladi. 2/3 chegarasi baland:
+   faqat dam olish kunlari sotiladigan qatorning nollari **haqiqiy**.
+3. **Yaxlitlash**: yuqoriga, dona esa butun songa. 71.9 kilodan 71 ga tushirish
+   hech nima tejamaydi va ekran oldini olishi kerak bo'lgan holatga qaytaradi.
+
+### Kamomad
+
+Navbat pul bo'yicha tartiblanadi, lekin pul aytolmaydigan narsalar endi qator
+yonida — har biri mavjud faktlar ustidagi arifmetika, yangi da'vo emas:
+
+- `days` / `perDay` — 90 kunda bir million (tabiiy yo'qotish) va 4 kunda o'sha
+  million (hozir ham davom etyapti) farqi.
+- `pct` — kutilganning necha foizi (400 kg dan 12 kg ≠ 14 kg dan 12 kg).
+- `repeat` — shu omborda necha sanoqda ketma-ket kam chiqqani.
+- **`used` — o'sha davrda kartalar qancha sarflagani.** ⚠️ Nol bo'lsa bu kamomad
+  emas: hech nima uni sarflamagan, demak farq — kartadagi bo'shliq. Yuqoridagi
+  qamrov foizi buni ayta olmaydi — u restoran haqidagi fakt, bu esa qator
+  haqidagi.
+- **`twin` — o'sha sanoqdagi shuncha pulga ortiqcha qator** (farqi ¼ dan kam).
+  Ikki o'xshash paket va bitta shtrix-kod aynan shu juftlikni beradi; navbat
+  faqat kamomadni ko'rsatgani uchun tushuntiradigan yarmi ko'rinmasdi. Savol,
+  hukm emas.
+
+**Jonli tekshirildi** (`qa_orderplan`, 8 haftalik sotuv + 3 kunlik sun'iy
+tugash + juftlik sanog'i; keyin o'chirildi): go'sht — 15 kunlik davr, kuniga
+72 000 so'm, kutilganning 60% i, kartalar 190 kg sarflagan (ya'ni haqiqiy
+kamomad); **Guruch A — `used: 0` va `twin: "Guruch B"`** (ikkalasi bir sanoqda,
+teng pulga), ya'ni ekran uni kamomad deb emas, savol deb ko'rsatadi. Xaridda:
+sut — gorizont muddat bilan 5 kunga qisqardi (14 l), go'sht — 72 kg va «3 kun
+sotuvda bo'lmagan — o'sha kunlarsiz hisoblandi».
+
+Backend `go build/vet/test ./...` toza, frontend `tsc` + lint toza, 257 test.

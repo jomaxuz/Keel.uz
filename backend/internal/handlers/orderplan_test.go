@@ -41,32 +41,63 @@ func TestTheForecastWalksTheDaysItCoversRatherThanAveragingThem(t *testing.T) {
 // delay.** The horizon is the delivery rhythm plus a margin, and then whatever
 // the goods themselves allow — which is the difference between a pharmacy's
 // yoghurt and its paracetamol, measured rather than asked about.
-func TestTheShelfLifeCapsTheHorizon(t *testing.T) {
-	// Delivered every eight days: eight plus a four-day margin is twelve.
-	weekly := rhythm{every: 8, deliveries: 6}
-	if got := coverDays(weekly); got != 12 {
-		t.Errorf("cover = %d, want 12", got)
+func TestTheHorizonIsLeadPlusCyclePlusMargin(t *testing.T) {
+	// Delivered every eight days, and one arrived today: the order goes on the
+	// next van (8 days), then has to last the cycle after it (8) plus the
+	// margin (4) — twenty days.
+	fresh := rhythm{every: 8, sinceLast: 0, deliveries: 6}
+	if got := coverDays(fresh); got != 20 {
+		t.Errorf("cover = %d, want 20 (8 until the next + 8 cycle + 4 margin)", got)
 	}
-	// The same rhythm for something that keeps five days.
-	perishable := rhythm{every: 8, shelfLife: 5, deliveries: 6}
+	// Seven days since the last one: the next is due tomorrow, so only a day of
+	// waiting is left to cover.
+	due := rhythm{every: 8, sinceLast: 7, deliveries: 6}
+	if got := coverDays(due); got != 13 {
+		t.Errorf("cover = %d, want 13 (1 + 8 + 4)", got)
+	}
+	// ⚠️ A supplier three days late is due *today*, not minus three days.
+	late := rhythm{every: 8, sinceLast: 11, deliveries: 6}
+	if got := coverDays(late); got != 12 {
+		t.Errorf("cover = %d, want 12 (0 + 8 + 4)", got)
+	}
+	// ⚠️ **And the whole thing is capped by how long the goods keep.** The same
+	// arithmetic then reads correctly for a pharmacy's yoghurt and its
+	// paracetamol, with neither being a special case in the code.
+	perishable := rhythm{every: 8, sinceLast: 0, shelfLife: 5, deliveries: 6}
 	if got := coverDays(perishable); got != 5 {
 		t.Errorf("cover = %d, want 5 — the shelf life did not cap the horizon", got)
 	}
-	// ⚠️ And never zero: a shelf life shorter than a day would otherwise order
-	// nothing at all, which reads on the screen as "you have enough".
+	// Never zero: a shelf life under a day would otherwise order nothing at
+	// all, which reads on the screen as "you have enough".
 	if got := coverDays(rhythm{every: 2, shelfLife: 0.4, deliveries: 4}); got < 1 {
 		t.Errorf("cover = %d — a short-lived line stopped being ordered", got)
 	}
-	// A margin, never more than a week of it: a fortnightly delivery does not
-	// need a fortnight of slack.
-	if got := coverDays(rhythm{every: 30, deliveries: 4}); got != 37 {
-		t.Errorf("cover = %d, want 37 (30 + 7)", got)
+	// A margin, never more than a week of it.
+	if got := coverDays(rhythm{every: 30, sinceLast: 30, deliveries: 4}); got != 37 {
+		t.Errorf("cover = %d, want 37 (0 + 30 + 7)", got)
 	}
-	// Nothing measured: a week, which is what somebody with no delivery
-	// history in front of them would say. ⚠️ It reaches no row on its own —
-	// the list needs two deliveries before the forecast speaks at all.
-	if got := coverDays(rhythm{}); got != coverWhenUnknown+4 {
-		t.Errorf("cover with no rhythm = %d", got)
+}
+
+// ⚠️ **Always up, and pieces are whole.** This screen exists to stop a shelf
+// running out; rounding 71.9 kilos down to 71 saves nothing and brings the
+// failure back. "Order 2.4 bottles" is a quantity nobody can hand over, so the
+// person reading it rounds in whichever direction they feel like — which is the
+// same as this screen not having decided.
+func TestAnOrderIsRoundedUpAndPiecesAreWhole(t *testing.T) {
+	if got := orderQty(2.4, "pcs"); got != 3 {
+		t.Errorf("2.4 pieces = %v, want 3", got)
+	}
+	if got := orderQty(0.02, "kg"); got != 0.1 {
+		t.Errorf("0.02 kg = %v, want 0.1 — it rounded away to nothing", got)
+	}
+	if got := orderQty(71.93, "kg"); got != 72 {
+		t.Errorf("71.93 kg = %v, want 72", got)
+	}
+	if got := orderQty(3.14, "l"); got != 3.2 {
+		t.Errorf("3.14 l = %v, want 3.2", got)
+	}
+	if got := orderQty(0, "kg"); got != 0 {
+		t.Errorf("nothing needed came back as %v", got)
 	}
 }
 
@@ -85,19 +116,26 @@ func TestTheRhythmIsAMedianSoOneHolidayDoesNotDecideIt(t *testing.T) {
 	}
 }
 
-// ⚠️ **A weekday's demand is divided by the weekdays that happened, not by the
-// ones that sold.** A restaurant shut on Mondays sells nothing on eight of the
-// window's fifty-six days; dividing by "the Mondays it sold something" would
-// report its Monday demand as if it opened — and Monday is the day the order
-// would arrive for. A zero day is a real zero.
-func TestAClosedDayCountsAsZeroNotAsAbsent(t *testing.T) {
+// ⚠️ **A day nobody traded is not a zero, and a day the shelf was empty is not
+// one either.** Both are absences of measurement wearing the same clothes, and
+// treating either as demand is wrong in a direction that compounds: a closed
+// Monday would be ordered for, and an item that ran out would be ordered less —
+// so it runs out again, and is ordered less again.
+func TestAClosedDayAndAnEmptyShelfAreNotZeroDemand(t *testing.T) {
 	src := readSource(t, "orderplan.go")
 	fn := between(t, src, "func (h *Handler) demandProfile", "\n}\n")
-	if !strings.Contains(fn, "occurrences[wd]") {
-		t.Fatal("the weekday average is not divided by the calendar")
+	// The divisor is the days the branch actually traded.
+	if !strings.Contains(fn, "trading := h.tradingDays(") {
+		t.Fatal("the weekday average is divided by the calendar, not by the days the doors were open")
 	}
-	if strings.Contains(fn, "row.Qty / float64(row.Days)") {
-		t.Fatal("the average is divided by the days that sold — a closed Monday reads as a busy one")
+	if !strings.Contains(fn, "divisor = a.sold[wd]") {
+		t.Fatal("a day the shelf was empty still drags the average down")
+	}
+	// ⚠️ And only for a line that normally sells every day — a weekend-only
+	// item keeps its honest zeros, or the profile this whole file is built on
+	// stops meaning anything.
+	if !strings.Contains(fn, "regularSellerShare") {
+		t.Fatal("every quiet day is being read as a stock-out")
 	}
 	// ⚠️ And the weekday is Mongo's, taken in the restaurant's timezone: the
 	// driver speaks UTC, so an evening's trade would otherwise be filed under

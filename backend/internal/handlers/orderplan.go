@@ -73,6 +73,16 @@ const rhythmDays = 180
 // which is exactly what this screen did before.
 const forecastMinDays = 3
 
+// How much of the branch's trading days a line must sell on before a zero day
+// is read as an empty shelf rather than as a quiet one.
+//
+// ⚠️ **Two thirds, and deliberately high.** Reading a zero as a stock-out is
+// inventing demand that was never recorded; doing it to a line that genuinely
+// sells three days a week would order for four days that never existed. Above
+// this bar the opposite mistake is the likely one, and it is the expensive one:
+// an item that ran out is ordered less, so it runs out again.
+const regularSellerShare = 2.0 / 3.0
+
 // The horizon when no rhythm can be measured — a week, which is what somebody
 // with no delivery history in front of them would say.
 const coverWhenUnknown = 7
@@ -85,12 +95,26 @@ type demand struct {
 	// How many distinct days it moved at all — the "is this forecastable"
 	// question, and nothing else.
 	days int
+	// Days the branch traded but this one did not move, on a line that
+	// otherwise moves nearly every day.
+	//
+	// ⚠️ **A shelf that was empty did not have zero demand — it had zero
+	// supply, and the two are the same row in the data.** This is the defect
+	// that makes a naive forecast permanently wrong in the one direction that
+	// matters: an item that ran out for three days looks like an item that
+	// nobody wanted for three days, so it is ordered *less*, so it runs out
+	// again. Counted here, excluded from the divisor below, and reported so the
+	// screen can say the forecast was measured without them.
+	stockouts int
 }
 
 // rhythm is how a shelf is refilled: how often, and how long it keeps.
 type rhythm struct {
 	// Median days between deliveries. Zero when there have been fewer than two.
 	every float64
+	// Days since the last one arrived — which is what says whether the next is
+	// due tomorrow or in a week.
+	sinceLast float64
 	// Median days between a delivery and its expiry date, where dates are
 	// entered. Zero when none are.
 	shelfLife float64
@@ -156,29 +180,119 @@ func (h *Handler) demandProfile(
 		return out
 	}
 
-	// How many times each weekday occurred in the window — the divisor.
+	// The days the branch traded at all, by weekday — the divisor.
 	//
-	// ⚠️ **Calendar occurrences, never the days it sold on.** A restaurant that
-	// is shut on Mondays consumes nothing on eight of the fifty-six days, and
-	// dividing by "the Mondays it sold something" would report its Monday
-	// demand as if it opened — which is the day the order would then arrive
-	// for. A zero day is a real zero.
-	occurrences := [7]float64{}
-	for d := from; d.Before(to); d = d.AddDate(0, 0, 1) {
-		occurrences[int(d.Weekday())]++
-	}
+	// ⚠️ **Trading days, not calendar days.** A restaurant shut on Mondays
+	// consumes nothing on eight of the window's fifty-six days; dividing by the
+	// calendar would report its Monday demand as a real, measured zero and then
+	// order for a Monday it does not open — or, worse, quietly halve a
+	// Sunday-only line's average because the shop was closed the rest of the
+	// week. A day nobody traded is not a zero, it is an absence of measurement.
+	trading := h.tradingDays(ctx, scope, from, to)
 
+	// Gather per ingredient before dividing: which weekdays it moved on, and
+	// how many of that weekday's trading days it moved on.
+	type acc struct {
+		qty  [7]float64
+		sold [7]int
+	}
+	got := map[primitive.ObjectID]*acc{}
 	for _, row := range rows {
 		if row.ID.WD < 1 || row.ID.WD > 7 {
 			continue
 		}
 		wd := row.ID.WD - 1 // Mongo counts Sunday as 1; time.Weekday counts it 0.
-		d := out[row.ID.Ing]
-		if occurrences[wd] > 0 {
-			d.byWeekday[wd] = row.Qty / occurrences[wd]
+		a := got[row.ID.Ing]
+		if a == nil {
+			a = &acc{}
+			got[row.ID.Ing] = a
 		}
-		d.days += row.Days
-		out[row.ID.Ing] = d
+		a.qty[wd] += row.Qty
+		a.sold[wd] += row.Days
+	}
+
+	tradedTotal := 0
+	for _, n := range trading {
+		tradedTotal += n
+	}
+	for id, a := range got {
+		soldTotal := 0
+		for _, n := range a.sold {
+			soldTotal += n
+		}
+		// ⚠️ **A line that normally sells every day, and did not, was
+		// probably not on the shelf.** That is the only reading of a zero this
+		// system can support — nothing records a stock-out — and it is safe
+		// precisely because it is narrow: an item selling on two thirds of the
+		// days the branch traded is not an item with quiet days, it is an item
+		// with missing days. A weekend-only line falls under the bar and keeps
+		// its honest zeros, which is what makes the weekday profile work at
+		// all.
+		regular := tradedTotal > 0 &&
+			float64(soldTotal) >= regularSellerShare*float64(tradedTotal)
+		d := demand{days: soldTotal}
+		for wd := 0; wd < 7; wd++ {
+			divisor := trading[wd]
+			if regular {
+				// Only the days it was actually available.
+				divisor = a.sold[wd]
+				d.stockouts += trading[wd] - a.sold[wd]
+			}
+			if divisor > 0 {
+				d.byWeekday[wd] = a.qty[wd] / float64(divisor)
+			}
+		}
+		if d.stockouts < 0 {
+			d.stockouts = 0
+		}
+		out[id] = d
+	}
+	return out
+}
+
+// tradingDays counts, per weekday, the days this branch sold anything at all.
+//
+// ⚠️ **One question asked once for the whole catalogue.** Whether the doors
+// were open is a fact about the branch, not about an ingredient, and asking it
+// per ingredient would be two hundred aggregations for one answer.
+func (h *Handler) tradingDays(
+	ctx context.Context, scope bson.M, from, to time.Time,
+) [7]int {
+	var out [7]int
+	match := bson.M{"reversedAt": nil, "at": bson.M{"$gte": from, "$lt": to}}
+	for k, v := range scope {
+		match[k] = v
+	}
+	tz := mongoTZ()
+	cur, err := h.Store.StockMoves.Aggregate(ctx, mongo.Pipeline{
+		{{Key: "$match", Value: match}},
+		{{Key: "$group", Value: bson.M{
+			"_id": bson.M{"$dateToString": bson.M{
+				"format": "%Y-%m-%d", "date": "$at", "timezone": tz,
+			}},
+			"wd": bson.M{"$first": bson.M{
+				"$dayOfWeek": bson.M{"date": "$at", "timezone": tz},
+			}},
+		}}},
+		{{Key: "$group", Value: bson.M{
+			"_id": "$wd", "days": bson.M{"$sum": 1},
+		}}},
+	})
+	if err != nil {
+		return out
+	}
+	defer cur.Close(ctx)
+	var rows []struct {
+		WD   int `bson:"_id"`
+		Days int `bson:"days"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return out
+	}
+	for _, row := range rows {
+		if row.WD >= 1 && row.WD <= 7 {
+			out[row.WD-1] = row.Days
+		}
 	}
 	return out
 }
@@ -258,8 +372,15 @@ func (h *Handler) deliveryRhythm(
 				}
 			}
 		}
+		since := 0.0
+		if prev != nil {
+			since = time.Since(*prev).Hours() / 24
+			if since < 0 {
+				since = 0
+			}
+		}
 		out[g.ID] = rhythm{
-			every: median(gaps), shelfLife: median(lives),
+			every: median(gaps), sinceLast: since, shelfLife: median(lives),
 			deliveries: len(g.Rows),
 		}
 	}
@@ -268,22 +389,50 @@ func (h *Handler) deliveryRhythm(
 
 // coverDays is how far ahead one ingredient has to be bought for.
 //
-// ⚠️ **The rhythm plus a margin, capped by how long the goods keep.** Buying
-// exactly to the next delivery leaves nothing for the delivery that comes a day
-// late, which is the ordinary case rather than the exception; buying past the
-// shelf life is throwing money away on a schedule.
+// ⚠️ **Three stretches of time, and leaving one out is what made the first
+// version under-order.** An order placed this morning does not appear on the
+// shelf this morning: it arrives with the next delivery, and then it has to
+// last until the delivery after that. So the shelf must survive
+//
+//	until the next delivery  +  one whole delivery cycle  +  a margin
+//
+// The first version covered only the cycle, which is right on the one morning a
+// delivery has just left and short by up to a week on every other morning. The
+// classic periodic-review formula, with each of its three terms measured rather
+// than typed in: lead time, review period, safety.
+//
+// ⚠️ **Capped by how long the goods keep.** Ordering three weeks of cover for
+// something that lasts five days is not a full shelf, it is a write-off with a
+// delay — and the cap is what makes the same arithmetic right for a pharmacy's
+// yoghurt and its paracetamol without either being a special case.
+//
+// ⚠️ **Ordering twice in a day does not order twice**, which is what makes the
+// long horizon safe: what is on the shelf and what is already on somebody's
+// list are both subtracted, so the second reading of the list asks for what is
+// still missing rather than for the same order again.
 func coverDays(r rhythm) int {
 	every := r.every
 	if every <= 0 {
 		every = coverWhenUnknown
 	}
-	// Half the rhythm as a margin, and never more than a week of it: a
-	// fortnightly delivery does not need a fortnight of slack.
+	// How long until the next delivery is due. ⚠️ Never negative and never more
+	// than a whole cycle: a supplier who is three days late is due today, not
+	// "minus three days", and one who has never delivered inside the window
+	// must not push the horizon past a cycle.
+	untilNext := every - r.sinceLast
+	if untilNext < 0 {
+		untilNext = 0
+	}
+	if untilNext > every {
+		untilNext = every
+	}
+	// Half a cycle of margin, and never more than a week of it: a fortnightly
+	// delivery does not need a fortnight of slack.
 	margin := math.Ceil(every / 2)
 	if margin > 7 {
 		margin = 7
 	}
-	cover := int(math.Ceil(every) + margin)
+	cover := int(math.Ceil(untilNext + every + margin))
 	if r.shelfLife > 0 && float64(cover) > r.shelfLife {
 		cover = int(math.Floor(r.shelfLife))
 	}
@@ -294,6 +443,30 @@ func coverDays(r rhythm) int {
 		cover = 60
 	}
 	return cover
+}
+
+// orderQty rounds a suggestion to a number somebody can actually buy.
+//
+// ⚠️ **Always up, never down.** This screen exists to stop a shelf running out;
+// rounding 71.9 kilos down to 71 saves nothing and reintroduces exactly the
+// failure. And pieces are whole: "order 2.4 bottles" is a quantity nobody can
+// hand over, and the person reading it rounds — in whichever direction they
+// feel like, which is the same as this screen not having decided.
+func orderQty(qty float64, unit string) float64 {
+	if qty <= 0 {
+		return 0
+	}
+	if models.PerUnit(unit) == 1 {
+		// Pieces, packets, bottles.
+		return math.Ceil(qty)
+	}
+	// ⚠️ Coarser once the number is big: 0.1 of a kilo matters on a spice and
+	// is noise on half a cow, and a list of "71.9" reads as a machine talking
+	// to itself rather than as an order.
+	if qty >= 10 {
+		return math.Ceil(qty)
+	}
+	return math.Ceil(qty*10) / 10
 }
 
 // requestedQty is what is already on a shopping list somebody is out with.

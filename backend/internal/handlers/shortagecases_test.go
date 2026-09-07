@@ -225,3 +225,149 @@ func TestEveryOfferedVerdictIsAccepted(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **A million som over ninety days is shrinkage; the same million over four
+// days is still happening.** Money alone cannot tell them apart, and money alone
+// is what the queue is sorted by — so the row carries its own period and what it
+// works out to a day.
+func TestAShortfallCarriesHowFastItHappened(t *testing.T) {
+	beef, parsley := primitive.NewObjectID(), primitive.NewObjectID()
+	at := time.Date(2026, 9, 10, 20, 0, 0, 0, time.Local)
+	since := at.AddDate(0, 0, -10)
+	take := takeFixture(at,
+		models.StocktakeLine{
+			IngredientID: beef, Expected: 100, Counted: 88, Diff: -12,
+			Value: -1_800_000,
+		},
+		models.StocktakeLine{IngredientID: parsley, Diff: 0, Value: 0},
+	)
+	got := shortageRows([]models.Stocktake{take}, namesFor(beef, parsley),
+		map[primitive.ObjectID]*time.Time{take.ID: &since}, nil)
+	row := got.Rows[0]
+	if row.Days != 10 {
+		t.Errorf("period = %d days, want 10", row.Days)
+	}
+	if row.PerDay != 180_000 {
+		t.Errorf("per day = %d, want 180000", row.PerDay)
+	}
+	// ⚠️ Twelve kilos out of four hundred is trade; twelve out of fourteen is an
+	// event — the same twelve kilos and the same money.
+	if row.Pct < 0.11 || row.Pct > 0.13 {
+		t.Errorf("share of expected = %v, want about 0.12", row.Pct)
+	}
+	// ⚠️ Two counts on one day is one day, never zero: a per-day figure divided
+	// by nothing is an infinity printed on a screen.
+	same := at
+	got = shortageRows([]models.Stocktake{take}, namesFor(beef, parsley),
+		map[primitive.ObjectID]*time.Time{take.ID: &same}, nil)
+	if got.Rows[0].Days != 1 {
+		t.Errorf("two counts in a day gave a %d-day period", got.Rows[0].Days)
+	}
+}
+
+// ⚠️ **Nothing consumed it, so nothing is missing — the books simply never
+// expected it to go.** Where no card takes an ingredient, "expected" is
+// everything that ever arrived and the whole counted difference is a gap in the
+// cards rather than something that left. The coverage percentage at the top
+// cannot say this: it is a fact about the restaurant, and an ingredient used
+// only by carded dishes is trustworthy at 30% while one used by uncarded dishes
+// is not at 90%.
+func TestARowSaysWhatTheCardsAccountedForInItsOwnPeriod(t *testing.T) {
+	beef, parsley := primitive.NewObjectID(), primitive.NewObjectID()
+	at := time.Date(2026, 9, 10, 20, 0, 0, 0, time.Local)
+	since := at.AddDate(0, 0, -3)
+	take := takeFixture(at,
+		models.StocktakeLine{IngredientID: beef, Expected: 20, Diff: -12,
+			Value: -1_080_000},
+		models.StocktakeLine{IngredientID: parsley, Diff: 0, Value: 0},
+	)
+	names := namesFor(beef, parsley)
+	names.usedByDay = map[primitive.ObjectID]map[string]float64{
+		beef: {
+			// The opening day belongs to the previous period — it was counted.
+			since.Format("2006-01-02"):                  5,
+			since.AddDate(0, 0, 1).Format("2006-01-02"): 4,
+			at.Format("2006-01-02"):                     3,
+			// And a day after the count is somebody else's period.
+			at.AddDate(0, 0, 1).Format("2006-01-02"): 99,
+		},
+	}
+	got := shortageRows([]models.Stocktake{take}, names,
+		map[primitive.ObjectID]*time.Time{take.ID: &since}, nil)
+	if got.Rows[0].Used != 7 {
+		t.Errorf("used = %v, want 7 — the period's edges are wrong", got.Rows[0].Used)
+	}
+	// An ingredient no card touches comes back as zero rather than as absent:
+	// that zero is the strongest thing this screen can say about it.
+	if got.Rows[0].Name == "" {
+		t.Fatal("the row lost its name")
+	}
+}
+
+// ⚠️ **The mis-scan, named before somebody calls it a loss.** Two similar
+// packets and one barcode leave this row short and its twin over by nearly the
+// same money on the same day — and the queue shows only shortfalls, so without
+// this the half that explains the row is invisible.
+func TestASurplusWorthTheSameIsOfferedAsTheTwin(t *testing.T) {
+	short, over, other := primitive.NewObjectID(), primitive.NewObjectID(),
+		primitive.NewObjectID()
+	take := models.Stocktake{
+		ID: primitive.NewObjectID(), At: time.Now(), Value: -900_000,
+		Lines: []models.StocktakeLine{
+			{IngredientID: short, Diff: -10, Value: -1_000_000},
+			// Nearly the same money, the other way up.
+			{IngredientID: over, Diff: 9, Value: 950_000},
+			// A surplus of a completely different size is not evidence.
+			{IngredientID: other, Diff: 2, Value: 20_000},
+		},
+	}
+	names := namesFor(short, over, other)
+	got := shortageRows([]models.Stocktake{take}, names, nil, nil)
+	if len(got.Rows) != 1 {
+		t.Fatalf("%d rows, want 1", len(got.Rows))
+	}
+	if got.Rows[0].Twin != names.ingredients[over].Name {
+		t.Errorf("twin = %q, want the surplus worth about the same",
+			got.Rows[0].Twin)
+	}
+
+	// ⚠️ By money, not by quantity: twelve kilos of beef and twelve of onions
+	// are the same quantity and nobody confuses them at a till.
+	take.Lines[1].Value = 100_000
+	got = shortageRows([]models.Stocktake{take}, names, nil, nil)
+	if got.Rows[0].Twin != "" {
+		t.Errorf("twin = %q — a surplus a tenth of the size was offered as evidence",
+			got.Rows[0].Twin)
+	}
+}
+
+// ⚠️ **Twice is a pattern and once is an evening.** The same ingredient short at
+// consecutive counts of the same store is the finding a manager can act on;
+// counted over the rows already in hand rather than queried again.
+func TestTheSameShelfShortTwiceIsCountedAsARepeat(t *testing.T) {
+	beef, parsley := primitive.NewObjectID(), primitive.NewObjectID()
+	store := primitive.NewObjectID()
+	mk := func(at time.Time) models.Stocktake {
+		return models.Stocktake{
+			ID: primitive.NewObjectID(), At: at, WarehouseID: store,
+			Value: -100_000,
+			Lines: []models.StocktakeLine{
+				{IngredientID: beef, Diff: -1, Value: -100_000},
+			},
+		}
+	}
+	now := time.Now()
+	got := shortageRows([]models.Stocktake{
+		mk(now.AddDate(0, 0, -30)), mk(now.AddDate(0, 0, -15)), mk(now),
+	}, namesFor(beef, parsley), nil, nil)
+	for _, row := range got.Rows {
+		if row.Repeat != 3 {
+			t.Fatalf("repeat = %d, want 3", row.Repeat)
+		}
+	}
+	// A single finding is not a pattern and does not claim to be one.
+	got = shortageRows([]models.Stocktake{mk(now)}, namesFor(beef, parsley), nil, nil)
+	if got.Rows[0].Repeat != 0 {
+		t.Errorf("repeat = %d on a first finding", got.Rows[0].Repeat)
+	}
+}
