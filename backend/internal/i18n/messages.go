@@ -685,6 +685,10 @@ var messages = map[string]pair{
 		"на этой странице нет готовых данных, а автоматическое чтение не включено",
 		"this page has no ready data, and automatic reading is off",
 	},
+	"bitta filialga ikkita ustun to'ldirilgan": {
+		"на один филиал заполнено два столбца",
+		"one branch has two columns filled in",
+	},
 	"bu jo'natma allaqachon qabul qilingan": {
 		"эта накладная уже принята",
 		"this delivery note has already been accepted",

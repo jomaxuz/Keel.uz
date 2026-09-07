@@ -44,7 +44,13 @@ const PRINT_LANGS: { code: string; label: string; dict: AdminDict }[] = [
   { code: "en", label: "English", dict: adminEn },
 ];
 
-type Draft = { ingredientId: string; qty: string };
+/** One row of the loading sheet: an ingredient, and a quantity per branch.
+ *
+ *  ⚠️ **A grid, not a form filled five times.** The central store does not send
+ *  one van and then think about the next — it stands at a shelf with five slips
+ *  and writes the row across all of them, which is exactly why the paper form is
+ *  four slips on one sheet. */
+type Row = { ingredientId: string; qty: Record<string, string> };
 
 export default function DispatchPage() {
   const t = useAdminT();
@@ -52,10 +58,11 @@ export default function DispatchPage() {
   const [rows, setRows] = useState<DispatchRow[]>([]);
   const [stock, setStock] = useState<DispatchStockRow[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [to, setTo] = useState("");
   const [driver, setDriver] = useState("");
   const [note, setNote] = useState("");
-  const [lines, setLines] = useState<Draft[]>([]);
+  const [rows2, setRows2] = useState<Row[]>([]);
+  // Which branches are on this morning's sheet, in the order they were added.
+  const [cols, setCols] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [printLang, setPrintLang] = useState("uz");
@@ -108,20 +115,31 @@ export default function DispatchPage() {
   );
 
   async function save() {
-    const body = lines
-      .map((l) => ({ ingredientId: l.ingredientId, qty: qtyNumber(l.qty) }))
-      .filter((l) => l.ingredientId && l.qty > 0);
-    if (!to || body.length === 0) return;
+    // ⚠️ **Empty columns are dropped rather than refused.** A morning's sheet
+    // has a column per branch and some are empty — the branch that ordered
+    // nothing today. Refusing the whole save because of one would send the
+    // storekeeper hunting for which.
+    const branchesBody = cols
+      .map((id) => ({
+        toBranchId: id,
+        lines: rows2
+          .map((r) => ({
+            ingredientId: r.ingredientId,
+            qty: qtyNumber(r.qty[id] ?? ""),
+          }))
+          .filter((l) => l.ingredientId && l.qty > 0),
+      }))
+      .filter((b) => b.lines.length > 0);
+    if (branchesBody.length === 0) return;
     setBusy(true);
     setError("");
     try {
       await api.adminCreateDispatch({
-        toBranchId: to,
         driver: driver.trim(),
         note: note.trim(),
-        lines: body,
+        branches: branchesBody,
       });
-      setLines([]);
+      setRows2([]);
       setDriver("");
       setNote("");
       load();
@@ -211,94 +229,156 @@ export default function DispatchPage() {
           <p className="text-sm text-ink-muted">{t.dispatch.noStock}</p>
         ) : null}
         <div
-          className={`grid gap-3 sm:grid-cols-3 ${
-            scope.branch || scope.loading ? "" : "hidden"
-          }`}
+          className={`space-y-3 ${scope.branch || scope.loading ? "" : "hidden"}`}
         >
-          <label className="text-sm">
-            <span className="text-ink-muted">{t.dispatch.to}</span>
-            <select
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2"
-            >
-              <option value="">—</option>
-              {targets.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            <span className="text-ink-muted">{t.dispatch.driver}</span>
-            <input
-              value={driver}
-              onChange={(e) => setDriver(e.target.value)}
-              placeholder={t.dispatch.driverPh}
-              className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2"
-            />
-          </label>
-          <label className="text-sm">
-            <span className="text-ink-muted">{t.dispatch.note}</span>
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2"
-            />
-          </label>
-        </div>
-
-        {lines.map((l, i) => (
-          <div key={i} className="flex flex-wrap items-end gap-2">
-            <label className="min-w-[14rem] flex-1 text-sm">
-              <select
-                value={l.ingredientId}
-                onChange={(e) => {
-                  const next = [...lines];
-                  next[i] = { ...l, ingredientId: e.target.value };
-                  setLines(next);
-                }}
-                className="w-full rounded-xl border border-line bg-surface px-3 py-2"
-              >
-                <option value="">—</option>
-                {stock.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="w-32">
-              <QtyInput
-                value={l.qty}
-                onValue={(v) => {
-                  const next = [...lines];
-                  next[i] = { ...l, qty: v };
-                  setLines(next);
-                }}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm">
+              <span className="text-ink-muted">{t.dispatch.driver}</span>
+              <input
+                value={driver}
+                onChange={(e) => setDriver(e.target.value)}
+                placeholder={t.dispatch.driverPh}
+                className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2"
               />
-            </div>
-            {/* ⚠️ What is left on the shelf, beside the box being typed into:
-                a storekeeper promising thirty kilos to one branch needs to see
-                what that leaves for the next van, at the moment they promise
-                it rather than at the next count. */}
-            <span className="pb-2 text-xs text-ink-muted">
-              {l.ingredientId && byId[l.ingredientId]
-                ? t.dispatch.onHand(
-                    `${byId[l.ingredientId].qty} ${byId[l.ingredientId].unit}`,
-                  )
-                : ""}
-            </span>
-            <button
-              type="button"
-              onClick={() => setLines(lines.filter((_, j) => j !== i))}
-              className="pb-2 text-xs text-ink-muted underline"
-            >
-              {t.dispatch.remove}
-            </button>
+            </label>
+            <label className="text-sm">
+              <span className="text-ink-muted">{t.dispatch.note}</span>
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2"
+              />
+            </label>
           </div>
-        ))}
+
+          {/* Which branches are on this morning's sheet. */}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-ink-muted">{t.dispatch.to}:</span>
+            {targets.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                // ⚠️ **Updated from the previous value, not from the render's
+                // copy.** A storekeeper ticks four branches as fast as they can
+                // tap, and React batches those into one render — read from the
+                // closure, each tap starts from the same empty list and only
+                // the last one survives. The same lesson the till screens
+                // learned about fast taps, in a much quieter place.
+                onClick={() =>
+                  setCols((prev) =>
+                    prev.includes(b.id)
+                      ? prev.filter((c) => c !== b.id)
+                      : [...prev, b.id],
+                  )
+                }
+                className={`rounded-lg border px-3 py-1.5 font-semibold ${
+                  cols.includes(b.id)
+                    ? "border-brand bg-brand/10"
+                    : "border-line"
+                }`}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+
+          {/* ⚠️ **One row per ingredient, one column per branch** — the paper
+              form, on a screen. A storekeeper reads a row across ("thirty kilos
+              of meat, split four ways") and the total against what is on the
+              shelf; filling the same form once per branch would be five times
+              the typing for one act, and five chances to forget a row. */}
+          {cols.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[36rem] text-sm">
+                <thead className="text-left text-xs text-ink-muted">
+                  <tr>
+                    <th className="px-2 py-1.5">{t.dispatch.pick}</th>
+                    {cols.map((id) => (
+                      <th key={id} className="px-2 py-1.5 text-right">
+                        {branches.find((b) => b.id === id)?.name ?? "—"}
+                      </th>
+                    ))}
+                    <th className="px-2 py-1.5 text-right">
+                      {t.dispatch.rowTotal}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows2.map((r, i) => {
+                    const sum = cols.reduce(
+                      (n, id) => n + qtyNumber(r.qty[id] ?? ""),
+                      0,
+                    );
+                    const have = byId[r.ingredientId]?.qty ?? 0;
+                    return (
+                      <tr key={i} className="border-t border-line align-middle">
+                        <td className="px-2 py-1.5">
+                          <select
+                            value={r.ingredientId}
+                            onChange={(e) =>
+                              setRows2((prev) =>
+                                prev.map((x, j) =>
+                                  j === i
+                                    ? { ...x, ingredientId: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            className="w-full min-w-[10rem] rounded-xl border border-line bg-surface px-2 py-1.5"
+                          >
+                            <option value="">—</option>
+                            {stock.map((sx) => (
+                              <option key={sx.id} value={sx.id}>
+                                {sx.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        {cols.map((id) => (
+                          <td key={id} className="px-2 py-1.5">
+                            <QtyInput
+                              value={r.qty[id] ?? ""}
+                              onValue={(v) =>
+                                setRows2((prev) =>
+                                  prev.map((x, j) =>
+                                    j === i
+                                      ? { ...x, qty: { ...x.qty, [id]: v } }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                          </td>
+                        ))}
+                        {/* ⚠️ **The row's total against the shelf, live.** A
+                            storekeeper promising thirty kilos to each of five
+                            branches has promised a hundred and fifty, and the
+                            moment to find that out is while typing — not at the
+                            next count, as an unexplained shortfall. It warns
+                            and never refuses: the balance is an estimate, and a
+                            screen that blocked a real van because of a stale
+                            figure would be worked around with a notebook. */}
+                        <td
+                          className={`px-2 py-1.5 text-right tabular-nums ${
+                            r.ingredientId && sum > have
+                              ? "font-semibold text-danger"
+                              : "text-ink-muted"
+                          }`}
+                        >
+                          {r.ingredientId
+                            ? `${Math.round(sum * 1000) / 1000} / ${have} ${
+                                byId[r.ingredientId]?.unit ?? ""
+                              }`
+                            : ""}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         <div
           className={`flex flex-wrap gap-2 ${
@@ -307,14 +387,17 @@ export default function DispatchPage() {
         >
           <button
             type="button"
-            onClick={() => setLines([...lines, { ingredientId: "", qty: "" }])}
-            className="rounded-xl border border-line px-4 py-2 text-sm"
+            disabled={cols.length === 0}
+            onClick={() =>
+              setRows2((prev) => [...prev, { ingredientId: "", qty: {} }])
+            }
+            className="rounded-xl border border-line px-4 py-2 text-sm disabled:opacity-50"
           >
-            {t.dispatch.pick}
+            {t.dispatch.addRow}
           </button>
           <button
             type="button"
-            disabled={busy || !to || lines.length === 0}
+            disabled={busy || cols.length === 0 || rows2.length === 0}
             onClick={save}
             className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >

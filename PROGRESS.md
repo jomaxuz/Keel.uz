@@ -14087,3 +14087,31 @@ manzili bilan. Nakladnoy o'zbekcha va ruscha chop etib ko'rildi (skrinshot).
 Backend `go build/vet/test ./...` toza (6 yangi test), frontend `tsc` + lint
 toza, **263 test** (nakladnoy uchun 6 ta yangi). Qaror `docs/DECISIONS.md` →
 «Markaziy sklad va nakladnoy».
+
+---
+
+## 2026-09-07 (11) — Bir ertalab, beshta filial: jo'natma jadvali va ikkita ikonka
+
+Foydalanuvchi ko'rsatdi: markaziy skladdan **bir vaqtda 5-6 filialga** jo'natma
+chiqadi, ekran esa bitta filialga mo'ljallangan edi — ya'ni bir xil formani besh
+marta to'ldirish kerak bo'lardi.
+
+- **Ekran jadvalga aylandi**: qator — mahsulot, **ustun — filial** (blankaning
+  o'zi), oxirgi ustunda **jami / javondagi qoldiq** (oshib ketsa qizil —
+  ogohlantiradi, to'xtatmaydi: qoldiq taxmin).
+- **Bitta `POST` hammasini yozadi** (`InsertMany`), raqamlash bir marta
+  hisoblanib sanaladi (07.09/1…/4). Bo'sh ustun o'tkazib yuboriladi, bitta
+  filialga ikki ustun rad etiladi. Eski bir yo'rtmalik shakl ham ishlaydi.
+- ⚠️ **Tez bosilganda holat funksional yangilanadi** (`setCols(prev => …)`):
+  ilgari to'rt filialni ketma-ket bosganda React ularni bitta renderga
+  yig'ib, faqat oxirgisini qoldirardi. Omborda aynan shunday tez bosiladi.
+- Yon panelga ikkita ikonka: **Jo'natma** — imzolangan yashik
+  (`LuPackageCheck`; yuk mashinasi kirimniki, yashiklar to'plami esa «Ombor»
+  guruhining o'zi), **Kamomad** — **tarozi** (`LuScale`): bu ekran ayb emas,
+  savol — ogohlantirish uchburchagi har qatorni hech kim qaramasdan turib
+  aybdor qilib ko'rsatardi.
+
+**Jonli tekshirildi**: markaziy sklad + 5 filial, bitta saqlashda 4 hujjat
+(07.09/1…/4, bo'sh ustun o'tkazildi), sklad qoldig'i 200/150/120 → 110/91/20;
+ikki ustun va bo'sh saqlash rad etildi; ekranda jadval, qizil «59 / 20 kg»
+ogohlantirishi va bitta bosishda yana 4 hujjat (07.09/6…/9). Skrinshotlar bilan.

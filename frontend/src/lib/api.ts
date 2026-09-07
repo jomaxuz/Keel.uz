@@ -2148,14 +2148,22 @@ export const api = {
       cache: "no-store",
       scope: true,
     }),
+  /** Load a morning: a column per branch, written in one call.
+   *
+   *  ⚠️ **Not one call per branch.** The central store stands at a shelf with
+   *  five slips and fills the rows across all of them; five separate saves mean
+   *  a failure halfway leaves two branches loaded and three not, with a driver
+   *  already holding the paper for all five. */
   adminCreateDispatch: (body: {
-    toBranchId: string;
     at?: string;
     driver?: string;
     note?: string;
-    lines: { ingredientId: string; qty: number }[];
+    branches: {
+      toBranchId: string;
+      lines: { ingredientId: string; qty: number }[];
+    }[];
   }) =>
-    request<Dispatch>("/admin/dispatch", {
+    request<{ dispatches: Dispatch[] }>("/admin/dispatch", {
       method: "POST",
       auth: true,
       body,

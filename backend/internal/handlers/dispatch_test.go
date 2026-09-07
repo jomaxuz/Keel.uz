@@ -140,3 +140,39 @@ func TestTheBranchConditionIsAskedOfBothEnds(t *testing.T) {
 		t.Fatal("an unscoped filter claimed to name a branch")
 	}
 }
+
+// ⚠️ **A morning is one act, not five.** The central store stands at a shelf
+// with five slips and writes the rows across all of them — which is why the
+// paper form is four slips on one sheet. Five separate saves would be five times
+// the typing and, worse, a failure halfway leaves two branches loaded and three
+// not, with a driver already holding the paper for all five.
+func TestAMorningOfVansIsWrittenInOneCall(t *testing.T) {
+	fn := between(t, readSource(t, "dispatch.go"),
+		"func (h *Handler) AdminCreateDispatch", "\n}\n")
+
+	if !strings.Contains(fn, "Dispatches.InsertMany") {
+		t.Fatal("the slips are written one at a time — a failure halfway leaves half a morning loaded")
+	}
+	// ⚠️ The numbering is worked out once and counted up: asking the database
+	// per slip gives five slips written in the same second the same number, and
+	// the number is what somebody holding two of them tells them apart by.
+	if !strings.Contains(fn, "next := h.dispatchCount(") || !strings.Contains(fn, "next++") {
+		t.Fatal("each slip asks the database for its own number")
+	}
+	// ⚠️ An empty column is a branch that ordered nothing today — skipped, not
+	// refused, or the storekeeper hunts for which column it was.
+	if !strings.Contains(fn, "if len(lines) == 0 {\n\t\t\tcontinue") {
+		t.Fatal("one empty column refuses the whole morning")
+	}
+	// ⚠️ And the same branch twice is somebody having typed a column twice: the
+	// second would take stock off the shelf again while looking, on paper, like
+	// a legitimate second van.
+	if !strings.Contains(fn, "if seen[to] {") {
+		t.Fatal("one branch can appear in two columns of the same sheet")
+	}
+	// The old single-slip shape still works — the buyer's phone and any script
+	// written against it must not break.
+	if !strings.Contains(fn, "slips = []dispatchIn{{ToBranchID: req.ToBranchID") {
+		t.Fatal("a body with one toBranchId no longer loads a van")
+	}
+}

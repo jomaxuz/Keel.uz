@@ -16,6 +16,8 @@ import {
   LuHandshake,
   LuCalendarClock,
   LuTag,
+  LuPackageCheck,
+  LuScale,
   LuScanBarcode,
   LuWarehouse,
   LuClock,
@@ -119,6 +121,15 @@ const ICONS: Record<string, IconType> = {
   purchases: LuTruck,
   writeoffs: LuTrash2,
   transfers: LuArrowLeftRight,
+  // ⚠️ **A crate signed for — not another lorry and not the stack of boxes.**
+  // The lorry belongs to deliveries and the boxes are the store *group's* own
+  // mark in the rail, and this map's note is about exactly that: a shape used
+  // twice makes two levels of one navigation read as a duplicated list. What
+  // this screen is about is a crate that left, was carried and was checked off
+  // at the far end — while the arrows next door are the shelf-to-shelf move
+  // inside one branch, which is the pair a reader has to tell apart at a
+  // glance.
+  dispatch: LuPackageCheck,
   // ⚠️ **Not the lorry.** Deliveries already have it, and two identical shapes
   // in one column is the failure the note above this map is about — it was the
   // one pair in the store that had it. A delivery is a lorry; a supplier is the
@@ -131,6 +142,12 @@ const ICONS: Record<string, IconType> = {
   // belong to the section.
   production: LuCookingPot,
   stocktake: LuClipboardCheck,
+  // ⚠️ **A balance, not an alarm.** What this screen holds is the difference
+  // between what the books expected and what the shelf held — a weighing, and
+  // one that ends in a question rather than an accusation (models/alert.go
+  // draws the same line). A warning triangle would make every row on it read
+  // as somebody's fault before anybody has looked.
+  shortages: LuScale,
   // ---- The three a shop opens and a kitchen mostly does not ----
   //
   // ⚠️ **They shipped with no icons at all**, which in a column of eleven reads

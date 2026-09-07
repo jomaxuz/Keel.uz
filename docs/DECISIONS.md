@@ -5765,6 +5765,28 @@ kiradigan har bir taomni qimmatlashtiradi.
 - Qiymat **tashiladi, yaratilmaydi** (ko'chirish bilan bir qoida): moliyaviy
   hisobotning xarajatiga kirmaydi.
 
+⚠️ **Bir ertalab — bitta amal, beshta emas.** Markaziy sklad bitta filialga
+jo'natib, keyin keyingisini o'ylamaydi: u javon oldida beshta varaq bilan turadi
+va qatorni **hammasi bo'ylab** yozadi — blanka aynan shuning uchun bitta varaqda
+to'rtta yo'rtma. Shuning uchun ekran ham **jadval**: qator — mahsulot, ustun —
+filial, va bitta `POST` hammasini yozadi (`InsertMany`). Beshta alohida saqlash
+bo'lsa, yarmida yiqilgan so'rov ikki filialni yuklangan, uchtasini yuklanmagan
+qoldiradi — haydovchi esa qo'lida beshalasining qog'ozi bilan turadi.
+
+- Raqamlash **bir marta** hisoblanadi va sanaladi: har yo'rtma alohida so'rasa,
+  bir soniyada yozilgan beshtasi bir xil raqam olardi — va raqam aynan ikki
+  varaqni bir-biridan ajratish uchun bor.
+- **Bo'sh ustun — o'tkazib yuboriladi, rad etilmaydi**: bugun hech nima
+  buyurtmagan filial. Bitta bo'sh ustun uchun butun saqlashni rad etish
+  omborchini "qaysi ustun ekan?" deb qidirishga majbur qiladi.
+- **Bitta filialga ikki ustun — rad etiladi**: bu ustunni ikki marta yozib
+  yuborish, va ikkinchisi javondan yana oladi, qog'ozda esa haqiqiy ikkinchi
+  reys bo'lib ko'rinadi.
+- Jadvalda har qatorning **jamisi javondagi qoldiqqa nisbatan** ko'rsatiladi va
+  oshib ketsa qizaradi. ⚠️ **Ogohlantiradi, to'xtatmaydi**: qoldiq — taxmin, va
+  eskirgan raqam tufayli haqiqiy mashinani to'xtatgan ekran daftar bilan
+  aylanib o'tiladi.
+
 **Nakladnoy** (`frontend/src/lib/nakladnoy.ts`) — bu avval qog'oz, keyin ekran:
 
 - **Bitta A4 (albom) da to'rtta yo'rtma**, har filialga bittadan — restoranlar
