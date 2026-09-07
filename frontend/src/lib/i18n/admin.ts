@@ -1427,6 +1427,14 @@ export const adminUz = {
     intro:
       "Markaziy ombordan filiallarga jo'natilgan mahsulot. Jo'natilgan zahoti markaziy ombordan chiqadi; filial javoniga esa faqat qabul qilingandan keyin tushadi — orasi haydovchining yo'lida.",
     newTitle: "Yangi jo'natma",
+    // ⚠️ Jo'natma bitta ombordan chiqadi — «hamma filiallar» ko'rinishida
+    // qaysi javondan olinayotgani yo'q, ya'ni ro'yxat ham bo'lmaydi. Ilgari bu
+    // xato jimgina yutilardi va omborchi bo'sh ro'yxatni "buzilgan" deb
+    // o'qirdi.
+    pickBranch:
+      "Jo'natma bitta ombordan chiqadi. Chap paneldagi «Filial» ro'yxatidan jo'natuvchi filialni (markaziy skladni) tanlang.",
+    noStock:
+      "Bu filialning omborida hech nima yo'q. Avval «Masalliqlar» va «Kirim» to'ldirilishi kerak.",
     to: "Qaysi filialga",
     driver: "Haydovchi",
     driverPh: "Ism yoki mashina raqami",
@@ -6227,6 +6235,10 @@ export const adminRu: AdminDict = {
     intro:
       "Что центральный склад отправил филиалам. Со склада списывается сразу при отправке; на полку филиала попадает только после приёмки — между ними машина в пути.",
     newTitle: "Новая отправка",
+    pickBranch:
+      "Отправка идёт с одного склада. Выберите филиал-отправитель (центральный склад) в списке «Филиал» слева.",
+    noStock:
+      "На складе этого филиала пусто. Сначала заполните «Товары» и «Приход».",
     to: "В какой филиал",
     driver: "Водитель",
     driverPh: "Имя или номер машины",
@@ -10716,6 +10728,10 @@ export const adminEn: AdminDict = {
     intro:
       "What the central store sent the branches. It leaves the central store the moment it is loaded; it reaches the branch's shelf only once somebody signs for it — in between it is on the van.",
     newTitle: "New dispatch",
+    pickBranch:
+      "A dispatch leaves one store. Pick the sending branch — the central store — in the Branch list on the left.",
+    noStock:
+      "This branch's store is empty. Fill in the goods and the deliveries first.",
     to: "Which branch",
     driver: "Driver",
     driverPh: "A name or a number plate",

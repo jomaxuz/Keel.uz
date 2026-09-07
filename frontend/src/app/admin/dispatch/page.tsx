@@ -59,6 +59,8 @@ export default function DispatchPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [printLang, setPrintLang] = useState("uz");
+  // Why the item list is empty, when it is.
+  const [stockError, setStockError] = useState("");
   // Which incoming van is being signed for, and what the branch counted.
   const [signing, setSigning] = useState("");
   const [got, setGot] = useState<Record<string, string>>({});
@@ -70,10 +72,21 @@ export default function DispatchPage() {
       .catch((e) =>
         setError(e instanceof ApiError ? e.message : t.common.loadFailed),
       );
+    // ⚠️ **The failure is shown, never swallowed.** A dispatch leaves one
+    // store, so the server refuses to name a shelf while the panel is looking
+    // at every branch at once — and a caught-and-ignored error left the item
+    // list empty with no reason on the screen, which reads as a broken page
+    // rather than as a lens that has not been chosen.
     api
       .adminDispatchStock()
-      .then((d) => setStock(d.rows))
-      .catch(() => setStock([]));
+      .then((d) => {
+        setStock(d.rows);
+        setStockError("");
+      })
+      .catch((e) => {
+        setStock([]);
+        setStockError(e instanceof ApiError ? e.message : t.common.loadFailed);
+      });
     api
       .adminBranches()
       .then((d) => setBranches(d))
@@ -184,7 +197,24 @@ export default function DispatchPage() {
       {/* ---- Loading a van ---- */}
       <div className="card space-y-3 p-4">
         <div className="font-medium">{t.dispatch.newTitle}</div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        {/* ⚠️ **A van is loaded from one store**, so the branch has to be
+            chosen before anything can be put on it. Said here rather than left
+            as an empty dropdown: the same rule every other store screen
+            follows (handlers/placements.go), and the same sentence. */}
+        {scope.loading ? null : !scope.branch ? (
+          <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
+            {t.dispatch.pickBranch}
+          </p>
+        ) : stockError ? (
+          <p className="text-sm text-danger">{stockError}</p>
+        ) : stock.length === 0 ? (
+          <p className="text-sm text-ink-muted">{t.dispatch.noStock}</p>
+        ) : null}
+        <div
+          className={`grid gap-3 sm:grid-cols-3 ${
+            scope.branch || scope.loading ? "" : "hidden"
+          }`}
+        >
           <label className="text-sm">
             <span className="text-ink-muted">{t.dispatch.to}</span>
             <select
@@ -270,7 +300,11 @@ export default function DispatchPage() {
           </div>
         ))}
 
-        <div className="flex flex-wrap gap-2">
+        <div
+          className={`flex flex-wrap gap-2 ${
+            scope.branch || scope.loading ? "" : "hidden"
+          }`}
+        >
           <button
             type="button"
             onClick={() => setLines([...lines, { ingredientId: "", qty: "" }])}
