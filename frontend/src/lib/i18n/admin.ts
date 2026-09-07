@@ -1462,9 +1462,16 @@ export const adminUz = {
     openCount: (n: number) => `${n} ta savol javobsiz`,
     total: "Davrdagi jami kamomad",
     coverageTitle: "Texkarta qamrovi",
+    // ⚠️ Do'kon uchun boshqa so'z: dorixonada texkarta yo'q va bo'lmaydi —
+    // tovarning bir qatorli kartasini server yozadi. Raqam bir xil, savol
+    // boshqacha: sotuvning qancha qismi ombordan yechiladi.
+    coverageTitleGoods: "Omborga bog'langan sotuv",
     coverage: "Sotuvning shu qismi texkarta bilan hisoblangan.",
+    coverageGoods: "Sotuvning shu qismi ombordan yechiladi.",
     weak:
       "Qamrov past: kutilgan qoldiq kartasi bor taomlardan hisoblanadi, shuning uchun bu qatorlar kamomadni emas, yetishmayotgan texkartalarni ko'rsatayotgan bo'lishi mumkin. Avval qamrovni to'ldiring — keyin bu raqamlarga ishonsa bo'ladi.",
+    weakGoods:
+      "Qamrov past: sotuvning bir qismi ombordan hech nima yechmayapti — ya'ni o'sha tovarlar omborga bog'lanmagan. Bunda bu qatorlar kamomadni emas, katalogdagi bo'shliqni ko'rsatadi. Avval «Tovarlar»da bog'lanmaganlarini tuzating.",
     empty: "Bu davrda kamomad topilmadi.",
     more: (n: number) => `Yana ${n} ta kichik qator ko'rsatilmadi.`,
     period: (from: string, to: string) => `${from} — ${to} oralig'ida`,
@@ -1480,9 +1487,12 @@ export const adminUz = {
       waste: "Isrof: buzilgan, to'kilgan, tashlangan",
       card: "Texkarta noto'g'ri — ko'p yozilgan",
       paperwork: "Hujjat kiritilmagan (kirim, ko'chirish, partiya)",
+      swap: "Kassada boshqasi urilgan — juftida ortiqcha chiqadi",
       lost: "Topilmadi — tushuntirib bo'lmadi",
     },
     notePh: "Nima bo'lgan? Masalan: juma kuni muzlatgich buzildi, go'sht tashlandi.",
+    notePhGoods:
+      "Nima bo'lgan? Masalan: muddati o'tgan sut chiqarib tashlandi.",
     save: "Javobni saqlash",
     onceHint: "Javob bir marta yoziladi — keyin o'zgartirib bo'lmaydi.",
   },
@@ -6171,9 +6181,13 @@ export const adminRu: AdminDict = {
     openCount: (n: number) => `${n} вопросов без ответа`,
     total: "Всего за период",
     coverageTitle: "Покрытие техкартами",
+    coverageTitleGoods: "Продажи, связанные со складом",
     coverage: "Столько продаж списывается со склада по техкартам.",
+    coverageGoods: "Столько продаж списывается со склада.",
     weak:
       "Покрытие низкое: ожидаемый остаток считается только по блюдам с картой, поэтому эти строки могут показывать не недостачу, а нехватку техкарт. Сначала заполните карты — потом этим цифрам можно верить.",
+    weakGoods:
+      "Покрытие низкое: часть продаж ничего не списывает со склада — эти товары со складом не связаны. Тогда строки ниже показывают не недостачу, а дыру в каталоге. Сначала поправьте несвязанные товары в разделе «Товары».",
     empty: "За этот период недостач не найдено.",
     more: (n: number) => `Ещё ${n} мелких строк не показаны.`,
     period: (from: string, to: string) => `за период ${from} — ${to}`,
@@ -6190,10 +6204,13 @@ export const adminRu: AdminDict = {
       waste: "Порча: испортилось, разлилось, выбросили",
       card: "Техкарта завышена — списывает больше",
       paperwork: "Документ не внесён (приход, перемещение, партия)",
+      swap: "На кассе пробили не то — в паре есть излишек",
       lost: "Не нашли — объяснения нет",
     },
     notePh:
       "Что произошло? Например: в пятницу сломался холодильник, мясо выбросили.",
+    notePhGoods:
+      "Что произошло? Например: просроченное молоко списали и выбросили.",
     save: "Сохранить ответ",
     onceHint: "Ответ пишется один раз — изменить его потом нельзя.",
   },
@@ -10590,9 +10607,13 @@ export const adminEn: AdminDict = {
     openCount: (n: number) => `${n} questions unanswered`,
     total: "Total for the period",
     coverageTitle: "Tech card coverage",
+    coverageTitleGoods: "Sales linked to the store",
     coverage: "This share of sales takes something off a shelf.",
+    coverageGoods: "This share of sales takes something off a shelf.",
     weak:
       "Coverage is low: the expected balance is built only from dishes that have a card, so these rows may be showing missing cards rather than missing stock. Fill the cards first — then these figures can be trusted.",
+    weakGoods:
+      "Coverage is low: some sales take nothing off a shelf — those products are not linked to the store. The rows below would then be showing a gap in the catalogue rather than missing stock. Fix the unlinked products under Goods first.",
     empty: "No shortfalls found in this period.",
     more: (n: number) => `${n} smaller rows are not shown.`,
     period: (from: string, to: string) => `over ${from} — ${to}`,
@@ -10608,10 +10629,13 @@ export const adminEn: AdminDict = {
       waste: "Waste: spoiled, spilled, thrown away",
       card: "The card takes more than the kitchen does",
       paperwork: "A document was never entered (delivery, transfer, batch)",
+      swap: "The wrong item was rung up — its twin shows a surplus",
       lost: "Not found — no explanation",
     },
     notePh:
       "What happened? For example: the freezer broke down on Friday, the meat was thrown out.",
+    notePhGoods:
+      "What happened? For example: milk past its date was thrown out.",
     save: "Save the answer",
     onceHint: "An answer is written once — it cannot be edited afterwards.",
   },

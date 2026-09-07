@@ -200,3 +200,28 @@ func TestAnUnsetBranchIsSentAsNothingNotAsZeros(t *testing.T) {
 		t.Fatalf("a real id came back as %q", got)
 	}
 }
+
+// ⚠️ **Every verdict the panel can offer has to be accepted by the server, and
+// the offer differs by business type.** A chemist is not shown "the card takes
+// more than the kitchen does" (frontend/src/lib/shortages.ts) — but the *kinds*
+// are one list for every install, because a stored verdict has to mean the same
+// thing everywhere and a chain running a kitchen and a shop counts a month of
+// them together. A kind the panel offers and the server refuses would be a
+// button that fails only in a pharmacy.
+func TestEveryOfferedVerdictIsAccepted(t *testing.T) {
+	for _, v := range []models.ShortageVerdict{
+		models.VerdictMiscount, models.VerdictWaste, models.VerdictSwap,
+		models.VerdictPaperwork, models.VerdictCard, models.VerdictLost,
+	} {
+		if !models.ValidVerdict(v) {
+			t.Errorf("%q is offered by the panel and refused here", v)
+		}
+	}
+	// And nothing else: "other" is deliberately not an answer — a queue of
+	// prose nobody can count is what the six kinds exist to prevent.
+	for _, v := range []models.ShortageVerdict{"", "other", "theft", "MISCOUNT"} {
+		if models.ValidVerdict(v) {
+			t.Errorf("%q was accepted as a verdict", v)
+		}
+	}
+}

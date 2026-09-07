@@ -5079,7 +5079,7 @@ export interface TillPayee {
  *  finds one stock figure wrong stops believing every other one. */
 /** What a shortfall turned out to be.
  *
- *  ⚠️ **Five answers and no "other", because the list is the product.** A free
+ *  ⚠️ **Six answers and no "other", because the list is the product.** A free
  *  sentence alone makes the queue a pile of prose nobody can count; the kind is
  *  what lets a month of them say "half of ours are deliveries nobody entered",
  *  which is a fixable sentence about a process. The sentence is still required —
@@ -5089,6 +5089,10 @@ export type ShortageVerdict =
   | "waste"
   | "card"
   | "paperwork"
+  /** Rung up as something else: this row is short and its twin is over.
+   *  ⚠️ Offered everywhere, and a shop cannot do without it — see
+   *  lib/shortages.ts. */
+  | "swap"
   | "lost";
 
 /** One shortfall: one ingredient, on one count, in one store. */

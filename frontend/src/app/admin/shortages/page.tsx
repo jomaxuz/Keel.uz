@@ -22,20 +22,14 @@ import { api, ApiError } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
+import { sellsGoods } from "@/lib/types";
+import { verdictsFor } from "@/lib/shortages";
 import type { ShortageQueue, ShortageRow, ShortageVerdict } from "@/lib/types";
 
 /** How far back to look. ⚠️ Ninety days first: a restaurant counting monthly
  *  has three counts in it, which is the shortest window in which a shortfall
  *  can look like a habit rather than an evening. */
 const WINDOWS = [30, 90, 180, 365];
-
-const VERDICTS: ShortageVerdict[] = [
-  "miscount",
-  "waste",
-  "card",
-  "paperwork",
-  "lost",
-];
 
 /** The pair of ids that names a case — there is no id of its own until it is
  *  answered, and by then the queue no longer needs one. */
@@ -44,6 +38,13 @@ const keyOf = (r: ShortageRow) => `${r.stocktakeId}:${r.ingredientId}`;
 export default function ShortagesPage() {
   const t = useAdminT();
   const scope = useAdminScope();
+  // ⚠️ **Whether this business sells what it bought — the only difference
+  // between the two readings of this screen.** The arithmetic is identical in a
+  // kitchen and a pharmacy (models/businesstype.go says why the stock module is
+  // deliberately not tailored); what changes is the word for the caveat and
+  // which answers can possibly be true. See lib/shortages.ts.
+  const goods = sellsGoods(scope.brand);
+  const verdicts = verdictsFor(scope.brand);
   const [data, setData] = useState<ShortageQueue | null>(null);
   const [days, setDays] = useState(90);
   const [loading, setLoading] = useState(true);
@@ -148,7 +149,7 @@ export default function ShortagesPage() {
           </div>
           <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
             <div className="text-xs uppercase text-ink-muted/70">
-              {t.shortages.coverageTitle}
+              {goods ? t.shortages.coverageTitleGoods : t.shortages.coverageTitle}
             </div>
             <div
               className={`mt-1 text-2xl font-bold tabular-nums ${
@@ -158,7 +159,7 @@ export default function ShortagesPage() {
               {data.coverage}%
             </div>
             <div className="mt-1 text-xs text-ink-muted">
-              {t.shortages.coverage}
+              {goods ? t.shortages.coverageGoods : t.shortages.coverage}
             </div>
           </div>
         </div>
@@ -171,7 +172,7 @@ export default function ShortagesPage() {
           row an owner investigates costs them their trust in the screen. */}
       {data?.weak && (
         <p className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
-          {t.shortages.weak}
+          {goods ? t.shortages.weakGoods : t.shortages.weak}
         </p>
       )}
 
@@ -261,7 +262,7 @@ export default function ShortagesPage() {
                       }
                       className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm"
                     >
-                      {VERDICTS.map((v) => (
+                      {verdicts.map((v) => (
                         <option key={v} value={v}>
                           {t.shortages.verdicts[v]}
                         </option>
@@ -274,7 +275,9 @@ export default function ShortagesPage() {
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                       rows={2}
-                      placeholder={t.shortages.notePh}
+                      placeholder={
+                        goods ? t.shortages.notePhGoods : t.shortages.notePh
+                      }
                       className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm"
                     />
                     <div className="flex flex-wrap items-center gap-2">

@@ -34,7 +34,15 @@ import (
 
 // ShortageVerdict is what a shortfall turned out to be.
 //
-// ⚠️ **Five answers and no "other", because the list is the product.** A free
+// ⚠️ **The list does not change with the business type, and the panel's offer
+// does.** Which of these a chemist is shown is a question about words and
+// relevance (a shop composes nothing, so `card` is meaningless there) — but a
+// stored verdict has to mean the same thing on every install, and a kind that
+// existed only for some of them would make a month's tally uncountable across
+// a chain that runs a kitchen and a shop. The same line businesstype.go draws
+// around the stock module: the arithmetic is one, the wording is not.
+//
+// ⚠️ **Six answers and no "other", because the list is the product.** A free
 // sentence alone would make the queue a pile of prose nobody can count; the
 // kind is what lets a month of them say "half of our shortfalls are deliveries
 // nobody entered", which is a fixable sentence about a process. The sentence is
@@ -54,16 +62,28 @@ const (
 	// A delivery, a transfer or a batch that was never entered. The shelf was
 	// right all along and the books were short of a document.
 	VerdictPaperwork ShortageVerdict = "paperwork"
+	// Rung up as something else: two similar packets, one barcode, one tile —
+	// so this row is short and its twin is over.
+	//
+	// ⚠️ **The verdict a shop cannot do without, and the reason the list is
+	// six rather than five.** A grocery offered only miscount, waste,
+	// paperwork and lost files every mis-scan under `lost` — and a month of
+	// those reads as "half our shortfalls are unexplained" about a shop that
+	// has a barcode problem and no theft at all. It is offered to a kitchen
+	// too: a waiter taps the wrong tile for the same reason and with the same
+	// result.
+	VerdictSwap ShortageVerdict = "swap"
 	// Gone, with no explanation found. ⚠️ Deliberately not called theft: the
 	// honest content of this verdict is that somebody looked and could not
 	// account for it.
 	VerdictLost ShortageVerdict = "lost"
 )
 
-// ValidVerdict says whether this is one of the five.
+// ValidVerdict says whether this is one of the six.
 func ValidVerdict(v ShortageVerdict) bool {
 	switch v {
-	case VerdictMiscount, VerdictWaste, VerdictCard, VerdictPaperwork, VerdictLost:
+	case VerdictMiscount, VerdictWaste, VerdictCard, VerdictPaperwork,
+		VerdictSwap, VerdictLost:
 		return true
 	}
 	return false
