@@ -51,3 +51,22 @@ Thumbs.db
 /.claude/skills/
 /.agents/
 /skills-lock.json
+
+# ---- What the server keeps beside the checkout ----
+#
+# ⚠️ **Named here so a deploy can never meet them.** The production checkout is
+# `/opt/keel`, and these three directories live inside it: the signing keys, the
+# artifacts they sign, and the service accounts. Left untracked-but-not-ignored
+# they show up in `git status`, and the day a commit happens to add a path under
+# one of them, `git reset --hard` refuses — which is a deploy that stops halfway
+# with the working tree already half updated. That is not hypothetical: it is
+# what happened the first time this app's build pipeline was deployed.
+#
+# ⚠️ **`appkeys/` is the one that must never be deleted, ever.** An app on the
+# store signed by a lost key can never be updated — not by us, not by the
+# restaurant, not by Google. Ignoring it here also keeps it out of reach of a
+# `git clean -fd`, which is the command somebody reaches for when a deploy is
+# stuck.
+/appkeys/
+/appbuilds/
+/secrets/
