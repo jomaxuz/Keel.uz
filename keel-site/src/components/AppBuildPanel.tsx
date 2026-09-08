@@ -24,6 +24,7 @@ import {
   appBuilds,
   bytes,
   downloadAppBuild,
+  setAndroidAppId,
   startAppBuild,
   type AppBuild,
 } from "@/lib/api";
@@ -36,8 +37,16 @@ const LABEL: Record<string, string> = {
   failed: "xato",
 };
 
-export default function AppBuildPanel({ tenantId }: { tenantId: string }) {
+export default function AppBuildPanel({
+  tenantId,
+  androidAppId,
+}: {
+  tenantId: string;
+  androidAppId?: string;
+}) {
   const [builds, setBuilds] = useState<AppBuild[]>([]);
+  const [appId, setAppId] = useState(androidAppId ?? "");
+  const [appIdSaved, setAppIdSaved] = useState(false);
   const [format, setFormat] = useState<"apk" | "aab">("apk");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -138,6 +147,57 @@ export default function AppBuildPanel({ tenantId }: { tenantId: string }) {
             : "AAB — faqat Play Store uchun, telefonga o'rnatib bo'lmaydi"}
         </span>
       </div>
+
+      {/* ---- Where notifications come from ----
+          ⚠️ **One Firebase app per restaurant, and it cannot be shared.** An FCM
+          token is bound to a Firebase app id and the SDK sends the package name
+          with it; running this restaurant's app under the id issued for another
+          is not a supported configuration — `getToken()` succeeds anyway and
+          every notification quietly goes nowhere, with no error on either side.
+
+          ⚠️ Typed in by hand today. Creating one through the Firebase Management
+          API needs a service account with rights the messaging credentials do
+          not carry; until that exists it is thirty seconds in a console, once. */}
+      <label className="block text-sm font-medium">
+        Firebase app id (bildirishnomalar uchun)
+        <div className="mt-1 flex gap-2">
+          <input
+            className="input flex-1 font-mono text-xs"
+            value={appId}
+            placeholder="1:889013622083:android:…"
+            onChange={(e) => {
+              setAppId(e.target.value.trim());
+              setAppIdSaved(false);
+            }}
+          />
+          <button
+            type="button"
+            className="btn-ghost px-3 text-sm"
+            onClick={() => {
+              void (async () => {
+                setError("");
+                try {
+                  await setAndroidAppId(tenantId, appId);
+                  setAppIdSaved(true);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : String(e));
+                }
+              })();
+            }}
+          >
+            {appIdSaved ? "Saqlandi" : "Saqlash"}
+          </button>
+        </div>
+        <span className="mt-1 block text-xs text-ink-muted">
+          Firebase console → Add app → Android → paket nomi{" "}
+          <code className="font-mono">
+            uz.keel.app.{builds[0]?.slug ?? "slug"}
+          </code>
+          . ⚠️ Har restoranga alohida: boshqa ilovaning id&apos;si bilan
+          bildirishnoma jimgina kelmay qo&apos;yadi. Bo&apos;sh qoldirilsa ilova
+          bildirishnomasiz quriladi — bu xato emas.
+        </span>
+      </label>
 
       {builds.length === 0 ? (
         <p className="text-sm text-ink-muted">Hali build qilinmagan.</p>

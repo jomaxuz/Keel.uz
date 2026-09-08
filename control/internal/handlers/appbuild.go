@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -129,6 +130,48 @@ func (h *Handler) StartAppBuild(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusAccepted, build)
 }
+
+// SetAndroidAppID records the Firebase app id this restaurant's app registers
+// with.
+//
+// ⚠️ **Its own endpoint rather than a field on the tenant form.** It belongs
+// with the app: an operator editing a customer's name and price has no business
+// meeting a Firebase identifier, and the person who has just created one in a
+// Firebase console is looking at the app panel.
+func (h *Handler) SetAndroidAppID(w http.ResponseWriter, r *http.Request) {
+	id, err := primitive.ObjectIDFromHex(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+	var req struct {
+		AppID string `json:"appId"`
+	}
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	appID := strings.TrimSpace(req.AppID)
+	// ⚠️ **Shape-checked, because a wrong one fails silently for ever.** A
+	// mistyped id is accepted by Firebase's client, `getToken()` succeeds, and
+	// every notification goes nowhere with no error on either side. The format
+	// is "1:<sender>:android:<hash>" and anything else is a typo worth catching
+	// on the screen it was typed into.
+	if appID != "" && !androidAppIDRe.MatchString(appID) {
+		httpx.Error(w, http.StatusBadRequest,
+			"Firebase app id shakli noto'g'ri — «1:889013622083:android:…» bo'lishi kerak")
+		return
+	}
+	if _, err := h.Store.Tenants.UpdateByID(r.Context(), id,
+		bson.M{"$set": bson.M{"androidAppId": appID}}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"appId": appID})
+}
+
+// androidAppIDRe is Firebase's own shape for an Android app id.
+var androidAppIDRe = regexp.MustCompile(`^1:\d+:android:[0-9a-f]+$`)
 
 // AppBuilds lists this tenant's builds, newest first.
 func (h *Handler) AppBuilds(w http.ResponseWriter, r *http.Request) {
@@ -250,6 +293,12 @@ func (h *Handler) runAppBuild(ctx context.Context, id primitive.ObjectID) {
 			"KEEL_FB_PROJECT_ID":    h.Cfg.AppFirebaseProject,
 			"KEEL_FB_API_KEY":       h.Cfg.AppFirebaseAPIKey,
 			"KEEL_FB_SENDER_ID":     h.Cfg.AppFirebaseSender,
+			// ⚠️ **Per restaurant, unlike the three above it.** An FCM token is
+			// bound to a Firebase app id and the SDK sends the package name with
+			// it; one id shared across every restaurant's app is not a supported
+			// configuration, and its failure is silent on both sides. Empty
+			// builds an app without notifications rather than failing.
+			"KEEL_FB_APP_ID": h.androidAppID(ctx, b.TenantID),
 		},
 		Binds: []string{
 			h.Cfg.AppBuildRoot + ":/opt/keel",
@@ -289,6 +338,15 @@ func (h *Handler) runAppBuild(ctx context.Context, id primitive.ObjectID) {
 		"applicationId": "uz.keel.app." + slugID(b.Slug),
 		"versionCode":   code, "versionName": version,
 	})
+}
+
+// androidAppID is this restaurant's Firebase app id, or empty.
+func (h *Handler) androidAppID(ctx context.Context, id primitive.ObjectID) string {
+	var t models.Tenant
+	if err := h.Store.Tenants.FindOne(ctx, bson.M{"_id": id}).Decode(&t); err != nil {
+		return ""
+	}
+	return t.AndroidAppID
 }
 
 // nextVersionCode is one past the highest this tenant has ever built.

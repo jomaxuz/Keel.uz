@@ -477,7 +477,10 @@ export default function TenantPage() {
             hand lands on while scrolling. */}
         <TillPanel tenantId={data.tenant.id} />
 
-        <AppBuildPanel tenantId={data.tenant.id} />
+        <AppBuildPanel
+          tenantId={data.tenant.id}
+          androidAppId={data.tenant.androidAppId}
+        />
 
         <ExportGrantPanel tenantId={data.tenant.id} />
 

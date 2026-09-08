@@ -60,6 +60,10 @@ export interface Tenant {
    *  ⚠️ Not the same field as `kind`: that one is free text a person reads,
    *  this one is what the software did. See the note on the server's model. */
   businessType?: string;
+  /** This restaurant's own Firebase app id, for its Android app's
+   *  notifications. ⚠️ Empty builds an app without them — it works, and the one
+   *  thing it does not do is the one nobody has set up. */
+  androidAppId?: string;
   domains: string[];
   status: TenantStatus;
   /** A raw timestamp, and it marshals as UTC — never slice a day out of it.
@@ -346,6 +350,18 @@ export interface AppBuild {
   startedAt?: string;
   finishedAt?: string;
 }
+
+/** Record which Firebase app this restaurant's Android app registers with.
+ *
+ *  ⚠️ **One per restaurant, and it cannot be shared.** An FCM token is bound to
+ *  a Firebase app id and the SDK sends the package name with it; running one
+ *  restaurant's app under another's id is not supported, `getToken()` succeeds
+ *  anyway, and the sends quietly go nowhere. */
+export const setAndroidAppId = (tenantId: string, appId: string) =>
+  req<{ appId: string }>(`/tenants/${tenantId}/android-app`, {
+    method: "PUT",
+    body: JSON.stringify({ appId }),
+  });
 
 export const appBuilds = (tenantId: string) =>
   req<{ builds: AppBuild[] }>(`/tenants/${tenantId}/app-builds`);

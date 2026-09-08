@@ -255,6 +255,28 @@ type Tenant struct {
 	// ⚠️ Sent to the tenant on its first boot only, like the admin credentials.
 	// Afterwards the panel's own switches are the truth.
 	BusinessType string `bson:"businessType,omitempty" json:"businessType,omitempty"`
+
+	// This restaurant's own Firebase app id, for its Android app's
+	// notifications — "1:889013622083:android:abc…".
+	//
+	// ⚠️ **One per restaurant, and it cannot be shared.** An FCM registration
+	// token is bound to a Firebase app id, and the SDK sends the package name
+	// with it: running `uz.keel.app.navvat` under the id issued for
+	// `uz.keel.team` is not a supported configuration. `getToken()` usually
+	// succeeds anyway and the sends quietly go nowhere — no error, on either
+	// side, ever. So each application is registered in Keel's Firebase project
+	// and its id is kept here.
+	//
+	// ⚠️ **Typed in by hand today, and that is the honest state.** Creating one
+	// through the Firebase Management API needs a service account with rights
+	// the messaging credentials do not carry; until that is set up it is thirty
+	// seconds in a console, once per restaurant, and the field says so.
+	//
+	// ⚠️ Empty means the app is built without notifications — it works, and the
+	// one thing it does not do is the one nobody has set up. Never a build
+	// failure: refusing to build a restaurant's app over a feature they have not
+	// asked for is the wrong failure.
+	AndroidAppID string `bson:"androidAppId,omitempty" json:"androidAppId,omitempty"`
 	// Who signed this customer up. ⚠️ The **id** as well as the name: an agent's
 	// list is filtered on this, and a name is editable while an id is not — a
 	// filter on a name is a filter somebody can walk out of by renaming

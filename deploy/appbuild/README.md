@@ -62,6 +62,26 @@ quriladi: uchala SDK'ni solib qo'yish har mehmonning yuklab olishiga o'nlab
 megabayt qo'shadi — bir marta qilingandan keyin hech qachon o'zgarmaydigan
 tanlov uchun.
 
+## Firebase: har restoranga bitta ilova
+
+FCM registratsiya tokeni Firebase **app id** ga bog'lanadi, va SDK ro'yxatdan
+o'tayotganda paket nomini ham yuboradi. Bir restoranning ilovasini boshqasining
+id'si bilan ishga tushirish **qo'llab-quvvatlanmaydi**: `getToken()` baribir
+muvaffaqiyatli qaytadi va yuborilgan bildirishnoma jimgina hech qayerga
+bormaydi — ikkala tomonda ham xato yo'q.
+
+Shuning uchun har restoranga bir marta:
+
+1. Firebase console → **Add app → Android**
+2. Paket nomi: `uz.keel.app.<slug>`
+3. Chiqqan `mobilesdk_app_id` ni konsolning «Android ilova» bo'limiga qo'ying
+
+`google-services.json` yuklab olish shart emas — bizga faqat o'sha bitta satr
+kerak, va ilova Firebase'ni **kodda** sozlaydi (plagin va fayl yo'q).
+
+⚠️ Bo'sh qoldirilsa ilova bildirishnomasiz quriladi. Bu xato emas: ishlamaydigan
+yagona narsa — hech kim sozlamagan narsa.
+
 ## Imzo kalitlari
 
 `/opt/keel/appkeys/<slug>/release.jks` — **bir marta yaratiladi va hech qachon
@@ -78,5 +98,6 @@ yaratganda buni har safar ekranga yozadi.
 | Nom, logo, aksent rang | tenantning o'z `GET /restaurant` javobi |
 | `applicationId` | slug'dan (`uz.keel.app.<slug>`) — **nomdan emas**: restoran nomini o'zgartiradi, id esa o'zgara olmaydi |
 | Xarita kaliti | restoranning **o'z** `mapAndroidKey` i (Sozlamalar → Xarita); bo'sh bo'lsa `KEEL_MAPS_KEY` ga tushadi |
-| Firebase | muhit o'zgaruvchilari (Keel'niki, hammasiga umumiy; `FB_APP_ID` — har ilovaga o'ziniki) |
+| Firebase loyihasi | muhit o'zgaruvchilari (`APP_FIREBASE_*`) — Keel'niki, hammasiga umumiy |
+| Firebase **app id** | tenantning `androidAppId` maydoni — **har restoranga alohida**, konsolda qo'lda kiritiladi |
 | Versiya | `KEEL_APP_VERSION_CODE` / `_NAME` |

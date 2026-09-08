@@ -14472,3 +14472,25 @@ qatoridan olinishi, xato logining faqat oxiri saqlanishi.
 
 ⚠️ **Hali jonli emas**: konsol yangi kod bilan deploy qilinishi kerak va
 `.env` ga `APP_BUILD_IMAGE=keel-appbuild:latest` qo'yilishi kerak.
+
+---
+
+## 2026-09-08 (7) — Xarita kaliti restorandan, Firebase app id tenantdan ✅
+
+**Xarita**: build kalitni restoranning **o'z** profilidan oladi — lekin
+`mapGoogleKey` dan emas. U brauzer kaliti: uni **domen** ro'yxati himoya qiladi,
+va shunday cheklangan kalitni Android SDK rad etadi — jimgina, kulrang to'r
+bo'lib. Panelga alohida maydon qo'shildi (`restaurant.mapAndroidKey`, Sozlamalar
+→ Xarita), uch tilda tushuntirish bilan. Bo'sh bo'lsa `KEEL_MAPS_KEY` ga
+tushadi; u ham bo'sh bo'lsa ilova «xarita sozlanmagan» deydi.
+
+**Firebase**: `tenant.androidAppId` — har restoranga alohida, konsolning
+«Android ilova» bo'limida kiritiladi va shakli tekshiriladi
+(`1:<sender>:android:<hash>`). Bitta app id'ni bo'lishib bo'lmaydi: FCM tokeni
+app id'ga bog'lanadi va SDK paket nomini ham yuboradi, ya'ni boshqa ilovaning
+id'si bilan `getToken()` o'tadi va bildirishnoma **jimgina** kelmay qo'yadi.
+Bo'sh — ilova bildirishnomasiz quriladi, xato emas.
+
+**VPS**: `/opt/keel/.env` ga `APP_*` o'zgaruvchilari yozildi (avval zaxira
+olindi, egasi va 0600 saqlandi). `APP_MAPS_KEY` ataylab bo'sh — kalit
+restorandan olinadi.

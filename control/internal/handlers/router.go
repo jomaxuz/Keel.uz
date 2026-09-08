@@ -227,6 +227,7 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// open to anybody who can see the tenant.
 			r.Get("/tenants/{id}/app-builds", h.AppBuilds)
 			r.Post("/tenants/{id}/app-build", h.need("provision", h.StartAppBuild))
+			r.Put("/tenants/{id}/android-app", h.need("provision", h.SetAndroidAppID))
 			// ⚠️ **Its own path, not under the tenant.** The download deletes
 			// the artifact, so it is addressed by the build it consumes rather
 			// than by the customer it belongs to — a URL that named the tenant
