@@ -47,6 +47,21 @@ degan savol oylar keyin beriladi, va fayl tizimi unga javob bera olmaydi.
 baytda o'chirish uzilgan ulanishni yana to'qqiz daqiqalik build'ga aylantiradi,
 va ikkinchi urinish hech nima topmaydi.
 
+## Xarita kaliti — nega alohida maydon
+
+Saytdagi `mapGoogleKey` — **brauzer** kaliti: uni Google konsolidagi **domen**
+ro'yxati himoya qiladi, va shunday cheklangan kalitni Android SDK **rad
+etadi**. Rad etish jim: kulrang to'r, hech qayerda xato yo'q, va mehmon
+manzilini kirita olmaydi.
+
+Shuning uchun panelda alohida maydon: **Sozlamalar → Xarita → «Android ilova
+uchun xarita kaliti»**. U paket nomi va sertifikat izi bo'yicha cheklanadi.
+
+⚠️ Ilova sayt qaysi provayderda bo'lishidan qat'i nazar **Google** SDK bilan
+quriladi: uchala SDK'ni solib qo'yish har mehmonning yuklab olishiga o'nlab
+megabayt qo'shadi — bir marta qilingandan keyin hech qachon o'zgarmaydigan
+tanlov uchun.
+
 ## Imzo kalitlari
 
 `/opt/keel/appkeys/<slug>/release.jks` — **bir marta yaratiladi va hech qachon
@@ -62,5 +77,6 @@ yaratganda buni har safar ekranga yozadi.
 |---|---|
 | Nom, logo, aksent rang | tenantning o'z `GET /restaurant` javobi |
 | `applicationId` | slug'dan (`uz.keel.app.<slug>`) — **nomdan emas**: restoran nomini o'zgartiradi, id esa o'zgara olmaydi |
-| Xarita kaliti, Firebase | muhit o'zgaruvchilari (Keel'niki, hammasiga umumiy; `FB_APP_ID` — har ilovaga o'ziniki) |
+| Xarita kaliti | restoranning **o'z** `mapAndroidKey` i (Sozlamalar → Xarita); bo'sh bo'lsa `KEEL_MAPS_KEY` ga tushadi |
+| Firebase | muhit o'zgaruvchilari (Keel'niki, hammasiga umumiy; `FB_APP_ID` — har ilovaga o'ziniki) |
 | Versiya | `KEEL_APP_VERSION_CODE` / `_NAME` |

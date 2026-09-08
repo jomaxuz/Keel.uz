@@ -281,11 +281,32 @@ type Restaurant struct {
 	// restaurant reads. Same drawer-per-provider rule as the POS credentials.
 	// All three are public for the reason above — the restriction that protects
 	// them lives in each provider's own console, as a list of allowed domains.
-	MapProvider  string      `bson:"mapProvider" json:"mapProvider"` // "" | "2gis" | "yandex" | "google"
-	MapYandexKey string      `bson:"mapYandexKey" json:"mapYandexKey"`
-	MapGoogleKey string      `bson:"mapGoogleKey" json:"mapGoogleKey"`
-	SEO          SEOSettings `bson:"seo" json:"seo"`
-	UpdatedAt    time.Time   `bson:"updatedAt" json:"updatedAt"`
+	MapProvider  string `bson:"mapProvider" json:"mapProvider"` // "" | "2gis" | "yandex" | "google"
+	MapYandexKey string `bson:"mapYandexKey" json:"mapYandexKey"`
+	MapGoogleKey string `bson:"mapGoogleKey" json:"mapGoogleKey"`
+	// The key the restaurant's **Android app** draws its map with.
+	//
+	// ⚠️ **A fourth field rather than reusing `mapGoogleKey`, and the reason is
+	// not tidiness.** That one is a browser key: the thing that protects it is a
+	// list of allowed *domains* in Google's console (see the note above), and a
+	// key restricted that way is refused by the Android SDK. The refusal is the
+	// silent kind — a grey grid, no error anywhere, and a guest who cannot enter
+	// an address. An Android key is restricted by package name and certificate
+	// fingerprint instead, which is a different key with different settings.
+	//
+	// ⚠️ **The app's map is Google's whatever the site's provider is.** The site
+	// draws with 2GIS, Yandex or Google (`mapProvider`); the app ships one SDK,
+	// because three would add tens of megabytes to every guest's download for a
+	// choice that never changes once made. So this field has no provider
+	// alongside it — it is the Android key, and there is one.
+	//
+	// ⚠️ Empty is "no map in the app", not an error: a restaurant that does not
+	// deliver never opens the picker, and the build falls back to Keel's own key
+	// where one is configured. Public like the other three, and protected the
+	// same way — by a restriction in Google's console, never by hiding it.
+	MapAndroidKey string      `bson:"mapAndroidKey" json:"mapAndroidKey"`
+	SEO           SEOSettings `bson:"seo" json:"seo"`
+	UpdatedAt     time.Time   `bson:"updatedAt" json:"updatedAt"`
 }
 
 // ---- Table booking ----

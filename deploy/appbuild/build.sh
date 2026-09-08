@@ -89,6 +89,32 @@ PROFILE="$(curl -fsS --max-time 30 "$KEEL_APP_HOST/api/v1/restaurant")" || {
 NAME="$(printf '%s' "$PROFILE" | jq -r '.restaurant.name // ""')"
 LOGO="$(printf '%s' "$PROFILE" | jq -r '.restaurant.logoUrl // ""')"
 ACCENT="$(printf '%s' "$PROFILE" | jq -r '.restaurant.theme.brand // ""')"
+
+# ---- The map key is the restaurant's own ----
+#
+# ⚠️ **`mapAndroidKey`, never `mapGoogleKey`.** The second is a *browser* key:
+# what protects it is a list of allowed domains in Google's console, and a key
+# restricted that way is refused by the Android SDK. The refusal is the silent
+# kind — a grey grid, no error anywhere, and a guest who cannot enter their
+# address. So the panel asks for a second key, restricted by package name.
+#
+# ⚠️ **Keel's own key is the fallback, not the default.** Each restaurant pays
+# for their own map traffic where they have set one up; a restaurant that has
+# not yet gets a working picker rather than a grey square, and the console can
+# tell them which one they are on.
+MAPS_KEY="$(printf '%s' "$PROFILE" | jq -r '.restaurant.mapAndroidKey // ""')"
+if [ -n "$MAPS_KEY" ]; then
+  say "using this restaurant's own Android maps key"
+else
+  MAPS_KEY="$KEEL_MAPS_KEY"
+  [ -n "$MAPS_KEY" ] && say "no Android maps key on the profile — falling back to Keel's"
+fi
+if [ -z "$MAPS_KEY" ]; then
+  # ⚠️ A warning rather than a failure: a restaurant that does not deliver never
+  # opens the picker, and refusing to build their app over a key they do not
+  # need is the wrong failure. The screen says so in a sentence.
+  echo "!! no maps key at all — the address picker will say it is not set up" >&2
+fi
 [ -n "$NAME" ] || NAME="$SLUG"
 # ⚠️ Empty falls back to Keel's orange rather than failing the build: a
 # restaurant that never opened the theme screen still gets an app, and a colour
@@ -189,7 +215,7 @@ brand.serverUrl=$KEEL_APP_HOST
 brand.accent=$ACCENT
 brand.versionCode=${KEEL_APP_VERSION_CODE:-1}
 brand.versionName=${KEEL_APP_VERSION_NAME:-1.0.0}
-brand.mapsKey=$KEEL_MAPS_KEY
+brand.mapsKey=$MAPS_KEY
 brand.firebaseAppId=$KEEL_FB_APP_ID
 brand.firebaseProjectId=$KEEL_FB_PROJECT_ID
 brand.firebaseApiKey=$KEEL_FB_API_KEY

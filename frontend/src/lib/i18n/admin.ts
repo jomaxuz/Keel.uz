@@ -2043,6 +2043,13 @@ export const adminUz = {
       google:
         'console.cloud.google.com → APIs & Services → Credentials, "Maps JavaScript API" yoqilgan bo\'lsin.',
     },
+    // ---- Android ilova uchun alohida kalit ----
+    // ⚠️ Brauzer kaliti bu yerga yaramaydi: uni domen ro'yxati himoya qiladi,
+    // va shunday cheklangan kalitni Android SDK **rad etadi** — xatosiz, kulrang
+    // to'r bo'lib. Android kaliti paket nomi va sertifikat izi bilan cheklanadi.
+    mapAndroidLabel: "Android ilova uchun xarita kaliti (Google)",
+    mapAndroidWhere:
+      "console.cloud.google.com → «Maps SDK for Android» yoqing va yangi kalit yarating. ⚠️ Saytdagi kalit bu yerga yaramaydi: u domen bo'yicha cheklangan, ilova esa paket nomi bo'yicha cheklangan kalitni talab qiladi. Bo'sh qoldirsangiz ilovada manzilni xaritada tanlash ishlamaydi.",
     mapKeyWarn:
       "Muhim: kalitni xizmat kabinetida o'z domeningizga bog'lang. Xarita kaliti brauzerda ishlaydi, ya'ni uni yashirib bo'lmaydi — himoya faqat domen cheklovi orqali beriladi. Cheklanmagan kalitni boshqalar o'z saytida ishlatib, kvotangizni (Google'da esa pulingizni) sarflashi mumkin.",
     seoTitle: "Qidiruv tizimlari (Google, Yandex)",
@@ -6951,6 +6958,9 @@ export const adminRu: AdminDict = {
       google:
         'console.cloud.google.com → APIs & Services → Credentials, включите "Maps JavaScript API".',
     },
+    mapAndroidLabel: "Ключ карты для Android-приложения (Google)",
+    mapAndroidWhere:
+      "console.cloud.google.com → включите «Maps SDK for Android» и создайте новый ключ. ⚠️ Ключ с сайта здесь не подходит: он ограничен по домену, а приложению нужен ключ, ограниченный по имени пакета. Если оставить пустым — в приложении нельзя будет выбрать адрес на карте.",
     mapKeyWarn:
       "Важно: привяжите ключ к своему домену в кабинете сервиса. Ключ карты работает в браузере, скрыть его невозможно — защита даётся только ограничением по домену. Неограниченный ключ смогут использовать на чужом сайте за ваш счёт (в Google — за ваши деньги).",
     seoTitle: "Поисковые системы (Google, Yandex)",
@@ -11588,6 +11598,9 @@ export const adminEn: AdminDict = {
       google:
         'console.cloud.google.com → APIs & Services → Credentials, with "Maps JavaScript API" enabled.',
     },
+    mapAndroidLabel: "Map key for the Android app (Google)",
+    mapAndroidWhere:
+      "console.cloud.google.com → enable \"Maps SDK for Android\" and create a new key. ⚠️ The site's key will not work here: it is restricted by domain, and the app needs one restricted by package name. Left empty, picking an address on a map is not available in the app.",
     mapKeyWarn:
       "Important: restrict the key to your own domain in the provider's console. A map key runs in the browser and cannot be hidden — the domain restriction is the only protection there is. An unrestricted key can be used on somebody else's site at your expense (at Google, literally).",
     seoTitle: "Search engines (Google, Yandex)",

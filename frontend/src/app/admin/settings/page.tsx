@@ -1539,6 +1539,30 @@ export default function AdminSettingsPage() {
               );
             })()}
 
+            {/* ---- The Android app's own key ----
+              ⚠️ **A fourth field rather than reusing the Google one**, and not
+              for tidiness: that one is a browser key, protected by a list of
+              allowed *domains*, and a key restricted that way is refused by the
+              Android SDK. The refusal is silent — a grey grid, no error, and a
+              guest who cannot enter their address. An Android key is restricted
+              by package name and certificate fingerprint instead.
+
+              ⚠️ Shown whatever the site's provider is, because the app ships one
+              map SDK: three would add tens of megabytes to every guest's
+              download for a choice that never changes once made. */}
+            <label className="mt-4 block text-sm font-medium">
+              {t.settings.mapAndroidLabel}
+              <input
+                className="input mt-1"
+                value={rest.mapAndroidKey ?? ""}
+                onChange={(e) => patch({ mapAndroidKey: e.target.value.trim() })}
+                placeholder="AIza…"
+              />
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.settings.mapAndroidWhere}
+              </span>
+            </label>
+
             {/* Said in the settings page rather than in a document nobody opens:
               an unrestricted key is genuinely unprotected, and the owner is
               the only person who can restrict it. */}
