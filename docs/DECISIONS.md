@@ -5753,6 +5753,68 @@ bilan ilovasi xarita haqida kelishmasdi.
     o'rnatish foizini tushiradi, va buni hech bir profiler ko'rsatmaydi.
 
 
+#### Savat, ma'lumot to'ldirish va sozlamalar: ilova saytga tenglashtirildi
+
+⚠️ **«So'rov formati noto'g'ri» — pul `Double` bo'lgani uchun edi.** Ilovada pul
+`Double` (dizayn moduli `money()` shunday oladi), serverda esa `int`. kotlinx
+`5000.0` deb yozadi, Go esa uni `int` maydonga qabul qilmaydi va **butun
+so'rovni** rad etadi — maydonning nomini aytmagan holda. `usePoints: 0.0` ning
+o'zi yetarli edi: har bir quote yiqilardi, va mehmon savatda qizil xato ko'rardi.
+
+- ⚠️ **Chegara `toLong()` bilan yopildi, ilovaning tiplari o'zgartirilmadi**:
+  `Double` beshta ilova bo'lishadigan `money()` dan o'tadi.
+- ⚠️ **So'rov tanalari alohida funksiyaga chiqarildi** (`quoteBody`, `orderBody`,
+  `deliveryQuoteBody`) — aynan shu xatoni **testdan yashirgan narsa** ular
+  `suspend` funksiya ichida yozilgani edi. Endi `WireShapeTest` daraxtni aylanib
+  chiqadi va nuqtali har qanday raqamda yiqiladi; `lat`/`lng` — yagona istisno,
+  chunki serverda ular haqiqatan `float64`.
+
+⚠️ **Savat sayt bilan bir chizmada** (`(site)/cart/page.tsx`): qatorlar bitta
+kartada, jami ikkinchisida — «taomlar soni + summa», «yetkazib berish —
+rasmiylashtirishda», chiziq, **Jami**. Sabab: bu bir odamning bir ekrani, va
+ikkisining ajralib ketishi «ilova yomonroq» degan taassurotning boshlanishi.
+
+- ⚠️ **`lineId` qo'shildi va ro'yxat o'shanga bog'landi.** Izoh endi savatda
+  yoziladi, izoh esa `key` ning bir qismi — ya'ni `key` bo'yicha kalitlangan
+  `LazyColumn` har harfdan keyin maydonni qayta quradi va kursorni yo'qotadi.
+  Sayt ham xuddi shu muammoni xuddi shunday yechgan.
+- ⚠️ **Birlik narxi ham, qator jami ham ko'rsatiladi**: yolg'iz jami «58 000»
+  ikkitalik qator yonida bitta taomning narxi bo'lib o'qiladi.
+- ⚠️ **Yetkazib berish nol emas, «rasmiylashtirishda»**: manzil hali yo'q,
+  zonalar serverniki — nol yozish hisoblanmagan narxni e'lon qilish bo'lardi.
+
+⚠️ **Checkout hisobga kirgan mehmonga bo'sh forma ko'rsatmaydi**: ism, telefon
+va ilgari ishlatilgan manzillar `/users/me` dan keladi. Ikki ekran oldin kirgan
+ilovada telefon raqamini qayta terish — mehmon saytga qaytadigan xil kichik
+haqorat.
+
+- ⚠️ **Faqat bo'sh maydonga yoziladi**: profil mehmon yozishni boshlagandan keyin
+  ham kelishi mumkin, va yozganini almashtirish — u bilan tortishadigan forma.
+- ⚠️ **Manzil ro'yxati birinchi, xarita ikkinchi**: har hafta bitta kvartiraga
+  buyurtma beradigan odam bir bosishda tugatishi kerak.
+- ⚠️ **Manzilni saqlash — buyurtmadan keyin va uni hech qachon yiqita olmaydi**:
+  oshxona qabul qilgan buyurtmani profil yozuvi tufayli «xato» deb ko'rsatish bu
+  fayldagi eng yomon savdo bo'lardi.
+- ⚠️ **`PUT /users/me` butun ro'yxatni almashtiradi** — shuning uchun har saqlash
+  `addresses` ni to'liq qaytaradi. Faqat ismni yuborgan saqlash mehmonning
+  hamma manzilini jimgina o'chirardi.
+
+⚠️ **Hisob bo'limida «Sozlamalar»**: ism, manzillar, til, mavzu, bildirishnoma,
+versiya. Ilgari mavzu yolg'iz turardi, ism va manzilni esa **faqat yangi
+buyurtma berib** o'zgartirib bo'lardi, til esa sarlavhadagi almashtirgichda edi.
+Topib bo'lmaydigan sozlama — yo'q sozlama.
+
+- ⚠️ **Til serverga ham aytiladi** (`PUT /users/me/lang`): buyurtma haqidagi
+  xabarlarni server yozadi va o'zi tarjima qiladi, ya'ni faqat telefonda
+  saqlangan til ilova yopiq turganda keladigan push'ga umuman ta'sir qilmaydi.
+- ⚠️ **Bildirishnoma holati Android'dan so'raladi**, saqlangan bayroqdan emas:
+  mehmon uni tizim sozlamalarida qaytarib olishi mumkin, va «yoqilgan» deb turgan
+  ekran o'zi va'da qilgan yagona narsa haqida yolg'on gapiradi.
+- ⚠️ **Telefon raqami tahrirlanmaydi** — uni almashtirish ikkinchi SMS aylanmasi
+  va boshqa endpoint. Tahrirlanadiganday ko'rinib, eski raqamni saqlab qoladigan
+  maydon — umuman bo'lmaganidan yomonroq.
+
+
 #### Xarita: Google, va CLAUDE.md dagi narx ogohlantirishi bu yerga tegmaydi
 
 ⚠️ **U ogohlantirish veb API'lari haqida** — MapGL, Maps JavaScript API, Static

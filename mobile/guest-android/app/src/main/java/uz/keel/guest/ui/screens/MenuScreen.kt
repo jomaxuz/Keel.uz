@@ -307,7 +307,7 @@ fun MenuScreen(
                                         if (line == null) {
                                             opened = item
                                         } else {
-                                            cart.setQty(line.key, line.qty + delta)
+                                            cart.setQty(line.lineId, line.qty + delta)
                                         }
                                     },
                                 )

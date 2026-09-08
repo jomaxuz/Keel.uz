@@ -12,7 +12,15 @@ import uz.keel.guest.data.Order
 import uz.keel.guest.data.OrderQuote
 import uz.keel.guest.data.Restaurant
 import uz.keel.guest.data.RestaurantResponse
+import uz.keel.guest.data.GeoPoint
+import uz.keel.guest.data.deliveryQuoteBody
+import uz.keel.guest.data.orderBody
 import uz.keel.guest.data.pick
+import uz.keel.guest.data.quoteBody
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 // The models, fed the shape the server actually sends.
 //
@@ -204,5 +212,54 @@ class WireShapeTest {
             """{"name":"X","mapProvider":"google","mapGoogleKey":"G"}""",
         )
         assertEquals("G", google.mapKey)
+    }
+
+    // ---- Whole so'm on the wire ----
+    //
+    // ⚠️ **This is the bug that made the basket show a red error and nothing
+    // else.** Money is `Double` in the app and `int` on the server; kotlinx
+    // writes 5000.0 with the point, and Go refuses the *whole request* —
+    // "so'rov formati noto'g'ri", no field named. `usePoints: 0.0` alone did
+    // it, so every quote failed, empty options or not.
+    //
+    // ⚠️ Walks the tree rather than checking the fields it knows: the next
+    // money field somebody adds is exactly the one nobody remembers to test.
+    // Latitude and longitude are the only fractions allowed through, because
+    // they are the only fractions the server declares as floats.
+    @Test
+    fun `no money field goes on the wire with a decimal point`() {
+        val line = CartLine(
+            menuItemId = "m1",
+            name = "Lag'mon",
+            price = 32000.0,
+            qty = 2,
+            options = listOf(ChosenOption("O'lcham", "Katta", 5000.0)),
+        )
+        val point = GeoPoint(lat = 41.31, lng = 69.24, text = "Amir Temur 1")
+
+        assertWhole(deliveryQuoteBody(41.31, 69.24, 64000.0))
+        assertWhole(quoteBody(listOf(line), "delivery", point, "", 0.0))
+        assertWhole(
+            orderBody(
+                listOf(line), "delivery", "Ali", "+998901234567", point,
+                "eshik oldiga", "cash", "", 1500.0,
+            ),
+        )
+    }
+
+    /** Every number in the tree is an integer, `lat`/`lng` excepted. */
+    private fun assertWhole(el: JsonElement, path: String = "") {
+        when (el) {
+            is JsonObject -> el.forEach { (k, v) -> assertWhole(v, if (path.isEmpty()) k else "$path.$k") }
+            is JsonArray -> el.forEachIndexed { i, v -> assertWhole(v, "$path[$i]") }
+            is JsonPrimitive -> {
+                val name = path.substringAfterLast('.')
+                if (el.isString || name == "lat" || name == "lng") return
+                assertFalse(
+                    "$path went out as ${el.content} — Go refuses a decimal into an int field",
+                    el.content.contains('.'),
+                )
+            }
+        }
     }
 }

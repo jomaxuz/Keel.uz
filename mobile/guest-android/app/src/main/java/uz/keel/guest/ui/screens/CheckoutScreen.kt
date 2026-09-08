@@ -40,6 +40,8 @@ import uz.keel.guest.data.KeelApi
 import uz.keel.guest.data.Order
 import uz.keel.guest.data.OrderQuote
 import uz.keel.guest.data.Restaurant
+import uz.keel.guest.data.User
+import uz.keel.guest.data.UserAddress
 import uz.keel.guest.t
 
 // Turning a basket into an order.
@@ -79,6 +81,12 @@ fun CheckoutScreen(
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
 
+    /** Who is ordering, when the phone knows. ⚠️ Held rather than only read
+     *  once: saving a new address means sending the whole list back, so the
+     *  list has to still be here at the moment the order is placed. */
+    var me by remember { mutableStateOf<User?>(null) }
+    var saveAddress by remember { mutableStateOf(false) }
+
     // ⚠️ Read in the composition and used in the coroutine. `t` is composable —
     // reaching for it inside a callback compiles nowhere and, worse, would tie a
     // background job to a composition that may already be gone.
@@ -89,6 +97,36 @@ fun CheckoutScreen(
 
     LaunchedEffect(Unit) {
         runCatching { methods = api.paymentMethods().methods.ifEmpty { listOf("cash") } }
+    }
+
+    // ---- The form is not blank for somebody the restaurant already knows ----
+    //
+    // ⚠️ **Name, phone and the addresses they have used before**, exactly as the
+    // site fills them in. Retyping a phone number that the app signed in with
+    // two screens ago is the kind of small insult that makes an app feel like a
+    // worse version of the website it came from.
+    //
+    // ⚠️ **Only into empty fields.** This runs when the profile arrives, which
+    // may be after the guest has started typing — overwriting what they wrote
+    // would be a form that argues with them.
+    LaunchedEffect(Unit) {
+        if (!api.signedIn()) return@LaunchedEffect
+        runCatching { api.me() }.onSuccess { u ->
+            me = u
+            if (name.isBlank()) {
+                name = listOf(u.firstName, u.lastName).filter { it.isNotBlank() }.joinToString(" ")
+            }
+            if (phone.isBlank()) phone = u.phone
+            // ⚠️ The most recent one, which is the last row: the list is
+            // appended to, so the newest address is the one at the end and the
+            // one they are most likely to want again.
+            if (point == null) {
+                u.addresses.lastOrNull()?.let { a ->
+                    point = GeoPoint(lat = a.lat, lng = a.lng, text = a.text)
+                    if (comment.isBlank()) comment = a.comment
+                }
+            }
+        }
     }
 
     // ⚠️ Re-asked on every input the price depends on — see the file's note.
@@ -144,6 +182,26 @@ fun CheckoutScreen(
                     promoCode = promo.trim(),
                     usePoints = 0.0,
                 )
+                // ⚠️ **After the order, and never allowed to fail it.**
+                // Remembering an address is a convenience; an order that was
+                // accepted by the kitchen and reported as failed because a
+                // profile write timed out would be the worst trade in this
+                // file.
+                val u = me
+                if (saveAddress && u != null && type == "delivery" && point != null) {
+                    runCatching {
+                        me = api.updateMe(
+                            u.firstName,
+                            u.lastName,
+                            u.addresses + UserAddress(
+                                text = point?.text.orEmpty(),
+                                lat = point?.lat ?: 0.0,
+                                lng = point?.lng ?: 0.0,
+                                comment = comment.trim(),
+                            ),
+                        )
+                    }
+                }
                 cart.clear()
                 onPlaced(order)
             } catch (e: Throwable) {
@@ -190,10 +248,48 @@ fun CheckoutScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (point == null) c.muted else c.ink,
                         )
-                        GhostButton(t.checkout.addressPick, Modifier.fillMaxWidth()) {
+                        // ⚠️ **Saved addresses first, the map second.** A guest
+                        // who orders to the same flat every week should be one
+                        // tap from done; drawing the map first makes the common
+                        // case the slow one.
+                        val saved = me?.addresses.orEmpty()
+                        if (saved.isNotEmpty()) {
+                            Text(
+                                t.checkout.savedAddresses,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = c.muted,
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                saved.forEach { a ->
+                                    Chip(
+                                        a.label.ifBlank { a.text }.take(64),
+                                        point?.lat == a.lat && point?.lng == a.lng,
+                                    ) {
+                                        point = GeoPoint(lat = a.lat, lng = a.lng, text = a.text)
+                                        comment = a.comment
+                                        saveAddress = false
+                                    }
+                                }
+                            }
+                        }
+                        GhostButton(
+                            if (saved.isEmpty()) t.checkout.addressPick else t.checkout.newAddress,
+                            Modifier.fillMaxWidth(),
+                        ) {
                             picking = true
                         }
                         GlassField(comment, { comment = it }, t.checkout.addressHint)
+                        // ⚠️ Offered only for an address that is not already on
+                        // the profile: a tick that saves a duplicate teaches the
+                        // guest to ignore the list it fills.
+                        val known = me?.addresses.orEmpty().any {
+                            it.lat == point?.lat && it.lng == point?.lng
+                        }
+                        if (me != null && point != null && !known) {
+                            Chip(t.checkout.saveAddress, saveAddress) {
+                                saveAddress = !saveAddress
+                            }
+                        }
                     } else {
                         GlassField(comment, { comment = it }, t.checkout.comment)
                     }

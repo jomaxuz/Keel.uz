@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +28,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import uz.keel.design.GhostButton
+import uz.keel.design.GlassField
 import uz.keel.design.GlassStepper
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import uz.keel.design.GlassIconButton
 import uz.keel.design.KeelTheme
 import uz.keel.design.Money
 import uz.keel.design.PrimaryButton
@@ -42,6 +48,12 @@ import uz.keel.guest.t
 // server's**, and the difference is deliberate rather than sloppy: this screen
 // has to work with no network, and it is only ever the sum of what is on it.
 // Every figure a guest is actually charged comes from `/orders/quote`.
+//
+// ⚠️ **Built to the same plan as the site's basket** (`(site)/cart/page.tsx`),
+// because it is the same screen for the same person: one card holding the
+// lines, one card holding the summary. A guest who ordered on the site last
+// week should not have to learn where things are — and the two drifting apart
+// is how "the app is worse" starts, one small difference at a time.
 
 @Composable
 fun CartScreen(
@@ -50,6 +62,7 @@ fun CartScreen(
     signedIn: Boolean,
     bottomInset: PaddingValues,
     onSignIn: () -> Unit,
+    onKeepShopping: () -> Unit,
     onCheckout: () -> Unit,
 ) {
     val c = KeelTheme.colors
@@ -97,14 +110,20 @@ fun CartScreen(
             // ⚠️ **An empty basket is told what to do, not merely reported.**
             // "Savat bo'sh" alone is a dead end on the one screen a guest
             // reaches by tapping a tab out of curiosity.
-            Text(t.cart.emptyHint, style = MaterialTheme.typography.bodyMedium, color = c.muted)
+            Text(
+                t.cart.emptyHint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.muted,
+                textAlign = TextAlign.Center,
+            )
+            PrimaryButton(t.cart.keepShopping) { onKeepShopping() }
         }
         return
     }
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
-            Modifier.fillMaxSize(),
+            Modifier.fillMaxSize().imePadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
@@ -126,69 +145,115 @@ fun CartScreen(
                     GhostButton(t.cart.clear) { cart.clear() }
                 }
             }
-            items(cart.lines, key = { it.key }) { line ->
-                Row(
+
+            // ⚠️ **Keyed on `lineId`, not on `key`.** The note below is part of
+            // the key, so keying on it would tear down and rebuild the text
+            // field after every character — and take the cursor with it.
+            items(cart.lines, key = { it.lineId }) { line ->
+                Column(
                     Modifier
                         .fillMaxWidth()
                         .glass(c, RoundedCornerShape(18.dp))
                         .padding(10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (line.imageUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = imageUrl(line.imageUrl, Brand.uploadsBase, 200),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .width(60.dp)
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(12.dp)),
-                        )
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            line.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = c.ink,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        // ⚠️ **The answers are printed on the line.** Two plovs
-                        // that differ only by an option are two lines, and a
-                        // basket that showed both as "Osh" would look like a
-                        // duplicate somebody tries to delete.
-                        val detail = buildList {
-                            line.options.forEach { add(it.choice) }
-                            if (line.comment.isNotEmpty()) add(line.comment)
-                        }.joinToString(" · ")
-                        if (detail.isNotEmpty()) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (line.imageUrl.isNotEmpty()) {
+                            AsyncImage(
+                                model = imageUrl(line.imageUrl, Brand.uploadsBase, 200),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(12.dp)),
+                            )
+                        }
+                        Column(Modifier.weight(1f)) {
                             Text(
-                                detail,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = c.muted,
+                                line.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = c.ink,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                            // ⚠️ **The answers are printed on the line.** Two
+                            // plovs that differ only by an option are two lines,
+                            // and a basket showing both as "Osh" would look like
+                            // a duplicate somebody tries to delete.
+                            val detail = line.options.joinToString(" · ") { it.choice }
+                            if (detail.isNotEmpty()) {
+                                Text(
+                                    detail,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = c.muted,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            // ⚠️ **The unit price, as on the site.** With only a
+                            // line total on screen, "58 000" beside a quantity
+                            // of two reads as the price of one dish, and the
+                            // basket looks wrong rather than the reader.
+                            Money(
+                                line.price + line.options.sumOf { it.priceDelta },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = c.muted,
+                            )
                         }
-                        Money(line.lineTotal, color = c.ink)
+                        // ⚠️ Its own control, as on the site: minus-to-zero
+                        // works, but somebody who has decided against a dish
+                        // looks for a way to delete it, and the one they find
+                        // otherwise is "clear the basket".
+                        GlassIconButton(Icons.Rounded.Close) { cart.remove(line.lineId) }
                     }
-                    // ⚠️ `removeAtZero`: minus at one deletes the line. A
-                    // stepper that stops at one leaves somebody hunting for a
-                    // delete button, and the one they find empties the basket.
-                    GlassStepper(
-                        value = line.qty,
-                        compact = true,
-                        onMinus = { cart.setQty(line.key, line.qty - 1) },
-                        onPlus = { cart.setQty(line.key, line.qty + 1) },
+
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // ⚠️ `removeAtZero`: minus at one deletes the line. A
+                        // stepper that stops at one leaves somebody hunting for
+                        // a delete button, and the one they find empties the
+                        // basket.
+                        GlassStepper(
+                            value = line.qty,
+                            compact = true,
+                            onMinus = { cart.setQty(line.lineId, line.qty - 1) },
+                            onPlus = { cart.setQty(line.lineId, line.qty + 1) },
+                        )
+                        Box(Modifier.weight(1f).padding(start = 12.dp)) {
+                            Money(
+                                line.lineTotal,
+                                Modifier.align(Alignment.CenterEnd),
+                                color = c.ink,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                    }
+
+                    // ⚠️ **Written here rather than only on the dish sheet.** A
+                    // guest remembers "no onion" while looking at the basket,
+                    // not while choosing a size — and on the site this field is
+                    // right here, so an app without it is the app that lost it.
+                    GlassField(
+                        line.comment,
+                        { cart.setComment(line.lineId, it.take(200)) },
+                        t.cart.itemComment,
                     )
                 }
             }
         }
 
-        // ⚠️ **The total and the button sit above the list, not at the end of
-        // it.** A guest with fifteen lines should not scroll to find out what
-        // they owe — and the figure is the reason they opened this screen.
+        // ---- The summary, as on the site ----
+        //
+        // ⚠️ **Above the list rather than at the end of it.** A guest with
+        // fifteen lines should not scroll to find out what they owe — and the
+        // figure is the reason they opened this screen.
         Column(
             Modifier
                 .align(Alignment.BottomCenter)
@@ -200,18 +265,46 @@ fun CartScreen(
                 .fillMaxWidth()
                 .glass(c, RoundedCornerShape(20.dp))
                 .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    t.cart.subtotal,
+                    t.cart.items(cart.count),
                     Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.muted,
                 )
-                Money(cart.subtotal, color = c.ink)
+                Money(cart.subtotal, style = MaterialTheme.typography.bodyMedium, color = c.ink)
+            }
+            // ⚠️ **Named and deferred, never shown as zero.** The fee depends on
+            // an address nobody has given yet and on zones the owner drew; a
+            // basket printing "0" would be quoting a price the server has not
+            // calculated, and the guest would read it as free delivery.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    t.cart.delivery,
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.muted,
+                )
+                Text(
+                    t.cart.atCheckout,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.muted,
+                )
+            }
+            Divider(color = c.line)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    t.cart.total,
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = c.ink,
+                )
+                Money(cart.subtotal, style = MaterialTheme.typography.titleMedium, color = c.ink)
             }
             PrimaryButton(t.cart.checkout, Modifier.fillMaxWidth()) { onCheckout() }
+            GhostButton(t.cart.keepShopping, Modifier.fillMaxWidth()) { onKeepShopping() }
         }
     }
 }

@@ -136,6 +136,15 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
     // order updates with it. See push/Push.kt.
     var signedIn by remember { mutableStateOf(app.api.signedIn()) }
     val push = rememberPush(app.api, signedIn)
+
+    // ⚠️ **The chosen language is told to the server, not only to the phone.**
+    // Everything the guest is sent about their order — the push, the status
+    // line, an error — is written and translated server-side. Kept here, the
+    // choice would apply to every label on screen and to none of the messages
+    // that arrive while the app is closed.
+    LaunchedEffect(lang, signedIn) {
+        if (signedIn) app.api.setLang(lang)
+    }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -187,12 +196,15 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
                         // form here: one sign-in screen, in the place they will
                         // look for it again afterwards.
                         onSignIn = { tab = "account" },
+                        onKeepShopping = { tab = "menu" },
                         onCheckout = { where = Where.Checkout },
                     )
                     "orders" -> OrdersTab(app.placed, tabsInset) { where = Where.Tracking(it) }
                     "account" -> AccountScreen(
                         api = app.api,
                         bottomInset = tabsInset,
+                        notificationsOn = push.on,
+                        onAskNotifications = push.ask,
                         onSignedIn = {
                             signedIn = true
                             push.ask()

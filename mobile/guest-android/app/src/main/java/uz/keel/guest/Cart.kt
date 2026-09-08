@@ -48,12 +48,25 @@ data class CartLine(
     val comment: String = "",
     val options: List<ChosenOption> = emptyList(),
     val imageUrl: String = "",
+    /** This line's own identity, for as long as it is in the basket.
+     *
+     *  ⚠️ **`key` cannot do this job any more.** It is built from the dish, the
+     *  answers and the note — and the note is now edited in the basket, so the
+     *  key changes on every keystroke. A `LazyColumn` keyed on it would destroy
+     *  and rebuild the text field after each character, taking the cursor with
+     *  it. The site solved the same problem the same way (`lineId`).
+     *
+     *  ⚠️ Empty on baskets written before this existed; filled in on load. */
+    val lineId: String = "",
 ) {
     /** What this line shows on the basket screen. ⚠️ Display only — see the
      *  file's note. */
     val lineTotal: Double get() = (price + options.sumOf { it.priceDelta }) * qty
 
-    /** ⚠️ **Two lines of the same dish are the same line only if every answer
+    /** What makes two *additions* the same line — used when a dish is added,
+     *  never as identity in the basket (see `lineId`).
+     *
+     *  ⚠️ **Two lines of the same dish are the same line only if every answer
      *  matches**, comment included. A plov with extra meat and a plov without
      *  are two things to cook, and merging them by dish id would send the
      *  kitchen one ticket for a dish nobody ordered. */
@@ -61,6 +74,19 @@ data class CartLine(
         get() = menuItemId + "|" + comment + "|" +
             options.joinToString(",") { it.group + "=" + it.choice }
 
+    // ---- What goes on the wire is whole so'm ----
+    //
+    // ⚠️ **Money is `Double` here for display and `int` on the server**, and
+    // kotlinx writes 5000.0 with the point. Go's decoder refuses that into an
+    // `int` field and answers "so'rov formati noto'g'ri" — the whole request,
+    // not the field: the guest saw a red error across the basket and nothing
+    // else. `usePoints: 0.0` was enough to do it, so every quote failed, with
+    // or without options.
+    //
+    // ⚠️ **Converted here rather than by making the app's money `Long`**: the
+    // `Double` runs through the shared design's `money()` and through all six
+    // applications. The boundary is the honest place for it — one direction,
+    // one file, and a test that fails if a new field forgets.
     internal fun quoteJson(): JsonObject = buildJsonObject {
         put("menuItemId", JsonPrimitive(menuItemId))
         put("qty", JsonPrimitive(qty))
@@ -70,7 +96,7 @@ data class CartLine(
     internal fun orderJson(): JsonObject = buildJsonObject {
         put("menuItemId", JsonPrimitive(menuItemId))
         put("name", JsonPrimitive(name))
-        put("price", JsonPrimitive(price))
+        put("price", JsonPrimitive(price.toLong()))
         put("qty", JsonPrimitive(qty))
         put("comment", JsonPrimitive(comment))
         put("options", JsonArray(options.map { it.json() }))
@@ -80,7 +106,7 @@ data class CartLine(
 private fun ChosenOption.json(): JsonObject = buildJsonObject {
     put("name", JsonPrimitive(group))
     put("choice", JsonPrimitive(choice))
-    put("priceDelta", JsonPrimitive(priceDelta))
+    put("priceDelta", JsonPrimitive(priceDelta.toLong()))
 }
 
 class Cart(context: Context) {
@@ -97,7 +123,14 @@ class Cart(context: Context) {
         // rather than debugs.
         runCatching {
             store.getString(KEY, null)?.let {
-                lines.addAll(json.decodeFromString<List<CartLine>>(it))
+                // ⚠️ Baskets saved before `lineId` existed carry none; giving
+                // them one here rather than at every call site means the rest
+                // of the app never has to ask whether it is there.
+                lines.addAll(
+                    json.decodeFromString<List<CartLine>>(it).map { l ->
+                        if (l.lineId.isEmpty()) l.copy(lineId = newLineId()) else l
+                    },
+                )
             }
         }
     }
@@ -128,15 +161,41 @@ class Cart(context: Context) {
 
     fun add(line: CartLine) {
         val i = lines.indexOfFirst { it.key == line.key }
-        if (i >= 0) lines[i] = lines[i].copy(qty = lines[i].qty + line.qty) else lines.add(line)
+        if (i >= 0) {
+            lines[i] = lines[i].copy(qty = lines[i].qty + line.qty)
+        } else {
+            lines.add(line.copy(lineId = newLineId()))
+        }
+        save()
+    }
+
+    /** ⚠️ **Its own action, beside the stepper, exactly as on the site.**
+     *  Minus-to-zero works and stays, but somebody who wants a dish gone taps
+     *  three times or hunts for a bin — and the button they eventually find is
+     *  "clear the basket". */
+    fun remove(lineId: String) {
+        lines.removeAll { it.lineId == lineId }
+        save()
+    }
+
+    /** A note for this dish alone: "piyozsiz", "achchiq qilmang".
+     *
+     *  ⚠️ **Written straight onto the line, and the line keeps its identity.**
+     *  The note is part of `key`, so two lines can end up sharing a key — which
+     *  is correct and is what the site does: they are two decisions the guest
+     *  made separately, and silently merging them would rewrite one of them. */
+    fun setComment(lineId: String, text: String) {
+        val i = lines.indexOfFirst { it.lineId == lineId }
+        if (i < 0) return
+        lines[i] = lines[i].copy(comment = text)
         save()
     }
 
     /** ⚠️ **Down to zero removes the line.** A stepper that stops at one leaves
      *  the guest hunting for a delete button, and the one they find is the one
      *  that empties the whole basket. */
-    fun setQty(key: String, qty: Int) {
-        val i = lines.indexOfFirst { it.key == key }
+    fun setQty(lineId: String, qty: Int) {
+        val i = lines.indexOfFirst { it.lineId == lineId }
         if (i < 0) return
         if (qty <= 0) lines.removeAt(i) else lines[i] = lines[i].copy(qty = qty)
         save()
@@ -157,6 +216,11 @@ class Cart(context: Context) {
         const val KEY = "lines"
     }
 }
+
+/** ⚠️ Unique within this basket, which is all it has to be — it never leaves
+ *  the phone. The order sent to the server carries dishes, not line ids. */
+private var lineSeq = 0
+private fun newLineId(): String = "l" + (++lineSeq) + "-" + System.currentTimeMillis()
 
 /** Turn a dish and a set of answers into a basket line. */
 fun cartLineOf(

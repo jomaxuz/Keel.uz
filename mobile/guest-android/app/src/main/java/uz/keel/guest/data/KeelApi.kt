@@ -9,6 +9,7 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -85,6 +86,7 @@ class KeelApi(private val tokens: TokenStore) {
         val url = Brand.apiBase + path
         val res: HttpResponse = when (method) {
             HttpMethod.Post -> client.post(url) { prepare(body) }
+            HttpMethod.Put -> client.put(url) { prepare(body) }
             HttpMethod.Delete -> client.delete(url) { prepare(body) }
             else -> client.get(url) { prepare(null) }
         }
@@ -152,15 +154,7 @@ class KeelApi(private val tokens: TokenStore) {
      *  away, that is 15 000" would be a second implementation of the one number
      *  a guest complains about. */
     suspend fun deliveryQuote(lat: Double, lng: Double, subtotal: Double): DeliveryQuote =
-        call(
-            "/delivery/quote",
-            HttpMethod.Post,
-            buildJsonObject {
-                put("lat", JsonPrimitive(lat))
-                put("lng", JsonPrimitive(lng))
-                put("subtotal", JsonPrimitive(subtotal))
-            },
-        )
+        call("/delivery/quote", HttpMethod.Post, deliveryQuoteBody(lat, lng, subtotal))
 
     /** What this basket comes to, with the discounts, the fee and the points.
      *
@@ -174,25 +168,7 @@ class KeelApi(private val tokens: TokenStore) {
         point: GeoPoint?,
         promoCode: String,
         usePoints: Double,
-    ): OrderQuote = call(
-        "/orders/quote",
-        HttpMethod.Post,
-        buildJsonObject {
-            put("type", JsonPrimitive(type))
-            put("promoCode", JsonPrimitive(promoCode))
-            put("usePoints", JsonPrimitive(usePoints))
-            if (point != null) {
-                put(
-                    "address",
-                    buildJsonObject {
-                        put("lat", JsonPrimitive(point.lat))
-                        put("lng", JsonPrimitive(point.lng))
-                    },
-                )
-            }
-            put("items", JsonArray(lines.map { it.quoteJson() }))
-        },
-    )
+    ): OrderQuote = call("/orders/quote", HttpMethod.Post, quoteBody(lines, type, point, promoCode, usePoints))
 
     /** Place it.
      *
@@ -214,30 +190,7 @@ class KeelApi(private val tokens: TokenStore) {
     ): Order = call(
         "/orders",
         HttpMethod.Post,
-        buildJsonObject {
-            put(
-                "customer",
-                buildJsonObject {
-                    put("name", JsonPrimitive(name))
-                    put("phone", JsonPrimitive(phone))
-                },
-            )
-            put("type", JsonPrimitive(type))
-            put(
-                "address",
-                buildJsonObject {
-                    put("text", JsonPrimitive(point?.text ?: ""))
-                    put("lat", JsonPrimitive(point?.lat ?: 0.0))
-                    put("lng", JsonPrimitive(point?.lng ?: 0.0))
-                    put("comment", JsonPrimitive(comment))
-                },
-            )
-            put("items", JsonArray(lines.map { it.orderJson() }))
-            put("paymentMethod", JsonPrimitive(paymentMethod))
-            put("promoCode", JsonPrimitive(promoCode))
-            put("usePoints", JsonPrimitive(usePoints))
-            put("channel", JsonPrimitive("android"))
-        },
+        orderBody(lines, type, name, phone, point, comment, paymentMethod, promoCode, usePoints),
     )
 
     /** Following one, by the number printed on it.
@@ -285,6 +238,54 @@ class KeelApi(private val tokens: TokenStore) {
      *  placed signed out. */
     suspend fun myOrders(): List<Order> = call("/users/me/orders")
 
+    /** Change the name, or the list of saved addresses.
+     *
+     *  ⚠️ **The server replaces the whole list**, so the caller sends what the
+     *  list should become, never the one row it wants added. Sending a single
+     *  address here would delete the other four, and the guest would find out
+     *  the next time they ordered. */
+    suspend fun updateMe(
+        firstName: String,
+        lastName: String,
+        addresses: List<UserAddress>,
+    ): User = call(
+        "/users/me",
+        HttpMethod.Put,
+        buildJsonObject {
+            put("firstName", JsonPrimitive(firstName))
+            put("lastName", JsonPrimitive(lastName))
+            put(
+                "addresses",
+                JsonArray(
+                    addresses.map {
+                        buildJsonObject {
+                            put("label", JsonPrimitive(it.label))
+                            put("text", JsonPrimitive(it.text))
+                            put("lat", JsonPrimitive(it.lat))
+                            put("lng", JsonPrimitive(it.lng))
+                            put("comment", JsonPrimitive(it.comment))
+                        }
+                    },
+                ),
+            )
+        },
+    )
+
+    /** Which language this guest reads, so the server writes its messages in it.
+     *
+     *  ⚠️ **The language belongs to the account, not to the phone.** Order
+     *  updates are written by the server and pushed; without this they arrive
+     *  in the restaurant's default language on a phone reading Russian. */
+    suspend fun setLang(lang: String) {
+        // ⚠️ Swallowed: a guest who switched language and got an error about it
+        // would be told off for a preference the phone has already applied.
+        runCatching {
+            client.put(Brand.apiBase + "/users/me/lang") {
+                prepare(buildJsonObject { put("lang", JsonPrimitive(lang)) })
+            }
+        }
+    }
+
     suspend fun loyalty(): Loyalty = call("/users/me/loyalty")
 
     /** Keep or drop a dish. Answers with the whole list, so the screen never has
@@ -327,3 +328,77 @@ data class FavoriteState(
     val on: Boolean = false,
     val favorites: List<String> = emptyList(),
 )
+
+// ---- The bodies, built where a test can read them ----
+//
+// ⚠️ **Separate functions rather than inline `buildJsonObject`, and the reason
+// is one bug.** Money is `Double` in this application and `int` on the server,
+// and kotlinx writes 5000.0 with the point — which Go refuses for the whole
+// request, answering "so'rov formati noto'g'ri". Inline, that was invisible to
+// every test: the shape only existed inside a suspend function that needs a
+// server. Out here `WireShapeTest` reads it and fails on the next field that
+// forgets. See `Cart.quoteJson`.
+
+internal fun deliveryQuoteBody(lat: Double, lng: Double, subtotal: Double): JsonObject =
+    buildJsonObject {
+        put("lat", JsonPrimitive(lat))
+        put("lng", JsonPrimitive(lng))
+        put("subtotal", JsonPrimitive(subtotal.toLong()))
+    }
+
+internal fun quoteBody(
+    lines: List<CartLine>,
+    type: String,
+    point: GeoPoint?,
+    promoCode: String,
+    usePoints: Double,
+): JsonObject = buildJsonObject {
+    put("type", JsonPrimitive(type))
+    put("promoCode", JsonPrimitive(promoCode))
+    put("usePoints", JsonPrimitive(usePoints.toLong()))
+    if (point != null) {
+        put(
+            "address",
+            buildJsonObject {
+                put("lat", JsonPrimitive(point.lat))
+                put("lng", JsonPrimitive(point.lng))
+            },
+        )
+    }
+    put("items", JsonArray(lines.map { it.quoteJson() }))
+}
+
+internal fun orderBody(
+    lines: List<CartLine>,
+    type: String,
+    name: String,
+    phone: String,
+    point: GeoPoint?,
+    comment: String,
+    paymentMethod: String,
+    promoCode: String,
+    usePoints: Double,
+): JsonObject = buildJsonObject {
+    put(
+        "customer",
+        buildJsonObject {
+            put("name", JsonPrimitive(name))
+            put("phone", JsonPrimitive(phone))
+        },
+    )
+    put("type", JsonPrimitive(type))
+    put(
+        "address",
+        buildJsonObject {
+            put("text", JsonPrimitive(point?.text ?: ""))
+            put("lat", JsonPrimitive(point?.lat ?: 0.0))
+            put("lng", JsonPrimitive(point?.lng ?: 0.0))
+            put("comment", JsonPrimitive(comment))
+        },
+    )
+    put("items", JsonArray(lines.map { it.orderJson() }))
+    put("paymentMethod", JsonPrimitive(paymentMethod))
+    put("promoCode", JsonPrimitive(promoCode))
+    put("usePoints", JsonPrimitive(usePoints.toLong()))
+    put("channel", JsonPrimitive("android"))
+}

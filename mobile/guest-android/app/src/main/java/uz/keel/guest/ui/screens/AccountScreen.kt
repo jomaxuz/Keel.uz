@@ -24,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -59,6 +60,12 @@ import uz.keel.guest.t
 fun AccountScreen(
     api: KeelApi,
     bottomInset: PaddingValues,
+    /** Whether this phone will actually show an order update. ⚠️ Asked of
+     *  Android, not of a stored flag: the guest can revoke it in the system
+     *  settings, and a screen still saying "on" would be lying about the one
+     *  thing it promises. */
+    notificationsOn: Boolean,
+    onAskNotifications: () -> Unit,
     onSignedIn: () -> Unit,
     onSignedOut: () -> Unit,
 ) {
@@ -69,6 +76,12 @@ fun AccountScreen(
     var user by remember { mutableStateOf<User?>(null) }
     var loyalty by remember { mutableStateOf<Loyalty?>(null) }
     var error by remember { mutableStateOf("") }
+
+    val versionName = LocalContext.current.let { ctx ->
+        runCatching {
+            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName.orEmpty()
+        }.getOrDefault("")
+    }
 
     LaunchedEffect(api.signedIn()) {
         if (!api.signedIn()) {
@@ -166,16 +179,43 @@ fun AccountScreen(
             }
         }
 
+        // ---- Settings ----
+        //
+        // ⚠️ **Everything that can be changed lives here, in one place.** The
+        // theme sat here alone; the name printed on an order and the addresses
+        // the checkout offers could only be changed by placing another order,
+        // and the language could only be changed from a switch in a header. A
+        // guest looking for any of them looks in one place, and this is it.
         item {
-            Column(
-                Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    t.account.theme,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = c.ink,
-                )
+            Text(
+                t.account.settings,
+                Modifier.padding(top = 6.dp),
+                style = MaterialTheme.typography.titleLarge,
+                color = c.ink,
+            )
+        }
+
+        if (signedIn != null) {
+            item {
+                ProfileCard(api, signedIn) { user = it }
+            }
+            item {
+                AddressesCard(api, signedIn) { user = it }
+            }
+        }
+
+        item {
+            Card(t.account.language) {
+                // ⚠️ **Also pushed to the server.** The messages a guest gets
+                // about their order are written server-side and translated
+                // there; a language chosen only on the phone leaves the push
+                // arriving in the restaurant's default.
+                LangSwitch()
+            }
+        }
+
+        item {
+            Card(t.account.theme) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Chip(t.account.themeSystem, prefs.theme.value == ThemeChoice.System) {
                         prefs.setTheme(ThemeChoice.System)
@@ -186,6 +226,35 @@ fun AccountScreen(
                     Chip(t.account.themeDark, prefs.theme.value == ThemeChoice.Dark) {
                         prefs.setTheme(ThemeChoice.Dark)
                     }
+                }
+            }
+        }
+
+        item {
+            Card(t.account.notifications) {
+                Text(
+                    if (notificationsOn) t.account.notificationsOn else t.account.notificationsOff,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.muted,
+                )
+                // ⚠️ **The button is only offered while Android will still ask.**
+                // Once the guest has refused twice the system stops showing the
+                // dialogue, and a button that then does nothing is worse than
+                // no button — this screen says where the switch is instead.
+                if (!notificationsOn) {
+                    GhostButton(t.account.notificationsAsk) { onAskNotifications() }
+                }
+            }
+        }
+
+        if (versionName.isNotEmpty()) {
+            item {
+                Card(t.account.about) {
+                    Text(
+                        t.account.version(versionName),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.muted,
+                    )
                 }
             }
         }
@@ -328,5 +397,116 @@ private fun SignInCard(api: KeelApi, onFailed: (String) -> Unit, onDone: (User) 
                 }
             }
         }
+    }
+}
+
+/** One settings block: a title and whatever it holds. */
+@Composable
+private fun Card(title: String, content: @Composable () -> Unit) {
+    val c = KeelTheme.colors
+    Column(
+        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, color = c.ink)
+        content()
+    }
+}
+
+/** The name the kitchen prints on the order.
+ *
+ *  ⚠️ **Editable at all, which it was not.** The name is asked for once, during
+ *  sign-in, by somebody in a hurry — and a typo made in that minute followed
+ *  every order afterwards with no screen anywhere to correct it. */
+@Composable
+private fun ProfileCard(api: KeelApi, user: User, onSaved: (User) -> Unit) {
+    val scope = rememberCoroutineScope()
+    val c = KeelTheme.colors
+    var first by remember(user.id) { mutableStateOf(user.firstName) }
+    var last by remember(user.id) { mutableStateOf(user.lastName) }
+    var busy by remember { mutableStateOf(false) }
+    var done by remember { mutableStateOf(false) }
+
+    Card(t.account.profile) {
+        GlassField(first, { first = it; done = false }, t.account.firstName)
+        GlassField(last, { last = it; done = false }, t.account.lastName)
+        // ⚠️ The phone is shown and not editable here: changing it is a second
+        // SMS round trip against a different endpoint, and a field that looked
+        // editable but silently kept the old number would be worse than none.
+        Text(user.phone, style = MaterialTheme.typography.bodyMedium, color = c.muted)
+        PrimaryButton(
+            if (done) t.account.saved else t.account.save,
+            Modifier.fillMaxWidth(),
+            busy = busy,
+        ) {
+            busy = true
+            scope.launch {
+                // ⚠️ **The addresses go back untouched.** The server replaces
+                // the whole profile, so a save that sent only the name would
+                // quietly delete every saved address.
+                runCatching { api.updateMe(first.trim(), last.trim(), user.addresses) }
+                    .onSuccess { onSaved(it); done = true }
+                busy = false
+            }
+        }
+    }
+}
+
+/** Where this guest has things delivered.
+ *
+ *  ⚠️ **Listed and deletable here, because the checkout only ever adds.** An
+ *  address typed wrong, or one belonging to a flat somebody has moved out of,
+ *  would otherwise sit at the top of the checkout offering itself for ever. */
+@Composable
+private fun AddressesCard(api: KeelApi, user: User, onSaved: (User) -> Unit) {
+    val scope = rememberCoroutineScope()
+    val c = KeelTheme.colors
+
+    Card(t.account.addresses) {
+        if (user.addresses.isEmpty()) {
+            Text(
+                t.account.noAddresses,
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.muted,
+            )
+        }
+        user.addresses.forEachIndexed { i, a ->
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        a.label.ifBlank { a.text },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.ink,
+                    )
+                    if (a.comment.isNotBlank()) {
+                        Text(
+                            a.comment,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = c.muted,
+                        )
+                    }
+                }
+                GhostButton(t.account.deleteAddress) {
+                    scope.launch {
+                        runCatching {
+                            api.updateMe(
+                                user.firstName,
+                                user.lastName,
+                                user.addresses.filterIndexed { j, _ -> j != i },
+                            )
+                        }.onSuccess(onSaved)
+                    }
+                }
+            }
+        }
+        Text(
+            t.account.addressHint,
+            style = MaterialTheme.typography.labelMedium,
+            color = c.muted,
+        )
     }
 }

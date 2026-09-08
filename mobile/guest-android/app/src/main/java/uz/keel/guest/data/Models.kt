@@ -325,11 +325,27 @@ data class Order(
  *  extra field is a form a hungry person is asked to fill in before they can
  *  eat, and the restaurant already has what it needs to ring them. */
 @Serializable
+data class UserAddress(
+    val label: String = "",
+    val text: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
+    val comment: String = "",
+)
+
+@Serializable
 data class User(
     val id: String = "",
     val firstName: String = "",
     val lastName: String = "",
     val phone: String = "",
+    /** Where this guest has had things delivered before.
+     *
+     *  ⚠️ **The whole reason the checkout is not a blank form.** Somebody who
+     *  ordered last week should not draw their own building on a map again —
+     *  the site offers the saved ones first, and an app that made them start
+     *  over would be the slower way to order from the same restaurant. */
+    val addresses: List<UserAddress> = emptyList(),
     /** Cashback balance in points; one point is one so'm. */
     val points: Double = 0.0,
     /** Menu item ids this guest keeps. */

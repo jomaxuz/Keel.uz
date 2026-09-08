@@ -63,6 +63,26 @@ data class Dict(
         val notifications: String,
         val notificationsOn: String,
         val notificationsOff: String,
+        val notificationsAsk: String,
+        // ---- Settings ----
+        //
+        // ⚠️ **One section rather than scattered rows.** Language sat in the
+        // header and the theme sat in the middle of the account tab, and
+        // everything else — the name the kitchen prints on the order, the
+        // addresses the checkout offers — could only be changed by ordering
+        // again. A setting nobody can find is a setting that does not exist.
+        val settings: String,
+        val profile: String,
+        val firstName: String,
+        val lastName: String,
+        val save: String,
+        val saved: String,
+        val addresses: String,
+        val noAddresses: String,
+        val addressHint: String,
+        val deleteAddress: String,
+        val about: String,
+        val version: (String) -> String,
         val failed: String,
     )
 
@@ -106,6 +126,21 @@ data class Dict(
         val subtotal: String,
         val checkout: String,
         val clear: String,
+        /** ⚠️ Its own action beside the stepper, as on the site: minus-to-zero
+         *  works, but somebody who wants the dish gone looks for this. */
+        val remove: String,
+        /** A note for one dish — the kitchen reads it off the order. */
+        val itemComment: String,
+        val summary: String,
+        val items: (Int) -> String,
+        val delivery: String,
+        /** ⚠️ **The fee is named and deferred, never shown as zero.** A basket
+         *  that prints "Yetkazib berish: 0" is quoting a price nobody has
+         *  calculated — the zones are the server's and the address is not
+         *  known yet. */
+        val atCheckout: String,
+        val total: String,
+        val keepShopping: String,
         // ---- Signed out ----
         // ⚠️ The basket is behind the sign-in now: a restaurant wants the order
         // attached to somebody it can ring back.
@@ -123,6 +158,11 @@ data class Dict(
         val phone: String,
         val address: String,
         val addressPick: String,
+        /** ⚠️ Offered before the map, never after: somebody who orders to the
+         *  same flat every week should be one tap from done. */
+        val savedAddresses: String,
+        val newAddress: String,
+        val saveAddress: String,
         val addressHint: String,
         val comment: String,
         val payment: String,
@@ -217,6 +257,14 @@ private val uz = Dict(
         subtotal = "Taomlar",
         checkout = "Rasmiylashtirish",
         clear = "Tozalash",
+        remove = "O'chirish",
+        itemComment = "Bu taomga izoh (piyozsiz, achchiq qilmang…)",
+        summary = "Buyurtma",
+        items = { n -> "$n ta taom" },
+        delivery = "Yetkazib berish",
+        atCheckout = "Rasmiylashtirishda",
+        total = "Jami",
+        keepShopping = "Menyuga qaytish",
         signInTitle = "Buyurtma berish uchun hisobga kiring",
         signInHint = "Telefon raqamingiz buyurtmani sizga bog'lash va kerak bo'lsa " +
             "qo'ng'iroq qilish uchun kerak. Kirish bir daqiqa oladi.",
@@ -231,6 +279,9 @@ private val uz = Dict(
         phone = "Telefon",
         address = "Manzil",
         addressPick = "Xaritada tanlash",
+        savedAddresses = "Saqlangan manzillar",
+        newAddress = "Yangi manzil",
+        saveAddress = "Bu manzilni saqlab qo'yish",
         addressHint = "Uy, kvartira, mo'ljal",
         comment = "Izoh",
         payment = "To'lov",
@@ -313,6 +364,19 @@ private val uz = Dict(
         notifications = "Bildirishnomalar",
         notificationsOn = "Buyurtma holati haqida xabar beriladi",
         notificationsOff = "Telefon sozlamalarida o'chirilgan",
+        notificationsAsk = "Yoqish",
+        settings = "Sozlamalar",
+        profile = "Ma'lumotlarim",
+        firstName = "Ism",
+        lastName = "Familiya",
+        save = "Saqlash",
+        saved = "Saqlandi",
+        addresses = "Manzillarim",
+        noAddresses = "Hali manzil saqlanmagan",
+        addressHint = "Buyurtma berayotganda saqlangan manzil o'zi taklif qilinadi",
+        deleteAddress = "O'chirish",
+        about = "Ilova haqida",
+        version = { v -> "Versiya $v" },
         failed = "Bajarilmadi",
     ),
 )
@@ -351,6 +415,14 @@ private val ru = Dict(
         subtotal = "Блюда",
         checkout = "Оформить",
         clear = "Очистить",
+        remove = "Удалить",
+        itemComment = "Комментарий к блюду (без лука, не остро…)",
+        summary = "Заказ",
+        items = { n -> "$n блюд" },
+        delivery = "Доставка",
+        atCheckout = "При оформлении",
+        total = "Итого",
+        keepShopping = "Вернуться в меню",
         signInTitle = "Войдите, чтобы оформить заказ",
         signInHint = "Номер нужен, чтобы привязать заказ к вам и при необходимости " +
             "позвонить. Вход занимает минуту.",
@@ -365,6 +437,9 @@ private val ru = Dict(
         phone = "Телефон",
         address = "Адрес",
         addressPick = "Выбрать на карте",
+        savedAddresses = "Сохранённые адреса",
+        newAddress = "Новый адрес",
+        saveAddress = "Сохранить этот адрес",
         addressHint = "Дом, квартира, ориентир",
         comment = "Комментарий",
         payment = "Оплата",
@@ -443,6 +518,19 @@ private val ru = Dict(
         notifications = "Уведомления",
         notificationsOn = "Сообщим о статусе заказа",
         notificationsOff = "Отключены в настройках телефона",
+        notificationsAsk = "Включить",
+        settings = "Настройки",
+        profile = "Мои данные",
+        firstName = "Имя",
+        lastName = "Фамилия",
+        save = "Сохранить",
+        saved = "Сохранено",
+        addresses = "Мои адреса",
+        noAddresses = "Пока нет сохранённых адресов",
+        addressHint = "При заказе сохранённый адрес предложится сам",
+        deleteAddress = "Удалить",
+        about = "О приложении",
+        version = { v -> "Версия $v" },
         failed = "Не удалось",
     ),
 )
@@ -481,6 +569,14 @@ private val en = Dict(
         subtotal = "Food",
         checkout = "Checkout",
         clear = "Clear",
+        remove = "Remove",
+        itemComment = "Note for this dish (no onion, not spicy…)",
+        summary = "Order",
+        items = { n -> "$n items" },
+        delivery = "Delivery",
+        atCheckout = "At checkout",
+        total = "Total",
+        keepShopping = "Back to the menu",
         signInTitle = "Sign in to place an order",
         signInHint = "Your number is how the order is tied to you and how the " +
             "restaurant can ring you back. It takes a minute.",
@@ -495,6 +591,9 @@ private val en = Dict(
         phone = "Phone",
         address = "Address",
         addressPick = "Pick on the map",
+        savedAddresses = "Saved addresses",
+        newAddress = "New address",
+        saveAddress = "Remember this address",
         addressHint = "House, flat, landmark",
         comment = "Note",
         payment = "Payment",
@@ -573,6 +672,19 @@ private val en = Dict(
         notifications = "Notifications",
         notificationsOn = "We will tell you what happens to your order",
         notificationsOff = "Turned off in the phone's settings",
+        notificationsAsk = "Turn on",
+        settings = "Settings",
+        profile = "My details",
+        firstName = "First name",
+        lastName = "Surname",
+        save = "Save",
+        saved = "Saved",
+        addresses = "My addresses",
+        noAddresses = "No saved addresses yet",
+        addressHint = "A saved address is offered on its own at checkout",
+        deleteAddress = "Delete",
+        about = "About",
+        version = { v -> "Version $v" },
         failed = "That did not work",
     ),
 )
