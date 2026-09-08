@@ -5530,6 +5530,30 @@ Va bittasi ko'rinadigan: **tanlangan APK/AAB chipi oq ustiga oq** edi
 tanlovni ramka va aksentning o'ndan biri bilan belgilaydi; endi bu ham shunday.
 
 
+#### Oltinchi jim nosozlik: olti daqiqalik ishni oltmish soniyalik mijoz kutardi
+
+Konsoldan qilingan har bir build **aynan 61 soniyada** «tugardi» va fayl
+topilmasdi. Sabab `provision.Client` ning umumiy HTTP mijozidagi
+`Timeout: 60 * time.Second`.
+
+- ⚠️ **Bu timeout qolgan hamma chaqiruv uchun to'g'ri**: Docker'ning boshqa har
+  bir so'rovi millisekundlarda javob beradi, va qisqa muddat qotib qolgan
+  soketni **osilish** emas, **xato** qilib ko'rsatadi.
+- ⚠️ **`/containers/{id}/wait` esa uzun poll**: to'qqiz daqiqa — normal holat.
+  Ikkalasi bitta mijozda bo'lishi mumkin emas edi.
+- ⚠️ **Va nosozlik hech qayerda «timeout» demasdi**: so'rov uzilardi, konteyner
+  fonda kompilyatsiyani davom ettirardi, konsol esa yarim yo'lda to'xtagan log
+  bilan «fayl topilmadi» deb yozardi. Uchta ko'rsatkichning uchtasi ham boshqa
+  narsani ko'rsatardi.
+- Endi ikkinchi mijoz — **o'z muddatisiz** (`poll`), va yagona soat chaqiruvchining
+  konteksti (`RunSpec.Timeout`).
+
+Yonida yana bittasi, xuddi shu sessiyada: **xato sababi log ostida qolib
+ketardi.** Kod sababni log oldiga qo'yib, keyin **oxirgi** qirq qatorni olardi —
+ya'ni birinchi bo'lib aynan sababni tashlardi, va qirq qator Gradle vazifasi
+qolardi. Endi sabab birinchi, log keyin, va testi bor.
+
+
 #### Konsoldagi tugma: navbat, va yuklab olingan fayl o'chiriladi
 
 - ⚠️ **Artefakt yuklab olingan zahoti o'chiriladi, yozuvi esa qoladi.** Har build

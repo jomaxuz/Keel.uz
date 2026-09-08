@@ -59,6 +59,23 @@ type Config struct {
 type Client struct {
 	cfg  Config
 	http *http.Client
+	// A second client with **no deadline of its own**, for the one call that
+	// legitimately takes minutes.
+	//
+	// ⚠️ **`/containers/{id}/wait` is a long poll, and the 60-second client
+	// above cannot make it.** Every other call here answers in milliseconds, so
+	// a short timeout is right for them — it is what turns a wedged socket into
+	// an error rather than a hang. Waiting for a build to finish is the
+	// opposite shape: nine minutes is normal.
+	//
+	// This shipped without it, and the failure was worth writing down: every
+	// app build "finished" after exactly sixty-one seconds, the container went
+	// on compiling in the background, and the console reported a missing file
+	// with a log that stopped mid-build. Nothing said "timeout" anywhere.
+	//
+	// ⚠️ Not "no limit": the caller's context carries one (RunSpec.Timeout), so
+	// a wait that never returns still ends.
+	poll *http.Client
 }
 
 func New(cfg Config) *Client {
@@ -68,17 +85,18 @@ func New(cfg Config) *Client {
 	if cfg.TZ == "" {
 		cfg.TZ = "Asia/Tashkent"
 	}
+	dial := func(ctx context.Context, _, _ string) (net.Conn, error) {
+		var d net.Dialer
+		return d.DialContext(ctx, "unix", cfg.Socket)
+	}
 	return &Client{
 		cfg: cfg,
 		http: &http.Client{
-			Timeout: 60 * time.Second,
-			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-					var d net.Dialer
-					return d.DialContext(ctx, "unix", cfg.Socket)
-				},
-			},
+			Timeout:   60 * time.Second,
+			Transport: &http.Transport{DialContext: dial},
 		},
+		// ⚠️ The context is the only clock here — see the field's note.
+		poll: &http.Client{Transport: &http.Transport{DialContext: dial}},
 	}
 }
 
@@ -138,6 +156,14 @@ type State struct {
 }
 
 func (c *Client) do(ctx context.Context, method, path string, body any, out any) (int, error) {
+	return c.doWith(c.http, ctx, method, path, body, out)
+}
+
+// doWith is `do` against a chosen client, so a long poll can use one without a
+// deadline of its own.
+func (c *Client) doWith(
+	client *http.Client, ctx context.Context, method, path string, body any, out any,
+) (int, error) {
 	var rdr io.Reader
 	if body != nil {
 		raw, err := json.Marshal(body)
@@ -154,7 +180,7 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	res, err := c.http.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("docker: ulanib bo'lmadi (%s): %w", c.cfg.Socket, err)
 	}
@@ -864,7 +890,12 @@ func (c *Client) RunOnce(ctx context.Context, s RunSpec) (RunResult, error) {
 	var waited struct {
 		StatusCode int `json:"StatusCode"`
 	}
-	if _, err := c.do(ctx, http.MethodPost, "/containers/"+id+"/wait", nil, &waited); err != nil {
+	// ⚠️ **The long-poll client, not the ordinary one.** A build takes minutes
+	// and the shared client gives up after sixty seconds — which is not an
+	// error anybody sees: the request fails, the container keeps compiling, and
+	// the console reports a missing file over a build that was still running.
+	if _, err := c.doWith(c.poll, ctx, http.MethodPost,
+		"/containers/"+id+"/wait", nil, &waited); err != nil {
 		return RunResult{Output: c.containerLogs(id)}, err
 	}
 	return RunResult{ExitCode: waited.StatusCode, Output: c.containerLogs(id)}, nil

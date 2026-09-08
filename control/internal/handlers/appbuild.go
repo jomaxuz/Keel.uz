@@ -318,13 +318,18 @@ func (h *Handler) runAppBuild(ctx context.Context, id primitive.ObjectID) {
 	})
 	done := time.Now()
 	if err != nil || out.ExitCode != 0 {
-		msg := out.Output
+		// ⚠️ **The reason goes first and survives the trim.** The first version
+		// prefixed the error onto the log and then took the *last* forty lines
+		// — which threw the reason away and left forty lines of Gradle tasks
+		// that say nothing about why it stopped. The one thing somebody opening
+		// a failed build needs is the sentence at the top.
+		why := fmt.Sprintf("konteyner %d bilan tugadi", out.ExitCode)
 		if err != nil {
-			msg = err.Error() + "\n" + msg
+			why = err.Error()
 		}
 		h.finishAppBuild(id, bson.M{
 			"status": models.AppFailed, "finishedAt": done,
-			"error": tailLines(msg, 40),
+			"error": why + "\n\n" + tailLines(out.Output, 40),
 		})
 		return
 	}

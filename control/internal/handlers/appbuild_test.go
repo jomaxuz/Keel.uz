@@ -124,3 +124,24 @@ func TestOnlyTheTailOfAFailureIsKept(t *testing.T) {
 		t.Fatal("a short output was trimmed")
 	}
 }
+
+// ⚠️ **The reason has to survive the trim.** The first version prefixed the
+// error onto the log and then kept the *last* forty lines — so the sentence
+// explaining the failure was the first thing thrown away, and what remained was
+// forty lines of Gradle tasks that say nothing about why it stopped. That is
+// exactly what a person opening a failed build is looking for.
+func TestAFailureSaysWhyBeforeItSaysWhat(t *testing.T) {
+	var log strings.Builder
+	for i := 0; i < 200; i++ {
+		log.WriteString("> Task :app:something\n")
+	}
+	// What the handler builds: the reason, a blank line, then the tail.
+	stored := "docker: ulanib bo'lmadi\n\n" + tailLines(log.String(), 40)
+	first := strings.SplitN(stored, "\n", 2)[0]
+	if !strings.Contains(first, "docker") {
+		t.Fatalf("the reason was trimmed away; the message starts %q", first)
+	}
+	if n := strings.Count(stored, "> Task"); n != 40 {
+		t.Fatalf("kept %d log lines, want 40", n)
+	}
+}
