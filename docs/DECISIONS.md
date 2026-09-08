@@ -5739,9 +5739,18 @@ bilan ilovasi xarita haqida kelishmasdi.
     Android 8–10 telefonlari aynan shu ilova yetib borishi kerak bo'lgan arzon
     apparatlar. Sinovda buni sezib bo'lmaydi — arzon telefon o'rnata olmaydi,
     xolos.
-  - AAB'ga ta'siri yo'q: Play baribir qurilmaga bitta ABI beradi, ya'ni do'kondan
-    o'rnatgan mehmon ~25 MB yuklaydi. Katta raqam — **to'g'ridan-to'g'ri APK**
-    yuklab beradigan restoranning muammosi.
+  - AAB'ga ta'siri yo'q: Play baribir qurilmaga bitta ABI beradi. arm64
+    telefonga tushadigan yuklama ~13 MB (MapKit'ning o'zi siqilganda 11 MB),
+    diskda ~29 MB. Katta raqam — **to'g'ridan-to'g'ri APK** yuklab beradigan
+    restoranning muammosi.
+  - ⚠️ **MapKit'ni provayder bo'yicha shartli qilish rad etildi** (ega qarori):
+    AAB Play'da baribir bo'linadi, va shartli qilish «Yandex'ga o'tdim, xarita
+    hali ham 2GIS» degan holatni tug'dirardi — uni faqat qayta build tuzatadi.
+  - ⚠️ **Hajm ishlash tezligiga ta'sir qilmaydi, o'rnatishlar soniga qiladi.**
+    `libmaps-mobile.so` faqat manzil tanlash ekrani ochilganda yuklanadi
+    (`System.loadLibrary`), ya'ni menyuning sovuq ishga tushishida umuman
+    qatnashmaydi. Yo'qotish do'kon sahifasida bo'ladi — har qo'shimcha megabayt
+    o'rnatish foizini tushiradi, va buni hech bir profiler ko'rsatmaydi.
 
 
 #### Xarita: Google, va CLAUDE.md dagi narx ogohlantirishi bu yerga tegmaydi
