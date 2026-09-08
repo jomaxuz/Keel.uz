@@ -3902,6 +3902,7 @@ export const adminUz = {
     channelWeb: "Saytdan",
     channelTelegram: "Telegramdan",
     channelOperator: "Operator",
+    channelApp: "Ilovadan",
   },
 
   // Online payment credentials. The webhook URLs matter as much as the keys:
@@ -8611,6 +8612,7 @@ export const adminRu: AdminDict = {
     channelWeb: "С сайта",
     channelTelegram: "Из Telegram",
     channelOperator: "Оператор",
+    channelApp: "Из приложения",
   },
 
   payments: {
@@ -13248,6 +13250,7 @@ export const adminEn: AdminDict = {
     channelWeb: "From the site",
     channelTelegram: "From Telegram",
     channelOperator: "Operator",
+    channelApp: "Ilovadan",
   },
 
   payments: {

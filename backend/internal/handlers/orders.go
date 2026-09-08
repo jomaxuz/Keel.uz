@@ -440,17 +440,26 @@ func (h *Handler) TrackOrder(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, resp)
 }
 
-// orderChannel narrows what the client claimed to the three values that exist.
+// orderChannel narrows what the client claimed to the values that exist.
 //
 // Unknown becomes "web" rather than being kept or rejected: a new client version
 // sending something we have not seen yet must not fail an order, and a label
 // nobody recognises is worse in a report than the common case.
+//
+// ⚠️ **"android" is its own door, and adding it was the point of shipping an
+// app.** Folded into "web" — which is what happened until the app existed — the
+// one question a restaurant asks about the thing they paid for ("is anybody
+// using it?") has no answer anywhere in the panel, and the answer arrives as an
+// opinion instead.
 func orderChannel(claimed, takenBy string) string {
 	if strings.TrimSpace(takenBy) != "" {
 		return "operator"
 	}
-	if strings.TrimSpace(claimed) == "telegram" {
+	switch strings.TrimSpace(claimed) {
+	case "telegram":
 		return "telegram"
+	case "android":
+		return "android"
 	}
 	return "web"
 }

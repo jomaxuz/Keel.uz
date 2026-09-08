@@ -5491,6 +5491,47 @@ ko'radi. Shuning uchun **bitta kod bazasi, N ta build** (`mobile/guest-android`)
   aytadi, menyu joyida qoladi. Tugagan taom ham chiziladi, olib tashlanmaydi:
   yo'q bo'lib qolgan taom mehmonni «men adashganman shekilli» deb o'ylatadi.
 
+#### Xarita: Google, va CLAUDE.md dagi narx ogohlantirishi bu yerga tegmaydi
+
+⚠️ **U ogohlantirish veb API'lari haqida** — MapGL, Maps JavaScript API, Static
+Maps — ular har xarita ochilishi uchun pul oladi. **Android SDK'ning xarita
+ko'rsatishi umuman hisoblanmaydi**, ya'ni sayt 2GIS'ni standart qilgan yagona
+sabab bu ekranga yetib kelmaydi. (2GIS'ning ochiq Android maven yo'li ham
+mavjud emas edi.)
+
+- ⚠️ **Geokodlash baribir Nominatim'da qoladi** (`lib/geocode.ts` bilan bir
+  xizmat): Geocoding va Places API'lari **hisoblanadi**, va qidiruv maydoni har
+  bosishda bitta so'rov yuboradi. Sayt bu bo'linishni allaqachon shu sababdan
+  qilgan. Yon foydasi: xarita kaliti umuman yo'q restoranda ham qidiruv ishlaydi.
+- ⚠️ **Nominatim haqiqiy `User-Agent` so'raydi va sekundiga bitta so'rovga
+  cheklaydi.** Ikkalasini ham e'tiborsiz qoldirgan ilova butun o'rnatma bazasini
+  bir vaqtda bloklatadi — bu «qidiruv ishlamayapti» bo'lib har mehmondan bir
+  vaqtda keladi va siyosat muammosiga umuman o'xshamaydi. Shuning uchun kamerada
+  debounce (600 ms) va yozishda debounce (400 ms).
+- ⚠️ **Bitta provayder, build vaqtida hal qilinadi.** Uchala SDK'ni ham solib
+  qo'yish har mehmonning yuklab olishiga o'nlab megabayt qo'shadi — bir marta
+  qilingandan keyin hech qachon o'zgarmaydigan tanlov uchun.
+- ⚠️ **Kalit API bo'yicha cheklanadi, ilova bo'yicha emas.** Paket nomiga
+  bog'langan kalit har build qilingan restoran uchun alohida yozuv talab qilardi
+  — va har birining imzo sertifikati SHA'sini, uni esa quvurning o'zi yaratadi.
+  «Maps SDK for Android» bilan cheklash zarar doirasini hisoblanmaydigan API
+  bilan chegaralaydi.
+- ⚠️ **Nishon qimirlamaydi — xarita qimirlaydi.** Suriladigan marker barmoq
+  aynan qo'yilayotgan narsani yopishi demakdir, telefonda esa oxirgi bir necha
+  metr eng muhimi. Nishon markazda qotib turadi, xarita ostidan siljiydi — bu
+  yerdagi har bir yetkazish ilovasi shunday qiladi.
+- ⚠️ **Joylashuvga ruxsat ishga tushishda emas, xaritada so'raladi.** Kimdir
+  «yetkazib berish» deyishidan oldin so'ralgan ruxsatni ko'pchilik bir marta va
+  butunlay rad etadi, va rad etish qaytarilmaydi.
+
+#### Kanal: `android` o'ziniki, `web` ichiga qo'shilmaydi
+
+Restoran ilova uchun pul to'laydi va u haqda **bitta** savol beradi: «uni
+kimdir ishlatyaptimi?». `orderChannel` bu so'zni bilmaguncha javob panelning
+hech qayerida yo'q edi, va u fikr ko'rinishida kelardi. Endi buyurtmada o'z
+nishoni bor (`ChannelBadge`) va kanallar hisobotida o'z qatori.
+
+
 #### Rang restoranniki, apelsin Keel'niki
 
 `KeelWaiterTheme(accent = ...)` — dizayn moduli ataylab **faqat shu ilovada**

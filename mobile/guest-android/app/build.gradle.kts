@@ -69,6 +69,24 @@ android {
         // with `brand.properties`, because there is no file to edit.
         buildConfigField("String", "SERVER_URL", "\"${brandOf("brand.serverUrl")}\"")
         buildConfigField("String", "BRAND_ACCENT", "\"${brandOf("brand.accent")}\"")
+
+        // ⚠️ **The maps key goes in the manifest, not into a runtime field.**
+        // The Android SDK reads it before any Kotlin runs, so unlike the name
+        // and the colour it genuinely cannot come from `/restaurant` at launch —
+        // which is the reason a per-restaurant build was already the model.
+        //
+        // ⚠️ Empty is allowed and gives a grey grid rather than a crash: a
+        // restaurant that does not deliver never opens this screen, and refusing
+        // to build their app over a key they do not need would be the wrong
+        // failure.
+        manifestPlaceholders["mapsApiKey"] = brand.getProperty("brand.mapsKey").orEmpty()
+        // ⚠️ Also as a field, so the picker can say "the map is not set up"
+        // instead of drawing a grey grid nobody can act on.
+        buildConfigField(
+            "String",
+            "MAPS_KEY",
+            "\"${brand.getProperty("brand.mapsKey").orEmpty()}\"",
+        )
     }
 
     signingConfigs {
@@ -143,6 +161,26 @@ dependencies {
     implementation(libs.coil.network.okhttp)
 
     implementation(libs.security.crypto)
+
+    // ---- The address picker ----
+    //
+    // ⚠️ **Google Maps, and the cost note in CLAUDE.md does not apply here.**
+    // That warning is about the **web** APIs — MapGL, the Maps JavaScript API,
+    // Static Maps — which bill per map load. The Android SDK's map display is
+    // not billed at all, so the one reason the site defaults to 2GIS does not
+    // reach this screen.
+    //
+    // ⚠️ **Geocoding stays on Nominatim** (`lib/geocode.ts` on the web side, the
+    // same service here): the Places and Geocoding APIs *are* billed, and the
+    // site already made this split for the same reason. The map draws; the
+    // search does not go to Google.
+    //
+    // ⚠️ **One provider, resolved at build time.** Shipping all three SDKs so a
+    // restaurant could switch at runtime would add tens of megabytes to every
+    // guest's download for a choice that never changes once made.
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose)
+    implementation(libs.play.services.location)
 
     testImplementation(libs.junit)
     debugImplementation(libs.compose.ui.tooling)

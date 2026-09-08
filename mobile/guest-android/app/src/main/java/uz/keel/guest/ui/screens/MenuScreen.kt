@@ -46,6 +46,7 @@ import uz.keel.design.Money
 import uz.keel.design.glass
 import uz.keel.design.imageUrl
 import uz.keel.guest.Brand
+import uz.keel.guest.Cart
 import uz.keel.guest.data.ApiError
 import uz.keel.guest.data.KeelApi
 import uz.keel.guest.data.MenuGroup
@@ -73,7 +74,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 // one word on it answers the question they actually have.
 
 @Composable
-fun MenuScreen(api: KeelApi) {
+fun MenuScreen(api: KeelApi, cart: Cart, bottomInset: PaddingValues) {
     val c = KeelTheme.colors
     val prefs = LocalPrefs.current
     val lang = prefs.lang.value.code
@@ -85,6 +86,9 @@ fun MenuScreen(api: KeelApi) {
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var tick by remember { mutableIntStateOf(0) }
+    /** The dish somebody tapped. ⚠️ Held here rather than inside the card: a
+     *  sheet owned by a row disappears when that row scrolls out of the list. */
+    var opened by remember { mutableStateOf<MenuItem?>(null) }
 
     val loadFailed = t.menu.loadFailed
 
@@ -129,7 +133,11 @@ fun MenuScreen(api: KeelApi) {
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.fillMaxSize().imePadding(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = bottomInset.calculateBottomPadding(),
+            ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
@@ -225,10 +233,19 @@ fun MenuScreen(api: KeelApi) {
                     )
                 }
                 items(group.items, key = { it.id }) { item ->
-                    DishCard(item, lang)
+                    DishCard(item, lang) { opened = item }
                 }
             }
         }
+    }
+
+    opened?.let { item ->
+        DishSheet(
+            item = item,
+            lang = lang,
+            onClose = { opened = null },
+            onAdd = { cart.add(it) },
+        )
     }
 }
 
@@ -240,7 +257,7 @@ fun MenuScreen(api: KeelApi) {
  *  scrolling past six dishes they can read is better served than one scanning
  *  twelve they cannot. */
 @Composable
-private fun DishCard(item: MenuItem, lang: String) {
+private fun DishCard(item: MenuItem, lang: String, onOpen: () -> Unit) {
     val c = KeelTheme.colors
     val out = !item.isAvailable
     Row(
@@ -250,7 +267,7 @@ private fun DishCard(item: MenuItem, lang: String) {
             // ⚠️ The whole card dims, photograph included. Greying only the
             // price leaves a bright picture of something nobody can order.
             .alpha(if (out) 0.55f else 1f)
-            .clickable(enabled = !out) { /* the dish sheet arrives with the cart */ }
+            .clickable(enabled = !out, onClick = onOpen)
             .padding(10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,

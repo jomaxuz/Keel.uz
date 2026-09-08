@@ -37,6 +37,14 @@ object Brand {
      *  opposite trade from the server address, where wrong-and-running is the
      *  dangerous outcome. */
     val accent: Color = parseColor(BuildConfig.BRAND_ACCENT) ?: Color(0xFFE2590D)
+
+    /** Whether this build can draw a map at all.
+     *
+     *  ⚠️ **Empty is allowed and is not a bug.** A restaurant that does not
+     *  deliver never opens the address picker, and refusing to build their
+     *  application over a key they do not need would be the wrong failure. The
+     *  screen says so in a sentence rather than showing a grey grid. */
+    val mapsKey: String = BuildConfig.MAPS_KEY
 }
 
 /** `#RRGGBB`, `#AARRGGBB` or `#RGB` to a colour, or null when it is none of

@@ -2,6 +2,7 @@ package uz.keel.guest
 
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -65,4 +66,38 @@ class BrandTest {
     }
 
     private fun Color.luminanceIsDark(): Boolean = this != Color.White
+}
+
+// ---- The basket ----
+
+/** ⚠️ **Two lines of the same dish are one line only if every answer matches.**
+ *  A plov with extra meat and a plov without are two things to cook, and merging
+ *  them by dish id would send the kitchen one ticket for a dish nobody ordered. */
+class CartKeyTest {
+
+    @Test
+    fun `the same dish with different answers stays two lines`() {
+        val plain = CartLine("m1", "Osh", 45000.0, 1)
+        val extra = CartLine(
+            "m1", "Osh", 45000.0, 1,
+            options = listOf(ChosenOption("Qo'shimcha", "Go'sht", 15000.0)),
+        )
+        val noted = plain.copy(comment = "piyozsiz")
+        assertNotEquals(plain.key, extra.key)
+        assertNotEquals(plain.key, noted.key)
+        // The same answers, whatever the quantity, are the same line.
+        assertEquals(plain.key, plain.copy(qty = 4).key)
+    }
+
+    /** ⚠️ **Display arithmetic only** — see Cart.kt. Every figure the guest is
+     *  charged comes from `/orders/quote`; this one exists so a basket works
+     *  with no network. */
+    @Test
+    fun `a line totals the options into every unit, not once`() {
+        val line = CartLine(
+            "m1", "Pitsa", 60000.0, 2,
+            options = listOf(ChosenOption("O'lcham", "Katta", 15000.0)),
+        )
+        assertEquals(150000.0, line.lineTotal, 0.0)
+    }
 }

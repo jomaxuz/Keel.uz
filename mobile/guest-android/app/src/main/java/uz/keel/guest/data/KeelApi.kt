@@ -18,9 +18,13 @@ import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import uz.keel.design.TokenStore
 import uz.keel.guest.Brand
+import uz.keel.guest.CartLine
 
 /** The server having spoken, whatever it said.
  *
@@ -126,4 +130,111 @@ class KeelApi(private val tokens: TokenStore) {
 
     /** The menu, grouped by category the way the site reads it. */
     suspend fun menu(): List<MenuGroup> = call("/menu")
+
+    // ---- Ordering ----
+
+    /** Which methods this restaurant can actually take money with. */
+    suspend fun paymentMethods(): PaymentMethods = call("/payment-methods")
+
+    /** Whether this address can be delivered to, by whom, and for how much.
+     *
+     *  ⚠️ **Asked of the server, always.** The zones are polygons the owner drew
+     *  and the fee has four rules behind it; a phone that decided "you are 3 km
+     *  away, that is 15 000" would be a second implementation of the one number
+     *  a guest complains about. */
+    suspend fun deliveryQuote(lat: Double, lng: Double, subtotal: Double): DeliveryQuote =
+        call(
+            "/delivery/quote",
+            HttpMethod.Post,
+            buildJsonObject {
+                put("lat", JsonPrimitive(lat))
+                put("lng", JsonPrimitive(lng))
+                put("subtotal", JsonPrimitive(subtotal))
+            },
+        )
+
+    /** What this basket comes to, with the discounts, the fee and the points.
+     *
+     *  ⚠️ **Every figure on the checkout comes from here.** Nothing is added up
+     *  on the phone: a total the guest computed that disagrees with the one they
+     *  are charged is the worst thing this screen can do, and it is the easiest
+     *  to cause — a promo rule the app does not know about is enough. */
+    suspend fun quote(
+        lines: List<CartLine>,
+        type: String,
+        point: GeoPoint?,
+        promoCode: String,
+        usePoints: Double,
+    ): OrderQuote = call(
+        "/orders/quote",
+        HttpMethod.Post,
+        buildJsonObject {
+            put("type", JsonPrimitive(type))
+            put("promoCode", JsonPrimitive(promoCode))
+            put("usePoints", JsonPrimitive(usePoints))
+            if (point != null) {
+                put(
+                    "address",
+                    buildJsonObject {
+                        put("lat", JsonPrimitive(point.lat))
+                        put("lng", JsonPrimitive(point.lng))
+                    },
+                )
+            }
+            put("items", JsonArray(lines.map { it.quoteJson() }))
+        },
+    )
+
+    /** Place it.
+     *
+     *  ⚠️ **`channel` is "android", and it is the reason the app is worth
+     *  shipping to somebody who has to justify it.** Folded into "web" — which
+     *  is what the server did before it knew the word — a restaurant cannot
+     *  answer "is anybody using the app we paid for" from anywhere in the
+     *  panel. Attribution, never authorisation. */
+    suspend fun createOrder(
+        lines: List<CartLine>,
+        type: String,
+        name: String,
+        phone: String,
+        point: GeoPoint?,
+        comment: String,
+        paymentMethod: String,
+        promoCode: String,
+        usePoints: Double,
+    ): Order = call(
+        "/orders",
+        HttpMethod.Post,
+        buildJsonObject {
+            put(
+                "customer",
+                buildJsonObject {
+                    put("name", JsonPrimitive(name))
+                    put("phone", JsonPrimitive(phone))
+                },
+            )
+            put("type", JsonPrimitive(type))
+            put(
+                "address",
+                buildJsonObject {
+                    put("text", JsonPrimitive(point?.text ?: ""))
+                    put("lat", JsonPrimitive(point?.lat ?: 0.0))
+                    put("lng", JsonPrimitive(point?.lng ?: 0.0))
+                    put("comment", JsonPrimitive(comment))
+                },
+            )
+            put("items", JsonArray(lines.map { it.orderJson() }))
+            put("paymentMethod", JsonPrimitive(paymentMethod))
+            put("promoCode", JsonPrimitive(promoCode))
+            put("usePoints", JsonPrimitive(usePoints))
+            put("channel", JsonPrimitive("android"))
+        },
+    )
+
+    /** Following one, by the number printed on it.
+     *
+     *  ⚠️ **Public and keyed by the number**, exactly as the site's tracking page
+     *  is: a guest who ordered without signing in has to be able to watch it,
+     *  and an order they cannot follow is a phone call to the restaurant. */
+    suspend fun order(number: String): Order = call("/orders/$number")
 }

@@ -68,6 +68,11 @@ data class MenuItem(
      *  or the branch's stop list took it off today. The phone must not compute
      *  that a second way. */
     val isAvailable: Boolean = true,
+    /** ⚠️ **Never re-ordered or defaulted on the phone.** The panel decides
+     *  which question comes first and whether it is compulsory, and a screen
+     *  that picked a default for a required group would send an order the guest
+     *  never actually chose. */
+    val options: List<MenuOption> = emptyList(),
 ) : Named {
     /** The description in this language, falling back to the base. */
     fun describe(lang: String): String = when (lang) {
@@ -109,4 +114,153 @@ data class Restaurant(
      *  server from the branch's hours, because a phone's clock is the one thing
      *  this product never trusts. */
     val isOpenNow: Boolean = true,
+    /** Where the restaurant is, so the address picker opens somewhere useful.
+     *
+     *  ⚠️ **The map opens on the restaurant, not on the guest.** A location
+     *  permission asked before anybody has said they want delivery is a
+     *  permission most people refuse, and a map that opens on the null island
+     *  is a map somebody closes. */
+    val address: GeoPoint = GeoPoint(),
+)
+
+/** A point on the map, in the order the server writes it. ⚠️ `lat` then `lng`,
+ *  and every provider disagrees about that — the coordinate order lives in one
+ *  place on the web side for exactly this reason (`lib/map/`). Here there is one
+ *  engine and one order, and it is this one. */
+@Serializable
+data class GeoPoint(
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
+    val text: String = "",
+)
+
+/** One selectable value inside an option group. */
+@Serializable
+data class OptionChoice(
+    override val name: String = "",
+    override val nameRu: String = "",
+    override val nameEn: String = "",
+    /** Added to the dish price, and it may be negative. */
+    val priceDelta: Double = 0.0,
+) : Named
+
+/** A question the kitchen needs answered before it can cook the dish.
+ *
+ *  ⚠️ **`required` is enforced on the phone and again on the server.** The
+ *  screen's job is to stop somebody ordering a pizza with no size; the server's
+ *  is to stop a stale app doing it. Neither alone is enough — the first is a
+ *  courtesy, the second is the record. */
+@Serializable
+data class MenuOption(
+    override val name: String = "",
+    override val nameRu: String = "",
+    override val nameEn: String = "",
+    val required: Boolean = false,
+    val multiple: Boolean = false,
+    val choices: List<OptionChoice> = emptyList(),
+) : Named
+
+/** What a guest asked for and what the server worked it out to.
+ *
+ *  ⚠️ **Every figure on the checkout comes from here, and none is added up on
+ *  the phone.** A discount, a delivery fee and a points balance each have rules
+ *  the app does not know — and a total the guest computed that disagrees with
+ *  the one they are charged is the single worst thing this screen can do. */
+@Serializable
+data class OrderQuote(
+    val subtotal: Double = 0.0,
+    val discountTotal: Double = 0.0,
+    val deliveryFee: Double = 0.0,
+    val total: Double = 0.0,
+    /** Why a typed code was refused. ⚠️ Never fatal: the order still goes. */
+    val codeError: String = "",
+    val codeApplied: Boolean = false,
+    /** Whether this can be ordered at all — closed, out of range, below the
+     *  minimum. */
+    val available: Boolean = true,
+    val minOrder: Double = 0.0,
+    val belowMinimum: Boolean = false,
+    val branchId: String = "",
+    val branchName: String = "",
+    val prepMinutes: Int = 0,
+    /** ⚠️ **Known only once the branch is.** The guest browsed one branch's menu
+     *  and a delivery may be taken by another entirely; the order would be
+     *  refused for these anyway, and saying so turns a wasted checkout into
+     *  something the guest can act on. */
+    val soldOut: List<String> = emptyList(),
+    val pointsSpent: Double = 0.0,
+    val pointsBalance: Double = 0.0,
+    val pointsMax: Double = 0.0,
+    val pointsEarn: Double = 0.0,
+)
+
+/** Whether this address can be delivered to, by whom, and for how much. */
+@Serializable
+data class DeliveryQuote(
+    val available: Boolean = false,
+    val deliveryFee: Double = 0.0,
+    val zone: String = "",
+    val distanceKm: Double = 0.0,
+    val minOrder: Double = 0.0,
+    val branchId: String = "",
+    val branchName: String = "",
+    val prepMinutes: Int = 0,
+)
+
+/** How this restaurant takes money.
+ *
+ *  ⚠️ **Asked, never assumed.** Cash is always in the list; a provider appears
+ *  only once it is switched on and fully credentialed, and an app that drew a
+ *  Payme button from a hard-coded list would offer a payment that cannot
+ *  complete. */
+@Serializable
+data class PaymentMethods(
+    val methods: List<String> = emptyList(),
+)
+
+@Serializable
+data class OrderItemOption(
+    val name: String = "",
+    val choice: String = "",
+    val priceDelta: Double = 0.0,
+)
+
+@Serializable
+data class OrderItem(
+    val menuItemId: String = "",
+    val name: String = "",
+    val price: Double = 0.0,
+    val qty: Int = 0,
+    val comment: String = "",
+    val options: List<OrderItemOption> = emptyList(),
+)
+
+/** One step of the order's life, with the moment it happened. */
+@Serializable
+data class StatusEvent(
+    val status: String = "",
+    val at: String = "",
+)
+
+/** An order, as the guest tracks it.
+ *
+ *  ⚠️ **`payUrl` is only ever on the answer to placing one**, never on a later
+ *  read: it is a bank link minted for this attempt, and a screen that kept it
+ *  would send somebody to a dead page days later. */
+@Serializable
+data class Order(
+    val id: String = "",
+    val number: String = "",
+    val status: String = "pending",
+    val type: String = "delivery",
+    val items: List<OrderItem> = emptyList(),
+    val subtotal: Double = 0.0,
+    val discountTotal: Double = 0.0,
+    val deliveryFee: Double = 0.0,
+    val total: Double = 0.0,
+    val paymentMethod: String = "cash",
+    val createdAt: String = "",
+    val statusHistory: List<StatusEvent> = emptyList(),
+    val cancelReason: String = "",
+    val payUrl: String = "",
 )

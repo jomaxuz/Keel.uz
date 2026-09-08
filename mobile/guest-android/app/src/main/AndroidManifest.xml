@@ -2,6 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- ⚠️ **Coarse only, and asked for at the map, never at launch.** "Where
+         am I" saves a delivery address one drag; asked before anybody has said
+         they want delivery it is a permission most people refuse once and for
+         all, and the refusal costs the feature it was for. Coarse is enough to
+         centre a map somebody is about to drag anyway. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".KeelGuestApp"
@@ -12,6 +18,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.KeelGuest"
         android:usesCleartextTraffic="false">
+
+        <!-- Written by the build from brand.properties — see app/build.gradle.kts. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${mapsApiKey}" />
 
         <activity
             android:name=".MainActivity"

@@ -1,6 +1,7 @@
 "use client";
 
-// Where an order came from: the site, Telegram, or an operator's keyboard.
+// Where an order came from: the site, Telegram, the restaurant's own app, or an
+// operator's keyboard.
 //
 // ⚠️ Worth a badge rather than a column in a report, because the question it
 // answers is asked while looking at the order: a guest who ordered through the
@@ -26,6 +27,18 @@ export default function ChannelBadge({ channel }: { channel?: string }) {
           <path d="M21.9 4.3 19 19.2c-.2 1-.8 1.2-1.6.8l-4.4-3.3-2.1 2c-.2.3-.5.4-.8.4l.3-4.4 8.1-7.3c.3-.3 0-.5-.5-.2L8 12.1l-4.3-1.3c-.9-.3-.9-.9.2-1.3l16.5-6.4c.8-.3 1.5.2 1.5 1.2Z" />
         </svg>
         {t.calls.channelTelegram}
+      </span>
+    );
+  }
+  // ⚠️ **Its own badge, and the reason is the same one the Telegram badge
+  // gives.** A restaurant that paid for an app asks exactly one question about
+  // it — "does anybody use it?" — and folded into the site's badge (which is
+  // what happened before `orderChannel` knew the word) that question has no
+  // answer anywhere in the panel.
+  if (channel === "android") {
+    return (
+      <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+        {t.calls.channelApp}
       </span>
     );
   }

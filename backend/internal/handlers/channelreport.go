@@ -42,7 +42,7 @@ import (
 
 // channelRow is one door and what came through it.
 type channelRow struct {
-	// Stable id ("web", "telegram", "operator", "unknown"); the panel
+	// Stable id ("web", "telegram", "android", "operator", "unknown"); the panel
 	// translates it. Not the label, for the same reason audit-log actions are
 	// ids: a report filtered by a translated string breaks the day somebody
 	// switches the panel to Russian.
@@ -134,7 +134,7 @@ func (h *Handler) AdminChannelReport(w http.ResponseWriter, r *http.Request) {
 // owner comparing this month with last year would never know where the line is.
 func orderChannelKey(o models.Order) string {
 	switch o.Channel {
-	case "web", "telegram", "operator":
+	case "web", "telegram", "operator", "android":
 		return o.Channel
 	case "":
 		// An operator-taken order from before the field existed still names
@@ -305,6 +305,9 @@ func channelColumns(lang string) []Column {
 var channelLabels = map[string]tr{
 	"web":      {"Sayt", "Сайт", "Website"},
 	"telegram": {"Telegram", "Telegram", "Telegram"},
+	// ⚠️ Named by what a guest holds, not by the platform: "Android" is a word
+	// an owner reads as "the phone app", which is the thing they bought.
+	"android": {"Ilova (Android)", "Приложение (Android)", "App (Android)"},
 	"operator": {"Operator (telefon)", "Оператор (телефон)", "Operator (phone)"},
 	"unknown":  {"Noma'lum (eski buyurtmalar)", "Неизвестно (старые заказы)", "Unknown (older orders)"},
 	"delivery": {"Yetkazib berish", "Доставка", "Delivery"},

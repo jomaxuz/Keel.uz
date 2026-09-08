@@ -14323,3 +14323,46 @@ qilindi.
 3) telefon+SMS hisobi, buyurtmalarim, ballar + FCM push (+ backendga qurilma
 endpointi); 4) builder image va lokal brendlash skripti; 5) konsoldagi tugma,
 navbat, imzo kalitlari va artefaktlar.
+
+---
+
+## 2026-09-08 (3) — Mehmon ilovasi: savat, checkout, xarita va kuzatuv ✅
+
+**2-bosqich.** Buyurtma berish oxirigacha ishlaydi.
+
+**Taom oynasi**: variantlar va qo'shimchalar, izoh, miqdor. Majburiy guruhga
+**standart tanlanmaydi** — tugma o'chiq turadi va qaysi savol javobsizligini
+yozadi; o'zi tanlab qo'yish hech kim so'ramagan o'lchamdagi pitsani jo'natardi.
+Tugmadagi narx javoblar bilan birga o'zgaradi.
+
+**Savat** telefonda saqlanadi (ilova yopilib ochilsa yo'qolmaydi). Bir xil
+taomning ikki qatori faqat **hamma javobi** mos kelsa qo'shiladi — go'shtli osh
+bilan go'shtsizi ikki xil ish. Minus birdan pastga tushsa qator o'chadi.
+
+**Checkout**: yetkazish/olib ketish, ism va telefon, xaritadan manzil, izoh,
+to'lov usuli (**serverdan** so'raladi — qattiq yozilgan Payme tugmasi
+bajarilmaydigan to'lovni taklif qilardi), promokod. ⚠️ **Har bir raqam
+`/orders/quote` dan keladi**, hech biri telefonda qo'shilmaydi: mehmon o'qigan
+jami bilan kartadan yechilgan summa farq qilishi — bu ilova qila oladigan eng
+yomon ish. Rad etishlar (eng kam summa, zonadan tashqari, tugagan taom) tugma
+bosilishidan **oldin** yoziladi.
+
+**Xarita** — Google Maps Android SDK. CLAUDE.md dagi narx ogohlantirishi veb
+API'lari haqida; Android SDK xarita ko'rsatish uchun pul olmaydi. Geokodlash
+Nominatim'da qoladi (u hisoblanadi). Nishon markazda qotgan, xarita ostidan
+siljiydi. Joylashuvga ruxsat faqat tugma bosilganda so'raladi. Kalit yo'q
+restoranda kulrang to'r emas, gap chiqadi.
+
+**Kuzatuv**: raqam bo'yicha ochiq (hisobsiz ham), holat zinasi, tugagach
+so'rovlar to'xtaydi. Berilgan buyurtma raqamlari telefonda saqlanadi — birinchi
+buyurtma odatda hisobsiz beriladi va bo'sh «Buyurtmalar» tabi «ovqatim qani?»
+degan savolga hech nima demasdi.
+
+**Backend**: `orderChannel` endi `android` ni biladi, panelda o'z nishoni va
+kanallar hisobotida o'z qatori bor.
+
+Tekshirildi: `assembleDebug` (22.8 MB), `testDebugUnitTest` (sim-shakli va savat
+kaliti testlari), `go test ./...`, `tsc`.
+
+**Keyingi**: 3) telefon+SMS hisobi, buyurtmalar tarixi, ballar, sevimlilar +
+FCM push; 4) builder image va lokal brendlash skripti; 5) konsoldagi tugma.
