@@ -218,10 +218,11 @@ cp "$ART" "$DEST/$SLUG-$STAMP.$FORMAT"
 # that serves it does not run as root. The keystore beside it is the secret, and
 # it lives in a different directory with different permissions.
 chmod 644 "$DEST/$SLUG-$STAMP.$FORMAT"
-# ⚠️ A stable name beside the stamped one: the console links to "the latest
-# build" and a link that changes every time is a link nobody can send anybody.
-cp "$ART" "$DEST/latest.$FORMAT"
-chmod 644 "$DEST/latest.$FORMAT"
+# ⚠️ **One copy, not a stamped one and a `latest` beside it.** The console
+# deletes the artifact the moment somebody has downloaded it; a second copy under
+# a stable name would survive that deletion and sit on the disk for ever — which
+# is the thing the deletion exists to prevent. The console addresses builds by
+# id, so nothing needs a stable filename.
 [ -f app/src/main/res/play_icon.png ] && cp app/src/main/res/play_icon.png "$DEST/play_icon.png"
 
 say "done: $DEST/$SLUG-$STAMP.$FORMAT"

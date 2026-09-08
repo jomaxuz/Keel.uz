@@ -113,6 +113,19 @@ services:
       # are every customer's database in plain BSON — the console needs to know
       # that they exist and how old they are, and nothing more than that.
       - ${BACKUP_ROOT:-/srv/keel/backups}:${BACKUP_ROOT:-/srv/keel/backups}:ro
+      # ---- Building restaurants' Android apps ----
+      #
+      # ⚠️ **Writable, and mounted at the path the build container will see it
+      # at.** The console starts a second container that binds the same
+      # directory; the artifact it produces has to be readable from *here* to be
+      # streamed to whoever pressed the button, and the artifact is then deleted
+      # from here too. A read-only mount would build fine and fail at the
+      # download, which is nine minutes later.
+      #
+      # ⚠️ It carries `appkeys/` — one signing key per restaurant, and each of
+      # them irreplaceable. The directory is 0700 on the host and the control
+      # plane never reads it: only the build container, which needs it to sign.
+      - ${APP_BUILD_ROOT:-/opt/keel}:${APP_BUILD_ROOT:-/opt/keel}
       # The Firebase service account, read once at startup.
       #
       # ⚠️ **Mounted at the same path it has on the host**, so `FCM_CREDENTIALS`
@@ -131,6 +144,20 @@ services:
       TZ: ${TZ:-Asia/Tashkent}
       MONGO_URI: mongodb://mongo:27017
       MONGO_DB: keel_control
+      # ---- The Android app builder ----
+      # ⚠️ Empty APP_BUILD_IMAGE switches the whole feature off, the way an empty
+      # DOCKER_SOCKET switches provisioning off: the console still opens, and the
+      # button says why it cannot rather than failing.
+      APP_BUILD_IMAGE: ${APP_BUILD_IMAGE:-}
+      APP_BUILD_ROOT: ${APP_BUILD_ROOT:-/opt/keel}
+      APP_BUILD_CACHE: ${APP_BUILD_CACHE:-keel-gradle-cache}
+      # Keel's own keys, shared by every restaurant's app. ⚠️ The Firebase *app*
+      # id is not here: it is per applicationId and is issued when one is
+      # registered.
+      APP_MAPS_KEY: ${APP_MAPS_KEY:-}
+      APP_FIREBASE_PROJECT: ${APP_FIREBASE_PROJECT:-}
+      APP_FIREBASE_API_KEY: ${APP_FIREBASE_API_KEY:-}
+      APP_FIREBASE_SENDER: ${APP_FIREBASE_SENDER:-}
       JWT_SECRET: ${CONTROL_JWT_SECRET:?CONTROL_JWT_SECRET kerak}
       # The assistant's key. ⚠️ Empty is a supported state and not a broken
       # one: with no key the briefing panel simply does not appear, every

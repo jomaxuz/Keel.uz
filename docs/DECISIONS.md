@@ -5491,6 +5491,42 @@ ko'radi. Shuning uchun **bitta kod bazasi, N ta build** (`mobile/guest-android`)
   aytadi, menyu joyida qoladi. Tugagan taom ham chiziladi, olib tashlanmaydi:
   yo'q bo'lib qolgan taom mehmonni «men adashganman shekilli» deb o'ylatadi.
 
+#### Konsoldagi tugma: navbat, va yuklab olingan fayl o'chiriladi
+
+- ⚠️ **Artefakt yuklab olingan zahoti o'chiriladi, yozuvi esa qoladi.** Har build
+  2,5 MB, va hech kim tozalamaydigan papka har mijoz uchun ishlaydigan mashinada
+  turadi. Lekin «do'konda qaysi versiya turibdi?» degan savol oylar keyin
+  beriladi, va fayl tizimi unga javob bera olmaydi — shuning uchun qatorda
+  versiya, SHA-256 va **ikkala ism** (kim bosgan, kim olgan) qoladi.
+- ⚠️ **Uzatish tugagandan keyin o'chiriladi, boshlanganda emas.** Birinchi baytda
+  o'chirish uzilgan ulanishni yana to'qqiz daqiqalik build'ga aylantiradi, va
+  ikkinchi urinish hech nima topmaydi — bu konsol faylni yo'qotgandek o'qiladi.
+- ⚠️ **`taken` — o'z holati, `ready` yonidagi bayroq emas.** «Fayl bor» va «fayl
+  bor edi» — konsol tugmani shundan chizadi, va holat yonidagi boolean ikki
+  fakt: ular ajralganda 404 qaytaradigan yuklab olish tugmasi paydo bo'ladi.
+- ⚠️ **`latest.apk` nusxasi olib tashlandi.** O'chirishdan omon qolgan ikkinchi
+  nusxa aynan o'chirish oldini olmoqchi bo'lgan narsani qiladi: abadiy qoladi.
+- ⚠️ **Yuklab olish `<a href>` emas, `fetch`.** Endpoint konsolning bearer
+  tokenini talab qiladi, oddiy havola esa hech nima yubormaydi — bu odatiy
+  ko'rinadigan tugmada «sessiya tugagan» bo'lib chiqadi.
+- ⚠️ **Navbat bittalik va ishchi bitta.** Bu navbat bo'lishining butun sababi —
+  mashina ikkitasini ko'tara olmaydi; o'lchami bir bo'lgan pool esa kimdir
+  «foydali» ravishda oshiradigan pool.
+- ⚠️ **Bir mijozga bitta tugallanmagan build.** Tugma ko'rinishda o'zgarmasa odam
+  ikki marta bosadi, va ikkinchi bosish yana to'qqiz daqiqa sarflab bayt-bayt
+  bir xil fayl chiqaradi.
+- ⚠️ **`versionCode` o'z yozuvlarimizdan sanaladi, vaqtdan yoki qatorlar sonidan
+  emas.** Play kodi oldingisidan **qat'iy katta** bo'lmagan yuklamani rad etadi,
+  va rad javobi odam kutgan yuklashning oxirida keladi; qatorlar soni esa
+  birinchi o'chirilgan qatordan keyin takrorlanadi.
+- ⚠️ **Format oldindan so'raladi.** APK telefonga o'rnatiladi, AAB esa faqat
+  Play uchun va umuman o'rnatilmaydi — noto'g'ri tanlov to'qqiz daqiqani
+  yo'qotadi va yuklash oxirida bilinadi.
+- ⚠️ **Bo'sh `APP_BUILD_IMAGE` — imkoniyat o'chiq**, bo'sh `DOCKER_SOCKET`
+  provisioningni o'chirgani bilan bir qoida: noutbukda Android toolchain yo'q va
+  konsol baribir ochilishi kerak. Tugma sababini aytadi.
+
+
 #### Build quvuri: bitta image, bitta qulf, bir marta yaratiladigan kalit
 
 `deploy/appbuild/` — Dockerfile (JDK 17 + Android SDK 36 + Pillow), `build.sh`

@@ -763,3 +763,131 @@ func (c *Client) PurgeUploads(ctx context.Context, slug string) error {
 	}
 	return nil
 }
+
+// ---- Running one container to completion ----
+//
+// ⚠️ **Different from everything else in this file, and worth saying why.**
+// Every other call here manages a *service*: a tenant's container is created,
+// started and left running, and "healthy" is the answer we want. A build is a
+// job — it starts, it produces a file, it exits, and what we want is its exit
+// code and its output. Folding the two shapes together would mean a tenant that
+// stops looking like a failure, or a build that never gets reaped.
+
+// RunSpec is one job: an image, a command, and what it can see.
+type RunSpec struct {
+	Image string
+	Cmd   []string
+	Env   map[string]string
+	// Host paths bound into the container, as "/host:/container".
+	Binds []string
+	// Named volumes, same shape. Kept separate only so a caller reading this
+	// can tell the two apart at a glance.
+	Volumes []string
+	// ⚠️ **A ceiling, because this runs on the machine that serves every
+	// customer.** A build that swaps takes the restaurants down with it, and
+	// "the site was slow this afternoon" is a far more expensive failure than a
+	// build that was killed.
+	MemoryMB int64
+	// How long before the job is killed. A build that hangs holds the queue.
+	Timeout time.Duration
+}
+
+// RunResult is what the job did.
+type RunResult struct {
+	ExitCode int
+	Output   string
+}
+
+// RunOnce starts a container, waits for it, collects its output and removes it.
+//
+// ⚠️ **The container is removed in a deferred call, not on the happy path.** A
+// build that fails, times out or is cancelled otherwise leaves a stopped
+// container behind holding its whole writable layer — and after a few dozen of
+// those the machine runs out of disk, which is the failure that takes the
+// restaurants down rather than the build.
+func (c *Client) RunOnce(ctx context.Context, s RunSpec) (RunResult, error) {
+	if s.Timeout <= 0 {
+		s.Timeout = 30 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.Timeout)
+	defer cancel()
+
+	env := make([]string, 0, len(s.Env))
+	for k, v := range s.Env {
+		env = append(env, k+"="+v)
+	}
+	binds := append(append([]string{}, s.Binds...), s.Volumes...)
+
+	host := map[string]any{
+		"Binds":      binds,
+		"AutoRemove": false,
+	}
+	if s.MemoryMB > 0 {
+		host["Memory"] = s.MemoryMB * 1024 * 1024
+		// ⚠️ Swap capped at the same figure, or the limit is advisory: without
+		// it the kernel lets the process spill into swap and the machine grinds
+		// instead of the build dying.
+		host["MemorySwap"] = s.MemoryMB * 1024 * 1024
+	}
+
+	var created struct {
+		ID string `json:"Id"`
+	}
+	code, err := c.do(ctx, http.MethodPost, "/containers/create", map[string]any{
+		"Image":      s.Image,
+		"Cmd":        s.Cmd,
+		"Env":        env,
+		"HostConfig": host,
+	}, &created)
+	if err != nil {
+		return RunResult{}, err
+	}
+	if code >= 300 || created.ID == "" {
+		return RunResult{}, fmt.Errorf("docker: konteyner yaratilmadi (%d)", code)
+	}
+	id := created.ID
+	defer func() {
+		// ⚠️ Its own context: the one above is already cancelled on a timeout,
+		// and a removal that inherited it would never run — which is exactly
+		// the case that leaves rubbish behind.
+		rm, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_, _ = c.do(rm, http.MethodDelete, "/containers/"+id+"?force=1&v=1", nil, nil)
+	}()
+
+	if code, err := c.do(ctx, http.MethodPost, "/containers/"+id+"/start", nil, nil); err != nil {
+		return RunResult{}, err
+	} else if code >= 300 {
+		return RunResult{}, fmt.Errorf("docker: konteyner ishga tushmadi (%d)", code)
+	}
+
+	var waited struct {
+		StatusCode int `json:"StatusCode"`
+	}
+	if _, err := c.do(ctx, http.MethodPost, "/containers/"+id+"/wait", nil, &waited); err != nil {
+		return RunResult{Output: c.containerLogs(id)}, err
+	}
+	return RunResult{ExitCode: waited.StatusCode, Output: c.containerLogs(id)}, nil
+}
+
+// containerLogs is the job's output, by container id rather than by tenant slug.
+//
+// ⚠️ **The tail, not the whole thing.** A Gradle build prints thousands of
+// lines; what a person reading a failed build needs is the end of it, and the
+// rest is a megabyte through a socket for nobody.
+func (c *Client) containerLogs(id string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		"http://docker/containers/"+url.PathEscape(id)+"/logs?stdout=1&stderr=1&tail=120", nil)
+	if err != nil {
+		return ""
+	}
+	res, err := c.http.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer res.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	return strings.TrimSpace(demux(raw))
+}

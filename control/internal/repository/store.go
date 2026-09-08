@@ -48,6 +48,10 @@ type Store struct {
 	// Who sends us customers from outside, and on what terms. See
 	// models/referral.go — not the same thing as the landing's partner logos.
 	Referrers *mongo.Collection
+	// Every build of a restaurant's Android app. ⚠️ The record outlives the
+	// artifact, which is deleted the moment somebody downloads it — see
+	// models/appbuild.go.
+	AppBuilds *mongo.Collection
 
 	// The client tenant databases hang off. Separate from DB so the day tenant
 	// data moves to another server, only this changes.
@@ -74,6 +78,7 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		SupportMessages: db.Collection("support_message"),
 		Reports:         db.Collection("error_group"),
 		Referrers:       db.Collection("referrer"),
+		AppBuilds:       db.Collection("app_build"),
 		tenantClient:    tenantClient,
 	}
 }
@@ -102,6 +107,13 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	if _, err := s.Tenants.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "domains", Value: 1}},
 		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		return err
+	}
+	// The console draws one tenant's builds, newest first — the only question
+	// that page ever asks of this collection.
+	if _, err := s.AppBuilds.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "tenantId", Value: 1}, {Key: "createdAt", Value: -1}},
 	}); err != nil {
 		return err
 	}

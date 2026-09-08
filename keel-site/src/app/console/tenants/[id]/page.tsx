@@ -21,6 +21,7 @@ import ProvisionCard from "@/components/ProvisionCard";
 import InvoicesPanel from "@/components/InvoicesPanel";
 import ExportGrantPanel from "@/components/ExportGrantPanel";
 import TillPanel from "@/components/TillPanel";
+import AppBuildPanel from "@/components/AppBuildPanel";
 import DesignEditor from "@/components/DesignEditor";
 import TenantInsights from "@/components/TenantInsights";
 
@@ -475,6 +476,8 @@ export default function TenantPage() {
             it is rare, it is dangerous, and it should never be the thing a
             hand lands on while scrolling. */}
         <TillPanel tenantId={data.tenant.id} />
+
+        <AppBuildPanel tenantId={data.tenant.id} />
 
         <ExportGrantPanel tenantId={data.tenant.id} />
 

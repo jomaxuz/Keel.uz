@@ -14440,3 +14440,35 @@ Build vaqti: ~9 daqiqa (4 yadro, tenantlar bilan yonma-yon). Bir vaqtda bitta.
 
 **Keyingi**: 5) konsol — tenant sahifasidagi tugma, APK/AAB tanlovi, navbat,
 artefaktni yuklab olish va kalit zaxirasi.
+
+---
+
+## 2026-09-08 (6) — Konsoldagi tugma: navbat, build, yuklab olish ✅
+
+**5-bosqich.** Tenant sahifasida «Android ilova» bo'limi: APK/AAB tanlovi,
+«Build qilish» tugmasi, tarix va yuklab olish.
+
+- `models.AppBuild` + `app_build` kolleksiyasi. **Yozuv artefaktdan uzoq
+  yashaydi**: fayl yuklab olingan zahoti o'chiriladi, qatorda esa versiya,
+  SHA-256 va ikkala ism (kim bosgan, kim olgan) qoladi.
+- `provision.RunOnce` — bir martalik konteyner (chiqish kodi + loglar), xotira
+  shifti 3 GB va `defer` bilan o'chirish: yiqilgan build'lar o'z qatlamini
+  qoldirsa, bir necha o'ndan keyin disk to'ladi va **restoranlar** yiqiladi.
+- Navbat bittalik, ishchi bitta, bir mijozga bitta tugallanmagan build.
+- `versionCode` o'z yozuvlarimizdan sanaladi (Play qat'iy o'sishni talab qiladi).
+- ⚠️ Yuklab olish `<a href>` emas, `fetch` + blob: endpoint bearer token
+  talab qiladi, oddiy havola esa hech nima yubormaydi.
+- ⚠️ Fayl **uzatish tugagandan keyin** o'chiriladi. Birinchi baytda o'chirish
+  uzilgan ulanishni yana to'qqiz daqiqalik build'ga aylantirardi.
+- `latest.apk` nusxasi build skriptidan olib tashlandi — o'chirishdan omon
+  qoladigan nusxa aynan o'chirish oldini olmoqchi bo'lgan narsani qiladi.
+- `docker-compose.saas.yml`: `/opt/keel` **yozish huquqi bilan** (artefakt shu
+  yerdan uzatiladi va shu yerdan o'chiriladi) + `APP_*` muhit o'zgaruvchilari.
+
+Tekshirildi: `go test ./...` (control va tenant), `npm run build` (konsol sayti),
+va yangi testlar — `applicationId` ni konsol va `build.sh` bir xil hisoblashi,
+faqat `ready` build'ning fayli borligi, artefakt yo'li skriptning oxirgi
+qatoridan olinishi, xato logining faqat oxiri saqlanishi.
+
+⚠️ **Hali jonli emas**: konsol yangi kod bilan deploy qilinishi kerak va
+`.env` ga `APP_BUILD_IMAGE=keel-appbuild:latest` qo'yilishi kerak.

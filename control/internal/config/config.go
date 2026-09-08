@@ -92,6 +92,27 @@ type Config struct {
 	// the mode it runs in on a laptop, and the mode it must not crash in.
 	DockerSocket  string
 	TenantImage   string
+	// ---- Building restaurants' Android apps ----
+	//
+	// ⚠️ **Empty AppBuildImage switches the whole feature off**, the way an
+	// empty DockerSocket switches provisioning off: on a laptop there is no
+	// Android toolchain and the console must still open. The button says so
+	// rather than failing.
+	AppBuildImage string
+	// The repository checkout the build script and the app sources live in,
+	// bound into the build container as `/opt/keel`.
+	AppBuildRoot string
+	// A named Docker volume for Gradle's cache. ⚠️ Without it every build
+	// downloads the Gradle distribution and every dependency again — ten
+	// minutes and several hundred megabytes, each time.
+	AppBuildCache string
+	// Keel's own keys, shared by every restaurant's app. ⚠️ The Firebase *app*
+	// id is not here: it is per applicationId, and the pipeline gets it when it
+	// registers one.
+	AppMapsKey         string
+	AppFirebaseProject string
+	AppFirebaseAPIKey  string
+	AppFirebaseSender  string
 	DockerNetwork string
 	// What a tenant container should use to reach Mongo — a name on the shared
 	// network, not this service's own URI.
@@ -177,6 +198,14 @@ func Load() *Config {
 		TrialDays:            atoi(get("TRIAL_DAYS", "14"), 14),
 
 		DockerSocket:    get("DOCKER_SOCKET", ""),
+		AppBuildImage:   get("APP_BUILD_IMAGE", ""),
+		AppBuildRoot:    get("APP_BUILD_ROOT", "/opt/keel"),
+		AppBuildCache:   get("APP_BUILD_CACHE", "keel-gradle-cache"),
+
+		AppMapsKey:         get("APP_MAPS_KEY", ""),
+		AppFirebaseProject: get("APP_FIREBASE_PROJECT", ""),
+		AppFirebaseAPIKey:  get("APP_FIREBASE_API_KEY", ""),
+		AppFirebaseSender:  get("APP_FIREBASE_SENDER", ""),
 		TenantImage:     get("TENANT_IMAGE", "keel-tenant:latest"),
 		DockerNetwork:   get("DOCKER_NETWORK", "keel"),
 		TenantMongoHost: get("TENANT_MONGO_HOST", "mongodb://mongo:27017"),

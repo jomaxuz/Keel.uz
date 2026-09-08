@@ -219,6 +219,20 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			r.Get("/tenants/{id}/till", h.need("provision", h.GetTenantTill))
 			r.Put("/tenants/{id}/till", h.need("provision", h.PutTenantTill))
 
+			// ---- The restaurant's own Android app ----
+			//
+			// ⚠️ **Behind `provision`, because it is the same kind of act**:
+			// it spends the machine's memory for ten minutes and it mints a
+			// signing key that can never be replaced. Reading the history is
+			// open to anybody who can see the tenant.
+			r.Get("/tenants/{id}/app-builds", h.AppBuilds)
+			r.Post("/tenants/{id}/app-build", h.need("provision", h.StartAppBuild))
+			// ⚠️ **Its own path, not under the tenant.** The download deletes
+			// the artifact, so it is addressed by the build it consumes rather
+			// than by the customer it belongs to — a URL that named the tenant
+			// would invite "give me the latest one", which is a file that may
+			// already be gone.
+			r.Get("/app-builds/{buildId}/download", h.need("provision", h.DownloadAppBuild))
 			r.Get("/tenants/{id}/export", h.need("provision", h.GetTenantExport))
 			r.Put("/tenants/{id}/export", h.need("provision", h.PutTenantExport))
 

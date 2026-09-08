@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"keel-control/internal/config"
 	"keel-control/internal/httpx"
 	"keel-control/internal/middleware"
@@ -25,10 +27,21 @@ type Handler struct {
 	// where the socket was deliberately not mounted. Everything else still
 	// works; tenants are recorded and started by hand.
 	Docker *provision.Client
+	// Builds of restaurants' Android apps, waiting for the one machine that can
+	// make them. ⚠️ Depth is small and the worker is single — see
+	// handlers/appbuild.go.
+	appBuilds chan primitive.ObjectID
 }
 
 func New(s *repository.Store, cfg *config.Config) *Handler {
-	h := &Handler{Store: s, Cfg: cfg}
+	h := &Handler{
+		Store: s, Cfg: cfg,
+		// ⚠️ **Made here, not by the worker.** A nil channel in a `select` with
+		// a `default` falls straight to the default — so a press before the
+		// worker started would be reported as "the queue is full", which is a
+		// sentence about the wrong problem.
+		appBuilds: make(chan primitive.ObjectID, appBuildQueue),
+	}
 	if cfg.DockerSocket != "" {
 		h.Docker = provision.New(provision.Config{
 			Socket:      cfg.DockerSocket,

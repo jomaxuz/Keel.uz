@@ -63,6 +63,11 @@ func main() {
 	// health check the deploy script waits on: fifty restaurants restarting
 	// must not be the reason a deploy reports failure.
 	go h.RolloutOnBoot(ctx, 90*time.Second)
+	// ⚠️ **One worker, started here rather than lazily on the first press.** A
+	// queue whose consumer is created by the first producer is a queue that
+	// silently holds everything if that producer ever runs on a path where the
+	// consumer is not made.
+	h.StartAppBuilder(ctx)
 
 	// One measurement a minute, behind keel.uz/status. Its own goroutine
 	// rather than a branch of `maintain`: an hourly status page is not a

@@ -36,6 +36,17 @@ tenantlar bilan yonma-yon turadi; navbatni konsol boshqaradi
 (`/opt/keel/.appbuild.lock`, **absolut yo'l** — `$HOME` dagi qulf serverni emas,
 foydalanuvchini qulflaydi).
 
+## Artefakt bir marta yashaydi
+
+Konsol faylni **yuklab olingan zahoti o'chiradi** — har build 2,5 MB, va hech
+kim tozalamaydigan papka har mijoz uchun ishlaydigan mashinada turadi. Yozuvi
+esa qoladi: versiya, SHA-256 va ikkala ism. «Do'konda qaysi versiya turibdi?»
+degan savol oylar keyin beriladi, va fayl tizimi unga javob bera olmaydi.
+
+⚠️ **Fayl uzatish tugagandan keyin o'chiriladi, boshlanganda emas.** Birinchi
+baytda o'chirish uzilgan ulanishni yana to'qqiz daqiqalik build'ga aylantiradi,
+va ikkinchi urinish hech nima topmaydi.
+
 ## Imzo kalitlari
 
 `/opt/keel/appkeys/<slug>/release.jks` — **bir marta yaratiladi va hech qachon

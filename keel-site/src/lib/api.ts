@@ -314,6 +314,83 @@ export interface TenantLive {
 export const tenantLive = (id: string) =>
   req<TenantLive>(`/tenants/${id}/live`);
 
+// ---- The restaurant's own Android app ----
+//
+// ⚠️ **The artifact is deleted the moment it has been downloaded**, and the row
+// stays. Two and a half megabytes per build on the machine that serves every
+// customer adds up to a directory nobody prunes; but "which version is on the
+// store", asked months later, is a question a filesystem cannot answer. So the
+// screen shows a history whose files are mostly gone, and says so.
+
+export interface AppBuild {
+  id: string;
+  slug: string;
+  /** "apk" — installs on a phone. "aab" — what Play accepts, and cannot be
+   *  installed at all. ⚠️ Asked before the build, because guessing wrong costs
+   *  nine minutes and is found out at the end of an upload. */
+  format: "apk" | "aab";
+  /** queued · building · ready · taken · failed */
+  status: string;
+  applicationId?: string;
+  versionCode?: number;
+  versionName?: string;
+  size?: number;
+  /** ⚠️ Kept after the file is gone: the only way to answer "is the APK on my
+   *  laptop the one you built me". */
+  sha256?: string;
+  error?: string;
+  by?: string;
+  downloadedBy?: string;
+  downloadedAt?: string;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
+export const appBuilds = (tenantId: string) =>
+  req<{ builds: AppBuild[] }>(`/tenants/${tenantId}/app-builds`);
+
+export const startAppBuild = (tenantId: string, format: "apk" | "aab") =>
+  req<AppBuild>(`/tenants/${tenantId}/app-build`, {
+    method: "POST",
+    body: JSON.stringify({ format }),
+  });
+
+/** Fetch the artifact and hand it to the browser.
+ *
+ *  ⚠️ **Not an `<a href>`.** The endpoint needs the console's bearer token, and
+ *  a plain link sends none — which arrives as "sessiya tugagan" on a button that
+ *  looks like an ordinary download. So the file comes through `fetch` and is
+ *  handed over as a blob.
+ *
+ *  ⚠️ **The server deletes its copy once the transfer completes**, so a failure
+ *  here has to be visible: a silent catch would leave somebody believing they
+ *  have a file they do not. */
+export async function downloadAppBuild(build: AppBuild): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${API}/app-builds/${build.id}/download`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(
+      (text ? (JSON.parse(text) as { error?: string }).error : "") ??
+        res.statusText,
+    );
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${build.slug}-${build.versionName ?? "1.0.0"}.${build.format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // ⚠️ Revoked, or the blob stays in memory for the life of the tab — and these
+  // are megabytes, on a page somebody leaves open all day.
+  URL.revokeObjectURL(url);
+}
+
 // ---- The server everything runs on ----
 
 export interface HostStats {
