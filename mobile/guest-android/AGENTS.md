@@ -43,3 +43,18 @@ sozlanadi (`push/Push.kt`), va satrlar `brand.properties` da.
 ⚠️ **Bo'sh kalit — o'chirilgan imkoniyat, qulash emas.** Xarita kaliti ham,
 Firebase qiymatlari ham bo'sh bo'lishi mumkin: ilova ishlaydi, faqat o'sha bitta
 narsani qilmaydi.
+
+⚠️ **Xarita — uchta dvigatel, tanlov restoranniki.** `restaurant.mapProvider`
+qaysi biri chizishini hal qiladi (bo'sh — 2GIS), va kalit ham o'sha profildan
+keladi. Google va Yandex — native SDK; **2GIS — WebView** ichida o'zining
+MapGL'i, chunki 2GIS'ning olinadigan Android SDK'si yo'q. Koordinata tartibi
+(`[lng,lat]` va `lat,lng`) faqat `MapEngines.kt` da o'giriladi — uni chaqiruvchi
+tomonda qilish restoranni Orol dengiziga qo'yadi.
+
+⚠️ **Savat hisobga kirishni talab qiladi.** Menyu, taom va narx ochiq qoladi;
+savatga o'tganda kirish so'raladi. Sababi — restoran buyurtmani qaytib
+qo'ng'iroq qila oladigan odamga bog'lashni xohlaydi.
+
+⚠️ **Demo SMS serverdan keladi**, ilovaning o'z bayrog'idan emas: SMS shlyuzi
+ulanmagan bo'lsa `/auth/phone/request` javobida `demo: true` va `code` bo'ladi.
+Ilova buni ko'rsatadi va maydonga qo'yadi.

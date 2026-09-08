@@ -129,6 +129,30 @@ data class Restaurant(
     val coverUrl: String = "",
     val phones: List<String> = emptyList(),
     val currency: String = "",
+
+    // ---- Which map this restaurant's app draws ----
+    //
+    // ⚠️ **The provider is the restaurant's setting, read at runtime**, exactly
+    // as the site reads it. The app carries all three engines and picks one; the
+    // alternative — one engine chosen when the app was built — would mean a
+    // restaurant that switches provider in the panel waits for a new release,
+    // and their site and their app disagree about the map in the meantime.
+    //
+    // ⚠️ **Empty is 2GIS**, and it has to stay that way: every install that
+    // predates this field is on 2GIS, and reading the zero value as anything
+    // else would change the map under all of them. The same rule the site
+    // follows (`lib/map/config.ts`) and the same rule an empty `source` follows
+    // in the catalogue.
+    val mapProvider: String = "",
+    /** The 2GIS MapGL key. Public by nature — the protection is the domain
+     *  restriction in the provider's own console, never secrecy. */
+    val mapApiKey: String = "",
+    val mapYandexKey: String = "",
+    /** ⚠️ The **browser** key, kept for completeness; the Android SDK refuses a
+     *  key restricted by domain. The app's Google map uses `mapAndroidKey`,
+     *  which the panel asks for separately. */
+    val mapGoogleKey: String = "",
+    val mapAndroidKey: String = "",
     /** Where the restaurant is, so the address picker opens somewhere useful.
      *
      *  ⚠️ **The map opens on the restaurant, not on the guest.** A location
@@ -136,7 +160,18 @@ data class Restaurant(
      *  permission most people refuse, and a map that opens on the null island
      *  is a map somebody closes. */
     val address: GeoPoint = GeoPoint(),
-)
+) {
+    /** Which engine draws the picker. ⚠️ Empty is 2GIS — see the field's note. */
+    val provider: String get() = if (mapProvider.isBlank()) "2gis" else mapProvider
+
+    /** The key that engine needs, or empty. */
+    val mapKey: String
+        get() = when (provider) {
+            "yandex" -> mapYandexKey
+            "google" -> mapAndroidKey
+            else -> mapApiKey
+        }
+}
 
 /** A point on the map, in the order the server writes it. ⚠️ `lat` then `lng`,
  *  and every provider disagrees about that — the coordinate order lives in one
@@ -316,6 +351,17 @@ data class SignIn(
 data class CodeSent(
     val sent: Boolean = true,
     val retryAfter: Int = 0,
+    /** No SMS gateway is configured, so the server is handing the code back
+     *  instead of sending it.
+     *
+     *  ⚠️ **The server decides this, never the app.** A phone that showed codes
+     *  because of its own build flag would show them on a real restaurant the
+     *  day somebody shipped the wrong variant. The site reads the same two
+     *  fields for the same reason. */
+    val demo: Boolean = false,
+    /** ⚠️ Present only when `demo` is true — the server never returns a real
+     *  code that was actually sent by SMS. */
+    val code: String = "",
 )
 
 /** The points, and how they are earned and spent here. */

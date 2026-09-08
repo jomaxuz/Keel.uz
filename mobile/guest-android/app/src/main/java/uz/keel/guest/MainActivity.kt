@@ -178,7 +178,17 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
                 )
 
                 Where.Tabs -> when (current) {
-                    "cart" -> CartScreen(app.cart, lang, tabsInset) { where = Where.Checkout }
+                    "cart" -> CartScreen(
+                        cart = app.cart,
+                        lang = lang,
+                        signedIn = signedIn,
+                        bottomInset = tabsInset,
+                        // ⚠️ Sends them to the account tab rather than opening a
+                        // form here: one sign-in screen, in the place they will
+                        // look for it again afterwards.
+                        onSignIn = { tab = "account" },
+                        onCheckout = { where = Where.Checkout },
+                    )
                     "orders" -> OrdersTab(app.placed, tabsInset) { where = Where.Tracking(it) }
                     "account" -> AccountScreen(
                         api = app.api,

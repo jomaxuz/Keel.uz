@@ -103,7 +103,17 @@ fun CheckoutScreen(
         MapPickerScreen(
             // ⚠️ Opens on the restaurant, not on the guest: see MapPickerScreen.
             start = point ?: restaurant?.address ?: GeoPoint(),
-            hasKey = Brand.mapsKey.isNotEmpty(),
+            // ⚠️ **The restaurant's own setting, read at runtime.** The build's
+            // baked-in Google key is only the fallback for a restaurant that has
+            // not filled in its own — see Restaurant.mapKey.
+            provider = restaurant?.provider ?: "2gis",
+            mapKey = (restaurant?.mapKey ?: "").ifBlank {
+                if (restaurant?.provider == "google" || restaurant == null) {
+                    Brand.mapsKey
+                } else {
+                    ""
+                }
+            },
             onClose = { picking = false },
             onPicked = {
                 point = it

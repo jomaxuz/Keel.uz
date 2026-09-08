@@ -10,6 +10,7 @@ import uz.keel.guest.data.MenuGroup
 import uz.keel.guest.data.MenuItem
 import uz.keel.guest.data.Order
 import uz.keel.guest.data.OrderQuote
+import uz.keel.guest.data.Restaurant
 import uz.keel.guest.data.RestaurantResponse
 import uz.keel.guest.data.pick
 
@@ -172,5 +173,35 @@ class WireShapeTest {
         // ⚠️ Computed by the server from the branch's hours: a phone's clock is
         // the one thing this product never trusts.
         assertFalse(res.isOpenNow)
+    }
+
+    /** ⚠️ **Empty is 2GIS, and it has to stay that way.** Every install that
+     *  predates the setting runs on 2GIS; reading the zero value as anything
+     *  else would change the map under all of them at once — the same rule an
+     *  empty `source` follows in the catalogue, and the one the site follows. */
+    @Test
+    fun `an unset map provider is 2gis, and each provider takes its own key`() {
+        val plain = json.decodeFromString<Restaurant>("""{"name":"X"}""")
+        assertEquals("2gis", plain.provider)
+
+        val twogis = json.decodeFromString<Restaurant>(
+            """{"name":"X","mapProvider":"","mapApiKey":"GIS","mapYandexKey":"Y",
+                "mapAndroidKey":"A"}""",
+        )
+        assertEquals("GIS", twogis.mapKey)
+
+        val yandex = json.decodeFromString<Restaurant>(
+            """{"name":"X","mapProvider":"yandex","mapApiKey":"GIS","mapYandexKey":"Y",
+                "mapAndroidKey":"A"}""",
+        )
+        assertEquals("yandex", yandex.provider)
+        assertEquals("Y", yandex.mapKey)
+
+        // ⚠️ Google takes `mapAndroidKey`, never `mapGoogleKey`: that one is the
+        // browser key, restricted by domain, and the Android SDK refuses it.
+        val google = json.decodeFromString<Restaurant>(
+            """{"name":"X","mapProvider":"google","mapGoogleKey":"WEB","mapAndroidKey":"A"}""",
+        )
+        assertEquals("A", google.mapKey)
     }
 }

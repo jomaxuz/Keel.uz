@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -43,8 +44,48 @@ import uz.keel.guest.t
 // Every figure a guest is actually charged comes from `/orders/quote`.
 
 @Composable
-fun CartScreen(cart: Cart, lang: String, bottomInset: PaddingValues, onCheckout: () -> Unit) {
+fun CartScreen(
+    cart: Cart,
+    lang: String,
+    signedIn: Boolean,
+    bottomInset: PaddingValues,
+    onSignIn: () -> Unit,
+    onCheckout: () -> Unit,
+) {
     val c = KeelTheme.colors
+
+    // ---- Signed out ----
+    //
+    // ⚠️ **The basket is not shown at all, rather than shown and refused at the
+    // end.** Letting somebody fill it and meeting them with a sign-in form at
+    // the checkout is the worst order of those two screens: the work is already
+    // done and the demand arrives when they are closest to paying.
+    //
+    // ⚠️ **It says what the number is for.** "Sign in" with no reason reads as
+    // a form standing between a hungry person and dinner; "so the restaurant
+    // can ring you back" is a sentence somebody agrees with.
+    if (!signedIn) {
+        Column(
+            Modifier.fillMaxSize().padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                t.cart.signInTitle,
+                style = MaterialTheme.typography.titleLarge,
+                color = c.ink,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                t.cart.signInHint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.muted,
+                textAlign = TextAlign.Center,
+            )
+            PrimaryButton(t.cart.signInAction) { onSignIn() }
+        }
+        return
+    }
 
     if (cart.lines.isEmpty()) {
         Column(

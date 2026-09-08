@@ -64,6 +64,35 @@ def fitted(logo: Image.Image, canvas: int, safe: float) -> Image.Image:
     return out
 
 
+def covered(logo: Image.Image, canvas: int) -> Image.Image:
+    """The logo filling the whole square, cropped to fit.
+
+    ⚠️ **This is what the launcher icon uses, and it is a deliberate trade.** A
+    logo *fitted* inside the icon leaves a border of ground around it — which is
+    what shipped first, and read as a small mark floating in a white box rather
+    than as the restaurant's icon. Filling looks like the restaurant.
+
+    ⚠️ **The cost is the edges, and it is unavoidable.** Whatever fills a square
+    is then cropped again by whichever mask the launcher applies — a circle, a
+    squircle — so anything in the outer eighteenth is gone. A wide wordmark
+    loses its ends. A restaurant whose logo cannot survive that needs a square
+    mark for the icon, and the panel is where they would supply one.
+
+    ⚠️ **Composited onto white rather than kept transparent.** A logo drawn as
+    dark ink on nothing would otherwise fill the icon with black.
+    """
+    ground = Image.new("RGBA", (canvas, canvas), (255, 255, 255, 255))
+    scale = max(canvas / logo.width, canvas / logo.height)
+    size = (max(1, round(logo.width * scale)), max(1, round(logo.height * scale)))
+    scaled = logo.resize(size, Image.LANCZOS)
+    ground.paste(
+        scaled,
+        ((canvas - scaled.width) // 2, (canvas - scaled.height) // 2),
+        scaled,
+    )
+    return ground
+
+
 def on_white(img: Image.Image) -> Image.Image:
     ground = Image.new("RGBA", img.size, (255, 255, 255, 255))
     ground.paste(img, (0, 0), img)
@@ -84,47 +113,53 @@ def main() -> int:
     # duplicate-resource error, and relying on a qualifier to out-rank the
     # default is the kind of thing that works until somebody adds a density.
     # The vectors exist so a fresh checkout runs; a branded build replaces them.
-    for placeholder in ("brand_logo.xml", "ic_launcher_foreground.xml"):
+    for placeholder in (
+        "brand_logo.xml",
+        "ic_launcher_foreground.xml",
+        "ic_launcher_background.xml",
+    ):
         (res / "drawable" / placeholder).unlink(missing_ok=True)
 
     # ---- The splash mark ----
     (res / "drawable").mkdir(parents=True, exist_ok=True)
     fitted(logo, 768, SPLASH_SAFE).save(res / "drawable" / "brand_logo.png")
 
-    # ---- The adaptive icon's foreground ----
+    # ---- The launcher icon: the logo, edge to edge ----
     #
-    # ⚠️ **`drawable`, not `mipmap`, because that is what the icon asks for.**
-    # `mipmap-anydpi-v26/ic_launcher.xml` names `@drawable/ic_launcher_foreground`
-    # — a foreground written to `mipmap-*` is a different resource entirely, so
-    # the build succeeds, the icon is generated, and every phone shows the
-    # placeholder. Nothing errors and nobody notices until an app is installed.
+    # ⚠️ **The logo goes in the *background* layer and the foreground is left
+    # empty.** An adaptive icon's foreground is drawn inside the mask with a
+    # margin and parallax; the background is what fills the tile. Putting a
+    # full-bleed logo in the foreground would shrink it again — which is the
+    # thing this is meant to stop.
     #
     # 432px is the 108dp canvas at xxxhdpi; every density scales down from it.
-    fg = fitted(logo, 432, SAFE)
+    bg = covered(logo, 432)
     for name, size in DENSITIES.items():
         drawable = res / f"drawable-{name}"
         drawable.mkdir(parents=True, exist_ok=True)
-        # The foreground layer keeps its transparency: the white comes from the
-        # background layer, which is a solid colour and needs no file.
         edge = size * 108 // 48
-        fg.resize((edge, edge), Image.LANCZOS).save(
+        bg.resize((edge, edge), Image.LANCZOS).save(
+            drawable / "ic_launcher_background.png"
+        )
+        # ⚠️ A transparent foreground rather than no foreground: the adaptive
+        # icon element requires one, and a missing drawable is a build error
+        # rather than an empty layer.
+        Image.new("RGBA", (edge, edge), (0, 0, 0, 0)).save(
             drawable / "ic_launcher_foreground.png"
         )
 
-        # ⚠️ **The legacy square and round icons as well.** minSdk is 26, so the
-        # adaptive icon covers every phone that can install this — but a few
-        # launchers and the recents switcher still read the legacy names, and
-        # the one that finds them missing draws a grey android instead.
+        # The legacy square and round icons, for the launchers and the recents
+        # switcher that still read those names.
         mipmap = res / f"mipmap-{name}"
         mipmap.mkdir(parents=True, exist_ok=True)
-        square = on_white(fitted(logo, size, SAFE))
+        square = covered(logo, size).convert("RGB")
         square.save(mipmap / "ic_launcher.png")
         square.save(mipmap / "ic_launcher_round.png")
 
     # ---- What the store listing needs ----
     # ⚠️ 512×512, no alpha: Play refuses an icon with a transparent channel, and
     # the refusal arrives at the end of an upload somebody has waited for.
-    on_white(fitted(logo, 512, SAFE)).save(res / "play_icon.png")
+    covered(logo, 512).convert("RGB").save(res / "play_icon.png")
     print("icons written to", res)
     return 0
 

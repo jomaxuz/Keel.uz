@@ -78,7 +78,10 @@ import uz.keel.guest.t
 @Composable
 fun MapPickerScreen(
     start: GeoPoint,
-    hasKey: Boolean,
+    /** Which engine to draw with and the key it needs — the restaurant's own
+     *  setting, read at runtime so the app agrees with its site. */
+    provider: String,
+    mapKey: String,
     onClose: () -> Unit,
     onPicked: (GeoPoint) -> Unit,
 ) {
@@ -86,19 +89,13 @@ fun MapPickerScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val geocoder = remember { Geocoder() }
+    val hasKey = mapKey.isNotEmpty()
 
     // ⚠️ **A restaurant with no maps key gets a sentence, not a grey grid.** The
     // key is their setting and its absence is not the guest's fault, so the text
     // points at the way round it — the note field and the phone number.
     if (!hasKey) {
-        Column(
-            Modifier.fillMaxSize().padding(28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(t.map.noKey, style = MaterialTheme.typography.bodyLarge, color = c.ink)
-            GhostButton(t.common.back) { onClose() }
-        }
+        MapMissing(t.map.noKey, onClose)
         return
     }
 
@@ -109,18 +106,30 @@ fun MapPickerScreen(
     var query by remember { mutableStateOf("") }
     var matches by remember { mutableStateOf<List<Place>>(emptyList()) }
     var denied by remember { mutableStateOf(false) }
+    /** Where the map is pointing. ⚠️ Held here rather than read off one engine:
+     *  Google reports through its camera state, the other two through a
+     *  callback, and the panel below has to read one thing. */
+    var centre by remember { mutableStateOf(start.lat to start.lng) }
 
     // ⚠️ **Reverse geocoding is debounced on the camera, not fired per frame.**
     // A drag emits a position every few milliseconds; one request each would
     // exhaust Nominatim's rate limit in a second and get the whole install base
     // blocked — which arrives as "search is broken" from every guest at once.
-    LaunchedEffect(camera) {
+    LaunchedEffect(camera, provider) {
+        if (provider != "google") return@LaunchedEffect
         snapshotFlow { camera.position.target }
             .debounce(600)
             .distinctUntilChanged()
-            .collect { target ->
-                geocoder.reverse(target.latitude, target.longitude)?.let { address = it }
-            }
+            .collect { target -> centre = target.latitude to target.longitude }
+    }
+
+    // ⚠️ **One reverse-geocode path for all three engines, and it is debounced.**
+    // A drag emits a position every few milliseconds; one request each would
+    // exhaust Nominatim's rate limit in a second and get the whole install base
+    // blocked — which arrives as "search is broken" from every guest at once.
+    LaunchedEffect(centre) {
+        kotlinx.coroutines.delay(600)
+        geocoder.reverse(centre.first, centre.second)?.let { address = it }
     }
 
     val permission = rememberLauncherForActivityResult(
@@ -138,19 +147,44 @@ fun MapPickerScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = camera,
-            properties = MapProperties(isMyLocationEnabled = false),
-            // ⚠️ The stock controls are off: they sit under our own glass panels
-            // and Google's zoom buttons in the corner of a picker are a second
-            // way to do what pinching already does.
-            uiSettings = MapUiSettings(
-                zoomControlsEnabled = false,
-                myLocationButtonEnabled = false,
-                mapToolbarEnabled = false,
-            ),
-        )
+        // ---- The engine the restaurant chose ----
+        //
+        // ⚠️ **One `when`, and the coordinate order is each engine's own
+        // business.** 2GIS wants [lng, lat] and the other two want them the
+        // other way round; converting in the caller is how a restaurant ends up
+        // in the Aral Sea. See MapEngines.kt.
+        when (provider) {
+            "yandex" -> {
+                val ready = remember(mapKey) { YandexMap.prepare(context, mapKey) }
+                if (ready) {
+                    YandexPicker(start, { la, ln -> centre = la to ln })
+                } else {
+                    // ⚠️ Not a crash and not a grey grid: MapKit refuses to
+                    // start without a valid key, and the guest is told what to
+                    // do rather than shown a blank rectangle.
+                    MapMissing(t.map.noKey, onClose)
+                    return
+                }
+            }
+
+            "google" -> GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = camera,
+                properties = MapProperties(isMyLocationEnabled = false),
+                // ⚠️ The stock controls are off: they sit under our own glass
+                // panels, and Google's zoom buttons are a second way to do what
+                // pinching already does.
+                uiSettings = MapUiSettings(
+                    zoomControlsEnabled = false,
+                    myLocationButtonEnabled = false,
+                    mapToolbarEnabled = false,
+                ),
+            )
+
+            // 2GIS, and anything unrecognised: an empty provider is 2GIS, which
+            // is what every install predating the setting runs on.
+            else -> TwoGisPicker(mapKey, start, { la, ln -> centre = la to ln })
+        }
 
         // The fixed pin. ⚠️ Lifted by half its height so its **point**, not its
         // centre, sits on the map's centre — the difference is about fifteen
@@ -232,8 +266,7 @@ fun MapPickerScreen(
                 }
                 Box(Modifier.weight(1f)) {
                     PrimaryButton(t.map.confirm) {
-                        val at = camera.position.target
-                        onPicked(GeoPoint(at.latitude, at.longitude, address))
+                        onPicked(GeoPoint(centre.first, centre.second, address))
                     }
                 }
             }
@@ -267,5 +300,24 @@ private suspend fun moveToMe(
                 ),
             )
         }
+    }
+}
+
+/** What a guest sees when the restaurant has not set a map key up.
+ *
+ *  ⚠️ **A sentence, not a grey rectangle.** The key is the restaurant's setting
+ *  and its absence is not the guest's fault, so the text points at the way round
+ *  it — the note field and the phone number — rather than leaving somebody
+ *  staring at an empty map wondering what they did wrong. */
+@Composable
+private fun MapMissing(message: String, onClose: () -> Unit) {
+    val c = KeelTheme.colors
+    Column(
+        Modifier.fillMaxSize().padding(28.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(message, style = MaterialTheme.typography.bodyLarge, color = c.ink)
+        GhostButton(t.common.back) { onClose() }
     }
 }

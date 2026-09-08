@@ -103,6 +103,27 @@ class Cart(context: Context) {
     }
 
     val count: Int get() = lines.sumOf { it.qty }
+
+    /** How many of this dish are in the basket, across every variation of it.
+     *
+     *  ⚠️ **Summed across lines, not read off one.** A plov with extra meat and
+     *  a plain one are two lines (see CartLine.key); the card on the menu shows
+     *  one dish, so it has to show the total — otherwise a guest who added both
+     *  sees "1" on a card holding two. */
+    fun qtyOf(menuItemId: String): Int =
+        lines.filter { it.menuItemId == menuItemId }.sumOf { it.qty }
+
+    /** The plain line of a dish: no options, no note.
+     *
+     *  ⚠️ **The stepper on the menu card only ever touches this one.** A dish
+     *  chosen with options was configured on the sheet, and a minus on a card
+     *  that silently removed somebody's "no onion" would be the card editing a
+     *  decision it never showed. Where a plain line does not exist, the card
+     *  sends the guest to the sheet instead. */
+    fun plainLine(menuItemId: String): CartLine? =
+        lines.firstOrNull {
+            it.menuItemId == menuItemId && it.options.isEmpty() && it.comment.isEmpty()
+        }
     val subtotal: Double get() = lines.sumOf { it.lineTotal }
 
     fun add(line: CartLine) {

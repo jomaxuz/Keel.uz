@@ -228,6 +228,8 @@ private fun SignInCard(api: KeelApi, onFailed: (String) -> Unit, onDone: (User) 
      *  a minute is a button somebody presses five times, and every press either
      *  costs the restaurant an SMS or teaches the guest the app is broken. */
     var wait by remember { mutableIntStateOf(0) }
+    /** The code the server handed back because no SMS gateway is connected. */
+    var demo by remember { mutableStateOf("") }
     val failedWord = t.account.failed
 
     LaunchedEffect(wait) {
@@ -259,6 +261,14 @@ private fun SignInCard(api: KeelApi, onFailed: (String) -> Unit, onDone: (User) 
                         val res = api.requestCode(phone.trim())
                         sent = true
                         wait = res.retryAfter
+                        // ⚠️ **Shown and filled in, because otherwise there is
+                        // no way in at all.** With no SMS gateway configured the
+                        // server hands the code back rather than sending it —
+                        // the same thing the site does — and a screen that
+                        // ignored it would leave a demo restaurant unable to
+                        // sign in to its own app.
+                        demo = if (res.demo) res.code else ""
+                        if (res.demo) code = res.code
                     } catch (e: Throwable) {
                         onFailed(if (e is ApiError) e.message else failedWord)
                     } finally {
@@ -272,6 +282,13 @@ private fun SignInCard(api: KeelApi, onFailed: (String) -> Unit, onDone: (User) 
                 style = MaterialTheme.typography.labelMedium,
                 color = c.muted,
             )
+            if (demo.isNotEmpty()) {
+                Text(
+                    t.account.demoNote(demo),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.warn,
+                )
+            }
             GlassField(
                 code,
                 { code = it },
@@ -302,7 +319,12 @@ private fun SignInCard(api: KeelApi, onFailed: (String) -> Unit, onDone: (User) 
                 enabled = wait <= 0,
             ) {
                 scope.launch {
-                    runCatching { wait = api.requestCode(phone.trim()).retryAfter }
+                    runCatching {
+                        val res = api.requestCode(phone.trim())
+                        wait = res.retryAfter
+                        demo = if (res.demo) res.code else ""
+                        if (res.demo) code = res.code
+                    }
                 }
             }
         }

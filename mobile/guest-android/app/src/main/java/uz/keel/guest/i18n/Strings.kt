@@ -41,6 +41,10 @@ data class Dict(
         val name: String,
         val code: String,
         val codeSent: (String) -> String,
+        /** ⚠️ **Said plainly, or a code on screen looks like a bug.** The
+         *  restaurant has not connected an SMS gateway yet, so the server hands
+         *  the code back instead of sending it. */
+        val demoNote: (String) -> String,
         val sendCode: String,
         val resend: String,
         val resendIn: (Int) -> String,
@@ -102,6 +106,12 @@ data class Dict(
         val subtotal: String,
         val checkout: String,
         val clear: String,
+        // ---- Signed out ----
+        // ⚠️ The basket is behind the sign-in now: a restaurant wants the order
+        // attached to somebody it can ring back.
+        val signInTitle: String,
+        val signInHint: String,
+        val signInAction: String,
     )
 
     data class Checkout(
@@ -207,6 +217,10 @@ private val uz = Dict(
         subtotal = "Taomlar",
         checkout = "Rasmiylashtirish",
         clear = "Tozalash",
+        signInTitle = "Buyurtma berish uchun hisobga kiring",
+        signInHint = "Telefon raqamingiz buyurtmani sizga bog'lash va kerak bo'lsa " +
+            "qo'ng'iroq qilish uchun kerak. Kirish bir daqiqa oladi.",
+        signInAction = "Hisobga kirish",
     ),
     checkout = Dict.Checkout(
         title = "Buyurtma",
@@ -280,6 +294,7 @@ private val uz = Dict(
         name = "Ismingiz",
         code = "SMS kod",
         codeSent = { phone -> "$phone raqamiga kod yuborildi" },
+        demoNote = { code -> "Demo rejim: SMS ulanmagan, kod — $code" },
         sendCode = "Kod yuborish",
         resend = "Qayta yuborish",
         resendIn = { sec -> "Qayta yuborish — $sec soniyadan keyin" },
@@ -336,6 +351,10 @@ private val ru = Dict(
         subtotal = "Блюда",
         checkout = "Оформить",
         clear = "Очистить",
+        signInTitle = "Войдите, чтобы оформить заказ",
+        signInHint = "Номер нужен, чтобы привязать заказ к вам и при необходимости " +
+            "позвонить. Вход занимает минуту.",
+        signInAction = "Войти",
     ),
     checkout = Dict.Checkout(
         title = "Заказ",
@@ -405,6 +424,7 @@ private val ru = Dict(
         name = "Ваше имя",
         code = "Код из SMS",
         codeSent = { phone -> "Код отправлен на $phone" },
+        demoNote = { code -> "Демо-режим: SMS не подключён, код — $code" },
         sendCode = "Отправить код",
         resend = "Отправить снова",
         resendIn = { sec -> "Отправить снова — через $sec сек" },
@@ -461,6 +481,10 @@ private val en = Dict(
         subtotal = "Food",
         checkout = "Checkout",
         clear = "Clear",
+        signInTitle = "Sign in to place an order",
+        signInHint = "Your number is how the order is tied to you and how the " +
+            "restaurant can ring you back. It takes a minute.",
+        signInAction = "Sign in",
     ),
     checkout = Dict.Checkout(
         title = "Order",
@@ -530,6 +554,7 @@ private val en = Dict(
         name = "Your name",
         code = "Code from the SMS",
         codeSent = { phone -> "A code was sent to $phone" },
+        demoNote = { code -> "Demo mode: no SMS gateway, the code is $code" },
         sendCode = "Send the code",
         resend = "Send again",
         resendIn = { sec -> "Send again in $sec s" },

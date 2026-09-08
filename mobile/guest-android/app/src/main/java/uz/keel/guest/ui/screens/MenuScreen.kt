@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.Icon
@@ -48,12 +51,15 @@ import uz.keel.design.GhostButton
 import uz.keel.design.GlassField
 import uz.keel.design.KeelTheme
 import uz.keel.design.LangSwitch
+import uz.keel.design.GlassStepper
 import uz.keel.design.Money
 import uz.keel.design.glass
 import uz.keel.design.imageUrl
+import uz.keel.design.money
 import uz.keel.guest.Brand
 import uz.keel.guest.Cart
 import uz.keel.guest.Favorites
+import uz.keel.guest.cartLineOf
 import uz.keel.guest.data.ApiError
 import uz.keel.guest.data.KeelApi
 import uz.keel.guest.data.MenuGroup
@@ -251,24 +257,67 @@ fun MenuScreen(
                         color = c.ink,
                     )
                 }
-                items(group.items, key = { it.id }) { item ->
-                    DishCard(
-                        item = item,
-                        lang = lang,
-                        // ⚠️ **Not drawn at all when signed out.** A heart that
-                        // opened a sign-in form would be this app asking for a
-                        // phone number on the menu — the one thing it never does
-                        // before somebody has eaten.
-                        favorite = if (api.signedIn()) favorites.holds(item.id) else null,
-                        onFavorite = {
-                            scope.launch {
-                                runCatching {
-                                    favorites.replace(api.toggleFavorite(item.id).favorites)
-                                }
+                // ⚠️ **Two to a row, and the pairs are made here rather than by
+                // a grid.** A `LazyVerticalGrid` cannot be nested inside this
+                // list — two lazy scrollers on one axis is a runtime crash — and
+                // the categories have to stay as full-width headings between the
+                // rows. Chunking is the shape that gives both.
+                items(group.items.chunked(2), key = { it.first().id }) { pair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        pair.forEach { item ->
+                            Box(Modifier.weight(1f)) {
+                                DishCard(
+                                    item = item,
+                                    lang = lang,
+                                    qty = cart.qtyOf(item.id),
+                                    // ⚠️ **Not drawn at all when signed out.** A
+                                    // heart that opened a sign-in form would be
+                                    // this app asking for a phone number on the
+                                    // menu.
+                                    favorite = if (api.signedIn()) {
+                                        favorites.holds(item.id)
+                                    } else {
+                                        null
+                                    },
+                                    onFavorite = {
+                                        scope.launch {
+                                            runCatching {
+                                                favorites.replace(
+                                                    api.toggleFavorite(item.id).favorites,
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onOpen = { opened = item },
+                                    onAdd = {
+                                        // ⚠️ **A dish with a compulsory question
+                                        // goes to the sheet, never straight into
+                                        // the basket.** Adding it here would put
+                                        // a pizza of no chosen size on somebody's
+                                        // order — the same rule the sheet's
+                                        // disabled button follows.
+                                        if (item.options.any { g -> g.required }) {
+                                            opened = item
+                                        } else {
+                                            cart.add(cartLineOf(item, 1, "", emptyMap()))
+                                        }
+                                    },
+                                    onStep = { delta ->
+                                        val line = cart.plainLine(item.id)
+                                        if (line == null) {
+                                            opened = item
+                                        } else {
+                                            cart.setQty(line.key, line.qty + delta)
+                                        }
+                                    },
+                                )
                             }
-                        },
-                        onOpen = { opened = item },
-                    )
+                        }
+                        // ⚠️ An odd last dish keeps its half of the row rather
+                        // than stretching across it: a card twice the width of
+                        // every other reads as a different kind of thing.
+                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -284,24 +333,36 @@ fun MenuScreen(
     }
 }
 
-/** One dish, as a guest reads it: a photograph, a name, a price.
+/** One dish on the menu: a photograph, a name, a price, and a way to add it.
  *
- *  ⚠️ **A row rather than a grid tile.** A grid fits more dishes on a screen and
- *  gives each of them a name truncated to two words — and the names in a
- *  restaurant menu here are long ("Qo'y go'shtli qazon kabob"). A guest
- *  scrolling past six dishes they can read is better served than one scanning
- *  twelve they cannot. */
+ *  ⚠️ **Two to a row rather than one.** A full-width row fits a longer name —
+ *  and the names here are long ("Qo'y go'shtli qazon kabob") — but it shows half
+ *  as many dishes per screen, and a menu is browsed by looking rather than by
+ *  reading. The name is given two lines to make up for the narrower card.
+ *
+ *  ⚠️ **The add control is on the card, so the commonest order never opens a
+ *  sheet.** A guest ordering two of something they know should not have to open
+ *  a dish, read it and come back. A dish with a compulsory question is the
+ *  exception: `+` opens the sheet, because adding it here would put a pizza of
+ *  no chosen size on the order.
+ *
+ *  ⚠️ **The stepper only ever edits the plain line** — the one with no options
+ *  and no note. A minus that silently removed somebody's "no onion" would be
+ *  this card editing a decision it never showed them. */
 @Composable
 private fun DishCard(
     item: MenuItem,
     lang: String,
+    qty: Int,
     favorite: Boolean?,
     onFavorite: () -> Unit,
     onOpen: () -> Unit,
+    onAdd: () -> Unit,
+    onStep: (Int) -> Unit,
 ) {
     val c = KeelTheme.colors
     val out = !item.isAvailable
-    Row(
+    Column(
         Modifier
             .fillMaxWidth()
             .glass(c, RoundedCornerShape(20.dp))
@@ -309,78 +370,98 @@ private fun DishCard(
             // price leaves a bright picture of something nobody can order.
             .alpha(if (out) 0.55f else 1f)
             .clickable(enabled = !out, onClick = onOpen)
-            .padding(10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        if (item.imageUrl.isNotEmpty()) {
-            AsyncImage(
-                // ⚠️ **A width is asked for, not the original.** The server
-                // resizes and caches (`/uploads/x.jpg?w=300`); a menu of forty
-                // full-size photographs is several megabytes over somebody's
-                // mobile data, and the first screen is the one that decides
-                // whether they wait.
-                model = imageUrl(item.imageUrl, Brand.uploadsBase, 300),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(92.dp)
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(14.dp)),
-            )
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                item.pick(lang),
-                style = MaterialTheme.typography.titleMedium,
-                color = c.ink,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val about = item.describe(lang)
-            if (about.isNotEmpty()) {
-                Text(
-                    about,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = c.muted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+        Box(Modifier.fillMaxWidth()) {
+            if (item.imageUrl.isNotEmpty()) {
+                AsyncImage(
+                    // ⚠️ **A width is asked for, not the original.** The server
+                    // resizes and caches (`/uploads/x.jpg?w=400`); a menu of
+                    // forty full-size photographs is several megabytes over
+                    // somebody's mobile data, and the first screen is the one
+                    // that decides whether they wait.
+                    model = imageUrl(item.imageUrl, Brand.uploadsBase, 400),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(14.dp)),
                 )
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            if (favorite != null) {
+                Icon(
+                    if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = null,
+                    tint = if (favorite) c.accent else c.onAccent,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .size(22.dp)
+                        .clickable(onClick = onFavorite),
+                )
+            }
+        }
+
+        Text(
+            item.pick(lang),
+            style = MaterialTheme.typography.titleMedium,
+            color = c.ink,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
                 Money(item.price, color = c.ink)
                 // ⚠️ Only where there genuinely is one — see MenuItem.oldPrice:
                 // a null read as zero would strike out "0 so'm" on every
                 // ordinary dish on the menu.
                 if (item.discounted) {
                     Text(
-                        uz.keel.design.money(item.oldPrice ?: 0.0),
-                        style = MaterialTheme.typography.labelMedium,
+                        money(item.oldPrice ?: 0.0),
+                        style = MaterialTheme.typography.labelSmall,
                         color = c.muted,
                         textDecoration = TextDecoration.LineThrough,
                     )
                 }
-                if (out) {
-                    Text(
-                        t.menu.soldOut,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = c.danger,
+            }
+            when {
+                out -> Text(
+                    t.menu.soldOut,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.danger,
+                )
+                // ⚠️ **The stepper replaces the plus rather than sitting beside
+                // it.** Two controls for one decision is the card asking a
+                // question it has already been given the answer to.
+                qty > 0 -> GlassStepper(
+                    value = qty,
+                    compact = true,
+                    onMinus = { onStep(-1) },
+                    onPlus = { onStep(1) },
+                )
+                else -> Box(
+                    Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(c.accentSoft)
+                        .clickable(onClick = onAdd),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Rounded.Add,
+                        contentDescription = t.dish.add,
+                        tint = c.accent,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
-        }
-        if (favorite != null) {
-            Icon(
-                if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                contentDescription = null,
-                tint = if (favorite) c.accent else c.muted,
-                modifier = Modifier
-                    .size(22.dp)
-                    .clickable(onClick = onFavorite),
-            )
         }
     }
 }

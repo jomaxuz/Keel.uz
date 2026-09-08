@@ -5655,6 +5655,80 @@ va `brandimages.py`. Konsol tugmasi shu konteynerni ishga tushiradi.
   ko'rinish, ya'ni mehmon ko'radigan yuz.
 
 
+#### Ilova mahsulot qarorlari qayta ko'rib chiqildi (ega talabi bilan)
+
+Uchta qaror ataylab bekor qilindi — sabablari yozilgan edi, lekin qaror egasi
+boshqacha hal qildi. Ikkalasining ham narxi bor va u shu yerda qoladi:
+
+- **Menyu bir qator emas, ikki ustun.** Ilgari to'liq enli qator edi: uzun
+  nomlar («Qo'y go'shtli qazon kabob») to'liq sig'sin uchun. Endi ekranga ikki
+  barobar ko'p taom sig'adi, nom esa ikki qatorga cheklanadi — menyu o'qishdan
+  ko'ra ko'proq **qarab** tanlanadi.
+  - ⚠️ **`LazyVerticalGrid` emas, `chunked(2)`**: bitta o'qda ikkita lazy
+    scroller — ishga tushganda qulash, va kategoriya sarlavhalari qatorlar
+    orasida to'liq enli qolishi kerak.
+  - ⚠️ **Kartochkadagi stepper faqat «sof» qatorni tahrirlaydi** (variantsiz,
+    izohsiz). Minus birovning «piyozsiz» yozuvini jimgina o'chirsa, bu kartochka
+    o'zi ko'rsatmagan qarorni tahrirlagan bo'lardi. Sof qator bo'lmasa — taom
+    oynasi ochiladi.
+  - ⚠️ **Majburiy savoli bor taom `+` bilan savatga tushmaydi**, oyna ochiladi:
+    aks holda o'lchami tanlanmagan pitsa buyurtmaga tushardi.
+- **Savat hisobga kirishni talab qiladi.** Ilgari buyurtma hisobsiz ham
+  berilardi («narx ko'rsatishdan oldin telefon so'raydigan ilova bitta marta
+  ochiladi»). Endi restoran buyurtmani qaytib qo'ng'iroq qila oladigan odamga
+  bog'laydi.
+  - ⚠️ **Savat umuman ko'rsatilmaydi, oxirida rad etilmaydi.** Savatni
+    to'ldirtirib, checkout'da kirish talab qilish — ikki ekranning eng yomon
+    tartibi: ish allaqachon qilingan, talab esa odam to'lovga eng yaqin
+    turganda keladi.
+  - ⚠️ **Nima uchunligi yoziladi**: sababsiz «kiring» — och odam bilan ovqat
+    orasidagi forma; «restoran qayta qo'ng'iroq qilishi uchun» — odam rozi
+    bo'ladigan gap.
+- **Ikonka butunlay logotip.** Ilgari oq fon + o'rtada logotip edi (qorong'i
+  siyohli logotip qorong'i fonda ko'rinmaydi degan sabab bilan). Endi logotip
+  ikonkani to'ldiradi.
+  - ⚠️ **Narxi — chetlari**: to'ldirilgan tasvirni launcher niqobi yana qirqadi,
+    ya'ni tashqi o'n sakkizdan bir qismi yo'qoladi va keng wordmark uchlarini
+    yo'qotadi. Logotipi buni ko'tara olmaydigan restoranga ikonka uchun kvadrat
+    belgi kerak.
+  - ⚠️ **Shaffoflik oq ustiga tekislanadi**: siyoh bilan chizilgan logotip aks
+    holda ikonkani qora qilib to'ldirardi.
+  - ⚠️ Logotip **fon qatlamiga** qo'yiladi, old qatlam shaffof: adaptiv
+    ikonkaning old qatlami niqob ichida hoshiya bilan chiziladi, ya'ni u yerga
+    qo'yilgan «to'liq» logotip yana kichrayardi.
+
+#### Xarita: uchala provayder ham, tanlov restoranniki
+
+Sayt `restaurant.mapProvider` bo'yicha 2GIS / Yandex / Google chizadi; ilova ham
+endi shunday — **ish vaqtida** o'qiydi, build vaqtida emas. Aks holda provayderni
+panelda almashtirgan restoran yangi relizni kutardi, va shu orada uning sayti
+bilan ilovasi xarita haqida kelishmasdi.
+
+- ⚠️ **2GIS — WebView, qolgan ikkitasi native, va bu tanlov emas.** 2GIS'ning
+  olinadigan Android SDK'si yo'q (Maven yo'llari 404), demak 2GIS tanlagan
+  restoranning tanlovini hurmat qilishning yagona yo'li — uning o'z veb
+  dvigateli (MapGL), ya'ni sayt chizadigan o'sha dvigatel. Qolgan ikki variant
+  yomonroq edi: «2GIS restoraniga Google xaritasini berish» va «boshqa provayder
+  tanlashni aytish».
+- ⚠️ **Koordinata tartibi faqat `MapEngines.kt` da**: 2GIS `[lng, lat]`, Yandex
+  `Point(lat, lng)`, Google `LatLng(lat, lng)`. Uni chaqiruvchi tomonda o'girish —
+  CLAUDE.md yozib qo'ygan xato: restoran Orol dengizida paydo bo'ladi va bu
+  ma'lumot xatosiga o'xshaydi.
+- ⚠️ **Yandex kaliti `initialize` dan oldin va jarayonda bir marta** beriladi;
+  SDK qayta kalitlanishni rad etadi. Ya'ni kalitini almashtirgan restoranga
+  ilovani qayta ishga tushirish kerak — bu SDK bergan xatti-harakat, biz
+  tanlagani emas.
+- ⚠️ **MapKit tinglovchini `WeakReference` bilan oladi** va kuchli havola
+  bizniki bo'lishi shart (`remember`). Busiz birinchi GC'dan keyin callback
+  jimgina to'xtaydi va manzil yangilanmay qoladi.
+- ⚠️ **2GIS WebView'i haqiqiy `baseUrl` bilan yuklanadi**: MapGL kalitning domen
+  cheklovini tekshiradi, va hech qayerdan yuklangan sahifa bo'sh xarita va
+  restoranda hech kim o'qimaydigan konsol xabari bilan rad etiladi.
+- ⚠️ **Reverse-geocode bitta yo'ldan va debounce bilan** — uchala dvigatel ham
+  bitta `centre` holatiga yozadi. Nominatim sekundiga bitta so'rovga cheklaydi,
+  va uni buzish butun o'rnatma bazasini bir vaqtda bloklatadi.
+
+
 #### Xarita: Google, va CLAUDE.md dagi narx ogohlantirishi bu yerga tegmaydi
 
 ⚠️ **U ogohlantirish veb API'lari haqida** — MapGL, Maps JavaScript API, Static

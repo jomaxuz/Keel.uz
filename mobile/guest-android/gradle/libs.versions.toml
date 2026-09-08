@@ -21,6 +21,7 @@ datastore = "1.1.7"
 playServicesLocation = "21.3.0"
 playServicesMaps = "19.2.0"
 mapsCompose = "6.12.2"
+yandexMapkit = "4.42.0-lite"
 firebaseBom = "34.4.0"
 googleServices = "4.4.3"
 coreKtx = "1.17.0"
@@ -53,6 +54,10 @@ datastore-preferences = { module = "androidx.datastore:datastore-preferences", v
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
 maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "mapsCompose" }
+# ⚠️ The "lite" build: map display without navigation. "full" and "navikit" add
+# routing and turn-by-turn — tens of megabytes for a screen whose whole job is
+# to let somebody drop a pin.
+yandex-mapkit = { module = "com.yandex.android:maps.mobile", version.ref = "yandexMapkit" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }

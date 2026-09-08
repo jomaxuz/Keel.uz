@@ -192,6 +192,12 @@ dependencies {
     // guest's download for a choice that never changes once made.
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose)
+    // ⚠️ **The second engine, because the restaurant chooses.** The site draws
+    // with 2GIS, Yandex or Google (`restaurant.mapProvider`) and the app has to
+    // agree with it — a guest whose restaurant runs Yandex should not meet a
+    // Google map in the app. 2GIS has no obtainable Android SDK, so that one is
+    // its own web engine in a WebView; see ui/screens/MapPickerScreen.kt.
+    implementation(libs.yandex.mapkit)
     implementation(libs.play.services.location)
 
     // ⚠️ Messaging only, and **without** the google-services plugin — see
