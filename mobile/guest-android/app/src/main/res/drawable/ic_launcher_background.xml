@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ⚠️ **White, and it stays white for every restaurant.** The icon is the logo
+     on a white ground — the same decision the splash makes, for the same
+     reason: a logo drawn as dark ink on paper is invisible on anything else,
+     and we are handed the paper version every time. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF" android:pathData="M0,0h108v108h-108z" />
+</vector>

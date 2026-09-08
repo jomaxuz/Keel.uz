@@ -109,6 +109,21 @@ class TokenStore(context: Context) {
          *  for the reason the other two carry it: the one time two platforms
          *  meet over a stored key, a divergent name fails silently. */
         const val COURIER_TOKEN = "courier_token"
+
+        /** A **guest's** session — the one token here that belongs to somebody
+         *  who does not work at the restaurant.
+         *
+         *  ⚠️ **The browser's spelling** (`lib/api.ts` → `USER_TOKEN_KEY`), like
+         *  the three above it, and here it is not hypothetical: the guest app
+         *  and the site are the same account, and a guest who signed in on the
+         *  site and opened the app is the ordinary case.
+         *
+         *  ⚠️ **Losing it is not a lock-out.** Every screen a guest opens first
+         *  — the menu, a dish, a price — is public; the token only adds their
+         *  own orders and their points. An app that treated a missing guest
+         *  token the way the staff apps treat a missing staff token would meet
+         *  a hungry person with a login form. */
+        const val USER_TOKEN = "user_token"
         const val SERVER_ADDRESS = "keel_server_address"
         const val DEVICE_ID = "keel_device_id"
         const val LANG = "keel_lang"
@@ -120,7 +135,7 @@ class TokenStore(context: Context) {
          *  and sends somebody to a login they had already passed — and only on a
          *  cold start, which is the hardest kind of bug to be shown. */
         private val KEYS = listOf(
-            STAFF_TOKEN, ADMIN_TOKEN, TV_TOKEN, COURIER_TOKEN,
+            STAFF_TOKEN, ADMIN_TOKEN, TV_TOKEN, COURIER_TOKEN, USER_TOKEN,
             SERVER_ADDRESS, DEVICE_ID, LANG, THEME, MENU_VIEW,
             // The owner application's branch lens. ⚠️ Listed here like every
             // other key: hydration happens once, before the first render, and a

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The placeholder mark. ⚠️ Inset well inside the 108dp square: the outer 18dp
+     on every side is cropped by whichever mask the launcher applies, and a logo
+     drawn to the edge loses its corners on a round-icon phone and its top on a
+     squircle one. The pipeline generates the real foreground to the same
+     inset. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:scaleX="0.36" android:scaleY="0.36" android:translateX="19.4" android:translateY="19.4">
+        <path
+            android:fillColor="#E2590D"
+            android:pathData="M96,28c37.6,0 68,30.4 68,68s-30.4,68 -68,68s-68,-30.4 -68,-68S58.4,28 96,28zM96,52c-24.3,0 -44,19.7 -44,44s19.7,44 44,44s44,-19.7 44,-44S120.3,52 96,52z" />
+        <path
+            android:fillColor="#000B1C"
+            android:pathData="M96,74c12.2,0 22,9.8 22,22s-9.8,22 -22,22s-22,-9.8 -22,-22S83.8,74 96,74z" />
+    </group>
+</vector>

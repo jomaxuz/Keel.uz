@@ -14286,3 +14286,40 @@ Testlar: `go test ./...` yashil (`buyorderflow_test.go` — bo'sh manba bozorga
 o'qilishi, tegilmagan qator, galochka faqat qo'shishi, javon imzoda qimirlashi);
 `npm run build`; `./gradlew :app:testDebugUnitTest`. **Jonli bazada hali
 sinalmagan** — keyingi qadam.
+
+---
+
+## 2026-09-08 (2) — Restoranning o'z Android ilovasi: poydevor va menyu ✅
+
+**1-bosqich.** Yangi modul `mobile/guest-android` — mehmon o'rnatadigan ilova.
+Qolgan beshtasi xodimniki, bu esa **restoranniki**: mehmon telefonida
+restoranning nomi va ikonkasi ostida turadi.
+
+**Shakl: bitta kod bazasi, har restoranga alohida build.** Farq faqat
+`app/brand.properties` (applicationId, nom, server manzili, aksent rang, versiya)
+va ikkita rasmda (`brand_logo.png`, `mipmap-*/ic_launcher*`). Qiymatlar tenantning
+o'z `GET /restaurant` javobidan olinadi — konsolda qayta yozilmaydi.
+
+**Bosh sahifa yo'q**, birinchi ekran — menyu: kategoriya chiplari, qidiruv
+(kategoriyalar bo'ylab kesib o'tadi), taom kartochkalari rasm bilan. Yopiq
+restoran ham menyusini ko'rsatadi, tugagan taom ham chiziladi — ikkalasining
+sababi `docs/DECISIONS.md` da.
+
+**Rang restoranniki**: `KeelWaiterTheme(accent = ...)` — dizayn moduliga
+qo'shilgan ixtiyoriy parametr, beshta xodim ilovasi hech nima bermaydi va Keel
+apelsinida qoladi. `onAccent` yorqinlik bo'yicha **hisoblanadi**: och brendda
+tugmadagi oq yozuv ko'rinmay qolardi va hech nima xato bermasdi. Splash va
+ikonka foni — oq, ikkala temada ham: logotip deyarli har doim to'q siyoh.
+
+`TokenStore` ga `USER_TOKEN` qo'shildi (brauzerdagi imlo bilan — mehmon saytda
+kirib ilovani ochishi oddiy holat).
+
+Tekshirildi: `./gradlew :app:assembleDebug` (APK 21 MB, `applicationId`
+`brand.properties` dan o'qildi), `:app:testDebugUnitTest` (rang parsing va och
+brenddagi kontrast testi), va `team-android` regressiyasiz kompilyatsiya
+qilindi.
+
+**Keyingi bosqichlar**: 2) savat + checkout + native xarita + kuzatuv;
+3) telefon+SMS hisobi, buyurtmalarim, ballar + FCM push (+ backendga qurilma
+endpointi); 4) builder image va lokal brendlash skripti; 5) konsoldagi tugma,
+navbat, imzo kalitlari va artefaktlar.

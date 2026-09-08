@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +40,21 @@ enum class ThemeChoice { System, Light, Dark }
 @Composable
 fun KeelWaiterTheme(
     choice: ThemeChoice = ThemeChoice.System,
+    /** The restaurant's own accent, for the one application that wears it.
+     *
+     *  ⚠️ **Null is Keel's orange, and that is what the five staff applications
+     *  pass.** A till, a pass screen and a courier's phone are *our* tool, and
+     *  the orange on them has to match a printed receipt — a colour that
+     *  followed the restaurant would make every Keel a different product to the
+     *  person supporting it. The guest application is the opposite: it is the
+     *  restaurant's own app, sitting on a guest's home screen under the
+     *  restaurant's name, and Keel's orange in it would be a stranger's colour.
+     *
+     *  ⚠️ **One parameter here rather than a second theme function.** Two
+     *  entry points is two places to add the next token to, and the one that
+     *  gets forgotten is the one used by the app nobody on the team opens
+     *  daily. */
+    accent: Color? = null,
     content: @Composable () -> Unit,
 ) {
     val dark = when (choice) {
@@ -45,7 +62,7 @@ fun KeelWaiterTheme(
         ThemeChoice.Light -> false
         ThemeChoice.Dark -> true
     }
-    val colors = if (dark) DarkColors else LightColors
+    val colors = (if (dark) DarkColors else LightColors).branded(accent)
 
     // ⚠️ **Dynamic colour is deliberately off.** Material You would repaint the
     // app in whatever the waiter's wallpaper happens to be, and the orange is
@@ -69,6 +86,34 @@ fun KeelWaiterTheme(
     CompositionLocalProvider(LocalKeelColors provides colors) {
         MaterialTheme(colorScheme = material, typography = KeelTypography, content = content)
     }
+}
+
+/** The same scheme wearing somebody else's colour.
+ *
+ *  ⚠️ **Only the roles that are genuinely the accent move.** The ground, the
+ *  glass and the ink stay ours: a restaurant's brand colour is one hue chosen
+ *  for a signboard, and letting it repaint the surfaces would produce, on some
+ *  of them, a lime-green dining room nobody chose.
+ *
+ *  ⚠️ **`onAccent` is computed, never assumed white.** A pale brand — mustard,
+ *  cream, spring green, and there are plenty — leaves white text on a primary
+ *  button invisible: the button still works, so nothing errors, and the app
+ *  ships with an unreadable "Buyurtma berish". Luminance decides, once, here.
+ *
+ *  ⚠️ **The warm aura follows too.** It is the accent seen through the
+ *  background blur; left orange under a blue brand it reads as a stain rather
+ *  than as light. */
+fun KeelColors.branded(accent: Color?): KeelColors {
+    if (accent == null) return this
+    return copy(
+        accent = accent,
+        accentSoft = accent.copy(alpha = if (dark) 0.24f else 0.12f),
+        // 0.55 rather than 0.5: the eye reads mid-tones as darker than the
+        // arithmetic does, and the failure is one-sided — grey-on-colour is
+        // uncomfortable, white-on-pale is unreadable.
+        onAccent = if (accent.luminance() > 0.55f) Color(0xFF1A1614) else Color.White,
+        auraWarm = accent.copy(alpha = if (dark) 0.30f else 0.20f),
+    )
 }
 
 // ⚠️ **Tabular figures wherever money is printed.** A total whose digits change

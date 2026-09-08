@@ -61,7 +61,16 @@ softmax/
     ├── owner-android/        # ega
     ├── courier-android/      # kuryer
     ├── team-android/         # qolgan xodimlar
-    └── tv-android/           # zaldagi televizor
+    ├── tv-android/           # zaldagi televizor
+    │
+    └── guest-android/        # ⚠️ mehmonniki, qolgan beshtasi xodimniki —
+                              #   restoranning o'z ilovasi. Bitta kod bazasi,
+                              #   har restoranga alohida build: farq faqat
+                              #   `app/brand.properties` va ikkita rasmda
+                              #   (logo va ikonka). Bosh sahifa **yo'q** —
+                              #   birinchi ekran menyu. Build'ni konsol
+                              #   qiladi; qarang `docs/DECISIONS.md` →
+                              #   «Restoranning o'z ilovasi».
 ```
 
 ⚠️ **Native ilovalar dizaynni `mobile/android-design` dan oladi** — Gradle
@@ -795,6 +804,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Boshqa POS'dan ko'chirish (iiko, Poster…) | Boshqa POS'dan ko'chirish |
 | Kesh, siqish, indeks, yuk | Yuk: nima siqiladi, nima keshlanadi |
 | Yangi install: nomi, namuna menyu | Birinchi profil: yangi install o'zini nima deb ataydi · Namuna menyu |
+| Restoranning o'z ilovasi, brendlash, build | Restoranning o'z ilovasi: bitta kod bazasi, har restoranga bitta build |
 | Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
 
 ### Qo'shni hujjatlar

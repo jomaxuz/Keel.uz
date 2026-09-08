@@ -5465,6 +5465,54 @@ kirim ritmi, muddat qisqartirganmi, allaqachon so'ralganmi). Ochib bo'lmaydigan
 raqam — yo ko'r-ko'rona bajariladi, yo umuman o'qilmaydi; ikkalasi ham bu ekran
 o'rnini bosgan daftardan yomonroq.
 
+### Restoranning o'z ilovasi: bitta kod bazasi, har restoranga bitta build
+
+Restoran «o'z ilovam bo'lsin» deganda mehmon telefonidagi **ikonkani** nazarda
+tutadi. Bitta ilova ichida restoran tanlanadigan model buni bermaydi: u agregator
+(Uzum Tezkor) modeli, va mehmon birinchi ekranda raqobatchilar ro'yxatini
+ko'radi. Shuning uchun **bitta kod bazasi, N ta build** (`mobile/guest-android`).
+
+- ⚠️ **Farq bitta faylda: `app/brand.properties`** (+ ikkita rasm: logo va
+  ikonka). Brendlash uchun Gradle'ni, manifestni, temani va uchta Kotlin faylini
+  tahrirlashi kerak bo'lgan quvurning nosozligini o'qib bo'lmaydi va diffini
+  ko'rib bo'lmaydi.
+- ⚠️ **Qiymatlar tenantning o'z `GET /restaurant` javobidan olinadi** (`name`,
+  `logoUrl`, `theme.brand`), konsolda qayta yozilmaydi. Ikkinchi nusxa — mehmon
+  saytda ko'rgan narsa bilan bir kun ziddiyatga tushadigan narsa.
+- ⚠️ **Server manzili build'ga muhrlanadi, so'ralmaydi.** Xodim ilovalari server
+  ekrani bilan ochiladi, chunki menejerga manzilni aytish mumkin; mehmondan
+  menyudan **oldin** hech nima so'rab bo'lmaydi. Bu esa avtomatik ravishda «har
+  restoranga alohida build» degani — tanlov emas, oqibat.
+- ⚠️ **Bosh sahifa yo'q, birinchi ekran — menyu.** Restoran ilovasini ochgan
+  odam och. Muqova, ish vaqti va «Buyurtma berish» tugmasi — odam bilan menyu
+  orasidagi bitta bosish va bitta scroll, va har biri buyurtma yo'qoladigan joy.
+- ⚠️ **Yopiq restoran ham menyusini ko'rsatadi.** Uni yashirish bugungi
+  xafagarchilikni tejab, ertangi mehmonni yo'qotadi. Sarlavha yopiqligini
+  aytadi, menyu joyida qoladi. Tugagan taom ham chiziladi, olib tashlanmaydi:
+  yo'q bo'lib qolgan taom mehmonni «men adashganman shekilli» deb o'ylatadi.
+
+#### Rang restoranniki, apelsin Keel'niki
+
+`KeelWaiterTheme(accent = ...)` — dizayn moduli ataylab **faqat shu ilovada**
+ustidan yozadi. Kassa, peshtaxta va kuryer telefoni — **bizning asbobimiz**, va
+undagi apelsin bosilgan chek bilan mos kelishi kerak; restoran rangiga
+bo'yalgan kassa har o'rnatmani qo'llab-quvvatlovchi odam uchun boshqa mahsulotga
+aylantiradi. Mehmon ilovasi esa teskarisi: u restoranning o'z nomi ostida
+mehmon telefonida turadi, va undagi Keel apelsini — begona rang.
+
+- ⚠️ **Faqat aksent rollari o'zgaradi**, fon va shisha emas: brend rangi
+  peshtaxta uchun tanlangan bitta tus, va u sirtlarni ham bo'yasa ba'zi
+  restoranda hech kim tanlamagan yashil zal chiqadi.
+- ⚠️ **`onAccent` hisoblanadi, oq deb faraz qilinmaydi.** Och sariq yoki krem
+  brend (kam emas) tugmadagi oq yozuvni ko'rinmas qiladi: tugma ishlaydi, hech
+  nima xato bermaydi, va «Buyurtma berish» shunchaki yo'q. Yorqinlik chegarasi
+  0.55 — ko'z o'rta tuslarni arifmetikadan qorong'iroq o'qiydi, va xato bir
+  tomonlama: rang ustidagi kulrang noqulay, oq esa o'qib bo'lmaydigan.
+- ⚠️ **Splash va ikonka foni oq, ikkala temada ham.** Logotip qog'oz uchun
+  chiziladi va deyarli har doim to'q siyoh: qorong'i splash'da u ko'rinmaydi va
+  ishga tushmagan ilovadan farq qilmaydi.
+
+
 ### Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi
 
 Arifmetika allaqachon tugagan edi: sanoq har qator uchun **kutilgan**,

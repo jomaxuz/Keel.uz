@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="keel_bg">#141110</color>
+    <!-- ⚠️ Deliberately **not** overridden here: a logo drawn as dark ink
+         disappears on a dark splash, and almost every restaurant logo is drawn
+         that way. See themes.xml. -->
+    <color name="splash_bg">#FFFFFFFF</color>
+</resources>

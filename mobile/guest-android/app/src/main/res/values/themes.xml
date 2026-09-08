@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The window behind Compose. ⚠️ It has to be painted, and painted in the
+         app's own ground: an unset window background flashes the platform's
+         white for one frame before the first composition, which on a dark phone
+         reads as a broken app rather than as a launch. -->
+    <style name="Theme.KeelGuest" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/keel_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- — The splash —
+         ⚠️ **White ground with the restaurant's logo, in both schemes.** A logo
+         is drawn for paper and for a menu card; almost every one of them is dark
+         ink with no light variant, so a dark splash would show a black mark on a
+         black field — invisible, and indistinguishable from an app that failed
+         to start. White is the one ground every logo we will ever be handed was
+         designed against.
+
+         ⚠️ The icon here is the **logo**, not the launcher icon: the launcher
+         icon is cropped to a circle by the system and a wordmark inside it is
+         unreadable. -->
+    <style name="Theme.KeelGuest.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/brand_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.KeelGuest</item>
+    </style>
+</resources>
