@@ -2043,10 +2043,16 @@ export const adminUz = {
       google:
         'console.cloud.google.com → APIs & Services → Credentials, "Maps JavaScript API" yoqilgan bo\'lsin.',
     },
-    // ---- Android ilova uchun alohida kalit ----
-    // ⚠️ Brauzer kaliti bu yerga yaramaydi: uni domen ro'yxati himoya qiladi,
-    // va shunday cheklangan kalitni Android SDK **rad etadi** — xatosiz, kulrang
-    // to'r bo'lib. Android kaliti paket nomi va sertifikat izi bilan cheklanadi.
+    // ---- Ilova ham shu kalitni ishlatadi ----
+    // ⚠️ Bu yerda yozilishining sababi: xato **jimgina** bo'ladi. Domenga
+    // cheklangan kalitni Android SDK rad etadi — kulrang to'r, hech qanday xato,
+    // va manzilini kirita olmaydigan mehmon. Buni faqat ega tuzata oladi, va
+    // faqat o'z Google kabinetida.
+    mapAppTitle: "Restoran ilovasi ham shu kalitni ishlatadi",
+    mapAppApis:
+      "Kalitda ikkala API ham yoqilgan bo'lsin: «Maps JavaScript API» (sayt uchun) va «Maps SDK for Android» (ilova uchun). Ikkalasi ham shu hajmda bepul — Android SDK'da xarita ko'rsatish umuman hisoblanmaydi.",
+    mapAppRestrict:
+      "Google kalitida faqat bitta ilova cheklovi bo'ladi — yo domen (HTTP referrer), yo Android paket nomi, ikkalasi emas. Shuning uchun bitta kalit ikkalasiga ishlashi uchun ilova cheklovi «None» bo'lishi kerak. Domenga cheklab qo'ysangiz sayt ishlaydi, ilovadagi xarita esa hech qanday xato bermay kulrang bo'lib qoladi. Cheklov baribir kerak bo'lsa — ilova uchun alohida ikkinchi kalit oching va bizga ayting.",
     mapKeyWarn:
       "Muhim: kalitni xizmat kabinetida o'z domeningizga bog'lang. Xarita kaliti brauzerda ishlaydi, ya'ni uni yashirib bo'lmaydi — himoya faqat domen cheklovi orqali beriladi. Cheklanmagan kalitni boshqalar o'z saytida ishlatib, kvotangizni (Google'da esa pulingizni) sarflashi mumkin.",
     seoTitle: "Qidiruv tizimlari (Google, Yandex)",
@@ -6955,6 +6961,11 @@ export const adminRu: AdminDict = {
       google:
         'console.cloud.google.com → APIs & Services → Credentials, включите "Maps JavaScript API".',
     },
+    mapAppTitle: "Приложение ресторана использует этот же ключ",
+    mapAppApis:
+      "На ключе должны быть включены оба API: «Maps JavaScript API» (для сайта) и «Maps SDK for Android» (для приложения). Оба на таких объёмах бесплатны — показ карты в Android SDK вообще не тарифицируется.",
+    mapAppRestrict:
+      "У ключа Google может быть только одно ограничение приложения — либо домен (HTTP referrer), либо имя Android-пакета, но не оба сразу. Поэтому, чтобы один ключ работал и там и там, ограничение приложения должно быть «None». Если ограничить по домену, сайт продолжит работать, а карта в приложении молча станет серой — без единой ошибки. Если ограничение всё-таки нужно, заведите для приложения отдельный второй ключ и скажите нам.",
     mapKeyWarn:
       "Важно: привяжите ключ к своему домену в кабинете сервиса. Ключ карты работает в браузере, скрыть его невозможно — защита даётся только ограничением по домену. Неограниченный ключ смогут использовать на чужом сайте за ваш счёт (в Google — за ваши деньги).",
     seoTitle: "Поисковые системы (Google, Yandex)",
@@ -11592,6 +11603,11 @@ export const adminEn: AdminDict = {
       google:
         'console.cloud.google.com → APIs & Services → Credentials, with "Maps JavaScript API" enabled.',
     },
+    mapAppTitle: "The restaurant's app uses this same key",
+    mapAppApis:
+      "Enable both APIs on the key: \"Maps JavaScript API\" (the site) and \"Maps SDK for Android\" (the app). Both are free at this volume — displaying a map through the Android SDK is not billed at all.",
+    mapAppRestrict:
+      "A Google key carries only one application restriction — HTTP referrers or Android package names, never both. So for one key to serve both, the application restriction has to be \"None\". Restrict it to your domains and the site keeps working while the map in the app goes grey with no error at all. If you do need the restriction, issue a second key for the app and tell us.",
     mapKeyWarn:
       "Important: restrict the key to your own domain in the provider's console. A map key runs in the browser and cannot be hidden — the domain restriction is the only protection there is. An unrestricted key can be used on somebody else's site at your expense (at Google, literally).",
     seoTitle: "Search engines (Google, Yandex)",

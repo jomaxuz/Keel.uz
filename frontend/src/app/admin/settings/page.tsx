@@ -1539,6 +1539,26 @@ export default function AdminSettingsPage() {
               );
             })()}
 
+            {/* ---- What the app needs from this same key ----
+              ⚠️ **Only under Google, because only Google is affected**: the app
+              carries all three engines and takes 2GIS and Yandex keys at run
+              time, but Google's Android SDK reads its key from the manifest and
+              accepts only one application restriction — domains or package
+              names, never both.
+
+              ⚠️ **Said here rather than in a document, because the failure is
+              silent**: a domain-restricted key leaves the app's map a grey grid
+              with no error anywhere, and a guest who cannot enter an address.
+              The owner is the only person who can see it in Google's console
+              and the only person who can fix it. */}
+            {normalizeProvider(rest.mapProvider) === "google" && (
+              <div className="mt-3 rounded-xl border border-line bg-ink/[0.03] px-3 py-2 text-xs text-ink-soft dark:bg-white/[0.04]">
+                <p className="font-semibold text-ink">{t.settings.mapAppTitle}</p>
+                <p className="mt-1">{t.settings.mapAppApis}</p>
+                <p className="mt-1">{t.settings.mapAppRestrict}</p>
+              </div>
+            )}
+
             {/* Said in the settings page rather than in a document nobody opens:
               an unrestricted key is genuinely unprotected, and the owner is
               the only person who can restrict it. */}
