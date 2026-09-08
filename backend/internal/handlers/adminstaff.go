@@ -35,6 +35,11 @@ type staffPayload struct {
 	// the same rule as isActive, and here it would silently lock a cook out
 	// mid-service.
 	CanKitchen *bool `json:"canKitchen"`
+	// ⚠️ **A permission on the person rather than on the job**, and the only one
+	// shaped that way — see models/staff.go. Who notices the sugar has run out
+	// is the barman on Tuesdays and the porter on Fridays, and inventing "Barmen
+	// who may write lists" as a second role ends in a role per person.
+	CanBuyOrder *bool `json:"canBuyOrder"`
 	// Till permissions, pointers for the same reason: a form that does not show
 	// a field must never be able to revoke it. See models.Staff — cashier
 	// implies waiter, so the two boxes are not independent on screen either.
@@ -313,7 +318,8 @@ func (h *Handler) AdminCreateStaff(w http.ResponseWriter, r *http.Request) {
 		// everybody gets on creation is not a permission. Existing staff were
 		// grandfathered once by EnsureKitchenAccess so no live pass went dark;
 		// from here it is a decision somebody makes per person.
-		CanKitchen: req.CanKitchen != nil && *req.CanKitchen,
+		CanKitchen:  req.CanKitchen != nil && *req.CanKitchen,
+		CanBuyOrder: req.CanBuyOrder != nil && *req.CanBuyOrder,
 		// Same rule, and here it never needed grandfathering: nobody could work
 		// a till before the feature existed, so there is no behaviour to
 		// preserve and false is simply the truth.
@@ -424,6 +430,9 @@ func (h *Handler) AdminUpdateStaff(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.CanKitchen != nil {
 		set["canKitchen"] = *req.CanKitchen
+	}
+	if req.CanBuyOrder != nil {
+		set["canBuyOrder"] = *req.CanBuyOrder
 	}
 	if req.CanWaiter != nil {
 		set["canWaiter"] = *req.CanWaiter

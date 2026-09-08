@@ -1399,6 +1399,39 @@ func EnsureStorekeeperRole(ctx context.Context, s *Store) error {
 	return err
 }
 
+// EnsureStockIssue gives the shipped "Omborchi" role the permission to hand out
+// what a request asks for.
+//
+// ⚠️ **One role and one permission**, and that narrowness is the whole design.
+// Emptying a shelf on somebody's behalf is a different act from counting it, so
+// `stock` does not imply it and nobody else is granted it: an owner who wants a
+// second person doing it ticks one box. The storekeeper is the exception
+// because it *is* the job — shipping the screen without them would mean every
+// restaurant discovers, at the first request, that the one account whose phone
+// this is for cannot answer it.
+//
+// ⚠️ Matched on `name` **and** `seeded`, so a renamed or hand-made role is never
+// touched, and the marker records the **visit**: matching on "Omborchi without
+// stockissue" would find the role a restaurant had just deliberately unticked,
+// on every boot. Same shape as grantTechnologistStock, for the same reason.
+func EnsureStockIssue(ctx context.Context, s *Store) error {
+	res, err := s.StaffRoles.UpdateMany(ctx,
+		bson.M{
+			"name":              "Omborchi",
+			"seeded":            true,
+			"stockIssueGranted": bson.M{"$ne": true},
+		},
+		bson.M{
+			"$addToSet": bson.M{"perms": models.PermStockIssue},
+			"$set":      bson.M{"stockIssueGranted": true, "updatedAt": time.Now()},
+		},
+	)
+	if err == nil && res.ModifiedCount > 0 {
+		log.Printf("migrate: Omborchi roli chiqarish ruxsatini oldi (%d)", res.ModifiedCount)
+	}
+	return err
+}
+
 // addShippedRole brings one of the roles we ship to an install that predates it.
 //
 // ⚠️ **`seedStaffRoles` cannot do this and must not learn to.** It refuses to

@@ -124,6 +124,12 @@ export default function IngredientsPage() {
         // a factor nobody can see on screen.
         packName: (draft.packName ?? "").trim(),
         packQty: draft.packQty ?? 0,
+        // ⚠️ Sent on every save for the same reason the waste is: this is a
+        // whole-document replace, and an ingredient whose price is corrected
+        // here would otherwise be quietly re-routed to a buyer — the request
+        // would then sit all morning on a phone belonging to somebody who was
+        // never going to answer it.
+        source: draft.source ?? "market",
         warehouseId: draft.warehouseId,
         // ⚠️ **Still sent, even though this form no longer edits it.** Saving
         // an ingredient replaces the whole document, so a prep item whose name
@@ -305,6 +311,41 @@ export default function IngredientsPage() {
             />
             <span className="mt-1 block text-xs text-ink-muted">
               {t.ingredients.wasteHint}
+            </span>
+          </label>
+          {/* ---- Where a request for it is answered from ----
+              ⚠️ **The catalogue answers it, not the person writing the list.**
+              A barman with an empty bar is thinking about the bar, not about
+              who fetches what; sorting his list into "buy" and "fetch" is
+              knowledge about the store, which is the one thing his job does not
+              involve — and the sorting would be wrong on the mornings it
+              mattered.
+
+              ⚠️ Empty is the market, and every catalogue that existed before
+              this field is empty. */}
+          <label className="block text-sm">
+            <span className="text-xs text-ink-muted">
+              {t.ingredients.source}
+            </span>
+            <select
+              className="input mt-1 w-40"
+              value={draft.source ?? "market"}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  source: e.target.value as "market" | "store",
+                })
+              }
+            >
+              {/* ⚠️ "market" rather than an empty value, though the server
+                  stores empty: an empty option value and a stored empty field
+                  are the same word for two different facts, and a select whose
+                  value is "" is one React re-render away from uncontrolled. */}
+              <option value="market">{t.ingredients.sourceMarket}</option>
+              <option value="store">{t.ingredients.sourceStore}</option>
+            </select>
+            <span className="mt-1 block text-xs text-ink-muted">
+              {t.ingredients.sourceHint}
             </span>
           </label>
           {/* ---- How the market sells it ----
@@ -492,6 +533,11 @@ export default function IngredientsPage() {
                           // select is React switching it to uncontrolled
                           // halfway through an edit.
                           warehouseId: row.warehouseId ?? "",
+                          // Same reason: a row saved before this field existed
+                          // has none, and `undefined` in a controlled select is
+                          // React switching it to uncontrolled halfway through
+                          // an edit.
+                          source: row.source ?? "market",
                         })
                       }
                     >

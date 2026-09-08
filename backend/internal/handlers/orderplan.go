@@ -480,7 +480,17 @@ func (h *Handler) requestedQty(
 	ctx context.Context, branch primitive.ObjectID,
 ) map[primitive.ObjectID]float64 {
 	out := map[primitive.ObjectID]float64{}
-	filter := bson.M{"status": models.ShoppingSent}
+	// ⚠️ **Shipped counts too, and only the market half counts at all.**
+	// Something a buyer is carrying home has been asked for and is not on the
+	// shelf yet, so it still has to come off the next suggestion — the whole
+	// point of this function. But a request answered from the store room is
+	// already *in* the balance this suggestion was computed from: subtracting it
+	// as well would discount the same kilos twice and quietly stop reordering
+	// the things the restaurant moves between its own rooms most often.
+	filter := bson.M{
+		"status": bson.M{"$in": []string{models.ShoppingSent, models.ShoppingShipped}},
+		"source": bson.M{"$ne": models.SourceStore},
+	}
 	if !branch.IsZero() {
 		filter["branchId"] = branch
 	}

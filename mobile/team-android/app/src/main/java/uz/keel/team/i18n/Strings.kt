@@ -25,6 +25,7 @@ data class Dict(
     val profile: Profile,
     val buy: Buy,
     val zakup: Zakup,
+    val sklad: Sklad,
     val settings: Settings,
     val push: Push,
     val offline: Offline,
@@ -51,6 +52,10 @@ data class Dict(
         val profile: String,
         val buy: String,
         val zakup: String,
+        /** ⚠️ **A tab exists only for the account that may use it.** Issuing
+         *  from the store is one job in a restaurant, and a cook shown a screen
+         *  that would refuse them learns to stop reading the app. */
+        val sklad: String,
         val settings: String,
     )
 
@@ -139,8 +144,43 @@ data class Dict(
         val sent: (Int) -> String,
         val sentTitle: String,
         val statusSent: String,
+        val statusShipped: String,
         val statusDone: String,
         val progress: (Int, Int) -> String,
+        val loadFailed: String,
+        val sendFailed: String,
+        // ---- Where each line goes ----
+        // ⚠️ Shown, never chosen here: the catalogue decides, but a line filed
+        // wrongly otherwise sits all morning on a phone belonging to somebody
+        // who was never going to answer it.
+        val fromMarket: String,
+        val fromStore: String,
+        val splitNote: (Int, Int) -> String,
+        val sentSplit: (Int, Int) -> String,
+        // ---- Counting what turned up ----
+        val accept: String,
+        val acceptTitle: String,
+        val acceptBody: String,
+        val acceptSend: String,
+        val accepted: String,
+    )
+
+    /** Handing out what a request asks for.
+     *
+     *  ⚠️ **Its own screen rather than a mode of the buyer's**, because it is a
+     *  different act: a buyer writes prices at a stall, a storekeeper takes
+     *  things off a shelf. Sharing one screen would put every buying price in
+     *  the building in front of whoever counts the fridge. */
+    data class Sklad(
+        val title: String,
+        val empty: String,
+        val asked: (String) -> String,
+        val give: String,
+        val none: String,
+        val undo: String,
+        val ship: String,
+        val shipped: String,
+        val noneGiven: String,
         val loadFailed: String,
         val sendFailed: String,
     )
@@ -205,6 +245,7 @@ val UZ = Dict(
         profile = "Smena",
         buy = "Bozor",
         zakup = "Zakup",
+        sklad = "Sklad",
         settings = "Sozlamalar",
     ),
     clock = Dict.Clock(
@@ -294,10 +335,36 @@ val UZ = Dict(
         send = "Yuborish",
         sent = { n -> "Yuborildi: " + n + " ta qator" },
         sentTitle = "Yuborilganlar",
-        statusSent = "bozorda",
-        statusDone = "yakunlandi",
+        statusSent = "kutmoqda",
+        statusShipped = "yo'lda",
+        statusDone = "qabul qilindi",
         progress = { got, all -> "" + got + "/" + all + " olindi" },
         loadFailed = "Ro'yxatni ochib bo'lmadi",
+        sendFailed = "Yuborib bo'lmadi",
+        fromMarket = "Bozordan",
+        fromStore = "Skladdan",
+        splitNote = { m, st -> "" + m + " qator bozorchiga, " + st + " qator omborchiga" },
+        sentSplit = { m, st ->
+            "Yuborildi: bozorchiga " + m + " qator, omborchiga " + st + " qator"
+        },
+        accept = "Sanab, qabul qilish",
+        acceptTitle = "Qabul qilish",
+        acceptBody = "Yuborilgan miqdorni sanab chiqing. Tegmagan qatorlar " +
+            "yuborilganidek qabul qilinadi.",
+        acceptSend = "Qabul qildim",
+        accepted = "Qabul qilindi",
+    ),
+    sklad = Dict.Sklad(
+        title = "Skladdan so'rovlar",
+        empty = "Hozircha so'rov yo'q",
+        asked = { who -> "so'ragan: " + who },
+        give = "Berildi",
+        none = "Yo'q edi",
+        undo = "Bekor qilish",
+        ship = "Yuborish",
+        shipped = "Yuborildi — qabul qilinishi kutilmoqda",
+        noneGiven = "Hech bo'lmasa bitta qatorga miqdor yozing",
+        loadFailed = "So'rovlarni ochib bo'lmadi",
         sendFailed = "Yuborib bo'lmadi",
     ),
     settings = Dict.Settings(
@@ -362,6 +429,7 @@ val RU = Dict(
         profile = "Смена",
         buy = "Закуп",
         zakup = "Заявка",
+        sklad = "Склад",
         settings = "Настройки",
     ),
     clock = Dict.Clock(
@@ -451,10 +519,36 @@ val RU = Dict(
         send = "Отправить",
         sent = { n -> "Отправлено: " + n + " строк" },
         sentTitle = "Отправленные",
-        statusSent = "на рынке",
-        statusDone = "закрыт",
+        statusSent = "ждёт",
+        statusShipped = "в пути",
+        statusDone = "принято",
         progress = { got, all -> "куплено " + got + "/" + all },
         loadFailed = "Не удалось открыть список",
+        sendFailed = "Не удалось отправить",
+        fromMarket = "С рынка",
+        fromStore = "Со склада",
+        splitNote = { m, st -> "" + m + " строк закупщику, " + st + " строк кладовщику" },
+        sentSplit = { m, st ->
+            "Отправлено: закупщику " + m + " строк, кладовщику " + st + " строк"
+        },
+        accept = "Пересчитать и принять",
+        acceptTitle = "Приёмка",
+        acceptBody = "Пересчитайте то, что отправили. Строки, которые вы не " +
+            "меняли, принимаются как отправлено.",
+        acceptSend = "Принял",
+        accepted = "Принято",
+    ),
+    sklad = Dict.Sklad(
+        title = "Заявки со склада",
+        empty = "Заявок пока нет",
+        asked = { who -> "заявка: " + who },
+        give = "Выдано",
+        none = "Не было",
+        undo = "Отменить",
+        ship = "Отправить",
+        shipped = "Отправлено — ждёт приёмки",
+        noneGiven = "Укажите количество хотя бы в одной строке",
+        loadFailed = "Не удалось открыть заявки",
         sendFailed = "Не удалось отправить",
     ),
     settings = Dict.Settings(
@@ -519,6 +613,7 @@ val EN = Dict(
         profile = "Shift",
         buy = "Market",
         zakup = "Order",
+        sklad = "Store",
         settings = "Settings",
     ),
     clock = Dict.Clock(
@@ -607,10 +702,36 @@ val EN = Dict(
         send = "Send",
         sent = { n -> "Sent: " + n + " lines" },
         sentTitle = "Sent",
-        statusSent = "at the market",
-        statusDone = "closed",
+        statusSent = "waiting",
+        statusShipped = "on its way",
+        statusDone = "signed for",
         progress = { got, all -> "" + got + "/" + all + " bought" },
         loadFailed = "Could not open the list",
+        sendFailed = "Could not send",
+        fromMarket = "From the market",
+        fromStore = "From the store",
+        splitNote = { m, st -> "" + m + " to the buyer, " + st + " to the storekeeper" },
+        sentSplit = { m, st ->
+            "Sent: " + m + " lines to the buyer, " + st + " to the storekeeper"
+        },
+        accept = "Count and accept",
+        acceptTitle = "Accepting",
+        acceptBody = "Count what was sent. Rows you do not change are accepted " +
+            "as they were sent.",
+        acceptSend = "Accepted",
+        accepted = "Signed for",
+    ),
+    sklad = Dict.Sklad(
+        title = "Store requests",
+        empty = "No requests yet",
+        asked = { who -> "asked by " + who },
+        give = "Given",
+        none = "Not available",
+        undo = "Undo",
+        ship = "Send",
+        shipped = "Sent — waiting to be signed for",
+        noneGiven = "Put a quantity on at least one line",
+        loadFailed = "Could not open the requests",
         sendFailed = "Could not send",
     ),
     settings = Dict.Settings(

@@ -101,6 +101,28 @@ type Staff struct {
 	// the thing these two fields exist to prevent.
 	CanCashier bool `bson:"canCashier" json:"canCashier"`
 
+	// May write a shopping list, whatever their role says.
+	//
+	// ⚠️ **A grant beside the role rather than inside it, and it is the only
+	// permission shaped this way.** Everything else on this screen is a job:
+	// a cashier takes money, a cook runs the pass, and the answer is the same
+	// for every person holding that job. Who notices the sugar has run out is
+	// not — it is the barman on Tuesdays and the porter on Fridays, and a
+	// restaurant that had to invent "Barmen who may write lists" as a second
+	// role would end up with a role per person, which is the thing roles exist
+	// to prevent.
+	//
+	// ⚠️ **It only ever adds.** A role that grants `buyorder` is not taken away
+	// by leaving this unticked — see Can(). One switch that sometimes grants and
+	// sometimes revokes is a switch whose meaning has to be read out of a second
+	// document, and the reading gets done wrong on the day somebody is in a
+	// hurry.
+	//
+	// ⚠️ Zero value is false, and nothing is grandfathered: the roles that
+	// already write lists keep writing them, so no restaurant loses anything on
+	// the deploy that adds this.
+	CanBuyOrder bool `bson:"canBuyOrder,omitempty" json:"canBuyOrder"`
+
 	// Which role this person holds. ⚠️ **The role is where permissions live
 	// now**; the three booleans above are kept only so tills and kitchens
 	// installed before roles existed keep working, and so the migration has
@@ -176,6 +198,13 @@ type Staff struct {
 func (s *Staff) Can(perm string) bool {
 	if s == nil || !s.IsActive {
 		return false
+	}
+	// ⚠️ **Asked before the role, and it only ever says yes.** Writing a
+	// shopping list is granted per person as well as per job — see CanBuyOrder
+	// for why — and a grant that the role could then withdraw would make the
+	// tick on the employee's card mean nothing on half the cards it appears on.
+	if perm == PermBuyOrder && s.CanBuyOrder {
+		return true
 	}
 	// ⚠️ **The role wins when there is one, including when it grants nothing.**
 	// Perms is filled from the role on the way in (see withRole); the booleans

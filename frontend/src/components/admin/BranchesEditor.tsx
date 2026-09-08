@@ -429,6 +429,49 @@ export default function BranchesEditor() {
                             </span>
                           </label>
 
+                          {/* ---- Where this branch's store requests are
+                              answered ----
+                              ⚠️ **Only when there is somewhere else to point
+                              at.** A single-branch restaurant has exactly one
+                              answer, and a select with one option is a question
+                              that teaches people the screen asks things it
+                              already knows. */}
+                          {branches.length > 1 && (
+                            <label className="mt-4 block text-sm">
+                              <span className="font-medium">
+                                {t.staff.supplyBranch}
+                              </span>
+                              <select
+                                className={inputCls}
+                                value={d.supplyBranchId ?? ""}
+                                onChange={(e) =>
+                                  patch(branch.id, {
+                                    supplyBranchId: e.target.value,
+                                  })
+                                }
+                              >
+                                <option value="">
+                                  {t.staff.supplyBranchOwn}
+                                </option>
+                                {/* ⚠️ Itself is not on the list. A branch
+                                    supplying itself would build a slip whose
+                                    two ends are the same shelf — the same kilo
+                                    subtracted and added, and nobody able to
+                                    sign for it. */}
+                                {branches
+                                  .filter((b) => b.id !== branch.id)
+                                  .map((b) => (
+                                    <option key={b.id} value={b.id}>
+                                      {b.name}
+                                    </option>
+                                  ))}
+                              </select>
+                              <span className="mt-1 block text-xs text-ink-muted">
+                                {t.staff.supplyBranchHint}
+                              </span>
+                            </label>
+                          )}
+
                           <KioskSettings
                             branch={branch}
                             requireCode={d.requireKioskCode ?? false}

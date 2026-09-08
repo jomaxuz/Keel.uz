@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.ContentPaste
+import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingBasket
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,6 +58,8 @@ import uz.keel.team.ui.screens.ProfileScreen
 import uz.keel.team.ui.screens.ServerScreen
 import uz.keel.team.ui.screens.SettingsScreen
 import uz.keel.team.ui.screens.ZakupScreen
+import uz.keel.team.ui.screens.SkladScreen
+import uz.keel.team.ui.screens.canIssueHere
 import uz.keel.team.ui.screens.canWriteHere
 
 // Keel Team — the app everybody in the restaurant has.
@@ -174,13 +177,19 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
     // stop reading the app.
     val canBuy = ready?.staff?.perms?.contains("buy") == true
     val canOrder = ready?.staff?.let { canWriteHere(it) } == true
+    // ⚠️ Its own permission rather than a corner of `stock`: counting a shelf
+    // and emptying it are different acts, and folded together every person given
+    // a phone to count the fridge would also hold the button that sends a case
+    // of vodka across town.
+    val canIssue = ready?.staff?.let { canIssueHere(it) } == true
 
     // ⚠️ A permission taken away while somebody was standing on that tab leaves
     // them on a screen the server will refuse. Sent back to the one screen every
     // account has.
-    LaunchedEffect(canBuy, canOrder) {
+    LaunchedEffect(canBuy, canOrder, canIssue) {
         if (tab == "buy" && !canBuy) tab = "profile"
         if (tab == "zakup" && !canOrder) tab = "profile"
+        if (tab == "sklad" && !canIssue) tab = "profile"
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -208,6 +217,7 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
                 is Session.Ready -> when (tab) {
                     "buy" -> BuyScreen(app.api, tabsInset)
                     "zakup" -> ZakupScreen(app.api, tabsInset)
+                    "sklad" -> SkladScreen(app.api, tabsInset)
                     "settings" -> SettingsScreen(
                         staff = s.staff,
                         address = s.address,
@@ -236,6 +246,7 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
                     add(TabItem("profile", Icons.Rounded.AccessTime, t.tabs.profile))
                     if (canBuy) add(TabItem("buy", Icons.Rounded.ShoppingBasket, t.tabs.buy))
                     if (canOrder) add(TabItem("zakup", Icons.Rounded.ContentPaste, t.tabs.zakup))
+                    if (canIssue) add(TabItem("sklad", Icons.Rounded.Inventory2, t.tabs.sklad))
                     add(TabItem("settings", Icons.Rounded.Settings, t.tabs.settings))
                 },
                 selected = tab,

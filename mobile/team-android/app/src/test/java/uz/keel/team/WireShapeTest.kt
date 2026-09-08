@@ -15,6 +15,8 @@ import uz.keel.team.data.ShoppingOrders
 import uz.keel.team.data.Staff
 import uz.keel.team.data.StaffMe
 import uz.keel.team.data.StaffReport
+import uz.keel.team.data.ShoppingOrder
+import uz.keel.team.ui.screens.canIssueHere
 import uz.keel.team.ui.screens.canWriteHere
 
 // The models, fed the shape the server actually sends.
@@ -188,13 +190,70 @@ class WireShapeTest {
      *  cashier holding `buyorder` is not somebody whose phone plans a
      *  restaurant's buying. */
     @Test
-    fun `writing a shopping list needs the permission and the standing`() {
+    fun `writing a shopping list is exactly the permission, and nothing else`() {
         assertTrue(canWriteHere(Staff(perms = listOf("buyorder", "void"))))
         assertTrue(canWriteHere(Staff(perms = listOf("buyorder", "stock"))))
-        // A cashier: holds the permission because the till is where they hear a
-        // thing has run out, but the section would be one they never use.
-        assertFalse(canWriteHere(Staff(perms = listOf("buyorder"))))
+        // ⚠️ **The permission on its own is enough, and it did not used to be.**
+        // This screen also demanded management or the store — "a cashier's phone
+        // is not where buying gets planned" — and that was wrong about who
+        // notices things running out: the barman with an empty fridge and the
+        // cook who used the last of the flour, neither of whom voids checks or
+        // counts shelves. An owner now ticks a box on the person, and a second
+        // condition here would silently overrule the tick they just made.
+        assertTrue(canWriteHere(Staff(perms = listOf("buyorder"))))
         assertFalse(canWriteHere(Staff(perms = listOf("void", "stock"))))
         assertFalse(canWriteHere(Staff()))
+    }
+
+    // ⚠️ **Issuing from the store is its own permission, not a corner of
+    // `stock`.** Counting a shelf and emptying it are different acts; folded
+    // together, every person given a phone to count the fridge would also hold
+    // the button that sends a case of vodka across town.
+    @Test
+    fun `handing goods out is its own permission`() {
+        assertTrue(canIssueHere(Staff(perms = listOf("stockissue"))))
+        assertFalse(canIssueHere(Staff(perms = listOf("stock", "buyorder"))))
+        assertFalse(canIssueHere(Staff()))
+    }
+
+    // ⚠️ **A request splits by where it is answered from, and the phone reads
+    // that back.** The writer chose none of it, so a screen that could not tell
+    // the two apart would leave them no way to notice that the lemons they meant
+    // for the market went to a storekeeper.
+    @Test
+    fun `a list says which half of the morning it is`() {
+        val payload = """
+            {"orders":[
+              {"id":"a","forDate":"2026-09-08","source":"store","status":"sent",
+               "groupId":"g1","lines":[{"id":"l1","name":"Kola","qty":5}]},
+              {"id":"b","forDate":"2026-09-08","source":"market","status":"shipped",
+               "groupId":"g1","shippedBy":"Aziz",
+               "lines":[{"id":"l2","name":"Limon","qty":5,"gotQty":4,
+                         "gotAt":"2026-09-08T09:00:00Z","tookQty":3.5}]}
+            ]}
+        """.trimIndent()
+        val orders = json.decodeFromString<ShoppingOrders>(payload).orders
+        assertTrue(orders[0].fromStore)
+        assertTrue(orders[0].open)
+        assertFalse(orders[1].fromStore)
+        assertTrue(orders[1].waiting)
+        assertEquals("Aziz", orders[1].shippedBy)
+        // ⚠️ **Counted is its own field and stays nullable.** A line nobody
+        // checked and one that arrived empty are different facts, and a screen
+        // that cannot tell them apart accuses somebody.
+        assertEquals(null, orders[0].lines[0].tookQty)
+        assertEquals(3.5, orders[1].lines[0].tookQty)
+    }
+
+    // ⚠️ **A list written before the split existed is a whole request, and it is
+    // a market one.** Reading the blank field the other way would drop a
+    // fortnight of finished market runs into a storekeeper's queue.
+    @Test
+    fun `a list from before the split is a market list`() {
+        val o = json.decodeFromString<ShoppingOrder>(
+            """{"id":"a","forDate":"2026-09-01","status":"done","lines":[]}""",
+        )
+        assertFalse(o.fromStore)
+        assertFalse(o.waiting)
     }
 }

@@ -125,6 +125,7 @@ fun BuyScreen(api: KeelApi, bottomInset: PaddingValues) {
     val nothingToSend = t.buy.nothingToSend
     val sentWord = t.buy.sent
     val createdWord = t.buy.created
+    val shippedWord = t.zakup.statusShipped
 
     LaunchedEffect(tick) {
         try {
@@ -135,7 +136,12 @@ fun BuyScreen(api: KeelApi, bottomInset: PaddingValues) {
                 purseIssued = it.issued
                 purseSpent = it.spent
             }
-            order = api.buyOrders(openOnly = true).orders.firstOrNull()
+            // ⚠️ **The market half only.** The endpoint returns everything this
+            // account has a part in, and a store request on a buyer's screen
+            // would be a list of things he is being asked to go and buy that are
+            // already in the building.
+            order = api.buyOrders(openOnly = true).orders
+                .firstOrNull { !it.fromStore && it.open }
             error = ""
         } catch (e: Throwable) {
             error = if (e is ApiError) e.message else loadFailed
@@ -224,16 +230,16 @@ fun BuyScreen(api: KeelApi, bottomInset: PaddingValues) {
         error = ""
         scope.launch {
             try {
-                val res = api.finishOrder(
-                    orderId = id,
-                    // ⚠️ Minted and kept for the retry, exactly as a free-form
-                    // run does, and for the same reason.
-                    clientId = "ord-$id-${System.currentTimeMillis().toString(36)}",
-                    supplier = supplier.trim(),
-                )
+                // ⚠️ **This no longer writes the delivery.** What reaches a
+                // shelf is what somebody at the restaurant counted, so the trip
+                // ends here as "on its way" and the purchase is written when the
+                // person who asked signs for it. A delivery created at the
+                // market would put food on a shelf while it was still in a bag
+                // on a bus, and every later correction would be
+                // indistinguishable from a theft. See handlers/buyorderflow.go.
+                val res = api.shipOrder(id)
                 supplier = ""
-                done = if (res.already) alreadySent
-                else sentWord(money(res.purchase?.total ?: 0.0))
+                done = if (res.already) alreadySent else shippedWord
                 tick += 1
             } catch (e: Throwable) {
                 error = if (e is ApiError) e.message else sendFailed

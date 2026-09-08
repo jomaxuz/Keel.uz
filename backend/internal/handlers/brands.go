@@ -305,6 +305,14 @@ func (h *Handler) AdminUpdateBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	branch.ID = primitiveNil
 	branch.UpdatedAt = time.Now()
+	// ⚠️ **A branch never supplies itself.** Read literally that would build a
+	// dispatch whose two ends are the same shelf — the same kilo subtracted and
+	// added, and a slip nobody can accept. Corrected rather than refused: the
+	// value means "my own store room", which is what an empty field already
+	// means, so there is nothing to tell anybody about.
+	if branch.SupplyBranchID == id {
+		branch.SupplyBranchID = primitiveNil
+	}
 	// Narrowed on save rather than on read, so an owner who typed 5000 minutes
 	// sees the number that was actually kept — a value silently corrected on
 	// every read is one they would keep re-typing.
@@ -333,6 +341,12 @@ func (h *Handler) AdminUpdateBranch(w http.ResponseWriter, r *http.Request) {
 	delete(set, "posSoldOutAt")
 	delete(set, "posSoldOutError")
 	delete(set, "_id")
+	// ⚠️ **Written explicitly, because `omitempty` cannot say "cleared".** An
+	// owner who points a branch back at its own store room sends an empty id,
+	// which the marshaller drops — and the branch would go on shipping vans from
+	// a central store it no longer uses, with the form showing the setting they
+	// thought they had removed.
+	set["supplyBranchId"] = branch.SupplyBranchID
 	// Same trap as soldOut, one level nastier: the settings form does not know
 	// about the kiosk key or its revocation counter, so saving the form would
 	// write zeros over both — silently killing the branch screen's token and

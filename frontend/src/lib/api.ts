@@ -55,6 +55,7 @@ import type {
   Warehouse,
   WriteOff,
   ShoppingGroup,
+  ShoppingRequestGroup,
   Production,
   StockTransfer,
   Supplier,
@@ -1893,6 +1894,17 @@ export const api = {
   adminShoppingList: () =>
     request<{ groups: ShoppingGroup[]; cost: number; since: string | null }>(
       "/admin/stock/shopping-list",
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  /** What was actually asked for, as opposed to what the arithmetic suggests.
+   *
+   *  ⚠️ **Grouped by the request, not by the document.** Splitting a list into a
+   *  market half and a store half is the server's idea, not the barman's: two
+   *  rows for one morning would answer "what did the bar ask for" twice, and an
+   *  owner comparing them would be comparing a request with itself. */
+  adminShoppingRequests: (openOnly = false) =>
+    request<{ groups: ShoppingRequestGroup[] }>(
+      `/admin/stock/requests${openOnly ? "?open=1" : ""}`,
       { auth: true, cache: "no-store", scope: true },
     ),
 
@@ -5002,9 +5014,11 @@ export const api = {
   //
   // ---- The shopping list ----
   //
-  // ⚠️ **Two permissions, and the split is the supervision**: `buyorder` writes
-  // the list, `buy` shops it. Held by one account the list stops being a check
-  // on the trip. See handlers/buyorders.go.
+  // ⚠️ **Three permissions now, and the splits are the supervision**:
+  // `buyorder` writes the list and signs for what turns up, `buy` shops the
+  // market half, `stockissue` picks the half that is already in the building.
+  // Held by one account the list stops being a check on anything and becomes a
+  // note somebody wrote to themselves. See handlers/buyorders.go.
   staffBuyOrders: (openOnly = false) =>
     request<{ orders: ShoppingOrder[] }>(
       `/staff/buy/orders${openOnly ? "?open=1" : ""}`,
@@ -5029,7 +5043,10 @@ export const api = {
       pack?: boolean;
     }[];
   }) =>
-    request<ShoppingOrder>("/staff/buy/orders", {
+    // ⚠️ **One request comes back as one or two lists.** The server splits it by
+    // where each line is answered from — the market or the store room — and the
+    // person writing it never chooses. See handlers/buyorders.go.
+    request<{ orders: ShoppingOrder[] }>("/staff/buy/orders", {
       method: "POST",
       body,
       bearer: tillBearer(),
@@ -5054,16 +5071,36 @@ export const api = {
       body,
       bearer: tillBearer(),
     }),
-  staffFinishBuyOrder: (
+  /** My half is done and it is on its way.
+   *
+   *  ⚠️ **Not a delivery.** Nothing reaches a shelf here: what the buyer says he
+   *  handed over is a claim, and what the restaurant counted is the fact. The
+   *  purchase is written when somebody signs for it — see staffAcceptBuyOrder
+   *  and handlers/buyorderflow.go. */
+  staffShipBuyOrder: (id: string) =>
+    request<{ order: ShoppingOrder; already?: boolean }>(
+      `/staff/buy/orders/${id}/ship`,
+      { method: "POST", body: {}, bearer: tillBearer() },
+    ),
+  /** Counting what turned up, and signing for it.
+   *
+   *  ⚠️ **A row left out keeps what it was told**, and does not become a zero:
+   *  accepting without retyping means "this is right", which is the ordinary
+   *  case. Send only the rows whose figure differs. */
+  staffAcceptBuyOrder: (
     id: string,
-    body: { clientId: string; supplier?: string },
+    body: {
+      lines?: { lineId: string; qty: number }[];
+      /** ⚠️ The offline guarantee: without it a phone with no signal that
+       *  retried would write a second delivery. */
+      clientId?: string;
+      supplier?: string;
+    },
   ) =>
     request<{
       order: ShoppingOrder;
-      purchase?: Purchase;
-      created?: string[];
       already?: boolean;
-    }>(`/staff/buy/orders/${id}/finish`, {
+    }>(`/staff/buy/orders/${id}/accept`, {
       method: "POST",
       body,
       bearer: tillBearer(),

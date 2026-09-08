@@ -1211,18 +1211,119 @@ faqat alomatni ko'rardi.
 - **So'ralgani va olingani yonma-yon saqlanadi**: «o'ntasi so'ralgan, oltitasi
   olingan» — bu hujjat aynan shu gapni aytish uchun bor; natijani so'rovning
   ustiga yozish bozorlikda ilgari bo'lgan jimlikni qaytarardi.
-- **Kim qayerda yozadi**: kassada — Menejer, Kassir, Ish boshqaruvchi, Omborchi
-  (`canBuyOrder`, ruxsatdan chiqadi, rol nomidan emas). Ilovada — faqat menejer
-  va omborchi. ⚠️ Bu **ko'rinish qoidasi**, xavfsizlik chegarasi emas, va u ham
-  ruxsatlar bilan ifodalanadi (`buyorder && (void || stock)`), rol nomi bilan
-  emas — `tillPersonView.CanExit` allaqachon «boshqaruv» ni shunday so'raydi.
-  Kassirning telefoni restoranning bozorligi rejalashtiriladigan joy emas, va
-  hech qachon ishlatilmaydigan bo'lim ilovani e'tibordan qoldirishga o'rgatadi.
-- **Yangi rol «Omborchi»** (`stock` + `buyorder`) — javonni sanaydi va ro'yxat
+- **Kim qayerda yozadi**: kassada ham, ilovada ham — `buyorder` ruxsati bor har
+  kim (rol nomidan emas). ⚠️ Ilova ilgari buni yana toraytirardi
+  (`buyorder && (void || stock)`) va bu noto'g'ri edi — qarang «Bozorlik yoza
+  oladi — rolda emas, odamda».
+- **Yangi rol «Omborchi»** (`stock` + `buyorder` + `stockissue`) — javonni sanaydi va ro'yxat
   yozadi, lekin bozorga bormaydi. ⚠️ Mavjud installarga migratsiya bilan
   keladi, va `Menejer` / `Kassir` / `Ish boshqaruvchi` ga `buyorder` bir marta
   qo'shiladi (`buyOrderGranted` markeri **tashrifni** yozadi, natijani emas —
   aks holda endigina olib tashlangan ruxsat har boot'da qaytardi).
+
+#### So'rov ikkiga bo'linadi: bozordan keladigani va skladda turgani
+
+Bozorlik ro'yxati bitta odam yozadigan bitta varaq edi, va u varaqdagi hamma
+narsa **bozorchiga** ketardi. Lekin barmen ertalab yozadigan narsa aslida ikki
+xil: «5 blok kola, 5 kg shakar» — binoda bor, «5 kg limon, 5 kg apelsin» — yo'q.
+Birinchisini bozorga borib sotib olish — pulni ikki marta sarflash; ikkinchisini
+omborchidan so'rash — javob berib bo'lmaydigan so'rov.
+
+- ⚠️ **Qayerdan kelishi — tovarning fakti, so'rovniki emas** (`ingredient.source`).
+  Barmen bo'sh muzlatgich haqida o'ylayapti, kim nimani olib kelishi haqida emas;
+  ro'yxatni ikkiga ajratish — **ombor tarkibini bilish**, va bu aynan uning
+  ishiga kirmaydigan yagona narsa. Ajratishni katalog qiladi, ro'yxat o'zi
+  bo'linadi.
+- ⚠️ **Bo'sh — «bozordan», va shunday qolishi shart.** Bu maydondan oldingi butun
+  katalog bo'sh, ya'ni nol qiymatni boshqacha o'qish har bir install'ning hamma
+  masallig'ini ekranni hech qachon ochmagan omborchiga jo'natardi — jimgina, va
+  har bir so'rov «bajarilayotgandek» ko'rinib. Bo'sh `mapProvider` = 2GIS bilan
+  bir qoida.
+- ⚠️ **Katalogda yo'q nom — bozorga.** Uni hech kim bu yerdagi javonga qo'ymagan,
+  demak omborchiga borgan so'rov butun ertalab javobsiz yotadi va har ekranda
+  aynan «kimdir bilan shug'ullanayotgan so'rov» bo'lib ko'rinadi.
+- ⚠️ **Bitta so'rov — ikkita hujjat, bitta `groupId`.** Bitta hujjat ichidagi
+  ikki xil qator emas: omborchi o'n daqiqada javob beradi, bozorchi to'qqizda, va
+  umumiy hujjat ertalabni ikkalasida ham so'z yo'q holatda o'tkazardi («yarmi
+  yuborilgan» degan holatni ikkala ish ham bilmaydi). Panel esa so'rovni
+  **guruh** bo'yicha ko'rsatadi, chunki ro'yxatni ikkiga bo'lish — serverning
+  fikri, barmenning emas.
+
+#### Uchinchi holat: «yuborildi» hali «yetib keldi» emas
+
+Ilgari ikki holat bor edi: ro'yxat yozildi, keyin u kirim bo'ldi. O'sha ikki
+fakt orasida odam sumkani shahar bo'ylab olib o'tadi, orqa eshikda kimgadir
+beradi va uyiga ketadi. Bu topshirishni hech nima yozmasdi — ya'ni **kelmagan
+kilo** bilan **umuman olinmagan kilo** keyinchalik bir xil ko'rinardi, va nihoyat
+farqni topgan inventarizatsiya taxtani ushlab turgan odamni ayblardi.
+
+`sent → shipped → done`, va **javon uchinchisida qimirlaydi**:
+- ⚠️ **Kirim (`purchase`) qabul qilinganda yoziladi, sanalgan miqdorda.**
+  Bozorchining raqami — uning da'vosi, restoran sanagani — fakt. Bozorda yozilgan
+  kirim mahsulotni hali avtobusdagi sumkada turganda javonga qo'yardi, va undan
+  keyingi har bir tuzatishni tizimda hech nima o'g'irlikdan ajrata olmasdi.
+- ⚠️ **Tegilmagan qator yuborilganidek qabul qilinadi** (`ShoppingLine.Took`).
+  Hech nimani qayta yozmay imzolagan odam «hammasi to'g'ri» deyapti — bu oddiy
+  holat, va nolga tushiradigan standart eng tez rozi bo'lgan odamning butun
+  ro'yxatini bo'shatardi. Sanalgan **nol** esa alohida javob: sumka bo'sh kelgan.
+- ⚠️ **Erkin bozorlik (ro'yxatsiz) o'zgarmadi va darhol tushaveradi.** Uni hech
+  kim so'ramagan, demak sanab oladigan odam ham yo'q: unga qabul bosqichi
+  o'ylab topilsa, kirim mavjud bo'lmagan odamni kutib abadiy ochiq qolardi.
+- ⚠️ **Yuboruvchi va qabul qiluvchi — ikki maydon, lekin kod ikkinchisini
+  birinchisidan farq qilishga majburlamaydi.** Yakshanba kuni ikkalasini bir odam
+  qiladigan restoran ertalabni baribir yopa olishi kerak; muhimi — «kim yetib
+  keldi dedi» degan savolga javob **alohida** yozilgani.
+
+#### Skladdan chiqarish: hujjat, arifmetika emas
+
+Omborchi kolani barga berganda **hech qanday qoldiq o'zgarmaydi**, va bu — model,
+kamchilik emas: masalliqning uyi bitta (`ingredient_placement`), sotuv esa chek
+urilganda allaqachon spisat qiladi. Chiqimni yozish bitta shishani ikki marta
+ayirardi, va farqni topgan sanoq barmenni ayblardi.
+
+- ⚠️ **Ikki filial bo'lsa — boshqa gap.** `branch.supplyBranchId` boshqa filialni
+  ko'rsatsa, chiqarish **jo'natmaga** (`dispatch`) aylanadi: jo'natuvchi javoni
+  yuklanganini yo'qotadi, qabul qiluvchi sanab olinganini oladi. Yangi hujjat
+  emas — mavjudi, chunki harakat hisoboti va ikkala balans aynan undan o'qiladi.
+- ⚠️ **Bo'sh — «o'z ombori»**, va bu hozirgacha o'rnatilgan har bir restoran.
+  Filial **o'zini** ko'rsata olmaydi: ikki uchi bitta javon bo'lgan nakladnoy
+  bitta kilogrammni ayirib, qo'shib, hech kim imzolay olmaydigan qog'oz qoldirardi.
+- ⚠️ **Omborchining tikkasi narx yozmaydi.** Tovar bir marta sotib olingan; bu
+  yerda yozilgan ikkinchi narx tarixga kirim bo'lib tushardi va o'sha masalliqli
+  har bir taomni qayta narxlardi — ikki xona orasidagi yumushning eng baland
+  ovozli xato qilish usuli.
+- ⚠️ **Yangi ruxsat `PermStockIssue`, `stock` ning ichida emas.** Javonni sanash
+  va uni bo'shatish — ikki xil ish: sanoq nima turganini yozadi, chiqarish esa
+  kimga tegishini hal qiladi. Qo'shilsa, muzlatgichni sanash uchun telefon
+  berilgan har bir odam bir yashik aroqni shahar bo'ylab jo'natish tugmasini ham
+  olardi — restoran esa buni hech qachon so'ralmay bergan bo'lardi.
+
+#### «Bozorlik yoza oladi» — rolda emas, odamda
+
+`buyorder` roldan chiqardi, va ilova uni yana toraytirardi: `buyorder && (void ||
+stock)`, ya'ni «boshqaruv yoki omborchi». Bu **kim tugaganini sezishi** haqida
+noto'g'ri o'qish edi — bu bo'sh muzlatgichli barmen va unning oxirini ishlatgan
+oshpaz, va ikkalasi ham chek bekor qilmaydi, javon ham sanamaydi.
+
+- **Xodim kartochkasida bitta katakcha** (`staff.canBuyOrder`), va bu shu
+  mahsulotdagi **yagona odamga beriladigan ruxsat**. Qolgan hammasi — ish: kassir
+  pul oladi, oshpaz peshtaxtani boshqaradi, va javob o'sha ishni qilayotgan har
+  kimda bir xil. «Ro'yxat yoza oladigan Barmen» degan ikkinchi rolni yasashga
+  majbur bo'lgan restoran har odamga bitta rol bilan tugaydi — rollar aynan
+  shuning oldini olish uchun bor.
+- ⚠️ **Faqat qo'shadi, hech qachon olib qo'ymaydi.** Roli allaqachon bergan odamda
+  bu katakcha bo'sh turishi hech nimani o'zgartirmaydi: ba'zan beradigan, ba'zan
+  olib qo'yadigan tugma ikkinchi hujjatga qarab o'qiladi, va o'sha o'qish
+  shoshilgan kuni noto'g'ri qilinadi. Ilovadagi ikkinchi shart ham shu sababdan
+  olib tashlandi — u eganing endigina qo'ygan galochkasini jimgina bekor qilardi,
+  va ekran buning sababini aytadigan joyga ega emas.
+- **Telefon xabar oladi** (`notifyOrderQueue` / `notifyOrderShipped`): so'rov
+  ruxsatga yuboriladi, odamga emas — «omborchi» ikki odam almashib qiladigan ish,
+  va hisobga yozilgan xabar har ikkinchi hafta o'qilmay qolardi, panelda esa bu
+  so'rovlarga e'tibor bermaydigan omborchidek ko'rinardi.
+- ⚠️ Xabar **bildirishnoma**, `LossAlert` emas — bozorlik bo'yicha yozilgan
+  qoidaning o'zi: kanal haftada bir marta bo'ladigan g'ayrioddiy hodisa uchun.
+
 
 #### Seyf: pul jismonan qayerda
 

@@ -168,6 +168,12 @@ data class ShoppingLine(
     val gotAt: String = "",
     /** The market did not have it. ⚠️ Its own answer, not a quantity of zero. */
     val missing: Boolean = false,
+    /** What the person who asked for it counted when it turned up.
+     *
+     *  ⚠️ **Nullable, and absent is not zero.** A line nobody has checked and a
+     *  line that arrived empty are different facts, and a screen that cannot
+     *  tell them apart accuses somebody. Read it as `tookQty ?: gotQty`. */
+    val tookQty: Double? = null,
 )
 
 @Serializable
@@ -176,10 +182,40 @@ data class ShoppingOrder(
     /** ⚠️ A string, not a date: the driver hands every date back in UTC, and
      *  "which day" is exactly the question that would then be off by one. */
     val forDate: String = "",
+    /** Which half of the morning this is — `market` or `store`.
+     *
+     *  ⚠️ **One request becomes one list per place.** The storekeeper answers in
+     *  ten minutes and the buyer at nine, and a shared document would spend the
+     *  morning in a state neither of them has a word for.
+     *
+     *  ⚠️ Empty defaults to the market: every list written before this existed
+     *  was one, and reading the blank the other way would put a fortnight of
+     *  finished market runs into a storekeeper's queue. */
+    val source: String = "market",
+    /** The request both halves were written in. */
+    val groupId: String = "",
+    /** Which branch answers it — its own store room unless a chain points it at
+     *  a central one. */
+    val supplyBranchId: String = "",
+    /** `sent` · `shipped` · `done`. ⚠️ Three, and the third is the point:
+     *  "bought" said the money had been spent and nothing about whether the
+     *  goods reached the person who asked. */
     val status: String = "sent",
     val lines: List<ShoppingLine> = emptyList(),
     val createdBy: String = "",
-)
+    val shippedBy: String = "",
+    val acceptedBy: String = "",
+) {
+    /** Where this one is answered from. */
+    val fromStore: Boolean get() = source == "store"
+
+    /** Still waiting for the person it was sent to. */
+    val open: Boolean get() = status == "sent"
+
+    /** On its way, and nobody has counted it. ⚠️ The one state worth a colour on
+     *  every screen that draws these. */
+    val waiting: Boolean get() = status == "shipped"
+}
 
 @Serializable
 data class ShoppingOrders(val orders: List<ShoppingOrder> = emptyList())
@@ -194,6 +230,12 @@ data class ShoppingDraftRow(
     val onHand: Double = 0.0,
     val packName: String = "",
     val packQty: Double = 0.0,
+    /** Who will answer a line for it. ⚠️ Shown while the list is being written:
+     *  the split is the server's, but a writer who cannot see it has no way to
+     *  notice the one ingredient filed wrongly — and the wrong filing surfaces
+     *  as a request that sat all morning on a phone belonging to somebody who
+     *  was never going to answer it. */
+    val source: String = "market",
 )
 
 /** One ingredient the catalogue already has, for the list writer to pick.
@@ -209,6 +251,7 @@ data class ShoppingCatalogRow(
     val unit: String = "",
     val packName: String = "",
     val packQty: Double = 0.0,
+    val source: String = "market",
 )
 
 @Serializable
@@ -233,6 +276,21 @@ data class BuyResult(
     val already: Boolean = false,
 )
 
+/** What comes back from writing a list: one document, or two.
+ *
+ *  ⚠️ **The split is the server's answer, and the screen reads it back.** The
+ *  writer chose none of it, so a phone that simply said "sent" would leave them
+ *  with no way to notice that the lemons they meant for the market went to a
+ *  storekeeper — the one mistake this routing can make, and one a person fixes
+ *  in the catalogue in ten seconds if they are told. */
+@Serializable
+data class CreatedOrders(val orders: List<ShoppingOrder> = emptyList())
+
+/** What comes back from finishing a half, or from signing for one.
+ *
+ *  ⚠️ **Shipping is no longer a delivery.** What reaches a shelf is what
+ *  somebody at the restaurant counted, so `purchase` is filled when the list is
+ *  accepted — not when the buyer leaves the market. */
 @Serializable
 data class FinishResult(
     val order: ShoppingOrder = ShoppingOrder(),

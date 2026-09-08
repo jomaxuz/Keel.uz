@@ -46,6 +46,7 @@ interface Draft {
   branchId: string;
   isActive: boolean;
   canKitchen: boolean;
+  canBuyOrder: boolean;
   canWaiter: boolean;
   canCashier: boolean;
   hasPin?: boolean;
@@ -83,6 +84,9 @@ const emptyDraft = (branchId: string): Draft => ({
   // handed out by default is not a permission — which is the whole reason
   // this field exists.
   canKitchen: false,
+  // ⚠️ Off for a new employee, like the pass: a permission handed out by
+  // default is not a permission.
+  canBuyOrder: false,
   canWaiter: false,
   canCashier: false,
   schedule: defaultSchedule(),
@@ -173,6 +177,7 @@ export default function AdminStaffPage() {
       branchId: row.branchId ?? "",
       isActive: row.isActive,
       canKitchen: row.canKitchen ?? false,
+      canBuyOrder: row.canBuyOrder ?? false,
       canWaiter: row.canWaiter ?? false,
       canCashier: row.canCashier ?? false,
       hasPin: row.hasPin ?? false,
@@ -206,6 +211,7 @@ export default function AdminStaffPage() {
       branchId: draft.branchId,
       isActive: draft.isActive,
       canKitchen: draft.canKitchen,
+      canBuyOrder: draft.canBuyOrder,
       canWaiter: draft.canWaiter,
       canCashier: draft.canCashier,
       schedule: draft.schedule,
@@ -618,6 +624,37 @@ export default function AdminStaffPage() {
               {t.staff.canKitchen}
               <span className="mt-0.5 block text-xs text-ink-muted">
                 {t.staff.canKitchenHint}
+              </span>
+            </span>
+          </label>
+
+          {/* ---- Who may write a shopping list ----
+              ⚠️ **The one permission granted per person rather than per job.**
+              Everything else on this screen is a job — a cashier takes money, a
+              cook runs the pass, and the answer is the same for everybody
+              holding it. Who notices the sugar has run out is not: it is the
+              barman on Tuesdays and the porter on Fridays, and a restaurant
+              forced to invent "Barmen who may write lists" as a second role ends
+              up with a role per person, which is what roles exist to prevent.
+
+              ⚠️ **It only ever adds.** Somebody whose role already grants it
+              keeps it with this box unticked — a switch that sometimes grants
+              and sometimes revokes has to be read against a second document,
+              and that reading gets done wrong on the day somebody is in a
+              hurry. */}
+          <label className="mt-3 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={draft.canBuyOrder}
+              onChange={(e) =>
+                setDraft({ ...draft, canBuyOrder: e.target.checked })
+              }
+            />
+            <span>
+              {t.staff.canBuyOrder}
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                {t.staff.canBuyOrderHint}
               </span>
             </span>
           </label>

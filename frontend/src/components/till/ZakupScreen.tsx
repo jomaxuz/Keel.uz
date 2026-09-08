@@ -9,6 +9,7 @@ import type {
   ShoppingCatalogRow,
   ShoppingDraftRow,
   ShoppingOrder,
+  ShoppingSource,
 } from "@/lib/types";
 
 // The shopping list, written where the news arrives.
@@ -45,7 +46,22 @@ type Draft = {
    *  the factor is a fact about the ingredient and the result is what somebody
    *  is sent to buy, so the server does the arithmetic. */
   pack?: boolean;
+  /** Where the line will be answered from. ⚠️ **Shown, never chosen here.** The
+   *  catalogue decides — sorting a list into "buy" and "fetch" is knowledge
+   *  about the store, which is not the job of the person noticing the bar is
+   *  empty. But it is shown, because a line filed wrongly otherwise sits all
+   *  morning on a phone belonging to somebody who was never going to answer
+   *  it. */
+  source?: ShoppingSource;
 };
+
+/** The word for where a line goes, in the language the screen is in. */
+function sourceLabel(
+  source: ShoppingSource | undefined,
+  t: { zakup: { fromMarket: string; fromStore: string } },
+) {
+  return source === "store" ? t.zakup.fromStore : t.zakup.fromMarket;
+}
 
 export default function ZakupScreen({
   onError,
@@ -74,6 +90,8 @@ export default function ZakupScreen({
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState("");
   const [loadErr, setLoadErr] = useState("");
+  /** The list somebody is standing over with a bag in front of them. */
+  const [accepting, setAccepting] = useState<ShoppingOrder | null>(null);
 
   const load = useCallback(() => {
     api
@@ -164,12 +182,15 @@ export default function ZakupScreen({
         onHand: row.onHand,
         packName: row.packName,
         packQty: row.packQty,
+        source: row.source,
       },
     ]);
     setQuery("");
   }
 
   const ready = lines.filter((l) => Number(l.qty) > 0);
+  const storeCount = ready.filter((l) => l.source === "store").length;
+  const marketCount = ready.length - storeCount;
 
   async function send() {
     if (ready.length === 0) {
@@ -189,7 +210,16 @@ export default function ZakupScreen({
       });
       setLines([]);
       setPreview(false);
-      setDone(t.zakup.sent(ready.length));
+      // ⚠️ **The split is said out loud after sending.** The writer chose none
+      // of it, so a plain "sent" would leave them with no way to notice that
+      // the lemons they meant for the market went to a storekeeper — which is
+      // the one mistake this routing can make, and the one a person can fix in
+      // the catalogue in ten seconds if they are told.
+      setDone(
+        storeCount > 0 && marketCount > 0
+          ? t.zakup.sentSplit(marketCount, storeCount)
+          : t.zakup.sent(ready.length),
+      );
       load();
     } catch (e) {
       onError(e instanceof ApiError ? e.message : String(e));
@@ -245,11 +275,15 @@ export default function ZakupScreen({
                     <span className="block truncate text-[15px] font-semibold">
                       {l.name}
                     </span>
-                    {l.onHand !== undefined && (
-                      <span className="text-[13px] text-ink-muted">
-                        {t.zakup.onHand(l.onHand, l.unit)}
-                      </span>
-                    )}
+                    <span className="text-[13px] text-ink-muted">
+                      {/* ⚠️ Where it goes is on every row, not only where it is
+                          surprising: a badge that appears sometimes is one
+                          people stop reading, and the row it is missing from is
+                          the one that needed it. */}
+                      {sourceLabel(l.source, t)}
+                      {l.onHand !== undefined &&
+                        ` · ${t.zakup.onHand(l.onHand, l.unit)}`}
+                    </span>
                   </span>
                   <input
                     className="till-input h-11 w-24 text-center"
@@ -329,6 +363,9 @@ export default function ZakupScreen({
                       // manager who knows a holiday is coming buys more.
                       qty: row.qty > 0 ? String(row.qty) : "",
                       onHand: row.onHand,
+                      packName: row.packName,
+                      packQty: row.packQty,
+                      source: row.source,
                     })
                   }
                 >
@@ -376,7 +413,12 @@ export default function ZakupScreen({
                   className="rounded-[14px] border border-line p-3 text-[14px]"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{o.forDate}</span>
+                    <span className="font-semibold">
+                      {o.forDate}
+                      <span className="ml-2 text-[13px] font-normal text-ink-muted">
+                        {sourceLabel(o.source, t)}
+                      </span>
+                    </span>
                     <span
                       className={
                         o.status === "done"
@@ -386,7 +428,9 @@ export default function ZakupScreen({
                     >
                       {o.status === "done"
                         ? t.zakup.statusDone
-                        : t.zakup.statusSent}
+                        : o.status === "shipped"
+                          ? t.zakup.statusShipped
+                          : t.zakup.statusSent}
                     </span>
                   </div>
                   {/* ⚠️ "Asked for ten, brought six" is the sentence this whole
@@ -399,6 +443,19 @@ export default function ZakupScreen({
                     )}
                     {o.createdBy ? ` · ${o.createdBy}` : ""}
                   </p>
+                  {/* ⚠️ **The button only exists on the list that is waiting for
+                      it.** "Signed for" is the state this whole feature was
+                      built to make reachable, and an accept button on a list
+                      nobody has shopped yet would be a button that answers a
+                      question nobody has asked. */}
+                  {o.status === "shipped" && (
+                    <button
+                      className="mt-2 rounded-[10px] bg-[rgb(var(--till-accent-tint))] px-3 py-1.5 text-[13px] font-semibold text-[rgb(var(--till-accent-ink))]"
+                      onClick={() => setAccepting(o)}
+                    >
+                      {t.zakup.accept}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -422,6 +479,18 @@ export default function ZakupScreen({
         </button>
       </div>
 
+      {accepting && (
+        <AcceptDialog
+          order={accepting}
+          onClose={() => setAccepting(null)}
+          onDone={() => {
+            setAccepting(null);
+            load();
+          }}
+          onError={onError}
+        />
+      )}
+
       {/* ---- The last look before it is sent ----
           ⚠️ **A list is somebody else's morning.** The buyer will not be able
           to ask what "5" meant, so the numbers and the units are read back once
@@ -434,11 +503,21 @@ export default function ZakupScreen({
             </h2>
             <p className="mt-1 text-sm text-ink-soft">
               {t.zakup.previewBody(forDate)}
+              {storeCount > 0 && marketCount > 0 && (
+                <span className="mt-1 block">
+                  {t.zakup.splitNote(marketCount, storeCount)}
+                </span>
+              )}
             </p>
             <ul className="mt-3 divide-y divide-line text-sm">
               {ready.map((l) => (
                 <li key={l.key} className="flex justify-between gap-2 py-1.5">
-                  <span className="truncate">{l.name}</span>
+                  <span className="min-w-0 truncate">
+                    {l.name}
+                    <span className="ml-1 text-xs text-ink-muted">
+                      {sourceLabel(l.source, t)}
+                    </span>
+                  </span>
                   {/* ⚠️ Read back in both, where they differ: the list travels
                       to somebody else's morning and "2" has to be unambiguous
                       before it leaves. */}
@@ -469,6 +548,109 @@ export default function ZakupScreen({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** ---- Counting what turned up ----
+ *
+ *  ⚠️ **What reaches the shelf is what the restaurant counted**, not what the
+ *  buyer says he handed over. Where the two differ, the difference is the
+ *  record — it is the thing that had nowhere to be written before, and the
+ *  reason a purchase is created here rather than at the market.
+ *
+ *  ⚠️ **A row left alone is accepted as sent.** Somebody who signs without
+ *  retyping anything is saying "this is right", which is the ordinary case; a
+ *  form that demanded every figure again would be a form people close. */
+function AcceptDialog({
+  order,
+  onClose,
+  onDone,
+  onError,
+}: {
+  order: ShoppingOrder;
+  onClose: () => void;
+  onDone: () => void;
+  onError: (message: string) => void;
+}) {
+  const t = useAdminT();
+  const [counted, setCounted] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  /** ⚠️ Minted once per dialog, not per attempt: a phone that retried after a
+   *  timeout must not write a second delivery. */
+  const [clientId] = useState(
+    () => `acc-${order.id}-${Math.random().toString(36).slice(2, 10)}`,
+  );
+
+  const sent = order.lines.filter((l) => l.gotAt && !l.missing);
+
+  async function send() {
+    setBusy(true);
+    try {
+      await api.staffAcceptBuyOrder(order.id, {
+        clientId,
+        // Only what differs. A row nobody touched keeps what it was told.
+        lines: sent
+          .filter((l) => counted[l.id] !== undefined && counted[l.id] !== "")
+          .map((l) => ({ lineId: l.id, qty: Number(counted[l.id]) }))
+          .filter((l) => !Number.isNaN(l.qty) && l.qty >= 0),
+      });
+      onDone();
+    } catch (e) {
+      onError(e instanceof ApiError ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
+      <div className="till-dialog max-h-[85dvh] w-full max-w-sm overflow-y-auto p-4">
+        <h2 className="font-display text-lg font-bold">
+          {t.zakup.acceptTitle}
+        </h2>
+        <p className="mt-1 text-sm text-ink-soft">{t.zakup.acceptBody}</p>
+        <ul className="mt-3 divide-y divide-line text-sm">
+          {sent.map((l) => (
+            <li key={l.id} className="flex items-center gap-2 py-1.5">
+              <span className="min-w-0 flex-1 truncate">
+                {l.name}
+                <span className="ml-1 text-xs text-ink-muted">
+                  {l.gotQty} {l.unit}
+                  {/* The price is the buyer's own note and is shown, not
+                      editable: a figure retyped at a back door would rewrite
+                      the price history of every dish the ingredient is in. */}
+                  {l.price ? ` · ${formatPrice(l.price)}` : ""}
+                </span>
+              </span>
+              <input
+                className="till-input h-11 w-24 text-center"
+                inputMode="decimal"
+                placeholder={String(l.gotQty ?? "")}
+                value={counted[l.id] ?? ""}
+                onChange={(e) =>
+                  setCounted((cur) => ({
+                    ...cur,
+                    [l.id]: e.target.value.replace(",", "."),
+                  }))
+                }
+              />
+            </li>
+          ))}
+        </ul>
+        <div className="mt-5 flex gap-2">
+          <button className="till-btn flex-1" autoFocus onClick={onClose}>
+            {t.zakup.back}
+          </button>
+          <button
+            className="till-btn-primary flex-1"
+            disabled={busy}
+            onClick={() => void send()}
+          >
+            {t.zakup.acceptSend}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

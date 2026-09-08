@@ -1949,6 +1949,14 @@ export interface Branch {
   name: string;
   /** Short code printed in front of this branch's order numbers. */
   code?: string;
+  /** Which branch holds this one's stock, when a chain has a central store.
+   *
+   *  ⚠️ **Empty is "its own store room"**, which is every restaurant that has
+   *  ever installed this: a request for something already in the building is
+   *  then an errand between two rooms and moves no stock. Pointing at another
+   *  branch makes the same request a van — the sending shelf loses what was
+   *  loaded and this one gains what was counted off it. Never itself. */
+  supplyBranchId?: string;
   /** Menu item ids that have run out here today, marked at the counter. */
   soldOut?: string[];
   /** Menu item ids the branch's till has stopped, mirrored every few minutes.
@@ -2036,6 +2044,18 @@ export interface Staff {
    *  running the pass. The server enforces it — the hidden button is only the
    *  courtesy half. */
   canKitchen: boolean;
+  /** May write a shopping list, whatever their role says.
+   *
+   *  ⚠️ **It only ever adds.** A role that already grants `buyorder` is not
+   *  withdrawn by leaving this unticked — a switch that sometimes grants and
+   *  sometimes revokes has to be read against a second document, and that
+   *  reading gets done wrong on the day somebody is in a hurry.
+   *
+   *  ⚠️ The one permission granted per person rather than per job: who notices
+   *  the sugar has run out is the barman on Tuesdays and the porter on Fridays,
+   *  and inventing "Barmen who may write lists" as a second role ends in a role
+   *  per person, which is what roles exist to prevent. */
+  canBuyOrder?: boolean;
   /** May run the floor screen: open checks, add dishes, send them to the
    *  kitchen. */
   canWaiter: boolean;
@@ -4083,6 +4103,14 @@ export interface Ingredient {
    *  count. Both fields or neither — a name with no size converts nothing. */
   packName?: string;
   packQty?: number;
+  /** Where a request for this is answered from.
+   *
+   *  ⚠️ **Empty is the market**, and every catalogue that existed before this
+   *  field is empty. A barman writing "cola, sugar, lemons" is thinking about an
+   *  empty bar, not about who fetches what — sorting his list is knowledge about
+   *  the store, which is the one thing his job does not involve, so the
+   *  catalogue answers it and the list splits itself. */
+  source?: ShoppingSource;
 }
 
 /** One ingredient in a dish, in recipe units (g, ml, pcs).
@@ -4568,7 +4596,18 @@ export interface ShoppingLine {
    *  line nobody touched and one somebody looked for and could not find are
    *  different facts. */
   missing?: boolean;
+  /** What the person who asked for it counted when it turned up.
+   *
+   *  ⚠️ **Absent is not zero.** A line nobody has checked and a line that
+   *  arrived empty are different facts, and a screen that cannot tell them apart
+   *  accuses somebody. Use `tookQty ?? gotQty` — never `tookQty || gotQty`. */
+  tookQty?: number;
 }
+
+/** Where a request is answered from. ⚠️ Two, and there is no third: a supplier
+ *  who delivers is still the buyer's line, and a list of places would grow one
+ *  entry per restaurant until the routing stopped being a rule. */
+export type ShoppingSource = "market" | "store";
 
 export interface ShoppingOrder {
   id: string;
@@ -4577,13 +4616,46 @@ export interface ShoppingOrder {
    *  driver hands every date back in UTC, and "which day" is exactly the
    *  question that would then be off by one, silently. */
   forDate: string;
-  status: "sent" | "done";
+  /** Which half of the morning this is. ⚠️ One request becomes one document per
+   *  place — the storekeeper answers in ten minutes and the buyer at nine, and a
+   *  shared document would spend the morning in a state neither of them has a
+   *  word for. */
+  source?: ShoppingSource;
+  /** The request both halves were written in. */
+  groupId?: string;
+  /** Which branch answers it — its own store room unless a chain points it at a
+   *  central one. */
+  supplyBranchId?: string;
+  /** ⚠️ Three states, and the third is the point: "bought" said the money had
+   *  been spent and nothing about whether the goods reached the person who
+   *  asked. That gap is where things disappear. */
+  status: "sent" | "shipped" | "done";
   lines: ShoppingLine[];
   note?: string;
   createdBy?: string;
   createdAt: string;
   purchaseId?: string;
+  /** The van the store half became, when the goods came from another branch. */
+  dispatchId?: string;
+  shippedAt?: string;
+  shippedBy?: string;
+  acceptedAt?: string;
+  acceptedBy?: string;
   doneAt?: string;
+}
+
+/** One request as the panel reads it: what somebody asked for at six, with both
+ *  halves of the answer beside it. ⚠️ Grouped because splitting the list is the
+ *  server's idea, not the barman's. */
+export interface ShoppingRequestGroup {
+  groupId: string;
+  forDate: string;
+  createdAt: string;
+  createdBy?: string;
+  branch?: string;
+  /** The branch that ships the store half, when it is not this one. */
+  supply?: string;
+  orders: ShoppingOrder[];
 }
 
 /** One row of the shortage the store has already worked out, as a starting
@@ -4606,6 +4678,13 @@ export interface ShoppingCatalogRow {
   unit: string;
   packName?: string;
   packQty?: number;
+  /** Who will answer a line for it. ⚠️ Shown while the list is being written,
+   *  not only after it is sent: the split happens on the server either way, but
+   *  a writer who cannot see it has no way to notice the one ingredient that is
+   *  filed wrongly — and the wrong filing surfaces as a request that sat all
+   *  morning on a phone belonging to somebody who was never going to answer
+   *  it. */
+  source?: ShoppingSource;
 }
 
 export interface ShoppingDraftRow {
@@ -4616,6 +4695,7 @@ export interface ShoppingDraftRow {
   onHand: number;
   packName?: string;
   packQty?: number;
+  source?: ShoppingSource;
 }
 
 // ---- The market run ----

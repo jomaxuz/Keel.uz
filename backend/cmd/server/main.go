@@ -131,6 +131,11 @@ func main() {
 	if err := repository.EnsureStorekeeperRole(ctx, store); err != nil {
 		log.Printf("storekeeper role migration: %v", err)
 	}
+	// And the permission to hand out what a request asks for — the storekeeper's
+	// own half of the same morning. See EnsureStockIssue.
+	if err := repository.EnsureStockIssue(ctx, store); err != nil {
+		log.Printf("stock issue migration: %v", err)
+	}
 	if err := repository.EnsureSoldOutArrays(ctx, store); err != nil {
 		log.Printf("sold-out arrays: %v", err)
 	}

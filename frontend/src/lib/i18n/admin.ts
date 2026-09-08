@@ -1270,6 +1270,15 @@ export const adminUz = {
     madeMovedHint:
       "Yarim tayyor (sous, xamir, sushi guruchi) endi alohida bo'limda tuziladi:",
     madeMovedLink: "Texkartalar",
+    // ---- Qayerdan keladi ----
+    // ⚠️ Bo'sh — bozordan, va shunday qolishi kerak: bu maydondan oldingi butun
+    // katalog bo'sh, va nol qiymatni boshqacha o'qish har bir install'ning
+    // hamma masallig'ini hech qachon ekranni ochmagan omborchiga jo'natardi.
+    source: "Qayerdan keladi",
+    sourceMarket: "Bozordan olinadi",
+    sourceStore: "Skladda bor",
+    sourceHint:
+      "Xodim bozorlik yozganda shu qator kimga ketishini shu maydon hal qiladi: bozordan olinadigani bozorchiga, skladda bori omborchiga.",
   },
   expiring: {
     title: "Muddati tugayapti",
@@ -1392,6 +1401,29 @@ export const adminUz = {
     buy: "Olish kerak",
     cost: "Taxminan",
     total: "Jami",
+    // ---- Yozilgan so'rovlar: kim so'radi, kim bajardi, kim qabul qildi ----
+    // ⚠️ Yuqoridagi ro'yxat — arifmetika. Bu esa birovning ertalabki ishi, va
+    // undagi yagona muhim holat — «yuborilgan, lekin hech kim qabul qilmagan».
+    requestsTitle: "So'rovlar",
+    requestsIntro:
+      "Xodimlar yozgan bozorlik so'rovlari. Har bir so'rov qayerdan kelishiga qarab bo'linadi: bozordan olinadigani bozorchiga, skladda bori omborchiga.",
+    requestsEmpty: "So'nggi ikki haftada so'rov yozilmagan",
+    requestsOpenOnly: "Faqat yopilmaganlari",
+    reqFromMarket: "Bozordan",
+    reqFromStore: "Skladdan",
+    reqSent: "kutmoqda",
+    reqShipped: "yo'lda — qabul qilinmagan",
+    reqDone: "qabul qilindi",
+    askedBy: (who: string) => `so'ragan: ${who}`,
+    shippedBy: (who: string) => `yuborgan: ${who}`,
+    acceptedBy: (who: string) => `qabul qilgan: ${who}`,
+    fromBranch: (name: string) => `${name} skladidan`,
+    // ⚠️ «O'ntasi so'ralgan, oltitasi yuborilgan, beshtasi sanab olingan» — bu
+    // hujjat aynan shu gapni aytish uchun bor.
+    lineAsked: (qty: string) => `so'ralgan ${qty}`,
+    lineGot: (qty: string) => `yuborilgan ${qty}`,
+    lineTook: (qty: string) => `sanab olingan ${qty}`,
+    lineMissing: "yo'q edi",
   },
   suppliers: {
     title: "Yetkazib beruvchilar",
@@ -1813,6 +1845,23 @@ export const adminUz = {
     statusSent: "bozorda",
     statusDone: "yakunlandi",
     progress: (got: number, all: number) => `${got}/${all} olindi`,
+    // ---- Qayerdan keladi ----
+    // ⚠️ Ro'yxatni yozayotgan odam buni tanlamaydi — katalog hal qiladi. Lekin
+    // u qaysi qator qayerga ketishini **ko'rishi** kerak: noto'g'ri belgilangan
+    // bitta masalliq butun ertalab javob bermaydigan telefonda yotadi.
+    fromMarket: "Bozordan",
+    fromStore: "Skladdan",
+    splitNote: (market: number, store: number) =>
+      `${market} qator bozorchiga, ${store} qator omborchiga ketadi`,
+    sentSplit: (market: number, store: number) =>
+      `Yuborildi: bozorchiga ${market} qator, omborchiga ${store} qator`,
+    statusShipped: "yo'lda",
+    accept: "Sanab, qabul qilish",
+    acceptTitle: "Qabul qilish",
+    acceptBody:
+      "Yuborilgan miqdorni sanab chiqing. O'zgartirmagan qatorlaringiz yuborilganidek qabul qilinadi.",
+    acceptSend: "Qabul qildim",
+    accepted: "Qabul qilindi",
   },
   stopList: {
     stockEnable: "Yoqish",
@@ -3596,6 +3645,23 @@ export const adminUz = {
       "Noyabr",
       "Dekabr",
     ],
+    // ---- Bozorlik yozish: rolda emas, odamda ----
+    // ⚠️ Faqat qo'shadi. Roli allaqachon ruxsat bergan odamda bu katakcha bo'sh
+    // turishi hech nimani olib qo'ymaydi — ba'zan beradigan, ba'zan olib
+    // qo'yadigan tugma ikkinchi hujjatga qarab o'qiladi, va o'sha o'qish
+    // shoshilgan kuni noto'g'ri qilinadi.
+    // ---- Markaziy sklad: bu filial tovarni qayerdan oladi ----
+    // ⚠️ Bo'sh — «o'z ombori», va bu hozirgacha o'rnatilgan har bir restoran.
+    // Boshqa filial ko'rsatilsa, skladdan chiqarish jo'natmaga (nakladnoy)
+    // aylanadi: jo'natuvchi javonidan ayiriladi, qabul qilinganda bu yerga
+    // qo'shiladi. O'zini ko'rsatib bo'lmaydi.
+    supplyBranch: "Markaziy sklad",
+    supplyBranchOwn: "O'z ombori",
+    supplyBranchHint:
+      "Skladdan so'ralgan tovarni kim chiqaradi. «O'z ombori» — so'rov shu filialda bajariladi va qoldiqqa tegmaydi (sotuv chekda allaqachon spisat qilinadi). Boshqa filial tanlansa — nakladnoy bilan jo'natma bo'ladi.",
+    canBuyOrder: "Bozorlik yoza oladi",
+    canBuyOrderHint:
+      "Ilovada «Bozorlik» bo'limi ochiladi: nima kerakligini yozib yuboradi. Sotib olish yoki skladdan chiqarish huquqini bermaydi. Roli allaqachon bergan bo'lsa, bu katakcha uni olib qo'ymaydi.",
   },
 
   // Joylashuvga ruxsat — ishchi va kuryer ilovalari uchun umumiy.
@@ -6210,6 +6276,11 @@ export const adminRu: AdminDict = {
     madeMovedHint:
       "Полуфабрикаты (соус, тесто, рис для суши) теперь составляются в отдельном разделе:",
     madeMovedLink: "Техкарты",
+    source: "Откуда поступает",
+    sourceMarket: "Покупается на рынке",
+    sourceStore: "Есть на складе",
+    sourceHint:
+      "Когда сотрудник пишет заявку, это поле решает, кому уйдёт строка: покупное — закупщику, складское — кладовщику.",
   },
   expiring: {
     title: "Истекает срок",
@@ -6315,6 +6386,24 @@ export const adminRu: AdminDict = {
     buy: "Купить",
     cost: "Примерно",
     total: "Итого",
+    requestsTitle: "Заявки",
+    requestsIntro:
+      "Заявки на закупку, написанные сотрудниками. Каждая делится по источнику: покупное уходит закупщику, складское — кладовщику.",
+    requestsEmpty: "За последние две недели заявок не было",
+    requestsOpenOnly: "Только незакрытые",
+    reqFromMarket: "С рынка",
+    reqFromStore: "Со склада",
+    reqSent: "ждёт",
+    reqShipped: "в пути — не принято",
+    reqDone: "принято",
+    askedBy: (who: string) => `заявка: ${who}`,
+    shippedBy: (who: string) => `отправил: ${who}`,
+    acceptedBy: (who: string) => `принял: ${who}`,
+    fromBranch: (name: string) => `со склада «${name}»`,
+    lineAsked: (qty: string) => `заявлено ${qty}`,
+    lineGot: (qty: string) => `отправлено ${qty}`,
+    lineTook: (qty: string) => `принято ${qty}`,
+    lineMissing: "не было",
   },
   suppliers: {
     title: "Поставщики",
@@ -6679,6 +6768,19 @@ export const adminRu: AdminDict = {
     statusSent: "на рынке",
     statusDone: "закрыт",
     progress: (got: number, all: number) => `куплено ${got}/${all}`,
+    fromMarket: "С рынка",
+    fromStore: "Со склада",
+    splitNote: (market: number, store: number) =>
+      `${market} строк закупщику, ${store} строк кладовщику`,
+    sentSplit: (market: number, store: number) =>
+      `Отправлено: закупщику ${market} строк, кладовщику ${store} строк`,
+    statusShipped: "в пути",
+    accept: "Пересчитать и принять",
+    acceptTitle: "Приёмка",
+    acceptBody:
+      "Пересчитайте то, что отправили. Строки, которые вы не меняли, принимаются как отправлено.",
+    acceptSend: "Принял",
+    accepted: "Принято",
   },
   stopList: {
     stockEnable: "Включить",
@@ -8281,6 +8383,13 @@ export const adminRu: AdminDict = {
       "Ноябрь",
       "Декабрь",
     ],
+    supplyBranch: "Центральный склад",
+    supplyBranchOwn: "Свой склад",
+    supplyBranchHint:
+      "Кто выдаёт со склада то, что запросили. «Свой склад» — заявка выполняется в этом филиале и остатков не двигает (продажа списывает на чеке). Другой филиал — будет отгрузка с накладной.",
+    canBuyOrder: "Может писать заявки на закупку",
+    canBuyOrderHint:
+      "В приложении откроется раздел «Закупка»: сотрудник пишет, что нужно. Права покупать или выдавать со склада это не даёт. Если право уже есть у роли, пустая галочка его не отнимает.",
   },
 
   geo: {
@@ -10806,6 +10915,11 @@ export const adminEn: AdminDict = {
     madeMovedHint:
       "Preps (a sauce, a dough, sushi rice) are now written in a section of their own:",
     madeMovedLink: "Tech cards",
+    source: "Where it comes from",
+    sourceMarket: "Bought at the market",
+    sourceStore: "Already in the store",
+    sourceHint:
+      "When somebody writes a shopping request, this decides who answers the line: what has to be bought goes to the buyer, what is on a shelf goes to the storekeeper.",
   },
   expiring: {
     title: "Expiring soon",
@@ -10912,6 +11026,24 @@ export const adminEn: AdminDict = {
     buy: "Buy",
     cost: "About",
     total: "Total",
+    requestsTitle: "Requests",
+    requestsIntro:
+      "Shopping requests written by staff. Each splits by where it is answered from: what has to be bought goes to the buyer, what is already in the building goes to the storekeeper.",
+    requestsEmpty: "No requests in the last fortnight",
+    requestsOpenOnly: "Only unfinished",
+    reqFromMarket: "From the market",
+    reqFromStore: "From the store",
+    reqSent: "waiting",
+    reqShipped: "on its way — not signed for",
+    reqDone: "signed for",
+    askedBy: (who: string) => `asked by ${who}`,
+    shippedBy: (who: string) => `sent by ${who}`,
+    acceptedBy: (who: string) => `signed by ${who}`,
+    fromBranch: (name: string) => `from the ${name} store`,
+    lineAsked: (qty: string) => `asked ${qty}`,
+    lineGot: (qty: string) => `sent ${qty}`,
+    lineTook: (qty: string) => `counted ${qty}`,
+    lineMissing: "not available",
   },
   suppliers: {
     title: "Suppliers",
@@ -11273,6 +11405,19 @@ export const adminEn: AdminDict = {
     statusSent: "at the market",
     statusDone: "closed",
     progress: (got: number, all: number) => `${got}/${all} bought`,
+    fromMarket: "From the market",
+    fromStore: "From the store",
+    splitNote: (market: number, store: number) =>
+      `${market} to the buyer, ${store} to the storekeeper`,
+    sentSplit: (market: number, store: number) =>
+      `Sent: ${market} lines to the buyer, ${store} to the storekeeper`,
+    statusShipped: "on its way",
+    accept: "Count and accept",
+    acceptTitle: "Accepting",
+    acceptBody:
+      "Count what was sent. Rows you do not change are accepted as they were sent.",
+    acceptSend: "Accepted",
+    accepted: "Signed for",
   },
   stopList: {
     stockEnable: "Turn on",
@@ -12875,6 +13020,13 @@ export const adminEn: AdminDict = {
       "November",
       "December",
     ],
+    supplyBranch: "Central store",
+    supplyBranchOwn: "Its own store room",
+    supplyBranchHint:
+      "Who answers a request for something already in the building. Its own store room means the errand stays here and moves no stock — the sale writes it off at the till. Another branch makes it a dispatch with a slip.",
+    canBuyOrder: "May write shopping requests",
+    canBuyOrderHint:
+      "Opens the shopping section in the app: they write down what is needed. It grants nothing else — not buying, not issuing from the store. If their role already grants it, leaving this unticked takes nothing away.",
   },
 
   geo: {

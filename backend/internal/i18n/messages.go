@@ -308,6 +308,18 @@ var messages = map[string]pair{
 		"Нет открытой смены — сначала отметьте приход",
 		"No shift is open — clock in first",
 	},
+	"bu ro'yxat hali yuborilmagan": {
+		"этот список ещё не отправлен",
+		"this list has not been sent yet",
+	},
+	"skladdan tovar chiqarishga ruxsat berilmagan — administratorga murojaat qiling": {
+		"нет доступа к выдаче товара со склада — обратитесь к администратору",
+		"you may not issue goods from the store — ask an administrator",
+	},
+	"Skladdan tovar chiqarish": {
+		"Выдача товара со склада",
+		"Issuing goods from the store",
+	},
 	"Omborni sanash": {
 		"Пересчёт склада",
 		"Counting the store",

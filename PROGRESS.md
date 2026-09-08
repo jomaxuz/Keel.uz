@@ -14234,3 +14234,55 @@ ochib ko'rildi. Baza va serverlar o'chirildi.
 
 Hujjatlarning o'qilgan nusxasi: `docs/vendor/didox.md`,
 `docs/vendor/1c-exchange.md`.
+
+---
+
+## 2026-09-08 — Bozorlik so'rovi ikkiga bo'linadi, va endi qabul qilinadi ✅
+
+Barmen ertalab yozadigan varaq aslida ikki xil narsadan iborat: binoda bori va
+yo'qi. Ilgari hammasi bozorchiga ketardi — kolani sotib olish pulni ikki marta
+sarflash, limonni omborchidan so'rash esa javob berib bo'lmaydigan so'rov.
+
+**Qayerdan kelishi — tovarning fakti** (`ingredient.source`, panelda
+Ombor → Masalliqlar). So'rov `POST /staff/buy/orders` da o'zi ikkiga bo'linadi:
+bozordan olinadigani bozorchiga, skladda turgani omborchiga, ikkalasi bitta
+`groupId` bilan. Ro'yxatni yozayotgan odam hech nima tanlamaydi — ajratish
+**ombor tarkibini bilish**, va bu uning ishiga kirmaydi; lekin qaysi qator
+qayerga ketishi ekranda ko'rinadi, chunki noto'g'ri belgilangan bitta masalliq
+butun ertalab javob bermaydigan telefonda yotadi. Bo'sh maydon — «bozordan»:
+bu maydondan oldingi butun katalog bo'sh.
+
+**Uchinchi holat qo'shildi**: `sent → shipped → done`. «Sotib olindi» pul
+sarflanganini aytardi va mahsulot so'ragan odamga yetib kelganini umuman
+aytmasdi — aynan shu bo'shliqda narsalar yo'qoladi. Kirim endi **qabul
+qilinganda**, restoran **sanagan** miqdorda yoziladi (`/accept`); bozorchining
+raqami — da'vo, sanalgani — fakt, va farq hujjatda ko'rinadi. Tegilmagan qator
+yuborilganidek qabul qilinadi, sanalgan nol esa alohida javob. Erkin bozorlik
+(ro'yxatsiz) o'zgarmadi va darhol tushaveradi — uni hech kim so'ramagan, demak
+sanab oladigan odam ham yo'q.
+
+**Skladdan chiqarish qoldiqqa tegmaydi**: masalliqning uyi bitta va sotuv chek
+urilganda spisat qiladi, ya'ni chiqimni yozish bitta shishani ikki marta
+ayirardi. `branch.supplyBranchId` boshqa filialni ko'rsatsa — mavjud `dispatch`
+quriladi (jo'natuvchi javoni yuklanganini yo'qotadi, qabul qiluvchi sanab
+olinganini oladi). Yangi ruxsat `PermStockIssue` — `stock` ning ichida emas:
+javonni sanash va uni bo'shatish ikki xil ish.
+
+**«Bozorlik yoza oladi» — xodim kartochkasidagi galochka** (`staff.canBuyOrder`),
+mahsulotdagi yagona odamga beriladigan ruxsat: kim tugaganini sezishi rol emas.
+Faqat qo'shadi — roli bergan odamda bo'sh katakcha hech nimani olib qo'ymaydi.
+Ilovadagi ikkinchi shart (`buyorder && (void || stock)`) olib tashlandi: u
+eganing endigina qo'ygan galochkasini jimgina bekor qilardi.
+
+Tegilgan joylar: `models/{ingredient,shoppingorder,staff,staffrole,models}.go`,
+`handlers/{buyorders,buyorderflow,adminbuyorders,orderplan,ingredients,adminstaff,brands,tilloverride}.go`,
+`repository/migrate.go` (`EnsureStockIssue`), `i18n/messages.go`;
+panelda `/admin/shopping` («So'rovlar» bo'limi), masalliq formasi, xodim
+kartochkasi, filial sozlamasi, kassaning Zakup ekrani (qabul qilish oynasi);
+`mobile/team-android` — `SkladScreen` (yangi tab), Zakup ekranida manba
+belgilari va qabul qilish, BuyScreen `/ship` ga o'tdi.
+
+Testlar: `go test ./...` yashil (`buyorderflow_test.go` — bo'sh manba bozorga
+o'qilishi, tegilmagan qator, galochka faqat qo'shishi, javon imzoda qimirlashi);
+`npm run build`; `./gradlew :app:testDebugUnitTest`. **Jonli bazada hali
+sinalmagan** — keyingi qadam.

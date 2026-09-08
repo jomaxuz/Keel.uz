@@ -274,11 +274,21 @@ func TestBothBuyingScreensWriteTheSameDelivery(t *testing.T) {
 	if !strings.Contains(create, "h.recordMarketRun(") {
 		t.Fatal("the free-form run builds its own purchase again")
 	}
-	orders := readSource(t, "buyorders.go")
-	finish := between(t, orders, "func (h *Handler) StaffFinishBuyOrder", "\n}\n")
-	if !strings.Contains(finish, "h.recordMarketRun(") {
-		t.Fatal("finishing a shopping list builds its own purchase")
+	// ⚠️ **And it is written when the list is accepted, not when it is
+	// shipped.** What reaches the shelf is what somebody at the restaurant
+	// counted; a purchase written at the market would put food on a shelf while
+	// it was still in a bag on a bus. See handlers/buyorderflow.go.
+	flow := readSource(t, "buyorderflow.go")
+	accept := between(t, flow, "func (h *Handler) StaffAcceptBuyOrder", "\n}\n")
+	if !strings.Contains(accept, "h.recordMarketRun(") {
+		t.Fatal("accepting a shopping list builds its own purchase")
 	}
+	ship := between(t, flow, "func (h *Handler) StaffShipBuyOrder", "\n}\n")
+	if strings.Contains(ship, "recordMarketRun") || strings.Contains(ship, "Purchases") {
+		t.Fatal("shipping writes the delivery — nobody has counted it yet")
+	}
+
+	orders := readSource(t, "buyorders.go")
 	// ⚠️ And the shelf moves only when the trip is finished. A line that raised
 	// stock the moment it was ticked would put food on the shelf while the
 	// buyer was still at the market, and an untick would then have to take it

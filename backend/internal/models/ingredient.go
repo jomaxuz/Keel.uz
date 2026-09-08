@@ -229,8 +229,52 @@ type Ingredient struct {
 	// sack of flour 50, a tray of eggs 30 pieces.
 	PackQty float64 `bson:"packQty,omitempty" json:"packQty,omitempty"`
 
+	// ---- Where it comes from when somebody asks for it ----
+	//
+	// ⚠️ **A fact about the thing, not about the request**, and that is what
+	// makes the routing possible at all. A barman writing "5 blocks of cola,
+	// 5 kg of sugar, 5 kg of lemons" is not thinking about who fetches what —
+	// he is thinking about a bar with empty shelves. Cola and sugar are in the
+	// building; lemons are at a market. Asking him to sort his own list into two
+	// is asking him to know the store's contents, which is the one thing his job
+	// does not involve, and the sorting would be wrong on the mornings it
+	// mattered.
+	//
+	// ⚠️ **The restaurant decides**, because the answer is theirs and it moves:
+	// a place that buys its own meat starts buying it from a central kitchen the
+	// month it opens a second branch, and nothing about the meat changed.
+	//
+	// ⚠️ **Empty is `market`, and it must stay that way.** Every ingredient that
+	// existed before this field went to a buyer, so reading the zero value as
+	// anything else would silently route the whole catalogue of every install to
+	// a storekeeper who has never opened the screen. Same rule as an empty
+	// `mapProvider` meaning 2GIS.
+	Source string `bson:"source,omitempty" json:"source,omitempty"`
+
 	CreatedAt time.Time `bson:"createdAt,omitempty" json:"createdAt,omitempty"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+// SourceMarket and SourceStore are the two places a request can be answered
+// from: somebody goes and buys it, or somebody takes it off a shelf.
+//
+// ⚠️ **Two, and there is no third.** "The supplier delivers it" is not a third
+// place — a delivery is a purchase that arrives by van, and it is still the
+// buyer's line. A list of places would grow one entry per restaurant and the
+// routing would stop being a rule.
+const (
+	SourceMarket = "market"
+	SourceStore  = "store"
+)
+
+// From reports where a request for this is answered from, reading an empty
+// field as the market — see the field's note for why that direction and not the
+// other one.
+func (i Ingredient) From() string {
+	if i.Source == SourceStore {
+		return SourceStore
+	}
+	return SourceMarket
 }
 
 // MadeInHouse reports whether this is cooked rather than bought.

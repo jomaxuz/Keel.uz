@@ -142,7 +142,14 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   (podotchet — ⚠️ **chiqim emas**: pul kirim sotib olganda sarflanadi, va u
   allaqachon moliyaviy hisobotda; qarang `docs/DECISIONS.md` → "Podotchet"),
   `shopping_order` (bozorlik ro'yxati — ⚠️ **so'rov, kirim emas**: ikkalasi
-  faqat safar yakunlanganda uchrashadi), `safe_entry` (seyf — ⚠️ **joy, foyda-zarar
+  faqat **qabul qilinganda** uchrashadi. ⚠️ Bitta so'rov `ingredient.source`
+  bo'yicha **ikkita hujjatga** bo'linadi — bozordan olinadigani bozorchiga,
+  skladda turgani omborchiga — va ikkalasi bitta `groupId` bilan bog'lanadi;
+  holat `sent → shipped → done`, javon esa **uchinchisida** qimirlaydi: kirim
+  bozorchining raqamidan emas, restoran **sanagan** miqdordan yoziladi. Skladdan
+  chiqarish esa qoldiqqa **umuman tegmaydi** — masalliqning uyi bitta va sotuv
+  chekda spisat qiladi — `branch.supplyBranchId` boshqa filialni ko'rsatmasa;
+  u holda `dispatch` quriladi), `safe_entry` (seyf — ⚠️ **joy, foyda-zarar
   emas**: moliyaviy hisobotga tegmaydi, aks holda bir pul ikki marta ayiriladi;
   `(refKind, refId)` unique — dublikat balans jimgina noto'g'ri bo'lardi),
   `expense` (ijara, svet, soliq, kuryer ish haqi — ⚠️ **faqat o'z hujjati
@@ -286,6 +293,13 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   `/admin/shortages` (+ `/close` — kamomad navbati; ⚠️ **`/admin/stock/` dan
   tashqarida ataylab**: omborchining ruxsat ro'yxati prefiksli va metodni
   bilmaydi, ya'ni javonni sanagan odam o'z kamomadiga javob yozib qo'yardi).
+- **Bozorlik oqimi** (`/staff/buy/orders`): `POST` yozadi va **ikkiga bo'ladi**,
+  `PUT .../lines/{lineId}` belgilaydi, `POST .../ship` («mening yarmim tayyor,
+  yo'lda» — ⚠️ `/finish` o'sha handler'ga qoldirilgan, eski telefonlar uchun),
+  `POST .../accept` (sanab, imzolash — kirim **shu yerda** yoziladi). ⚠️ Ruxsat
+  **hujjat bo'yicha** so'raladi (`orderActor`), marshrut bo'yicha emas: bir yo'l
+  bozor safarini ham, sklad chiqimini ham olib yuradi, va ular ikki xil ruxsatga
+  ega ikki odam (zanjirdа — ikki binoda) tomonidan bajariladi.
 - **Texkarta**: `PUT /admin/menu/{id}/recipe` (bitta maydonning `$set`'i).
   ⚠️ **Taom formasi endi `recipe` ni umuman yubormaydi** — karta o'z ekranida
   yoziladi, va `UpdateMenuItem` butun hujjatni almashtiradi: `keepRecipe`
@@ -753,6 +767,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Kuryer, tashqi yetkazish | Kuryerlar va rollar · Kuryer PWA · Tashqi yetkazish xizmatlari · Joylashuvga ruxsat |
 | Ishchi, KDS, davomat, kiosk | KDS · Har bir taomning holati · Ishchilar davomati · QR bilan ishga kirish |
 | Bozorchi, zakupshik, podotchet | Bozorlik: bozorchi ilovadan yozadi (+ Bozorlik ro'yxati · Podotchet) |
+| So'rovni yo'naltirish, skladdan chiqarish, qabul qilish | So'rov ikkiga bo'linadi · Uchinchi holat · Skladdan chiqarish · «Bozorlik yoza oladi» |
 | Seyf, pul qayerda, naqd nazorati | Seyf: pul jismonan qayerda |
 | Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
 | Panel roli: operator, omborchi | Panelning cheklangan rollari: ombor va operator |

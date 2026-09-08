@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -70,18 +71,36 @@ import uz.keel.team.t
 
 /** Whether this account writes shopping lists **in this app**.
  *
- *  ⚠️ **Narrower than the permission, and deliberately so.** A cashier holds
- *  `buyorder` because the till is where they first hear that something has run
- *  out — but their phone is not where a restaurant's buying gets planned, and a
- *  section they never use is a section that teaches them to ignore the app.
+ *  ⚠️ **Exactly the permission, and no longer narrower than it.** This used to
+ *  also demand management or the store — "a cashier's phone is not where buying
+ *  gets planned" — and that reading was wrong about who notices things running
+ *  out. It is the barman with an empty fridge and the cook who used the last of
+ *  the flour, and neither of them voids checks or counts shelves. An owner now
+ *  ticks the box on the person (`staff.canBuyOrder`), and a second condition
+ *  here would silently overrule the tick they just made — which is the worst
+ *  kind of permission bug, because the screen offers no way to find out why.
  *
  *  ⚠️ **Expressed in permissions, never in the role's name.** The spelling of a
- *  job title grants nothing (`models/staffrole.go`), so "management or the
- *  storekeeper" is asked as "may void, or counts the store" — the same test the
- *  till uses to mean management. */
-fun canWriteHere(staff: Staff): Boolean =
-    staff.perms.contains("buyorder") &&
-        (staff.perms.contains("void") || staff.perms.contains("stock"))
+ *  job title grants nothing (`models/staffrole.go`). */
+fun canWriteHere(staff: Staff): Boolean = staff.perms.contains("buyorder")
+
+/** Whether this account hands out what a request asks for.
+ *
+ *  ⚠️ **Its own permission rather than a corner of `stock`.** Counting a shelf
+ *  and emptying it are different acts, and folded together every person given a
+ *  phone to count the fridge would also hold the button that sends a case of
+ *  vodka across town. */
+fun canIssueHere(staff: Staff): Boolean = staff.perms.contains("stockissue")
+
+/** The word for where a line goes.
+ *
+ *  ⚠️ Composable because the dictionary is: the language is read out of the
+ *  composition, and a plain function reaching for it would be one call away from
+ *  a screen that keeps the word it was drawn with when somebody switches
+ *  language. */
+@Composable
+internal fun sourceWord(source: String): String =
+    if (source == "store") t.zakup.fromStore else t.zakup.fromMarket
 
 private data class OrderDraft(
     val key: String,
@@ -95,6 +114,10 @@ private data class OrderDraft(
      *  — the server owns the arithmetic, because the result is what somebody is
      *  sent to buy. */
     val pack: Boolean = false,
+    /** Where the line will be answered from. ⚠️ Shown, never chosen: the
+     *  catalogue decides, but a line filed wrongly otherwise sits all morning on
+     *  a phone belonging to somebody who was never going to answer it. */
+    val source: String = "market",
 )
 
 @Composable
@@ -119,10 +142,13 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
     var error by remember { mutableStateOf("") }
     var done by remember { mutableStateOf("") }
     var tick by remember { mutableIntStateOf(0) }
+    /** The list somebody is standing over with a bag in front of them. */
+    var accepting by remember { mutableStateOf<ShoppingOrder?>(null) }
 
     val loadFailed = t.zakup.loadFailed
     val sendFailed = t.zakup.sendFailed
     val sentWord = t.zakup.sent
+    val splitWord = t.zakup.sentSplit
 
     LaunchedEffect(tick) {
         try {
@@ -166,6 +192,7 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                 unit = it.unit,
                 packName = it.packName,
                 packQty = it.packQty,
+                source = it.source,
             )
         }
     val shown = short + rest
@@ -185,12 +212,19 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                 qty = if ((row?.qty ?: 0.0) > 0) qty(row!!.qty) else "",
                 packName = row?.packName ?: "",
                 packQty = row?.packQty ?: 0.0,
+                // ⚠️ A typed name the catalogue does not have is something to
+                // buy: nobody has ever put it on a shelf here, so routing it to
+                // a storekeeper would leave it unanswered while looking, on
+                // every screen, exactly like a request being dealt with.
+                source = row?.source ?: "market",
             ),
         )
         query = ""
     }
 
     val ready = lines.filter { (it.qty.toDoubleOrNull() ?: 0.0) > 0 }
+    val storeCount = ready.count { it.source == "store" }
+    val marketCount = ready.size - storeCount
 
     fun send() {
         busy = true
@@ -210,7 +244,16 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                 )
                 lines.clear()
                 preview = false
-                done = sentWord(ready.size)
+                // ⚠️ **The split is said out loud.** The writer chose none of
+                // it, so a plain "sent" would leave them no way to notice that
+                // the lemons they meant for the market went to a storekeeper —
+                // the one mistake this routing can make, and one a person fixes
+                // in the catalogue in ten seconds if they are told.
+                done = if (storeCount > 0 && marketCount > 0) {
+                    splitWord(marketCount, storeCount)
+                } else {
+                    sentWord(ready.size)
+                }
                 tick += 1
             } catch (e: Throwable) {
                 error = if (e is ApiError) e.message else sendFailed
@@ -256,12 +299,22 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            l.name,
-                            Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = c.ink,
-                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                l.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = c.ink,
+                            )
+                            // ⚠️ On every row, not only where it is surprising:
+                            // a badge that appears sometimes is one people stop
+                            // reading, and the row it is missing from is the one
+                            // that needed it.
+                            Text(
+                                sourceWord(l.source),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = c.muted,
+                            )
+                        }
                         Icon(
                             Icons.Rounded.Close,
                             null,
@@ -316,7 +369,7 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                 title = row.name,
                 // A catalogue row has no shortage figures — only its unit, which
                 // is what the writer needs before typing a number.
-                subtitle = if (row.qty > 0) {
+                subtitle = sourceWord(row.source) + " · " + if (row.qty > 0) {
                     "${t.zakup.onHand(qty(row.onHand), row.unit)} · " +
                         t.zakup.need(qty(row.qty), row.unit)
                 } else {
@@ -362,14 +415,50 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                             color = c.muted,
                         )
                     }
-                    Text(
-                        if (o.status == "done") t.zakup.statusDone else t.zakup.statusSent,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = c.muted,
-                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            when (o.status) {
+                                "done" -> t.zakup.statusDone
+                                "shipped" -> t.zakup.statusShipped
+                                else -> t.zakup.statusSent
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            // ⚠️ **Only the middle state gets a colour.**
+                            // "Waiting" is what every request looks like for its
+                            // first hour and "signed for" is the end; the one
+                            // somebody has to act on is goods that left
+                            // somebody's hands and reached nobody's.
+                            color = if (o.waiting) c.accent else c.muted,
+                        )
+                        Text(
+                            sourceWord(o.source),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = c.muted,
+                        )
+                    }
                 }
             }
+            // ⚠️ **The button only exists on the list that is waiting for it.**
+            // An accept button on a list nobody has shopped yet would answer a
+            // question nobody has asked.
+            items(orders.filter { it.waiting }, key = { "acc-" + it.id }) { o ->
+                GhostButton(t.zakup.accept, Modifier.fillMaxWidth()) { accepting = o }
+            }
         }
+    }
+
+    accepting?.let { order ->
+        AcceptDialog(
+            api = api,
+            order = order,
+            onClose = { accepting = null },
+            onDone = { message ->
+                accepting = null
+                done = message
+                tick += 1
+            },
+            onError = { error = it },
+        )
     }
 
     // ⚠️ **A list is somebody else's morning.** The buyer will not be able to ask
@@ -390,7 +479,12 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                     color = c.ink,
                 )
                 Text(
-                    t.zakup.previewBody(forDate),
+                    t.zakup.previewBody(forDate) +
+                        if (storeCount > 0 && marketCount > 0) {
+                            "\n" + t.zakup.splitNote(marketCount, storeCount)
+                        } else {
+                            ""
+                        },
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.muted,
                 )
@@ -400,12 +494,18 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                 ) {
                     ready.forEach { l ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                l.name,
-                                Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = c.ink,
-                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    l.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = c.ink,
+                                )
+                                Text(
+                                    sourceWord(l.source),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = c.muted,
+                                )
+                            }
                             // ⚠️ Read back in both where they differ: the list
                             // travels to somebody else's morning and "2" has to
                             // be unambiguous before it leaves.
@@ -426,6 +526,125 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                     GhostButton(t.zakup.back, Modifier.weight(1f)) { preview = false }
                     Box(Modifier.weight(1f)) {
                         PrimaryButton(t.zakup.send, busy = busy) { send() }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** ---- Counting what turned up ----
+ *
+ *  ⚠️ **What reaches the shelf is what the restaurant counted**, not what the
+ *  buyer says he handed over. Where the two differ, the difference is the record
+ *  — the thing that had nowhere to be written before, and the reason the
+ *  delivery is created here rather than at the market.
+ *
+ *  ⚠️ **A row left alone is accepted as sent.** Signing without retyping
+ *  anything is saying "this is right", which is the ordinary case; a form that
+ *  demanded every figure again is a form people close. */
+@Composable
+private fun AcceptDialog(
+    api: KeelApi,
+    order: ShoppingOrder,
+    onClose: () -> Unit,
+    onDone: (String) -> Unit,
+    onError: (String) -> Unit,
+) {
+    val c = KeelTheme.colors
+    val scope = rememberCoroutineScope()
+    val counted = remember(order.id) { mutableStateMapOf<String, String>() }
+    var busy by remember { mutableStateOf(false) }
+    val sendFailed = t.zakup.sendFailed
+    val acceptedWord = t.zakup.accepted
+    /** ⚠️ Minted once per dialog rather than per attempt: a phone that retried
+     *  after a timeout must not write a second delivery. */
+    val clientId = remember(order.id) {
+        "acc-" + order.id + "-" + System.currentTimeMillis().toString(36)
+    }
+
+    val sent = order.lines.filter { it.gotAt.isNotEmpty() && !it.missing }
+
+    Dialog(onDismissRequest = onClose) {
+        Column(
+            Modifier
+                .widthIn(max = 380.dp)
+                .glassSheet(c, RoundedCornerShape(26.dp))
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                t.zakup.acceptTitle,
+                style = MaterialTheme.typography.headlineMedium,
+                color = c.ink,
+            )
+            Text(
+                t.zakup.acceptBody,
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.muted,
+            )
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                sent.forEach { l ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                l.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = c.ink,
+                            )
+                            Text(
+                                qty(l.gotQty) + " " + l.unit,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = c.muted,
+                            )
+                        }
+                        Box(Modifier.widthIn(max = 120.dp)) {
+                            GlassField(
+                                value = counted[l.id] ?: "",
+                                onValueChange = { v ->
+                                    counted[l.id] = v.replace(',', '.')
+                                },
+                                placeholder = qty(l.gotQty),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Decimal,
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GhostButton(t.zakup.back, Modifier.weight(1f)) { onClose() }
+                Box(Modifier.weight(1f)) {
+                    PrimaryButton(t.zakup.acceptSend, busy = busy) {
+                        busy = true
+                        scope.launch {
+                            try {
+                                api.acceptOrder(
+                                    orderId = order.id,
+                                    clientId = clientId,
+                                    // Only what differs — a row left out keeps
+                                    // what it was told.
+                                    counted = counted
+                                        .mapNotNull { (id, v) ->
+                                            v.toDoubleOrNull()?.let { id to it }
+                                        }
+                                        .filter { it.second >= 0 }
+                                        .toMap(),
+                                )
+                                onDone(acceptedWord)
+                            } catch (e: Throwable) {
+                                onError(if (e is ApiError) e.message else sendFailed)
+                            } finally {
+                                busy = false
+                            }
+                        }
                     }
                 }
             }

@@ -440,14 +440,28 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			//
 			// ⚠️ **In this group because both screens live here.** The till
 			// writes it at the counter and Keel Team writes it on a phone, and
-			// a staff token reaches this group either way. Two permissions
-			// split the job: `buyorder` writes the list, `buy` shops it — see
-			// handlers/buyorders.go.
+			// a staff token reaches this group either way. Three permissions
+			// split the job now: `buyorder` writes the list and signs for what
+			// turns up, `buy` shops the market half, `stockissue` picks the half
+			// that is already in the building — see handlers/buyorders.go and
+			// handlers/buyorderflow.go.
+			//
+			// ⚠️ **The gate is per document, not per route.** The same two paths
+			// carry a market run and a store issue, answered by two different
+			// people in — in a chain — two different buildings, so the
+			// permission is checked against the list itself (`orderActor`).
 			r.Get("/staff/buy/orders", h.StaffBuyOrders)
 			r.Post("/staff/buy/orders", h.StaffCreateBuyOrder)
 			r.Get("/staff/buy/orders/draft", h.StaffBuyOrderDraft)
 			r.Put("/staff/buy/orders/{id}/lines/{lineId}", h.StaffMarkBuyOrderLine)
-			r.Post("/staff/buy/orders/{id}/finish", h.StaffFinishBuyOrder)
+			r.Post("/staff/buy/orders/{id}/ship", h.StaffShipBuyOrder)
+			// ⚠️ **The old name, kept pointing at the same handler.** A phone
+			// updates when its owner lets it, and `finish` is what every
+			// installed copy of the app calls. It now means "my half is done and
+			// it is on its way" rather than "this is a delivery" — which is the
+			// honest reading of the word on both sides of the change.
+			r.Post("/staff/buy/orders/{id}/finish", h.StaffShipBuyOrder)
+			r.Post("/staff/buy/orders/{id}/accept", h.StaffAcceptBuyOrder)
 			r.Post("/staff/checks/{id}/print", h.StaffPrintCheck)
 			// Sales a till took while it had no network. ⚠️ Idempotent by the
 			// id the till minted — see handlers/tillsync.go.
@@ -641,6 +655,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ⚠️ What the low-stock warning was always missing: the action it
 			// implies. Grouped by supplier — see shoppinglist.go.
 			r.Get("/admin/stock/shopping-list", h.AdminShoppingList)
+			// ⚠️ **What was actually asked for, as opposed to what the
+			// arithmetic suggests.** The line above is a computation; this is
+			// the record of somebody's morning — who asked, who answered, and
+			// whether anybody ever signed for it. See adminbuyorders.go.
+			r.Get("/admin/stock/requests", h.AdminBuyOrders)
 			// What goes out of date. ⚠️ Built from deliveries rather than from
 			// balances, and it says so — see handlers/expiry.go.
 			r.Get("/admin/stock/expiring", h.AdminExpiring)

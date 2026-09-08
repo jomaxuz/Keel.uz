@@ -657,6 +657,21 @@ type Branch struct {
 	// existing branch would stop tills mid-service in restaurants that never
 	// asked for it, and the screen would give the cashier no way forward.
 	RequireShift bool `bson:"requireShift" json:"requireShift"`
+	// Which branch holds this one's stock, when a chain has a central store.
+	//
+	// ⚠️ **Empty is "its own store room", and that is every restaurant that has
+	// ever installed this.** A request for something already in the building is
+	// then an errand between two rooms and moves no stock: an ingredient has one
+	// home (models/warehouse.go), and the sale writes it off at the till.
+	// Pointing at another branch makes the same request a van — the sending
+	// shelf loses what was loaded and this one gains what was counted off it —
+	// which is the document `dispatch` already is.
+	//
+	// ⚠️ **Never itself.** A branch supplying itself would build a dispatch
+	// whose two ends are the same shelf, subtracting and adding the same kilo
+	// and leaving a slip nobody can accept. The panel refuses it and the
+	// arithmetic reads it as empty.
+	SupplyBranchID primitive.ObjectID `bson:"supplyBranchId,omitempty" json:"supplyBranchId,omitempty"`
 	// Short code printed in front of this branch's order numbers ("CHL-A71-4509").
 	// Empty on a single-branch install, where the prefix would say nothing.
 	Code string `bson:"code" json:"code"`

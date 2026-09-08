@@ -209,6 +209,14 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 	if in.PackName == "" || in.PackQty <= 0 {
 		in.PackName, in.PackQty = "", 0
 	}
+	// ⚠️ **Anything but `store` is the market**, and the normalisation belongs
+	// here rather than at the seven places that read it: an unknown word from an
+	// old tab must not create a third destination that no phone draws a queue
+	// for, because a request routed there would sit unanswered while looking, on
+	// every screen, exactly like one somebody was dealing with.
+	if in.Source != models.SourceStore {
+		in.Source = ""
+	}
 	in.Recipe = normalizeRecipe(in.Recipe)
 	if in.Output < 0 {
 		in.Output = 0

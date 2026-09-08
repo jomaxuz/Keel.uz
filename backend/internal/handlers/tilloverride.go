@@ -153,6 +153,8 @@ func permLabelUz(perm string) string {
 		return "Bozordan kirim yozish"
 	case models.PermBuyOrder:
 		return "Bozorlik ro'yxatini yozish"
+	case models.PermStockIssue:
+		return "Skladdan tovar chiqarish"
 	}
 	return perm
 }

@@ -25,7 +25,7 @@ import (
 // exception to it — it is chosen from a list, carries an id, and the spelling
 // of its name changes nothing.
 
-// The six permissions. Deliberately few — see the note above.
+// The permissions. Deliberately few — see the note above.
 const (
 	// PermVoid: removing food the kitchen has already cooked, cancelling a
 	// whole check, or reopening a closed one. The oldest way to take money out
@@ -76,13 +76,28 @@ const (
 	// list stops being a check on the trip and becomes a note the buyer wrote
 	// to themselves — which is the whole thing this feature was asked for.
 	PermBuyOrder = "buyorder"
+	// PermStockIssue: handing out what somebody asked for from the store —
+	// picking the lines of a shopping request whose goods are already in the
+	// building and sending them to the person who asked.
+	//
+	// ⚠️ **Its own permission rather than a corner of `stock`, for the same
+	// reason `buy` is not one.** Counting a shelf and emptying it are different
+	// acts: a count writes down what is there, an issue decides who gets it.
+	// Folded together, every person given a phone to count the fridge would
+	// also hold the button that sends a case of vodka across town — and the
+	// restaurant would have granted that without ever being asked.
+	//
+	// ⚠️ Nothing is grandfathered except the shipped «Omborchi» role, which is
+	// the job itself (EnsureStockIssue): the screen is new, so refusing by
+	// default takes nothing away from anybody.
+	PermStockIssue = "stockissue"
 )
 
 // AllPerms is every permission a role can carry, in the order the panel draws
 // them: floor first, money after, kitchen last.
 var AllPerms = []string{
 	PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen,
-	PermStock, PermBuy, PermBuyOrder,
+	PermStock, PermBuy, PermBuyOrder, PermStockIssue,
 }
 
 // StaffRole is a job title and the permissions that come with it.
@@ -126,6 +141,11 @@ type StaffRole struct {
 	// migrations sharing a marker means the second never runs on an install the
 	// first already visited.
 	BuyOrderGranted bool `bson:"buyOrderGranted,omitempty" json:"-"`
+
+	// The same again, for the one-off grant of `stockissue` to the shipped
+	// «Omborchi» role. ⚠️ A third flag rather than a reused one, for the reason
+	// the second one gives.
+	StockIssueGranted bool `bson:"stockIssueGranted,omitempty" json:"-"`
 
 	// Sort order in the panel, so the list reads top-down by authority rather
 	// than by whenever somebody happened to add a role.
@@ -247,7 +267,12 @@ func SeedRoleRows() []SeedRoleRow {
 		// ⚠️ **Counts the shelves and writes the list, and does not do the
 		// buying.** That split is the supervision: the person who says what is
 		// needed is not the person who comes back with a receipt.
-		{"Omborchi", "Кладовщик", "Storekeeper", []string{PermStock, PermBuyOrder}},
+		// ⚠️ **The one seeded role that ships with `stockissue`.** A request
+		// whose goods are already in the building is this person's morning: they
+		// pick it off the shelf and send it to whoever asked. Counting and
+		// writing the list were already theirs; handing out is the third half of
+		// the same job, and the only role it belongs to by default.
+		{"Omborchi", "Кладовщик", "Storekeeper", []string{PermStock, PermBuyOrder, PermStockIssue}},
 		{"Yordamchi xodim", "Подсобный работник", "Kitchen porter", nil},
 	}
 }

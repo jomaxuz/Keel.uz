@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import ShoppingRequests from "@/components/admin/ShoppingRequests";
 import { api, ApiError } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -67,6 +68,13 @@ export default function ShoppingPage() {
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
+
+      {/* ⚠️ **Above the computed list, because it is the one with people in
+          it.** The arithmetic below suggests; this records what somebody
+          actually asked for and whether it ever arrived — and a request nobody
+          signed for is the only thing on this page that is waiting on the
+          reader. */}
+      <ShoppingRequests />
 
       {groups.length === 0 ? (
         <div className="card p-6 text-center text-sm text-ink-muted">

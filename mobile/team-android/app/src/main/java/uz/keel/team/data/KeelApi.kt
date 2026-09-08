@@ -214,8 +214,13 @@ class KeelApi(private val tokens: TokenStore) {
             },
         )
 
-    /** Write the list somebody is sent to the market with. */
-    suspend fun createBuyOrder(forDate: String, lines: List<OrderLine>): ShoppingOrder = call(
+    /** Write the list, and let the server decide who answers each line.
+     *
+     *  ⚠️ **It comes back as one list or two.** The person writing it never
+     *  chooses: what has to be bought goes to the buyer and what is already in
+     *  the building goes to the storekeeper, and sorting that is knowledge about
+     *  the store rather than about an empty bar. */
+    suspend fun createBuyOrder(forDate: String, lines: List<OrderLine>): CreatedOrders = call(
         "/staff/buy/orders",
         HttpMethod.Post,
         body = buildJsonObject {
@@ -263,16 +268,50 @@ class KeelApi(private val tokens: TokenStore) {
         },
     )
 
-    /** Close the trip: everything ticked becomes one delivery. */
-    suspend fun finishOrder(orderId: String, clientId: String, supplier: String): FinishResult =
-        call(
-            "/staff/buy/orders/$orderId/finish",
-            HttpMethod.Post,
-            body = buildJsonObject {
-                put("clientId", JsonPrimitive(clientId))
-                put("supplier", JsonPrimitive(supplier))
-            },
-        )
+    /** My half is done and it is on its way.
+     *
+     *  ⚠️ **Not a delivery.** Nothing reaches a shelf here: what the buyer says
+     *  he handed over is a claim and what the restaurant counted is the fact, so
+     *  the purchase is written when somebody signs for it. See
+     *  handlers/buyorderflow.go.
+     *
+     *  ⚠️ Posted to `/ship`; the old `/finish` path is the same handler on the
+     *  server, kept for phones that have not updated. */
+    suspend fun shipOrder(orderId: String): FinishResult =
+        call("/staff/buy/orders/$orderId/ship", HttpMethod.Post, body = buildJsonObject {})
+
+    /** Count what turned up and sign for it.
+     *
+     *  ⚠️ **Send only the rows whose figure differs.** A row left out keeps what
+     *  it was told — accepting without retyping means "this is right", which is
+     *  the ordinary case, and a default of zero would empty the whole list of
+     *  whoever was quickest to agree with it.
+     *
+     *  ⚠️ `clientId` is the offline guarantee the market run already has: a
+     *  phone with no signal retries, and without it the retry is a second
+     *  delivery. */
+    suspend fun acceptOrder(
+        orderId: String,
+        clientId: String,
+        counted: Map<String, Double>,
+    ): FinishResult = call(
+        "/staff/buy/orders/$orderId/accept",
+        HttpMethod.Post,
+        body = buildJsonObject {
+            put("clientId", JsonPrimitive(clientId))
+            put(
+                "lines",
+                JsonArray(
+                    counted.map { (lineId, qty) ->
+                        buildJsonObject {
+                            put("lineId", JsonPrimitive(lineId))
+                            put("qty", JsonPrimitive(qty))
+                        }
+                    },
+                ),
+            )
+        },
+    )
 
     // ---- This phone ----
 
