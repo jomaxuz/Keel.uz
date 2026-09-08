@@ -357,18 +357,6 @@ export interface Restaurant {
    *  the other's key — which fails as a blank map and nothing else. */
   mapYandexKey?: string;
   mapGoogleKey?: string;
-  /** The key the restaurant's **Android app** draws its map with.
-   *
-   *  ⚠️ **Not `mapGoogleKey`.** That one is a browser key, protected by a list
-   *  of allowed domains — and a key restricted that way is refused by the
-   *  Android SDK, silently: a grey grid, no error anywhere, and a guest who
-   *  cannot enter an address. An Android key is restricted by package name and
-   *  certificate fingerprint instead.
-   *
-   *  ⚠️ There is no provider beside it: the app ships one map SDK whatever the
-   *  site is drawn with, because three would add tens of megabytes to every
-   *  guest's download for a choice that never changes. */
-  mapAndroidKey?: string;
   /** Search-console verification tokens. Public by nature: a token's whole job
    *  is to sit in the page head where a crawler reads it. */
   seo?: SeoSettings;

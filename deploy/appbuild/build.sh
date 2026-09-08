@@ -92,22 +92,29 @@ ACCENT="$(printf '%s' "$PROFILE" | jq -r '.restaurant.theme.brand // ""')"
 
 # ---- The map key is the restaurant's own ----
 #
-# ⚠️ **`mapAndroidKey`, never `mapGoogleKey`.** The second is a *browser* key:
-# what protects it is a list of allowed domains in Google's console, and a key
-# restricted that way is refused by the Android SDK. The refusal is the silent
-# kind — a grey grid, no error anywhere, and a guest who cannot enter their
-# address. So the panel asks for a second key, restricted by package name.
+# ⚠️ **One key per provider, and the app uses the same ones the site does** —
+# there is no separate Android field. Only Google needs a key at build time:
+# its Android SDK reads it from the manifest and cannot be handed one at
+# runtime. 2GIS and Yandex are keyed from the profile while the app runs, so a
+# restaurant on either of those does not need this at all.
+#
+# ⚠️ **The cost of sharing the site's key is a restriction that cannot be
+# both.** A Google key carries one application restriction: HTTP referrers or
+# Android package names, never both. So the shared key has to be left
+# unrestricted, or the app's map is refused — silently, as a grey grid with no
+# error and a guest who cannot enter their address. Where that matters, the
+# answer is a second key in Google's console, not a second field here.
 #
 # ⚠️ **Keel's own key is the fallback, not the default.** Each restaurant pays
 # for their own map traffic where they have set one up; a restaurant that has
 # not yet gets a working picker rather than a grey square, and the console can
 # tell them which one they are on.
-MAPS_KEY="$(printf '%s' "$PROFILE" | jq -r '.restaurant.mapAndroidKey // ""')"
+MAPS_KEY="$(printf '%s' "$PROFILE" | jq -r '.restaurant.mapGoogleKey // ""')"
 if [ -n "$MAPS_KEY" ]; then
-  say "using this restaurant's own Android maps key"
+  say "using this restaurant's own Google maps key"
 else
   MAPS_KEY="$KEEL_MAPS_KEY"
-  [ -n "$MAPS_KEY" ] && say "no Android maps key on the profile — falling back to Keel's"
+  [ -n "$MAPS_KEY" ] && say "no Google maps key on the profile — falling back to Keel's"
 fi
 if [ -z "$MAPS_KEY" ]; then
   # ⚠️ A warning rather than a failure: a restaurant that does not deliver never

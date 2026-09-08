@@ -5746,14 +5746,22 @@ mavjud emas edi.)
   bir vaqtda bloklatadi — bu «qidiruv ishlamayapti» bo'lib har mehmondan bir
   vaqtda keladi va siyosat muammosiga umuman o'xshamaydi. Shuning uchun kamerada
   debounce (600 ms) va yozishda debounce (400 ms).
-- ⚠️ **Bitta provayder, build vaqtida hal qilinadi.** Uchala SDK'ni ham solib
-  qo'yish har mehmonning yuklab olishiga o'nlab megabayt qo'shadi — bir marta
-  qilingandan keyin hech qachon o'zgarmaydigan tanlov uchun.
-- ⚠️ **Kalit API bo'yicha cheklanadi, ilova bo'yicha emas.** Paket nomiga
-  bog'langan kalit har build qilingan restoran uchun alohida yozuv talab qilardi
-  — va har birining imzo sertifikati SHA'sini, uni esa quvurning o'zi yaratadi.
-  «Maps SDK for Android» bilan cheklash zarar doirasini hisoblanmaydigan API
-  bilan chegaralaydi.
+- ⚠️ ~~**Bitta provayder, build vaqtida hal qilinadi.**~~ **Bekor qilindi:**
+  ilova endi uchalasini ham olib yuradi va tanlovni `mapProvider` dan ish
+  vaqtida o'qiydi — yuqoridagi «Xarita: uchala provayder ham» bo'limiga qarang.
+  Hajm dalili yolg'on chiqdi: 2GIS'da Android SDK yo'q (u WebView'da chiziladi),
+  ya'ni qo'shilgani bitta MapKit.
+- ⚠️ **Kalit ilova bo'yicha umuman cheklanmaydi, va bu narx.** Google kalitida
+  **bitta** ilova cheklovi bo'ladi — HTTP referer **yoki** Android paket nomi,
+  ikkalasi emas. Ilova endi saytning o'z `mapGoogleKey` ini ishlatadi (alohida
+  `mapAndroidKey` maydoni olib tashlandi, chunki ega uchun bu ikkinchi kabinet,
+  ikkinchi cheklov va javobi yo'q savol edi), demak umumiy kalit **cheklovsiz**
+  qolishi va **ikkala** API'ga (Maps JavaScript va Maps SDK for Android) ruxsat
+  berishi kerak. Domenga cheklab qo'yilsa Android SDK uni **jimgina** rad etadi:
+  kulrang to'r, hech qayerda xato yo'q, va manzilini kirita olmaydigan mehmon.
+  Zarar doirasini API cheklovi ushlab turadi (ikkalasi ham hisoblanadigan API
+  emas: Android SDK'ning ko'rsatishi bepul), va buni xohlamagan restoranga javob
+  — Google konsolida **ikkinchi kalit**, bu yerda ikkinchi maydon emas.
 - ⚠️ **Nishon qimirlamaydi — xarita qimirlaydi.** Suriladigan marker barmoq
   aynan qo'yilayotgan narsani yopishi demakdir, telefonda esa oxirgi bir necha
   metr eng muhimi. Nishon markazda qotib turadi, xarita ostidan siljiydi — bu

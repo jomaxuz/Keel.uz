@@ -117,7 +117,7 @@ yaratganda buni har safar ekranga yozadi.
 |---|---|
 | Nom, logo, aksent rang | tenantning o'z `GET /restaurant` javobi |
 | `applicationId` | slug'dan (`uz.keel.app.<slug>`) — **nomdan emas**: restoran nomini o'zgartiradi, id esa o'zgara olmaydi |
-| Xarita kaliti | restoranning **o'z** `mapAndroidKey` i (Sozlamalar → Xarita); bo'sh bo'lsa `KEEL_MAPS_KEY` ga tushadi |
+| Xarita kaliti | restoranning **o'z** `mapGoogleKey` i (Sozlamalar → Xarita) — saytdagi bilan bitta kalit; bo'sh bo'lsa `KEEL_MAPS_KEY` ga tushadi. ⚠️ Faqat Google build vaqtida kalit talab qiladi (manifestdan o'qiydi); 2GIS va Yandex kalitini ish vaqtida profildan oladi |
 | Firebase loyihasi | muhit o'zgaruvchilari (`APP_FIREBASE_*`) — Keel'niki, hammasiga umumiy |
 | Firebase **app id** | tenantning `androidAppId` maydoni — **har restoranga alohida**, konsolda qo'lda kiritiladi |
 | Versiya | `KEEL_APP_VERSION_CODE` / `_NAME` |

@@ -186,22 +186,23 @@ class WireShapeTest {
 
         val twogis = json.decodeFromString<Restaurant>(
             """{"name":"X","mapProvider":"","mapApiKey":"GIS","mapYandexKey":"Y",
-                "mapAndroidKey":"A"}""",
+                "mapGoogleKey":"G"}""",
         )
         assertEquals("GIS", twogis.mapKey)
 
         val yandex = json.decodeFromString<Restaurant>(
             """{"name":"X","mapProvider":"yandex","mapApiKey":"GIS","mapYandexKey":"Y",
-                "mapAndroidKey":"A"}""",
+                "mapGoogleKey":"G"}""",
         )
         assertEquals("yandex", yandex.provider)
         assertEquals("Y", yandex.mapKey)
 
-        // ⚠️ Google takes `mapAndroidKey`, never `mapGoogleKey`: that one is the
-        // browser key, restricted by domain, and the Android SDK refuses it.
+        // ⚠️ Google takes the site's own `mapGoogleKey` — there is no separate
+        // Android field, and a field that no longer exists must not come back
+        // as a silently empty key.
         val google = json.decodeFromString<Restaurant>(
-            """{"name":"X","mapProvider":"google","mapGoogleKey":"WEB","mapAndroidKey":"A"}""",
+            """{"name":"X","mapProvider":"google","mapGoogleKey":"G"}""",
         )
-        assertEquals("A", google.mapKey)
+        assertEquals("G", google.mapKey)
     }
 }

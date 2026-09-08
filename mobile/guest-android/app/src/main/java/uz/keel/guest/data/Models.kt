@@ -148,11 +148,13 @@ data class Restaurant(
      *  restriction in the provider's own console, never secrecy. */
     val mapApiKey: String = "",
     val mapYandexKey: String = "",
-    /** ⚠️ The **browser** key, kept for completeness; the Android SDK refuses a
-     *  key restricted by domain. The app's Google map uses `mapAndroidKey`,
-     *  which the panel asks for separately. */
+    /** ⚠️ **The same key the site draws with** — there is no separate Android
+     *  field, deliberately. The cost is that a Google key carries one
+     *  application restriction (HTTP referrers *or* Android package names,
+     *  never both), so a shared key has to be left unrestricted; restricted to
+     *  domains, the Android SDK refuses it silently — a grey grid and a guest
+     *  who cannot enter an address. */
     val mapGoogleKey: String = "",
-    val mapAndroidKey: String = "",
     /** Where the restaurant is, so the address picker opens somewhere useful.
      *
      *  ⚠️ **The map opens on the restaurant, not on the guest.** A location
@@ -168,7 +170,7 @@ data class Restaurant(
     val mapKey: String
         get() = when (provider) {
             "yandex" -> mapYandexKey
-            "google" -> mapAndroidKey
+            "google" -> mapGoogleKey
             else -> mapApiKey
         }
 }
