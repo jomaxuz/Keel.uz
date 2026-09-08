@@ -659,6 +659,27 @@ tekshiruvlari yashil — **yangi kod esa ishlamayapti**.
   keyin serverdagi HEAD to'g'ri bo'ladi-yu konteynerlar hali eski. To'g'ri
   belgi: **qulf bo'shadimi** va konteynerlar yoshi.
 
+### ⚠️ Tuzoq: prod checkout ichiga **root** nomidan fayl ko'chirish
+Deploy `deploy-keel` nomidan ishlaydi, `/opt/keel` esa o'shaning egaligida.
+`scp root@…:/opt/keel/...` bilan qo'yilgan fayl (va u yaratgan **papka**) root'niki
+bo'lib qoladi, va keyingi deploy'ning `git reset --hard` i o'sha papkaga yoza
+olmaydi.
+
+Nosozlik jimgina va yarim: reset bir necha o'nlab faylni yozib ulguradi, keyin
+to'xtaydi, `HEAD` esa **joyida qoladi**. Natijada checkout na eski commit, na
+yangisi — va har keyingi urinish yana bir qismini yozib, yana to'xtaydi. CI
+loglaridan tashqarida hech qanday belgi yo'q: konteynerlar sog'lom, sayt
+ishlaydi, va «push qildim, nega ko'rinmayapti?» savolining javobi bu safar
+branch emas.
+
+- Fayl kerak bo'lsa — **commit qilib push qiling**, checkout'ga qo'lda emas.
+- Sinov uchun vaqtincha kerak bo'lsa — checkout'dan **tashqarida** (masalan
+  `/opt/keel/.appbuild-src`, keyin o'chiriladi).
+- Root nomidan yozib qo'yilgan bo'lsa: `chown -R deploy-keel:deploy-keel` (ma'lumot
+  papkalarini `-prune` bilan chetlab o'tib), keyin `git reset --hard FETCH_HEAD`.
+- ⚠️ `git clean -fd` **emas**: `appkeys/` da har restoranning almashtirib
+  bo'lmaydigan imzo kaliti turadi. Shuning uchun u endi `.gitignore` da.
+
 ### ⚠️ Tuzoq: birgalikda bajarilmasligi kerak bo'lgan ikki ishni `else if` bog'lash
 `apply()` da konteynerni ko'tarish va Caddy'ni qayta yozish `else if` bilan
 zanjirlangan edi — ya'ni konteyner ko'tarilmasa **chekka umuman qayta

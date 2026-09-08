@@ -14494,3 +14494,20 @@ Bo'sh — ilova bildirishnomasiz quriladi, xato emas.
 **VPS**: `/opt/keel/.env` ga `APP_*` o'zgaruvchilari yozildi (avval zaxira
 olindi, egasi va 0600 saqlandi). `APP_MAPS_KEY` ataylab bo'sh — kalit
 restorandan olinadi.
+
+---
+
+## 2026-09-08 (8) — Deploy: root nomidan qo'yilgan fayl checkout'ni yarim qoldirdi
+
+Push qilindi, deploy ikki marta 5–13 soniyada uzildi va `HEAD` joyida qoldi.
+Sabab: 4-bosqichda `deploy/appbuild/` fayllarini **root** nomidan checkout ichiga
+ko'chirgan edim; deploy esa `deploy-keel` nomidan ishlaydi va root'niki bo'lgan
+papkaga yoza olmaydi. `git reset --hard` bir qismini yozib to'xtardi — checkout
+na eski commit, na yangisi.
+
+Tuzatildi: to'qnashgan fayllar **aniq hisoblab** olib tashlandi (⚠️ `git clean
+-fd` emas — u `appkeys/` dagi almashtirib bo'lmaydigan imzo kalitlarini
+o'chirardi), egalik `deploy-keel` ga qaytarildi (ma'lumot papkalari chetlab
+o'tildi), va `appkeys/` `appbuilds/` `secrets/` `.gitignore` ga yozildi.
+
+Tuzoq CLAUDE.md ga qo'shildi.
