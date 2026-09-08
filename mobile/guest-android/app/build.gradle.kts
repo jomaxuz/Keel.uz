@@ -63,6 +63,27 @@ android {
         versionName = brandOf("brand.versionName")
         vectorDrawables { useSupportLibrary = true }
 
+        // ---- Which processors the app carries code for ----
+        //
+        // ⚠️ **Without this the APK is 101 MB, and 58 MB of it is for phones
+        // that do not exist here.** Yandex MapKit ships a native library per
+        // ABI (`libmaps-mobile.so`, 19–29 MB each) and ProGuard cannot touch
+        // native code, so the release build is as big as the debug one. x86 and
+        // x86_64 are emulators and Chromebooks; every phone a guest in
+        // Tashkent orders from is ARM.
+        //
+        // ⚠️ **`armeabi-v7a` stays.** It is another 19 MB, and dropping it
+        // would be invisible in testing and fatal in the field: minSdk is 26,
+        // and 32-bit phones running Android 8–10 are exactly the cheap handsets
+        // this app is meant to reach. The download is the restaurant's problem
+        // for one build; a guest who cannot install it at all is theirs
+        // forever.
+        //
+        // ⚠️ Applies to the bundle too, where it costs nothing: Play delivers
+        // one ABI per device regardless, so a guest installing from the store
+        // downloads ~25 MB either way.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+
         resValue("string", "app_name", brandOf("brand.appName"))
         // ⚠️ **Through BuildConfig rather than a generated Kotlin file.** Both
         // work; this one cannot be edited by hand and then quietly disagree

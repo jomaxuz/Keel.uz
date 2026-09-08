@@ -5727,6 +5727,21 @@ bilan ilovasi xarita haqida kelishmasdi.
 - ⚠️ **Reverse-geocode bitta yo'ldan va debounce bilan** — uchala dvigatel ham
   bitta `centre` holatiga yozadi. Nominatim sekundiga bitta so'rovga cheklaydi,
   va uni buzish butun o'rnatma bazasini bir vaqtda bloklatadi.
+- ⚠️ **Narxi APK hajmida, va u ProGuard ko'rmaydigan joyda.** Yandex MapKit har
+  ABI uchun alohida native kutubxona olib yuradi (`libmaps-mobile.so`, 19–29 MB),
+  native kod esa minify va shrink'dan butunlay tashqarida — ya'ni release build
+  debug bilan bir xil semiz bo'ladi. Birinchi jonli build **101 MB** chiqdi, va
+  bu «release qilinmayapti» bo'lib ko'rinadi.
+  - `abiFilters` **arm64-v8a va armeabi-v7a** bilan cheklaydi: x86 va x86_64 —
+    emulyator va Chromebook, bu yerda mehmonning telefoni emas. 58 MB shu yerda
+    ketadi.
+  - ⚠️ **`armeabi-v7a` qoldiriladi** (yana 19 MB): minSdk 26, va 32-bitli
+    Android 8–10 telefonlari aynan shu ilova yetib borishi kerak bo'lgan arzon
+    apparatlar. Sinovda buni sezib bo'lmaydi — arzon telefon o'rnata olmaydi,
+    xolos.
+  - AAB'ga ta'siri yo'q: Play baribir qurilmaga bitta ABI beradi, ya'ni do'kondan
+    o'rnatgan mehmon ~25 MB yuklaydi. Katta raqam — **to'g'ridan-to'g'ri APK**
+    yuklab beradigan restoranning muammosi.
 
 
 #### Xarita: Google, va CLAUDE.md dagi narx ogohlantirishi bu yerga tegmaydi
