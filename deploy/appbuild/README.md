@@ -82,6 +82,26 @@ kerak, va ilova Firebase'ni **kodda** sozlaydi (plagin va fayl yo'q).
 ⚠️ Bo'sh qoldirilsa ilova bildirishnomasiz quriladi. Bu xato emas: ishlamaydigan
 yagona narsa — hech kim sozlamagan narsa.
 
+## Nega image'da IPv4 majburlangan
+
+Konteynerda DNS `dl.google.com` uchun faqat AAAA qaytaradi, Docker ko'prigida
+esa IPv6 chiqishi yo'q. `curl` buni sezadi va IPv4'ga o'tadi; **Java o'tmaydi** —
+`sdkmanager` «Still waiting for package manifests to be fetched remotely» deb
+cheksiz turadi. Bu osilish, yiqilish emas: xato ham, chiqish kodi ham yo'q.
+
+Shuning uchun image'da `JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true`.
+⚠️ `GRADLE_OPTS` emas: osilgan vosita `sdkmanager`, unga Gradle sozlamalari
+yetib bormaydi.
+
+## Xotira: bitta JVM
+
+Gradle heap 2 GB, Kotlin kompilyatori **o'sha JVM ichida**
+(`kotlin.compiler.execution.strategy=in-process`), konteyner 3.5 GB.
+
+⚠️ Alohida Kotlin daemon bilan ikkita JVM'ning faqat heap'lari 3 GB lik shiftga
+teng bo'lardi — yadro birini o'ldiradi va Gradle buni «daemon disappeared
+unexpectedly» deb aytadi, ya'ni na xotirani, na cheklovni tilga olmaydi.
+
 ## Imzo kalitlari
 
 `/opt/keel/appkeys/<slug>/release.jks` — **bir marta yaratiladi va hech qachon

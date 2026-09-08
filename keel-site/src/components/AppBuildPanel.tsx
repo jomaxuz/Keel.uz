@@ -115,16 +115,21 @@ export default function AppBuildPanel({
       {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex overflow-hidden rounded-xl border border-line">
+        {/* ⚠️ **A tint, not a solid fill.** `bg-brand text-white` shipped and the
+            selected chip came out white on white — this console's brand colour
+            is a pale accent, not a button ground. The rest of the console marks
+            a chosen option with a border and a tenth of the accent (TillPanel),
+            and matching it is both correct and unmissable. */}
+        <div className="flex gap-1.5">
           {(["apk", "aab"] as const).map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => setFormat(f)}
-              className={`px-3 py-1.5 text-sm ${
+              className={`rounded-xl border px-3 py-1.5 text-sm ${
                 format === f
-                  ? "bg-brand text-white"
-                  : "text-ink-soft hover:bg-ink/5"
+                  ? "border-brand bg-brand/10 font-semibold text-ink"
+                  : "border-line text-ink-soft hover:bg-ink/5"
               }`}
             >
               {f.toUpperCase()}

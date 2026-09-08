@@ -233,8 +233,29 @@ fi
 
 cd "$APP"
 echo "sdk.dir=${ANDROID_HOME:-/opt/android-sdk}" > local.properties
+# ⚠️ **The build may not reach for the network to complete its own toolchain.**
+# Without this, a component the image is missing is fetched at build time — and
+# when the SDK repository is slow or unreachable the manager does not fail, it
+# prints "Still waiting for package manifests to be fetched remotely" for as
+# long as you let it. That is a build that holds the one-at-a-time queue until
+# its forty-minute ceiling, and the console has nothing to show for it.
+#
+# Off, so a missing component is a loud error naming the component — which is a
+# line in the Dockerfile, fixed once.
+# ⚠️ **One JVM, not two.** By default the Kotlin compiler runs in a daemon of
+# its own, so a build is Gradle's heap *plus* Kotlin's plus two lots of JVM
+# overhead — which on a container capped at 3 GB is the kernel killing one of
+# them and Gradle reporting "daemon disappeared unexpectedly". That is what the
+# first console build actually died of, and the message names neither memory nor
+# the limit that caused it.
+#
+# In-process keeps it to a single heap this script can reason about. It is
+# slightly slower and it is the difference between a build and no build.
 KEEL_GUEST_KEYSTORE_PROPERTIES="$KEYPROPS" \
-  ./gradlew --no-daemon "$TASK"
+  ./gradlew --no-daemon \
+    -Pandroid.builder.sdkDownload=false \
+    -Pkotlin.compiler.execution.strategy=in-process \
+    "$TASK"
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
 DEST="$KEEL_APP_OUT/$SLUG"
@@ -252,4 +273,10 @@ chmod 644 "$DEST/$SLUG-$STAMP.$FORMAT"
 [ -f app/src/main/res/play_icon.png ] && cp app/src/main/res/play_icon.png "$DEST/play_icon.png"
 
 say "done: $DEST/$SLUG-$STAMP.$FORMAT"
-printf '%s\n' "$DEST/$SLUG-$STAMP.$FORMAT"
+# ⚠️ **Marked, never "the last line".** Docker interleaves stdout and stderr by
+# write time, and the Android tooling writes progress to stderr — so a plain
+# `printf` of the path is only last until something else prints. It shipped that
+# way and the console read `Preparing "Install Android SDK Build-Tools…"` as a
+# filename. A marker cannot be pushed off the end: the reader looks for the
+# prefix, not for a position.
+printf 'KEEL_ARTIFACT=%s\n' "$DEST/$SLUG-$STAMP.$FORMAT"

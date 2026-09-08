@@ -60,21 +60,50 @@ func TestOnlyAReadyBuildIsDownloadable(t *testing.T) {
 	}
 }
 
-// ⚠️ **The artifact path is read off the script's last line, never rebuilt from
-// the slug and a clock.** Two implementations of "what is this file called"
-// drift on the first change to either — and the drift shows up as a build that
-// succeeded and a download that 404s.
-func TestTheArtifactPathComesFromTheScript(t *testing.T) {
-	out := "== building apk\n> Task :app:assembleRelease\n\n== done: /opt/keel/appbuilds/b5somsa/b5somsa-20260908-151026.apk\n/opt/keel/appbuilds/b5somsa/b5somsa-20260908-151026.apk\n"
-	if got := lastLine(out); got != "/opt/keel/appbuilds/b5somsa/b5somsa-20260908-151026.apk" {
-		t.Fatalf("lastLine gave %q", got)
+// ⚠️ **The artifact path comes from a marked line, not from the last one.**
+//
+// This shipped reading the last line, and the first console build reported its
+// filename as `Preparing "Install Android SDK Build-Tools 35 v.35.0.0".` —
+// because Docker interleaves stdout and stderr by write time and the Android
+// tooling writes progress to stderr. The path was printed; something else was
+// printed after it.
+//
+// The path still comes from the script rather than being rebuilt here from the
+// slug and a clock: two implementations of "what is this file called" drift on
+// the first change to either.
+func TestTheArtifactPathIsReadFromAMarkerNotAPosition(t *testing.T) {
+	// The shape that broke it: the real path, then tooling noise after.
+	out := "== building apk\n" +
+		"KEEL_ARTIFACT=/opt/keel/appbuilds/b5somsa/b5somsa-20260908-151026.apk\n" +
+		"Preparing \"Install Android SDK Build-Tools 35 v.35.0.0\".\n"
+	got := markedValue(out, "KEEL_ARTIFACT=")
+	if got != "/opt/keel/appbuilds/b5somsa/b5somsa-20260908-151026.apk" {
+		t.Fatalf("noise after the marker won: %q", got)
 	}
-	// Trailing blank lines are what a shell actually produces.
-	if lastLine("/tmp/a.apk\n\n\n") != "/tmp/a.apk" {
-		t.Fatal("trailing blank lines defeat lastLine")
+	// No marker at all is empty rather than the last thing that scrolled past —
+	// which is what turns a failed build into a mysterious filename.
+	if markedValue("Preparing something.\nmore noise\n", "KEEL_ARTIFACT=") != "" {
+		t.Fatal("a build that printed no marker produced a path anyway")
 	}
-	if lastLine("   \n") != "" {
-		t.Fatal("an empty output should give an empty path, not whitespace")
+	// ⚠️ The last match, not the first: a retry inside one container prints two,
+	// and the one that matters is the run that produced this file.
+	two := "KEEL_ARTIFACT=/tmp/old.apk\nKEEL_ARTIFACT=/tmp/new.apk\n"
+	if markedValue(two, "KEEL_ARTIFACT=") != "/tmp/new.apk" {
+		t.Fatal("the first marker won over the second")
+	}
+}
+
+// ⚠️ **The build script prints the marker.** The reader and the writer are in
+// two languages and two repositories' worth of distance; nothing else holds
+// them together.
+func TestTheBuildScriptPrintsTheMarker(t *testing.T) {
+	script, err := os.ReadFile(filepath.Join("..", "..", "..",
+		"deploy", "appbuild", "build.sh"))
+	if err != nil {
+		t.Skip("build.sh not reachable from here")
+	}
+	if !strings.Contains(string(script), "KEEL_ARTIFACT=%s") {
+		t.Fatal("build.sh no longer prints KEEL_ARTIFACT — the console cannot find the file")
 	}
 }
 

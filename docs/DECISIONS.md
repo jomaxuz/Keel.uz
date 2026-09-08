@@ -5491,6 +5491,45 @@ ko'radi. Shuning uchun **bitta kod bazasi, N ta build** (`mobile/guest-android`)
   aytadi, menyu joyida qoladi. Tugagan taom ham chiziladi, olib tashlanmaydi:
   yo'q bo'lib qolgan taom mehmonni «men adashganman shekilli» deb o'ylatadi.
 
+#### Birinchi jonli build to'rtta jim nosozlikni ko'rsatdi
+
+Konsoldagi tugma birinchi marta bosilganda «build tugadi, lekin fayl topilmadi:
+Preparing "Install Android SDK Build-Tools 35 v.35.0.0"» chiqdi. To'rtta alohida
+xato, va **hech biri xato xabari bermagan**:
+
+- ⚠️ **Artefakt yo'li log'ning oxirgi qatoridan o'qilardi.** Docker stdout va
+  stderr'ni yozilish vaqti bo'yicha aralashtiradi, Android vositalari esa
+  progressni stderr'ga yozadi — ya'ni yo'l chop etilgan, keyin ustiga boshqa
+  narsa chop etilgan. Endi **belgilangan qator** (`KEEL_ARTIFACT=`), va o'quvchi
+  prefiksni qidiradi, joyni emas. Belgi bo'lmasa — bo'sh, va **log saqlanadi**:
+  birinchi versiya uni bir qatorli xabar bilan almashtirardi, ya'ni aynan
+  kerakli paytda dalilni yo'q qilardi.
+- ⚠️ **AGP build-tools 35.0.0 so'raydi, `compileSdk = 36` bo'lsa ham.** Image'da
+  faqat 36.0.0 bor edi, demak har build uni yuklab olardi — «hech nima yuklab
+  olinmaydi» degan izohning tagida. Ikkalasi ham pinlandi.
+- ⚠️ **Konteynerda DNS faqat IPv6 qaytaradi, ko'prikda esa IPv6 chiqishi yo'q.**
+  `curl` buni sezib bir millisekundda IPv4'ga o'tadi; **Java o'tmaydi** —
+  `sdkmanager` «Still waiting for package manifests to be fetched remotely» deb
+  cheksiz turadi. Bu **osilish**, yiqilish emas: xato yo'q, chiqish kodi yo'q,
+  log'da esa sabrga o'xshagan ogohlantirish. Yechim —
+  `JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true` (⚠️ `GRADLE_OPTS` emas:
+  osilgan vosita `sdkmanager` edi, unga Gradle sozlamalari yetib bormaydi).
+- ⚠️ **Xotira arifmetikasi o'zim bilan qarama-qarshi edi**: konteyner 3 GB,
+  Gradle'ga 2 GB heap, Kotlin daemon'ga yana 1 GB — ikkita JVM'ning **faqat
+  heap'lari** shiftga teng. Yadro birini o'ldirdi va Gradle buni «daemon
+  disappeared unexpectedly» deb aytdi — bu xabar na xotirani, na cheklovni
+  aytadi. Endi Kotlin **bitta JVM ichida** (`kotlin.compiler.execution.strategy=
+  in-process`), heap 2 GB, konteyner 3.5 GB.
+- ⚠️ **SDK'ni build paytida yuklab olish o'chirildi**
+  (`android.builder.sdkDownload=false`): yetishmayotgan komponent endi **baland
+  xato** beradi va Dockerfile'dagi bir qatorda tuzatiladi — jimgina qirq
+  daqiqalik navbat egallash o'rniga.
+
+Va bittasi ko'rinadigan: **tanlangan APK/AAB chipi oq ustiga oq** edi
+(`bg-brand text-white` — bu konsolda och aksent, tugma foni emas). Qolgan konsol
+tanlovni ramka va aksentning o'ndan biri bilan belgilaydi; endi bu ham shunday.
+
+
 #### Konsoldagi tugma: navbat, va yuklab olingan fayl o'chiriladi
 
 - ⚠️ **Artefakt yuklab olingan zahoti o'chiriladi, yozuvi esa qoladi.** Har build

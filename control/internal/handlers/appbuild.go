@@ -304,7 +304,16 @@ func (h *Handler) runAppBuild(ctx context.Context, id primitive.ObjectID) {
 			h.Cfg.AppBuildRoot + ":/opt/keel",
 		},
 		Volumes:  []string{h.Cfg.AppBuildCache + ":/root/.gradle"},
-		MemoryMB: 3072,
+		// ⚠️ **3.5 GB, and the figure is not arbitrary.** Gradle is given a 2 GB
+		// heap and the Kotlin compiler runs inside it (build.sh); the rest is
+		// the JVM itself, R8 and the tooling. At 3 GB the kernel killed the
+		// daemon mid-build and Gradle reported it as "daemon disappeared
+		// unexpectedly" — a message that names neither memory nor this limit.
+		//
+		// ⚠️ Still a ceiling, because this runs on the machine that serves every
+		// customer: a build that swaps takes the restaurants with it, and "the
+		// site was slow this afternoon" costs far more than a build that died.
+		MemoryMB: 3584,
 		Timeout:  appBuildTimeout,
 	})
 	done := time.Now()
@@ -320,15 +329,25 @@ func (h *Handler) runAppBuild(ctx context.Context, id primitive.ObjectID) {
 		return
 	}
 
-	// ⚠️ **The path is read off the script's own last line**, not guessed from
-	// the slug and a timestamp: two implementations of "what is this file
-	// called" drift on the first change to either.
-	path := lastLine(out.Output)
+	// ⚠️ **Read off a marked line, never off the last one.** The path still
+	// comes from the script rather than being rebuilt here from the slug and a
+	// clock — two implementations of "what is this file called" drift on the
+	// first change to either — but *which* line carries it has to be something
+	// the output cannot push around. Docker interleaves stdout and stderr by
+	// write time and the Android tooling writes progress to stderr, so the
+	// last line is whatever happened to be written last: this shipped reading
+	// `Preparing "Install Android SDK Build-Tools 35…"` as a filename.
+	path := markedValue(out.Output, "KEEL_ARTIFACT=")
 	info, statErr := os.Stat(path)
 	if statErr != nil {
+		// ⚠️ **The output is kept.** The first version of this replaced it with
+		// a one-line message, which is exactly the case where somebody needs to
+		// see what the build actually said — and the only way to find out was
+		// to run the whole thing again by hand.
 		h.finishAppBuild(id, bson.M{
 			"status": models.AppFailed, "finishedAt": done,
-			"error": "build tugadi, lekin fayl topilmadi: " + path,
+			"error": "build tugadi, lekin fayl topilmadi (" + path + ")\n\n" +
+				tailLines(out.Output, 40),
 		})
 		return
 	}
@@ -407,14 +426,20 @@ func slugID(slug string) string {
 	return b.String()
 }
 
-func lastLine(s string) string {
-	lines := strings.Split(strings.TrimSpace(s), "\n")
-	for i := len(lines) - 1; i >= 0; i-- {
-		if line := strings.TrimSpace(lines[i]); line != "" {
-			return line
+// markedValue is what the script put behind a marker, or empty.
+//
+// ⚠️ **The last match, not the first.** A retried build inside one container
+// would print two, and the one that matters is the one that produced the file
+// this run is about to hand over.
+func markedValue(s, prefix string) string {
+	out := ""
+	for _, line := range strings.Split(s, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, prefix) {
+			out = strings.TrimSpace(strings.TrimPrefix(line, prefix))
 		}
 	}
-	return ""
+	return out
 }
 
 func tailLines(s string, n int) string {
