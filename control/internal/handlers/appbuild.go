@@ -222,6 +222,26 @@ func (h *Handler) DownloadAppBuild(w http.ResponseWriter, r *http.Request) {
 	}
 	defer f.Close()
 
+	// ⚠️ **This one response outlives the server's write timeout, deliberately.**
+	// `http.Server.WriteTimeout` is 30 seconds — right for every other endpoint
+	// here, where a response is a few kilobytes of JSON and a slow write means a
+	// stuck client holding a connection. An APK is two and a half megabytes over
+	// whatever link the person pressing the button happens to have, and 30
+	// seconds is not enough: the write was cut off mid-file, the browser got a
+	// truncated download, and the console — correctly — refused to delete the
+	// artifact and left the row saying "ready". The only symptom was a button
+	// that went back to saying "Yuklab olish".
+	//
+	// ⚠️ **A longer deadline, not none.** A client that stops reading must still
+	// let go of the connection eventually; ten minutes is far past any real
+	// transfer of a few megabytes and far short of forever.
+	if rc := http.NewResponseController(w); rc != nil {
+		// Ignored on purpose: a server without deadline support still serves the
+		// file, it just keeps the 30-second cap — which is the behaviour we are
+		// improving on, not one worth failing over.
+		_ = rc.SetWriteDeadline(time.Now().Add(10 * time.Minute))
+	}
+
 	name := fmt.Sprintf("%s-%s.%s", b.Slug, b.VersionName, b.Format)
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
@@ -232,7 +252,18 @@ func (h *Handler) DownloadAppBuild(w http.ResponseWriter, r *http.Request) {
 	// ⚠️ **The file is removed only when the whole of it went out.** Deleting on
 	// the first byte means a dropped connection costs another nine-minute build,
 	// and the retry finds nothing — which reads as the console losing the file.
+	//
+	// ⚠️ **And a short transfer is recorded, not passed over in silence.** This
+	// check did its job the first time a download was cut off by the write
+	// timeout — the artifact was kept, correctly — but nothing anywhere said
+	// why, so the console showed a button that simply went back to how it was.
+	// A row nobody can explain is the same as no row.
 	if err != nil || (b.Size > 0 && sent != b.Size) {
+		h.finishAppBuild(b.ID, bson.M{
+			"error": fmt.Sprintf(
+				"yuklab olish uzildi: %d / %d bayt yuborildi — qaytadan urinib ko'ring",
+				sent, b.Size),
+		})
 		return
 	}
 	_ = f.Close()
@@ -241,6 +272,9 @@ func (h *Handler) DownloadAppBuild(w http.ResponseWriter, r *http.Request) {
 	h.finishAppBuild(b.ID, bson.M{
 		"status": models.AppTaken, "path": "",
 		"downloadedAt": now, "downloadedBy": h.pressedBy(r),
+		// A note from an earlier interrupted attempt must not survive the one
+		// that worked: the row would say "taken" and carry an error beside it.
+		"error": "",
 	})
 }
 

@@ -5554,6 +5554,29 @@ ya'ni birinchi bo'lib aynan sababni tashlardi, va qirq qator Gradle vazifasi
 qolardi. Endi sabab birinchi, log keyin, va testi bor.
 
 
+#### Yettinchisi: 30 soniyalik `WriteTimeout` va 2,5 MB lik fayl
+
+«Yuklab olish» bosilgandi, «Olinmoqda…» chiqardi, keyin hech nima bo'lmagandek
+tugmaga qaytardi. Jurnal aniq aytdi: `200`, lekin **2 162 104 bayt** yuborilgan
+va **aynan 30,011 soniya** ketgan.
+
+Sabab — konsolning `http.Server{WriteTimeout: 30 * time.Second}`. Bu qolgan har
+bir endpoint uchun **to'g'ri**: javob bir necha kilobayt JSON, va sekin yozuv
+ulanishni ushlab turgan mijoz demakdir. APK esa ikki yarim megabayt, va u odam
+qanday internetda bo'lsa o'shanda ketadi.
+
+- ⚠️ **Faqat shu javob uchun uzaytiriladi** (`http.ResponseController`), butun
+  server uchun emas: himoya qolgan hamma joyda kerak.
+- ⚠️ **Uzoqroq muddat, muddatsizlik emas**: o'qishni to'xtatgan mijoz ulanishni
+  baribir qo'yib yuborishi kerak. O'n daqiqa — bir necha megabayt uchun juda
+  ko'p, abadiylikdan esa juda kam.
+- ⚠️ **Yarim ketgan uzatish endi yozib qo'yiladi.** «Faqat to'liq ketganda
+  o'chirilsin» qoidasi **ishladi** — artefakt saqlanib qoldi, va bu to'g'ri
+  edi — lekin **hech qayerda nima uchunligi yozilmagandi**, ya'ni konsolda
+  shunchaki avvalgi holatiga qaytgan tugma ko'rindi. Hech kim tushuntira
+  olmaydigan qator — qator yo'qligi bilan barobar.
+
+
 #### Konsoldagi tugma: navbat, va yuklab olingan fayl o'chiriladi
 
 - ⚠️ **Artefakt yuklab olingan zahoti o'chiriladi, yozuvi esa qoladi.** Har build
