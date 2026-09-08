@@ -10,7 +10,7 @@ import uz.keel.guest.data.MenuGroup
 import uz.keel.guest.data.MenuItem
 import uz.keel.guest.data.Order
 import uz.keel.guest.data.OrderQuote
-import uz.keel.guest.data.Restaurant
+import uz.keel.guest.data.RestaurantResponse
 import uz.keel.guest.data.pick
 
 // The models, fed the shape the server actually sends.
@@ -139,22 +139,38 @@ class WireShapeTest {
         assertEquals("https://checkout.paycom.uz/abc", order.payUrl)
     }
 
-    /** ⚠️ **The restaurant's own point, because the map opens on it.** Read as
-     *  zero the picker would open on the null island — off the coast of Africa,
-     *  which a guest reads as a broken app rather than as a missing setting. */
+    /** ⚠️ **The profile is wrapped, and this test is here because it was read
+     *  wrongly the first time.** `/restaurant` answers
+     *  `{restaurant, brand, branch, design, …}` — decoding the top level as the
+     *  restaurant itself compiles, parses, throws nothing, and leaves every
+     *  field at its default: a nameless restaurant that is always open and sits
+     *  on the null island off the coast of Africa, which the address picker
+     *  would then open on.
+     *
+     *  ⚠️ **`isOpenNow` is on the wrapper**, because it is computed from the
+     *  *branch's* hours rather than the company document — and read at the
+     *  wrong level it defaults to `true`, telling a guest that a closed kitchen
+     *  is taking orders. The JSON below is trimmed from what b5somsa.keel.uz
+     *  actually returns. */
     @Test
-    fun `the restaurant carries where it is and whether it is open`() {
-        val r = json.decodeFromString<Restaurant>(
-            """{"id":"r1","name":"Navvat","description":"","logoUrl":"/uploads/l.png",
-                "coverUrl":"","phones":["+998901112233"],
-                "address":{"lat":41.311081,"lng":69.240562,"text":"Toshkent"},
-                "currency":"UZS","isOpenNow":false}""",
+    fun `the profile is wrapped, and the open flag sits on the wrapper`() {
+        val res = json.decodeFromString<RestaurantResponse>(
+            """{"restaurant":{"id":"r1","name":"B5 Somsa","description":"",
+                  "logoUrl":"https://b5somsa.keel.uz/uploads/73fba65e.jpg",
+                  "coverUrl":"","phones":["+998901112233"],
+                  "address":{"lat":41.308868,"lng":69.165443,"text":"Kukcha"},
+                  "currency":"UZS",
+                  "theme":{"brand":"#2563eb","brandDark":"","font":"soft"}},
+                "brand":{"name":"B5 Somsa"},
+                "branch":{"name":"B5 Beshqayrag'och"},
+                "designLocked":false,
+                "isOpenNow":false}""",
         )
-        assertEquals("Navvat", r.name)
-        assertEquals(41.311081, r.address.lat, 0.000001)
-        assertEquals(69.240562, r.address.lng, 0.000001)
+        assertEquals("B5 Somsa", res.restaurant.name)
+        assertEquals(41.308868, res.restaurant.address.lat, 0.000001)
+        assertEquals(69.165443, res.restaurant.address.lng, 0.000001)
         // ⚠️ Computed by the server from the branch's hours: a phone's clock is
         // the one thing this product never trusts.
-        assertFalse(r.isOpenNow)
+        assertFalse(res.isOpenNow)
     }
 }

@@ -5491,6 +5491,48 @@ ko'radi. Shuning uchun **bitta kod bazasi, N ta build** (`mobile/guest-android`)
   aytadi, menyu joyida qoladi. Tugagan taom ham chiziladi, olib tashlanmaydi:
   yo'q bo'lib qolgan taom mehmonni «men adashganman shekilli» deb o'ylatadi.
 
+#### Build quvuri: bitta image, bitta qulf, bir marta yaratiladigan kalit
+
+`deploy/appbuild/` — Dockerfile (JDK 17 + Android SDK 36 + Pillow), `build.sh`
+va `brandimages.py`. Konsol tugmasi shu konteynerni ishga tushiradi.
+
+- ⚠️ **Host'ga JDK yoki SDK o'rnatilmaydi.** O'sha mashina har bir tenantning
+  konteynerini tutib turadi; yonida o'rnatilgan toolchain bir `apt upgrade` dan
+  keyin hech kim takrorlay olmaydigan build xatosiga aylanadi. Image ichida
+  toolchain — image'ning fakti, va uning tegi bor.
+- ⚠️ **Imzo kaliti bir marta yaratiladi va hech qachon almashtirilmaydi.**
+  Yo'qolgan kalit bilan imzolangan ilovani hech kim yangilay olmaydi: na biz, na
+  restoran, na Google. Skriptda **yangi kalit so'rash yo'li ataylab yo'q**, va
+  yaratilgan payt buni har safar ekranga yozadi — hech kim bilmagan kalitni hech
+  kim zaxiralamaydi, va u kerak bo'lgan kun — u yo'qolgan kun.
+- ⚠️ **`applicationId` slug'dan, nomdan emas.** Restoran nomini o'zgartiradi;
+  `applicationId` esa o'zgara olmaydi — o'zgarsa bu yangi ilova, eskisining
+  yoniga o'rnatiladi, va har mehmonda o'lik nusxa qoladi.
+- ⚠️ **Qulf skriptning o'zida, chaqiruvchida emas.** Konsol navbat qiladi, lekin
+  faqat chaqiruvchida turgan qulfni shell'i bor odam yonidan o'tib ketadi — va
+  bu aynan oldini olishi kerak bo'lgan to'qnashuv. Yo'li **absolut**
+  (`/opt/keel/.appbuild.lock`): `${HOME}` serverni emas, foydalanuvchini
+  qulflaydi, va deploy skripti bu darsni allaqachon to'lagan.
+- ⚠️ **Rad etmaydi, kutadi** (`flock --timeout 3600`): ikki build bir vaqtda
+  mashinani swap'ga tushiradi, lekin ba'zan hech nima qilmaydigan tugma
+  undan yomonroq.
+- ⚠️ **Manba nusxa ko'chiriladi, checkout ichida qurilmaydi.** Ikki build bitta
+  daraxtda bir-birining `brand.properties` ini yozadi va bir restoranning
+  ilovasini boshqasining nomi ostida chiqaradi; yiqilgan build esa checkout'da
+  birovning ranglarini qoldiradi. Dizayn moduli ham ko'chiriladi va **o'z
+  joyini saqlaydi** — u nisbiy yo'l bilan ulanadi.
+- ⚠️ **Konteynerga `TZ` beriladi.** Zonasi yo'q konteyner host nima bo'lishidan
+  qat'i nazar UTC: soat uchdan o'nda tugagan build 10:10 deb fayllanadi — besh
+  soat farq bilan, aynan ikki build'ni ajratish uchun qaralayotgan joyda. Bu
+  `cmd/server` dagi `time/tzdata` tuzog'ining boshqa xonadagi ko'rinishi.
+- ⚠️ **Profil o'ralgan javob** (`{restaurant, brand, branch, …}`), va `.name` ni
+  yuqoridan o'qish `null` beradi — jimgina, chunki `jq` hech nima topmasa ham
+  xursand. Ilova modeli ham xuddi shu xatoni qilgan edi: dekodlash o'tadi, hech
+  nima yiqilmaydi, va nomsiz restoran doim ochiq bo'lib Afrika sohilidagi nol
+  nuqtada turadi. `restaurant` — brend va filial ustiga qo'yilgan **birlashgan**
+  ko'rinish, ya'ni mehmon ko'radigan yuz.
+
+
 #### Xarita: Google, va CLAUDE.md dagi narx ogohlantirishi bu yerga tegmaydi
 
 ⚠️ **U ogohlantirish veb API'lari haqida** — MapGL, Maps JavaScript API, Static

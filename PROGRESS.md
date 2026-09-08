@@ -14403,3 +14403,40 @@ Tekshirildi: `assembleDebug` (26.5 MB), `testDebugUnitTest`, `go test ./...`.
 
 **Keyingi**: 4) builder image va lokal brendlash skripti; 5) konsoldagi tugma,
 navbat, imzo kalitlari va artefaktlar.
+
+---
+
+## 2026-09-08 (5) — Build quvuri: image, brendlash va imzo kaliti ✅
+
+**4-bosqich.** `deploy/appbuild/`: Dockerfile (JDK 17 + Android SDK 36 +
+Pillow), `build.sh`, `brandimages.py`.
+
+Bitta buyruq restoranning **o'z** `GET /restaurant` javobidan nom, logo va
+aksent rangni oladi; ikonka (adaptiv + legacy + Play uchun 512), splash,
+`brand.properties` yasaydi; imzo kalitini **bir marta** yaratadi; APK yoki AAB
+quradi.
+
+Ikkita jimgina xato yo'lda topildi va tuzatildi:
+- **Adaptiv ikonka `@drawable/ic_launcher_foreground` ni so'raydi**, men esa
+  PNG'larni `mipmap-*` ga yozgandim — build o'tardi, ikonka generatsiya
+  qilinardi, va **har telefonda placeholder** ko'rinardi.
+- **`/restaurant` javobi o'ralgan** (`{restaurant, brand, branch, …}`). Ilova
+  modeli yuqori darajani dekod qilardi: hech nima yiqilmaydi, hamma maydon
+  standart qiymatda — nomsiz, doim ochiq, xaritasi Afrika sohilidagi nol
+  nuqtada. Model `RestaurantResponse` ga bo'lindi va testi yozildi.
+
+**VPS (169.58.131.165) tayyor**: `keel-appbuild:latest` (1.54 GB) qurildi,
+`/opt/keel/{appkeys,appbuilds}` yaratildi, va b5somsa uchun **haqiqiy
+brendlangan release APK** serverda qurildi — 2.49 MB, `uz.keel.app.b5somsa`,
+«B5 Somsa», `#2563eb`, o'z logosi bilan. Host'ga JDK/SDK **o'rnatilmadi** —
+hammasi image ichida.
+
+⚠️ Server tomonda uchta narsa tuzatildi: `umask` kalit blokidan chiqib ketib
+APK'ni ham 0600 qilardi; konteyner zonasiz UTC edi (fayl nomi besh soat
+noto'g'ri); `flock` skriptning o'ziga ko'chirildi — faqat chaqiruvchida turgan
+qulfni shell'i bor odam yonidan o'tib ketadi.
+
+Build vaqti: ~9 daqiqa (4 yadro, tenantlar bilan yonma-yon). Bir vaqtda bitta.
+
+**Keyingi**: 5) konsol — tenant sahifasidagi tugma, APK/AAB tanlovi, navbat,
+artefaktni yuklab olish va kalit zaxirasi.

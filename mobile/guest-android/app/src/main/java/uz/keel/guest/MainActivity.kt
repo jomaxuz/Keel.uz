@@ -44,7 +44,7 @@ import uz.keel.design.Note
 import uz.keel.design.NoticeHost
 import uz.keel.design.NoticeKind
 import uz.keel.design.TabItem
-import uz.keel.guest.data.Restaurant
+import uz.keel.guest.data.RestaurantResponse
 import uz.keel.guest.push.forgetPush
 import uz.keel.guest.push.rememberPush
 import uz.keel.guest.ui.screens.AccountScreen
@@ -118,7 +118,7 @@ private sealed interface Where {
 private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableState<Note?>) {
     var tab by remember { mutableStateOf("menu") }
     var where by remember { mutableStateOf<Where>(Where.Tabs) }
-    var restaurant by remember { mutableStateOf<Restaurant?>(null) }
+    var profile by remember { mutableStateOf<RestaurantResponse?>(null) }
     val prefs = LocalPrefs.current
     val lang = prefs.lang.value.code
     val placedWord = t.order.placed
@@ -127,7 +127,7 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
     // the restaurant's own point to open the map on — and a map that opens on
     // the null island is a map somebody closes.
     LaunchedEffect(lang) {
-        runCatching { restaurant = app.api.restaurant() }
+        runCatching { profile = app.api.restaurant() }
     }
 
     // ⚠️ **Asked for after a sign-in, never at launch.** Android 13 puts a
@@ -155,7 +155,7 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
                 is Where.Checkout -> CheckoutScreen(
                     api = app.api,
                     cart = app.cart,
-                    restaurant = restaurant,
+                    restaurant = profile?.restaurant,
                     bottomInset = bottomInset,
                     onBack = { where = Where.Tabs },
                     onPlaced = { order ->

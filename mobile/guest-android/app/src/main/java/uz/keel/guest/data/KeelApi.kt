@@ -135,7 +135,7 @@ class KeelApi(private val tokens: TokenStore) {
      *
      *  ⚠️ Read at launch even though the build carries a name and a colour —
      *  see Models.kt. */
-    suspend fun restaurant(): Restaurant = call("/restaurant")
+    suspend fun restaurant(): RestaurantResponse = call("/restaurant")
 
     /** The menu, grouped by category the way the site reads it. */
     suspend fun menu(): List<MenuGroup> = call("/menu")

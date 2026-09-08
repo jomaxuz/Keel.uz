@@ -95,6 +95,25 @@ data class MenuGroup(
     val items: List<MenuItem> = emptyList(),
 )
 
+/** What `GET /restaurant` actually answers with.
+ *
+ *  ⚠️ **The profile is wrapped, and the wrapper is not decoration.** The
+ *  response is `{restaurant, brand, branch, design, …}` — the company document
+ *  with the brand laid over it and the serving branch over that. Decoding the
+ *  top level as the restaurant itself compiles, parses, throws nothing, and
+ *  leaves every field at its default: a nameless restaurant that is always open
+ *  and sits on the null island. It cost half an hour to find the first time.
+ *
+ *  ⚠️ **`isOpenNow` is on the wrapper, not on the restaurant.** It is computed
+ *  from the *branch's* hours, so it does not belong to the company document —
+ *  and read from the wrong level it defaults to `true`, which tells a guest a
+ *  closed kitchen is taking orders. */
+@Serializable
+data class RestaurantResponse(
+    val restaurant: Restaurant = Restaurant(),
+    val isOpenNow: Boolean = true,
+)
+
 /** How this restaurant looks and what it is called.
  *
  *  ⚠️ **Read at launch even though the build already carries the name and the
@@ -110,10 +129,6 @@ data class Restaurant(
     val coverUrl: String = "",
     val phones: List<String> = emptyList(),
     val currency: String = "",
-    /** Whether the kitchen is taking orders right now. ⚠️ Computed by the
-     *  server from the branch's hours, because a phone's clock is the one thing
-     *  this product never trusts. */
-    val isOpenNow: Boolean = true,
     /** Where the restaurant is, so the address picker opens somewhere useful.
      *
      *  ⚠️ **The map opens on the restaurant, not on the guest.** A location

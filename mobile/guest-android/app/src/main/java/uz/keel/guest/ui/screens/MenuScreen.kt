@@ -58,7 +58,7 @@ import uz.keel.guest.data.ApiError
 import uz.keel.guest.data.KeelApi
 import uz.keel.guest.data.MenuGroup
 import uz.keel.guest.data.MenuItem
-import uz.keel.guest.data.Restaurant
+import uz.keel.guest.data.RestaurantResponse
 import uz.keel.guest.data.pick
 import uz.keel.guest.t
 import uz.keel.guest.LocalPrefs
@@ -91,7 +91,7 @@ fun MenuScreen(
     val prefs = LocalPrefs.current
     val lang = prefs.lang.value.code
 
-    var restaurant by remember { mutableStateOf<Restaurant?>(null) }
+    var profile by remember { mutableStateOf<RestaurantResponse?>(null) }
     var groups by remember { mutableStateOf<List<MenuGroup>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
@@ -112,7 +112,7 @@ fun MenuScreen(
         api.lang = lang
         loading = true
         try {
-            restaurant = api.restaurant()
+            profile = api.restaurant()
             groups = api.menu()
             // ⚠️ Read here rather than only on the account screen: the heart is
             // on the first screen, and a menu that drew every dish unkept until
@@ -170,13 +170,13 @@ fun MenuScreen(
                                 // ⚠️ The live name, not the build's: a
                                 // restaurant that renames itself should not have
                                 // to wait for a release to be called it.
-                                restaurant?.name.orEmpty(),
+                                profile?.restaurant?.name.orEmpty(),
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = c.ink,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            if (restaurant?.isOpenNow == false) {
+                            if (profile?.isOpenNow == false) {
                                 Text(
                                     t.menu.closed,
                                     style = MaterialTheme.typography.labelMedium,
@@ -189,7 +189,7 @@ fun MenuScreen(
                         // needs and the last thing they will go hunting for.
                         LangSwitch()
                     }
-                    if (restaurant?.isOpenNow == false) {
+                    if (profile?.isOpenNow == false) {
                         Text(
                             t.menu.closedHint,
                             style = MaterialTheme.typography.bodyMedium,
