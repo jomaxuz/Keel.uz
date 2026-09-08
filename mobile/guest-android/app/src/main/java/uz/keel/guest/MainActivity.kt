@@ -93,7 +93,17 @@ class MainActivity : ComponentActivity() {
                 // ⚠️ **The restaurant's colour, not Keel's.** This is the one
                 // application that passes an accent — see the parameter's note
                 // in the design module.
-                KeelWaiterTheme(app.prefs.theme.value, accent = Brand.accent) {
+                //
+                // ⚠️ **The panel's current colour first, the build's second.**
+                // The accent is baked into `brand.properties` for the splash and
+                // the icon, which are painted before any Kotlin runs — but a
+                // build is a photograph of the panel on the day it ran, and an
+                // owner who changes their brand afterwards would otherwise have
+                // a site and an app in two different colours until somebody
+                // rebuilt the app. Keel's orange is the last resort and means
+                // the restaurant has set no colour at all.
+                val accent = parseColor(app.prefs.accent.value) ?: Brand.accent
+                KeelWaiterTheme(app.prefs.theme.value, accent = accent) {
                     KeelBackground { Root(app, notice) }
                 }
             }
@@ -127,7 +137,12 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
     // the restaurant's own point to open the map on — and a map that opens on
     // the null island is a map somebody closes.
     LaunchedEffect(lang) {
-        runCatching { profile = app.api.restaurant() }
+        runCatching { app.api.restaurant() }.onSuccess {
+            profile = it
+            // ⚠️ Stored, so the next launch paints the right colour on its
+            // first frame instead of flashing the one the build was made with.
+            prefs.setAccent(it.restaurant.accentHex)
+        }
     }
 
     // ⚠️ **Asked for after a sign-in, never at launch.** Android 13 puts a

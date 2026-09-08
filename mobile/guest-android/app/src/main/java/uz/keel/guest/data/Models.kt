@@ -143,6 +143,14 @@ data class Restaurant(
     // else would change the map under all of them. The same rule the site
     // follows (`lib/map/config.ts`) and the same rule an empty `source` follows
     // in the catalogue.
+    /** The restaurant's own colours, as the site reads them.
+     *
+     *  ⚠️ **Read at run time, not baked into the build.** The colour is also
+     *  written into `brand.properties` so the splash and the launcher icon can
+     *  wear it before any Kotlin runs — but an owner who changes the brand in
+     *  the panel would otherwise wait for a new build, with their site and
+     *  their app disagreeing about their own colour in the meantime. */
+    val theme: SiteTheme = SiteTheme(),
     val mapProvider: String = "",
     /** The 2GIS MapGL key. Public by nature — the protection is the domain
      *  restriction in the provider's own console, never secrecy. */
@@ -166,6 +174,10 @@ data class Restaurant(
     /** Which engine draws the picker. ⚠️ Empty is 2GIS — see the field's note. */
     val provider: String get() = if (mapProvider.isBlank()) "2gis" else mapProvider
 
+    /** The restaurant's accent as the site would draw it, or empty when the
+     *  profile carries none — in which case the build's own value stands. */
+    val accentHex: String get() = theme.brand.trim()
+
     /** The key that engine needs, or empty. */
     val mapKey: String
         get() = when (provider) {
@@ -174,6 +186,17 @@ data class Restaurant(
             else -> mapApiKey
         }
 }
+
+/** The restaurant's palette. ⚠️ Only the accent is read here: the ground, the
+ *  glass and the ink are the design system's, and letting a brand hue chosen
+ *  for a signboard repaint the surfaces produces, on some of them, a lime-green
+ *  dining room nobody chose (see design/Theme.kt). */
+@Serializable
+data class SiteTheme(
+    val brand: String = "",
+    /** Empty means "derive it from `brand`", which is what the site does. */
+    val brandDark: String = "",
+)
 
 /** A point on the map, in the order the server writes it. ⚠️ `lat` then `lng`,
  *  and every provider disagrees about that — the coordinate order lives in one

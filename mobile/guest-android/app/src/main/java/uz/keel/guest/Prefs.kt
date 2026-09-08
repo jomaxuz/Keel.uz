@@ -29,6 +29,25 @@ class Prefs(context: Context) {
             .getOrDefault(ThemeChoice.System),
     )
 
+    /** The restaurant's accent as the panel last reported it.
+     *
+     *  ⚠️ **Remembered on the phone, not only held in memory.** The theme wraps
+     *  everything, including the first frame — which is drawn before
+     *  `/restaurant` has answered. Without a stored value an owner who changed
+     *  their colour would see the old one flash on every launch; with it, the
+     *  app is only ever wrong once, on the launch after the change.
+     *
+     *  ⚠️ Empty means "use the build's own" (`Brand.accent`), which is the
+     *  colour the panel had when the app was built — never Keel's orange unless
+     *  the restaurant genuinely has no colour set. */
+    val accent = mutableStateOf(store.getString(KEY_ACCENT, "").orEmpty())
+
+    fun setAccent(hex: String) {
+        if (hex == accent.value) return
+        accent.value = hex
+        store.edit().putString(KEY_ACCENT, hex).apply()
+    }
+
     val dict: Dict get() = DICTS[lang.value]!!
 
     fun setLang(value: Lang) {
@@ -52,6 +71,7 @@ class Prefs(context: Context) {
     private companion object {
         const val KEY_LANG = "lang"
         const val KEY_THEME = "theme"
+        const val KEY_ACCENT = "accent"
     }
 }
 

@@ -262,4 +262,20 @@ class WireShapeTest {
             }
         }
     }
+
+    /** ⚠️ **The restaurant's own colour, read at run time.** The build bakes one
+     *  in for the splash and the icon, but that is a photograph of the panel on
+     *  the day it ran — and this field was missing from the model entirely, so
+     *  every app fell back to Keel's orange and wore a stranger's colour on a
+     *  guest's home screen. */
+    @Test
+    fun `the restaurant's accent comes off the profile`() {
+        val themed = json.decodeFromString<Restaurant>(
+            """{"name":"X","theme":{"brand":"#2563eb","brandDark":"","font":"soft"}}""",
+        )
+        assertEquals("#2563eb", themed.accentHex)
+
+        // Empty means "the build's own", never Keel's orange by itself.
+        assertEquals("", json.decodeFromString<Restaurant>("""{"name":"X"}""").accentHex)
+    }
 }
