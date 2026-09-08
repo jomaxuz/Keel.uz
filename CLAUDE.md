@@ -677,6 +677,12 @@ branch emas.
   `/opt/keel/.appbuild-src`, keyin o'chiriladi).
 - Root nomidan yozib qo'yilgan bo'lsa: `chown -R deploy-keel:deploy-keel` (ma'lumot
   papkalarini `-prune` bilan chetlab o'tib), keyin `git reset --hard FETCH_HEAD`.
+- ⚠️ **Va o'sha repozitoriyda umuman `git` ni root nomidan ishlatmang** — hatto
+  «faqat o'qiydigan» ko'ringanini ham. `git diff` va `git status` indeksni
+  yangilaydi, ya'ni `.git/index` ni **qayta yozadi**; root yozgan indeksni
+  `deploy-keel` ocha olmaydi va keyingi deploy'da `git fetch` jimgina yiqiladi.
+  Alomati: `FETCH_HEAD` **bo'sh**, `HEAD` qimirlamaydi, va bunga sabab bo'lgan
+  buyruq bir necha daqiqa oldin ishlagan mutlaqo zararsiz ko'ringan `git diff`.
 - ⚠️ `git clean -fd` **emas**: `appkeys/` da har restoranning almashtirib
   bo'lmaydigan imzo kaliti turadi. Shuning uchun u endi `.gitignore` da.
 
