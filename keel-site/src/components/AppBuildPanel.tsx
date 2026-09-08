@@ -47,6 +47,8 @@ export default function AppBuildPanel({
   const [builds, setBuilds] = useState<AppBuild[]>([]);
   const [appId, setAppId] = useState(androidAppId ?? "");
   const [appIdSaved, setAppIdSaved] = useState(false);
+  /** Which build is being fetched right now, if any. */
+  const [taking, setTaking] = useState("");
   const [format, setFormat] = useState<"apk" | "aab">("apk");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -90,6 +92,11 @@ export default function AppBuildPanel({
 
   async function take(build: AppBuild) {
     setError("");
+    // ⚠️ **The button has to say it is working.** The artifact is a couple of
+    // megabytes fetched with a bearer token, so nothing visible happens for a
+    // second or two — and a button that looks dead is a button people press
+    // again, which on the second press finds a file the server has just deleted.
+    setTaking(build.id);
     try {
       await downloadAppBuild(build);
     } catch (e) {
@@ -97,6 +104,8 @@ export default function AppBuildPanel({
       // completes, so a silent failure would leave somebody believing they hold
       // a file they do not.
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setTaking("");
     }
     await load();
   }
@@ -259,9 +268,12 @@ export default function AppBuildPanel({
                       <button
                         type="button"
                         className="btn-ghost px-3 py-1 text-xs"
+                        disabled={taking !== ""}
                         onClick={() => void take(b)}
                       >
-                        Yuklab olish{b.size ? ` (${bytes(b.size)})` : ""}
+                        {taking === b.id
+                          ? "Olinmoqda…"
+                          : `Yuklab olish${b.size ? ` (${bytes(b.size)})` : ""}`}
                       </button>
                     ) : b.status === "taken" ? (
                       // ⚠️ **Says the file is gone, not that nothing happened.**

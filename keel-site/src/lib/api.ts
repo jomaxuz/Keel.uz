@@ -395,16 +395,27 @@ export async function downloadAppBuild(build: AppBuild): Promise<void> {
     );
   }
   const blob = await res.blob();
+  if (blob.size === 0) {
+    throw new Error("fayl bo'sh keldi — build'ni qaytadan qiling");
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = `${build.slug}-${build.versionName ?? "1.0.0"}.${build.format}`;
   document.body.appendChild(a);
   a.click();
-  a.remove();
-  // ⚠️ Revoked, or the blob stays in memory for the life of the tab — and these
-  // are megabytes, on a page somebody leaves open all day.
-  URL.revokeObjectURL(url);
+  // ⚠️ **The blob URL is revoked later, not on the next line.** `click()` starts
+  // the download asynchronously; revoking the URL — or removing the anchor — in
+  // the same tick pulls the source out from under it, and the browser simply
+  // does nothing. No error, no download, no clue: it shipped that way and the
+  // button looked dead.
+  //
+  // ⚠️ Still revoked, because a blob kept for the life of the tab is megabytes
+  // on a page somebody leaves open all day.
+  window.setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 60_000);
 }
 
 // ---- The server everything runs on ----

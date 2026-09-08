@@ -260,6 +260,12 @@ KEEL_GUEST_KEYSTORE_PROPERTIES="$KEYPROPS" \
 STAMP="$(date +%Y%m%d-%H%M%S)"
 DEST="$KEEL_APP_OUT/$SLUG"
 mkdir -p "$DEST"
+# ⚠️ **Set every run, not only when the directory is created.** `mkdir -p`
+# leaves an existing directory's mode alone, so a folder made while the keystore
+# block's `umask 077` was leaking stayed 0700 — and every artifact inside it was
+# unreachable to anything not running as root. Fixing the leak did not heal the
+# directories it had already made; this does, on the next build.
+chmod 755 "$DEST"
 cp "$ART" "$DEST/$SLUG-$STAMP.$FORMAT"
 # ⚠️ Readable on purpose: an APK is the thing being handed out, and the console
 # that serves it does not run as root. The keystore beside it is the secret, and
