@@ -192,3 +192,26 @@ class PlacedOrders(context: Context) {
         const val LIMIT = 20
     }
 }
+
+/** The dishes this guest keeps.
+ *
+ *  ⚠️ **Held for the whole app, not by the menu screen.** The heart is drawn on
+ *  a row that scrolls in and out of the list; state owned there would forget
+ *  itself on every scroll, and the tap that saved a dish would appear to undo
+ *  itself.
+ *
+ *  ⚠️ **Empty when signed out, and the heart is simply not drawn.** A heart that
+ *  opens a sign-in form is a menu screen that asks for a phone number — which is
+ *  the one thing this app never does before somebody has eaten. */
+class Favorites {
+    val ids = mutableStateListOf<String>()
+
+    fun holds(id: String): Boolean = ids.contains(id)
+
+    fun replace(all: List<String>) {
+        ids.clear()
+        ids.addAll(all)
+    }
+
+    fun clear() = ids.clear()
+}

@@ -56,6 +56,11 @@ type Store struct {
 	// An owner's or manager's phone. Fourth device table, third id space —
 	// see models/admindevice.go for why they are not one collection.
 	AdminDevices *mongo.Collection
+	// A **guest's** phone — the restaurant's own application. Fifth device
+	// table, fourth id space, and the same reason as the other four: one field
+	// holding two kinds of id is how a notification about somebody's dinner
+	// reaches a cook. See models/userdevice.go.
+	UserDevices *mongo.Collection
 	// Which install an account is allowed to sign in from — see
 	// models/logindevice.go. One collection for all three id spaces: the shape
 	// is identical and the `kind` field keeps them apart.
@@ -198,6 +203,7 @@ func New(db *mongo.Database) *Store {
 		Expenses:        db.Collection("expense"),
 		MigrationState:  db.Collection("migration_state"),
 		StaffDevices:    db.Collection("staff_device"),
+		UserDevices:     db.Collection("user_device"),
 		CourierDevices:  db.Collection("courier_device"),
 		AdminDevices:    db.Collection("admin_device"),
 		LoginDevices:    db.Collection("login_device"),

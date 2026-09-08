@@ -594,6 +594,15 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// guest could never revoke it.
 			r.Post("/users/me/push", h.PushSubscribe)
 			r.Delete("/users/me/push", h.PushUnsubscribe)
+			// ⚠️ **A second door, because a browser and an application are not
+			// the same phone.** `/push` above takes a Web Push subscription — an
+			// endpoint URL and two keys, minted by a browser. The restaurant's
+			// own app holds an FCM registration token, which that endpoint has
+			// no field for and the web sender cannot deliver to. One endpoint
+			// taking both would be one field holding two kinds of address.
+			// See handlers/userpush.go.
+			r.Post("/users/me/device", h.UserRegisterDevice)
+			r.Delete("/users/me/device", h.UserForgetDevice)
 			// Dishes marked to come back to. On the account rather than in the
 			// browser — see handlers/favorites.go.
 			r.Get("/users/me/favorites", h.UserFavorites)

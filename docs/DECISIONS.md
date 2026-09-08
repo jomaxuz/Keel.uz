@@ -5524,6 +5524,64 @@ mavjud emas edi.)
   «yetkazib berish» deyishidan oldin so'ralgan ruxsatni ko'pchilik bir marta va
   butunlay rad etadi, va rad etish qaytarilmaydi.
 
+#### Hisob ixtiyoriy, va bu dizayn — kamchilik emas
+
+Menyu, savat va **buyurtma berish** — hammasi hisobsiz ishlaydi. Narx
+ko'rsatishdan oldin telefon raqami so'raydigan ilova bitta marta ochiladi.
+Kirish qo'shadigan narsa: buyurtmalar tarixi, ballar va sevimlilar.
+
+- ⚠️ **Kirish ekranidagi matn nima berishini aytadi, nega kerakligini emas** — u
+  kerak emas, va aks holda ikki marta hisobsiz buyurtma bergan odamga yolg'on
+  gapirgan bo'lardik.
+- ⚠️ **Telefon raqami yozilayotganda qayta formatlanmaydi.** Har kimning o'z
+  odati bor (`+998`, `998`, boshida nol, probellar), va yozilayotgan narsani
+  qayta yozadigan maydon bilan odam kurashadi. Normallashtirishni server qiladi
+  — qoida allaqachon o'sha yerda.
+- ⚠️ **Ism kod bosqichida so'raladi**, undan oldin emas: server uni faqat yangi
+  hisob uchun o'qiydi, ya'ni qaytgan mehmon bu maydonni umuman ko'rmaydi.
+- ⚠️ **«Qayta yuborish» sanoq bilan.** Jimgina hech nima qilmaydigan tugmani
+  odam besh marta bosadi, va har bosish yo restoranga SMS turadi, yo ilovani
+  buzuq deb o'rgatadi.
+- ⚠️ **Yurakcha hisobsiz umuman chizilmaydi.** Kirishga olib boradigan yurakcha —
+  menyuda telefon raqami so'rash demakdir.
+
+#### Push: `google-services.json` yo'q, to'rtta satr bor
+
+Firebase'ning Gradle plagini `google-services.json` ni build vaqtida o'qiydi va
+`applicationId` ga mos mijoz yozuvi bo'lmasa **build'ni rad etadi**. Har
+restoranga alohida build modelida bu har restoranga generatsiya qilingan fayl,
+va ikkalasi ajralganda paket nomi haqidagi xato xabari degani.
+
+Firebase o'sha qiymatlarni **kodda** ham qabul qiladi (`FirebaseOptions`), va
+to'rtta satr `brand.properties` da — brendlanadigan qolgan hamma narsa bilan
+yonma-yon. Plagin ham, fayl ham kerak emas.
+
+- ⚠️ **Bo'sh qiymat — «push yo'q», qulash emas** (xarita kaliti bilan bir qoida):
+  menyusini hech kim o'qiy olmaydigan ilova — hech kim uni o'rnatgan sabab
+  bo'lmagan imkoniyat uchun — ancha yomon nosozlik.
+- ⚠️ **Ruxsat kirgandan **keyin** so'raladi, ishga tushishda emas.** Android 13
+  hech nima buyurtma qilmagan odam oldiga kontekstsiz ha/yo'q savolini qo'yadi;
+  ko'pchilik bir marta va butunlay yo'q deydi, va rad etish buyurtma
+  xabarlarini ham olib ketadi.
+- ⚠️ **Bitta xabar turi, va cheklov — imkoniyatning o'zi.** Mehmonda bu ilova
+  uchun bitta rubilnik bor, va kelajakda yubormoqchi bo'lgan hamma narsa
+  (aksiya, eslatma, yangi menyu) o'sha rubilnikdan o'tadi. Uni o'z buyurtmasidan
+  boshqa narsaga sarflasak, u o'chiriladi va buyurtma xabarlari ham u bilan
+  ketadi.
+- ⚠️ **Kanal telefonda yaratiladi va id serverникi bilan bir xil** (`orders`).
+  Yaratilmagan kanalga kelgan xabar ovozsiz va tartibsiz keladi — bu hech kim
+  yubormagan xabardan farq qilmaydi va server buzuq deb tashxis qo'yiladi.
+- ⚠️ **Mehmon qurilmasi — beshinchi jadval** (`user_device`), `push_subscription`
+  ichiga qo'shilmadi: u brauzer obunasi (endpoint + ikki kalit), bu esa FCM
+  tokeni. Bitta maydon ikki xil manzil tutishi — bu kitobda allaqachon to'rt
+  marta yozilgan xato.
+- ⚠️ **Telegram xabari bilan yonma-yon, o'rniga emas.** Botdan buyurtma bergan
+  odam botni o'qiydi, ilova o'rnatgan odam ilovani. Ikkalasini ham qilgan mehmon
+  ikkita oladi — bu halol natija, va qaysi birini nazarda tutganini taxmin
+  qilishdan ancha yaxshi. «Qaysi holatlar xabar bo'ladi» esa **bitta**
+  funksiyadan so'raladi (`notifiableStatus`).
+
+
 #### Kanal: `android` o'ziniki, `web` ichiga qo'shilmaydi
 
 Restoran ilova uchun pul to'laydi va u haqda **bitta** savol beradi: «uni

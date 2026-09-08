@@ -87,6 +87,18 @@ android {
             "MAPS_KEY",
             "\"${brand.getProperty("brand.mapsKey").orEmpty()}\"",
         )
+
+        // ⚠️ **Firebase from four strings, not from a google-services.json.**
+        // The plugin that reads that file refuses any build whose applicationId
+        // has no matching client entry — which for a per-restaurant build means
+        // one generated file per restaurant and a build failure whenever the two
+        // drift. See push/Push.kt.
+        listOf("FB_APP_ID" to "brand.firebaseAppId",
+               "FB_PROJECT_ID" to "brand.firebaseProjectId",
+               "FB_API_KEY" to "brand.firebaseApiKey",
+               "FB_SENDER_ID" to "brand.firebaseSenderId").forEach { (field, key) ->
+            buildConfigField("String", field, "\"${brand.getProperty(key).orEmpty()}\"")
+        }
     }
 
     signingConfigs {
@@ -181,6 +193,12 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose)
     implementation(libs.play.services.location)
+
+    // ⚠️ Messaging only, and **without** the google-services plugin — see
+    // push/Push.kt for why a per-restaurant build cannot use it.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.coroutines.play.services)
 
     testImplementation(libs.junit)
     debugImplementation(libs.compose.ui.tooling)

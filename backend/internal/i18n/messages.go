@@ -320,6 +320,42 @@ var messages = map[string]pair{
 		"Выдача товара со склада",
 		"Issuing goods from the store",
 	},
+	"Buyurtma qabul qilindi": {
+		"Заказ принят",
+		"Order accepted",
+	},
+	"Restoran buyurtmangizni qabul qildi": {
+		"Ресторан принял ваш заказ",
+		"The restaurant has accepted your order",
+	},
+	"Buyurtma tayyorlanmoqda": {
+		"Заказ готовится",
+		"Your order is being cooked",
+	},
+	"Oshxona buyurtmangizni tayyorlay boshladi": {
+		"Кухня начала готовить ваш заказ",
+		"The kitchen has started on your order",
+	},
+	"Buyurtma yo'lda": {
+		"Заказ в пути",
+		"Your order is on the way",
+	},
+	"Kuryer buyurtmangiz bilan yo'lga chiqdi": {
+		"Курьер выехал с вашим заказом",
+		"The courier has left with your order",
+	},
+	"Buyurtma yetkazildi": {
+		"Заказ доставлен",
+		"Your order has arrived",
+	},
+	"Yoqimli ishtaha!": {
+		"Приятного аппетита!",
+		"Enjoy your meal!",
+	},
+	"Batafsil ma'lumot uchun restoranga murojaat qiling": {
+		"За подробностями обратитесь в ресторан",
+		"Please contact the restaurant for details",
+	},
 	"Omborni sanash": {
 		"Пересчёт склада",
 		"Counting the store",

@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -69,6 +70,13 @@ class KeelApi(private val tokens: TokenStore) {
      *  boolean is how a signed-out phone keeps drawing a name. */
     fun signedIn(): Boolean = !token().isNullOrEmpty()
 
+    /** Keep a session. ⚠️ Written through the same store the site's token key
+     *  uses (`user_token`), because a guest who signed in on the site and opened
+     *  the app is the ordinary case. */
+    fun signIn(token: String) = tokens.write(TokenStore.USER_TOKEN, token)
+
+    fun signOut() = tokens.drop(TokenStore.USER_TOKEN)
+
     private suspend inline fun <reified T> call(
         path: String,
         method: HttpMethod = HttpMethod.Get,
@@ -77,6 +85,7 @@ class KeelApi(private val tokens: TokenStore) {
         val url = Brand.apiBase + path
         val res: HttpResponse = when (method) {
             HttpMethod.Post -> client.post(url) { prepare(body) }
+            HttpMethod.Delete -> client.delete(url) { prepare(body) }
             else -> client.get(url) { prepare(null) }
         }
         if (!res.status.isSuccess()) throw errorFrom(res)
@@ -237,4 +246,84 @@ class KeelApi(private val tokens: TokenStore) {
      *  is: a guest who ordered without signing in has to be able to watch it,
      *  and an order they cannot follow is a phone call to the restaurant. */
     suspend fun order(number: String): Order = call("/orders/$number")
+
+    // ---- The guest's own account ----
+    //
+    // ⚠️ **Everything above this line works signed out**, and that is the design
+    // rather than an accident: the menu, the basket and even placing an order
+    // need no account. Signing in adds the guest's history, their points and
+    // their favourites — it is never the price of admission.
+
+    /** Ask for a code. ⚠️ The phone number is sent as typed; normalising it here
+     *  would be a second implementation of a rule the server already has, and
+     *  the two would disagree about the day somebody types a leading zero. */
+    suspend fun requestCode(phone: String): CodeSent = call(
+        "/auth/phone/request",
+        HttpMethod.Post,
+        buildJsonObject { put("phone", JsonPrimitive(phone)) },
+    )
+
+    /** Hand the code back and get a session.
+     *
+     *  ⚠️ **The name is sent with it, and only used for a new account.** Asking
+     *  a returning guest their name again — on the screen where they are already
+     *  proving who they are — is the kind of form that gets abandoned. */
+    suspend fun verifyCode(phone: String, code: String, name: String): SignIn = call(
+        "/auth/phone/verify",
+        HttpMethod.Post,
+        buildJsonObject {
+            put("phone", JsonPrimitive(phone))
+            put("code", JsonPrimitive(code))
+            put("name", JsonPrimitive(name))
+        },
+    )
+
+    suspend fun me(): User = call("/users/me")
+
+    /** This guest's orders, newest first. ⚠️ Joined with what the phone
+     *  remembers rather than replacing it — the first order is almost always
+     *  placed signed out. */
+    suspend fun myOrders(): List<Order> = call("/users/me/orders")
+
+    suspend fun loyalty(): Loyalty = call("/users/me/loyalty")
+
+    /** Keep or drop a dish. Answers with the whole list, so the screen never has
+     *  to guess what it now holds. */
+    suspend fun toggleFavorite(menuItemId: String): FavoriteState =
+        call("/users/me/favorites/$menuItemId", HttpMethod.Post)
+
+    // ---- This phone ----
+
+    /** ⚠️ **The language travels with the token.** A notification is written by
+     *  the server, so it is the one piece of text here the phone cannot
+     *  translate for itself. */
+    suspend fun registerDevice(token: String, lang: String) {
+        call<Unit>(
+            "/users/me/device",
+            HttpMethod.Post,
+            buildJsonObject {
+                put("token", JsonPrimitive(token))
+                put("lang", JsonPrimitive(lang))
+                put("platform", JsonPrimitive("android"))
+            },
+        )
+    }
+
+    /** ⚠️ **Called before the token is cleared, on sign-out.** The other order
+     *  sends the request unauthenticated, the row stays, and the next person to
+     *  hold this phone is told about somebody else's dinner. */
+    suspend fun forgetDevice(token: String) {
+        call<Unit>(
+            "/users/me/device",
+            HttpMethod.Delete,
+            buildJsonObject { put("token", JsonPrimitive(token)) },
+        )
+    }
 }
+
+/** What the favourites list holds after a tap. */
+@kotlinx.serialization.Serializable
+data class FavoriteState(
+    val on: Boolean = false,
+    val favorites: List<String> = emptyList(),
+)

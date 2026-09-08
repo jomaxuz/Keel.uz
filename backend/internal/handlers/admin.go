@@ -828,6 +828,9 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	// Free, unlike the SMS this replaces — see handlers/notify.go — and never
 	// able to fail the status change.
 	h.notifyOrderStatus(r.Context(), &order)
+	// ⚠️ **Beside it, not instead of it.** The bot and the restaurant's own app
+	// reach different people — see pushOrderStatus.
+	h.pushOrderStatus(&order)
 
 	if req.Status == models.StatusCancelled {
 		// ⚠️ The courier is told before anybody else has to think of it. A

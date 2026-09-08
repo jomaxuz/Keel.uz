@@ -29,3 +29,17 @@ qo'shsangiz testga Go handler'idan **ko'chirilgan** JSON bilan qator qo'shing.
 ⚠️ **Mehmondan menyudan oldin hech nima so'ralmaydi** — na server manzili, na
 telefon raqami. Menyu, kategoriya va taom **ochiq**; token faqat o'z buyurtmasi
 va ballarini qo'shadi.
+
+⚠️ **Hisob ixtiyoriy va shunday qoladi.** Menyu, savat va buyurtma berish
+hisobsiz ishlaydi; kirish faqat tarix, ballar va sevimlilarni qo'shadi. Biror
+ekran hisob talab qila boshlasa — bu mahsulot qarorini bekor qilish, va u
+`docs/DECISIONS.md` da yozilgan.
+
+⚠️ **Push uchun `google-services.json` qo'shmang.** Plagin `applicationId` ga
+mos mijoz yozuvi bo'lmagan har qanday build'ni rad etadi — har restoranga
+alohida build modelida bu ishlamaydi. Firebase to'rtta satrdan kodda
+sozlanadi (`push/Push.kt`), va satrlar `brand.properties` da.
+
+⚠️ **Bo'sh kalit — o'chirilgan imkoniyat, qulash emas.** Xarita kaliti ham,
+Firebase qiymatlari ham bo'sh bo'lishi mumkin: ilova ishlaydi, faqat o'sha bitta
+narsani qilmaydi.

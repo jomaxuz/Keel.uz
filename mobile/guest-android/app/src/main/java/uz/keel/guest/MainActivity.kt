@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.RestaurantMenu
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.ShoppingBag
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -24,11 +25,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import kotlinx.coroutines.launch
 import uz.keel.design.DesignWords
 import uz.keel.design.KeelBackground
 import uz.keel.design.KeelWaiterTheme
@@ -41,6 +45,9 @@ import uz.keel.design.NoticeHost
 import uz.keel.design.NoticeKind
 import uz.keel.design.TabItem
 import uz.keel.guest.data.Restaurant
+import uz.keel.guest.push.forgetPush
+import uz.keel.guest.push.rememberPush
+import uz.keel.guest.ui.screens.AccountScreen
 import uz.keel.guest.ui.screens.CartScreen
 import uz.keel.guest.ui.screens.CheckoutScreen
 import uz.keel.guest.ui.screens.MenuScreen
@@ -123,6 +130,15 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
         runCatching { restaurant = app.api.restaurant() }
     }
 
+    // ⚠️ **Asked for after a sign-in, never at launch.** Android 13 puts a
+    // yes/no question with no context in front of somebody who has not ordered
+    // anything yet, and most people say no once and permanently — taking the
+    // order updates with it. See push/Push.kt.
+    var signedIn by remember { mutableStateOf(app.api.signedIn()) }
+    val push = rememberPush(app.api, signedIn)
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
     val bottomInset = WindowInsets.navigationBars.asPaddingValues()
     // ⚠️ The bar's own height *plus* the system's strip: the bar applies the
     // inset to itself, so a list padded only by the system's still ends with its
@@ -164,7 +180,20 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
                 Where.Tabs -> when (current) {
                     "cart" -> CartScreen(app.cart, lang, tabsInset) { where = Where.Checkout }
                     "orders" -> OrdersTab(app.placed, tabsInset) { where = Where.Tracking(it) }
-                    else -> MenuScreen(app.api, app.cart, tabsInset)
+                    "account" -> AccountScreen(
+                        api = app.api,
+                        bottomInset = tabsInset,
+                        onSignedIn = {
+                            signedIn = true
+                            push.ask()
+                        },
+                        onSignedOut = {
+                            scope.launch { forgetPush(context, app.api) }
+                            app.favorites.clear()
+                            signedIn = false
+                        },
+                    )
+                    else -> MenuScreen(app.api, app.cart, app.favorites, tabsInset)
                 }
             }
         }
@@ -186,6 +215,7 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
                         else t.tabs.cart,
                     ),
                     TabItem("orders", Icons.Rounded.ReceiptLong, t.tabs.orders),
+                    TabItem("account", Icons.Rounded.Person, t.tabs.account),
                 ),
                 selected = tab,
                 onSelect = { tab = it },

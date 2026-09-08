@@ -590,6 +590,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ⚠️ **The guest's phone, and the same two indexes for the same two
+	// reasons.** One row per token, because the app re-registers on every
+	// launch; and a lookup by person, because the only question a send ever asks
+	// is "this order is Dilnoza's, what does Dilnoza carry".
+	if _, err := s.UserDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "token", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	if _, err := s.UserDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "userId", Value: 1}},
+	}); err != nil {
+		return err
+	}
+
 	// ⚠️ **The courier's phone, and the same two indexes for the same two
 	// reasons.** One row per token, because the app re-registers on every
 	// launch; and a lookup by courier, because that is the only question a send

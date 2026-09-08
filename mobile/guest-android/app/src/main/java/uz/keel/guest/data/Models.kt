@@ -264,3 +264,50 @@ data class Order(
     val cancelReason: String = "",
     val payUrl: String = "",
 )
+
+// ---- The guest's own account ----
+
+/** Who is signed in.
+ *
+ *  ⚠️ **A phone number and a first name, and that is the whole account.** Every
+ *  extra field is a form a hungry person is asked to fill in before they can
+ *  eat, and the restaurant already has what it needs to ring them. */
+@Serializable
+data class User(
+    val id: String = "",
+    val firstName: String = "",
+    val lastName: String = "",
+    val phone: String = "",
+    /** Cashback balance in points; one point is one so'm. */
+    val points: Double = 0.0,
+    /** Menu item ids this guest keeps. */
+    val favorites: List<String> = emptyList(),
+)
+
+/** What the SMS step answered. */
+@Serializable
+data class SignIn(
+    val token: String = "",
+    val user: User = User(),
+)
+
+/** What asking for a code got us.
+ *
+ *  ⚠️ **`retryAfter` is the whole reason this has a body.** Without it a guest
+ *  who presses "send again" is told nothing and presses it four more times,
+ *  each one refused by a rate limit they cannot see — and every one of those
+ *  taps costs the restaurant an SMS or, worse, does not. */
+@Serializable
+data class CodeSent(
+    val sent: Boolean = true,
+    val retryAfter: Int = 0,
+)
+
+/** The points, and how they are earned and spent here. */
+@Serializable
+data class Loyalty(
+    val enabled: Boolean = false,
+    val balance: Double = 0.0,
+    val earnPercent: Double = 0.0,
+    val maxRedeemPercent: Double = 0.0,
+)

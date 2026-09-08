@@ -20,6 +20,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +41,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import coil3.compose.AsyncImage
 import uz.keel.design.Chip
 import uz.keel.design.GhostButton
@@ -47,6 +53,7 @@ import uz.keel.design.glass
 import uz.keel.design.imageUrl
 import uz.keel.guest.Brand
 import uz.keel.guest.Cart
+import uz.keel.guest.Favorites
 import uz.keel.guest.data.ApiError
 import uz.keel.guest.data.KeelApi
 import uz.keel.guest.data.MenuGroup
@@ -74,7 +81,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 // one word on it answers the question they actually have.
 
 @Composable
-fun MenuScreen(api: KeelApi, cart: Cart, bottomInset: PaddingValues) {
+fun MenuScreen(
+    api: KeelApi,
+    cart: Cart,
+    favorites: Favorites,
+    bottomInset: PaddingValues,
+) {
     val c = KeelTheme.colors
     val prefs = LocalPrefs.current
     val lang = prefs.lang.value.code
@@ -86,6 +98,7 @@ fun MenuScreen(api: KeelApi, cart: Cart, bottomInset: PaddingValues) {
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var tick by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
     /** The dish somebody tapped. ⚠️ Held here rather than inside the card: a
      *  sheet owned by a row disappears when that row scrolls out of the list. */
     var opened by remember { mutableStateOf<MenuItem?>(null) }
@@ -101,6 +114,12 @@ fun MenuScreen(api: KeelApi, cart: Cart, bottomInset: PaddingValues) {
         try {
             restaurant = api.restaurant()
             groups = api.menu()
+            // ⚠️ Read here rather than only on the account screen: the heart is
+            // on the first screen, and a menu that drew every dish unkept until
+            // somebody visited their profile would look like it had forgotten.
+            if (api.signedIn()) {
+                runCatching { favorites.replace(api.me().favorites) }
+            }
             error = ""
         } catch (e: Throwable) {
             error = if (e is ApiError) e.message else loadFailed
@@ -233,7 +252,23 @@ fun MenuScreen(api: KeelApi, cart: Cart, bottomInset: PaddingValues) {
                     )
                 }
                 items(group.items, key = { it.id }) { item ->
-                    DishCard(item, lang) { opened = item }
+                    DishCard(
+                        item = item,
+                        lang = lang,
+                        // ⚠️ **Not drawn at all when signed out.** A heart that
+                        // opened a sign-in form would be this app asking for a
+                        // phone number on the menu — the one thing it never does
+                        // before somebody has eaten.
+                        favorite = if (api.signedIn()) favorites.holds(item.id) else null,
+                        onFavorite = {
+                            scope.launch {
+                                runCatching {
+                                    favorites.replace(api.toggleFavorite(item.id).favorites)
+                                }
+                            }
+                        },
+                        onOpen = { opened = item },
+                    )
                 }
             }
         }
@@ -257,7 +292,13 @@ fun MenuScreen(api: KeelApi, cart: Cart, bottomInset: PaddingValues) {
  *  scrolling past six dishes they can read is better served than one scanning
  *  twelve they cannot. */
 @Composable
-private fun DishCard(item: MenuItem, lang: String, onOpen: () -> Unit) {
+private fun DishCard(
+    item: MenuItem,
+    lang: String,
+    favorite: Boolean?,
+    onFavorite: () -> Unit,
+    onOpen: () -> Unit,
+) {
     val c = KeelTheme.colors
     val out = !item.isAvailable
     Row(
@@ -330,6 +371,16 @@ private fun DishCard(item: MenuItem, lang: String, onOpen: () -> Unit) {
                     )
                 }
             }
+        }
+        if (favorite != null) {
+            Icon(
+                if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                contentDescription = null,
+                tint = if (favorite) c.accent else c.muted,
+                modifier = Modifier
+                    .size(22.dp)
+                    .clickable(onClick = onFavorite),
+            )
         }
     }
 }

@@ -8,6 +8,11 @@
          all, and the refusal costs the feature it was for. Coarse is enough to
          centre a map somebody is about to drag anyway. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- ⚠️ **Asked for after a sign-in, never at launch.** Android 13 puts a
+         yes/no question with no context in front of somebody who has not ordered
+         anything yet; most people say no once and permanently, and the refusal
+         takes the order updates with it. See push/Push.kt. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".KeelGuestApp"
@@ -23,6 +28,14 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${mapsApiKey}" />
+
+        <!-- ⚠️ **The channel the phone actually creates** (push/Push.kt), named
+             here so a message that arrives before any Kotlin has run still lands
+             somewhere ranked. A channel that was never created arrives silent,
+             which looks exactly like a notification nobody sent. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="orders" />
 
         <activity
             android:name=".MainActivity"

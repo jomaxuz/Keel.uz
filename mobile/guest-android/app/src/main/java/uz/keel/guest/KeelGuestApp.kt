@@ -38,6 +38,11 @@ class KeelGuestApp : Application() {
     lateinit var placed: PlacedOrders
         private set
 
+    /** ⚠️ Held here rather than by the menu screen: the heart is drawn on a row
+     *  that scrolls out of the list, and state owned there would forget itself
+     *  on every scroll. */
+    val favorites = Favorites()
+
     override fun onCreate() {
         super.onCreate()
         prefs = Prefs(this)

@@ -45,6 +45,22 @@ object Brand {
      *  application over a key they do not need would be the wrong failure. The
      *  screen says so in a sentence rather than showing a grey grid. */
     val mapsKey: String = BuildConfig.MAPS_KEY
+
+    // ---- Firebase, for the one notification this app sends ----
+    //
+    // ⚠️ **Four strings rather than a `google-services.json`.** That file is read
+    // by a Gradle plugin which refuses any build whose `applicationId` has no
+    // matching client entry — so a per-restaurant build would need a generated
+    // file per restaurant, and a drift between the two is a build failure with a
+    // message about package names. Firebase takes the same values in code.
+    //
+    // ⚠️ **Empty is "no push", never a crash**, exactly as the maps key is: an
+    // app whose menu nobody can read, over a feature that is not why it was
+    // installed, is the worse failure by a wide margin.
+    val firebaseAppId: String = BuildConfig.FB_APP_ID
+    val firebaseProjectId: String = BuildConfig.FB_PROJECT_ID
+    val firebaseApiKey: String = BuildConfig.FB_API_KEY
+    val firebaseSenderId: String = BuildConfig.FB_SENDER_ID
 }
 
 /** `#RRGGBB`, `#AARRGGBB` or `#RGB` to a colour, or null when it is none of

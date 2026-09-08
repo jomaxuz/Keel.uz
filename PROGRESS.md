@@ -14366,3 +14366,40 @@ kaliti testlari), `go test ./...`, `tsc`.
 
 **Keyingi**: 3) telefon+SMS hisobi, buyurtmalar tarixi, ballar, sevimlilar +
 FCM push; 4) builder image va lokal brendlash skripti; 5) konsoldagi tugma.
+
+---
+
+## 2026-09-08 (4) — Mehmon ilovasi: hisob, sevimlilar va push ✅
+
+**3-bosqich.** Telefon + SMS bilan kirish, ballar, sevimlilar va buyurtma
+holati haqida bildirishnoma.
+
+**Hisob ixtiyoriy va shunday qoladi**: menyu, savat va buyurtma berish hisobsiz
+ishlaydi. Kirish ekranidagi matn nima **berishini** aytadi, nega kerakligini
+emas — u kerak emas. Telefon raqami yozilayotganda qayta formatlanmaydi
+(normallashtirish serverda, qoida o'sha yerda); ism kod bosqichida so'raladi,
+ya'ni qaytgan mehmon uni ko'rmaydi; «qayta yuborish» sanoq bilan.
+
+**Sevimlilar** — menyudagi yurakcha, faqat kirgan mehmonga chiziladi: kirishga
+olib boradigan yurakcha menyuda telefon raqami so'rash demakdir.
+
+**Push**: `user_device` — beshinchi qurilma jadvali (`push_subscription` brauzer
+obunasi, bu FCM tokeni; bitta maydon ikki xil manzil tutishi bu kitobda
+allaqachon to'rt marta yozilgan). `POST/DELETE /users/me/device`. Buyurtma
+holati o'zgarganda Telegram xabari bilan **yonma-yon** yuboriladi — botdan
+buyurtma bergan odam botni o'qiydi, ilova o'rnatgan odam ilovani; «qaysi
+holatlar xabar bo'ladi» bitta funksiyadan (`notifiableStatus`) so'raladi.
+
+⚠️ **`google-services.json` yo'q va bo'lmaydi**: plagin `applicationId` ga mos
+mijoz yozuvi bo'lmagan build'ni rad etadi, ya'ni har restoranga generatsiya
+qilingan fayl kerak bo'lardi. Firebase to'rtta satrdan kodda sozlanadi, satrlar
+`brand.properties` da. Bo'sh qiymat — «push yo'q», qulash emas.
+
+Ruxsat **kirgandan keyin** so'raladi: Android 13 hech nima buyurtma qilmagan
+odam oldiga kontekstsiz savol qo'yadi, va ko'pchilik bir marta va butunlay yo'q
+deydi.
+
+Tekshirildi: `assembleDebug` (26.5 MB), `testDebugUnitTest`, `go test ./...`.
+
+**Keyingi**: 4) builder image va lokal brendlash skripti; 5) konsoldagi tugma,
+navbat, imzo kalitlari va artefaktlar.
