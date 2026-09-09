@@ -1,6 +1,10 @@
 package handlers
 
-import "net/http"
+import (
+	"net/http"
+
+	"restaurant-backend/internal/middleware"
+)
 
 // The spreadsheet speaks the language the panel is being read in.
 //
@@ -18,8 +22,20 @@ import "net/http"
 // Resolution order is the one the data archive already uses (`exportLang`):
 // the panel says so explicitly, the `lang` cookie is the fallback, Uzbek is
 // the base.
+//
+// ⚠️ **The header sits between them because the cookie usually never arrives.**
+// The panel and the API are two origins, and a cross-origin `fetch` carries no
+// cookies — so every report that did not put `?lang=` in its query was headed
+// in Uzbek on a Russian dashboard, and the assistant's cards were written in
+// Uzbek for an owner reading Russian. `middleware.LangHeader` is what every
+// client now sends; this is the same answer, for the handlers that ask the
+// request rather than the writer.
 func reportLang(r *http.Request) string {
-	return exportLang(r.URL.Query().Get("lang"), cookieValue(r, "lang"))
+	return exportLang(
+		r.URL.Query().Get("lang"),
+		r.Header.Get(middleware.LangHeader),
+		cookieValue(r, "lang"),
+	)
 }
 
 // tr is one phrase in the three languages the panel is read in.

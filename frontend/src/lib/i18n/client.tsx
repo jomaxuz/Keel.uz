@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { setApiLang } from "@/lib/api";
 import {
   getDict,
   isLocalizedPath,
@@ -33,9 +34,19 @@ export function LangProvider({
   const pathname = usePathname();
   const [lang, setLangState] = useState<Lang>(initial);
 
+  // ⚠️ **The API is told at render, not in an effect.** Half of what the panel
+  // shows is written by the server — report headings, the period note, error
+  // messages, the briefing's cards — and the first requests of a page leave
+  // before an effect would have run. Set here, they carry the language from the
+  // very first one. Assigning the same value twice costs nothing.
+  setApiLang(lang);
+
   const setLang = useCallback(
     (l: Lang) => {
       setLangState(l);
+      // Before the router moves: the screens that reload on the new URL start
+      // fetching immediately, and they must not ask in the old language.
+      setApiLang(l);
       document.cookie = `${LANG_COOKIE}=${l}; path=/; max-age=${LANG_COOKIE_MAX_AGE}; samesite=lax`;
 
       // ⚠️ **Go to the URL, do not just re-render.** The address bar is now

@@ -21,18 +21,33 @@ func TestErrorsAreAnsweredInTheCallersLanguage(t *testing.T) {
 		httpx.Error(w, http.StatusConflict, "ochiq smena yo'q")
 	}))
 
-	for _, tc := range []struct{ cookie, accept, want string }{
-		{"ru", "", "нет открытой смены"},
-		{"en", "", "no shift is open"},
-		{"uz", "", "ochiq smena yo'q"},
-		{"", "", "ochiq smena yo'q"},
+	for _, tc := range []struct{ header, cookie, accept, want string }{
+		// ⚠️ **The header alone, with no cookie at all** — the shape every
+		// cross-origin call and every phone request actually has. This is the
+		// case that was broken: the panel set a `lang` cookie the API never
+		// received, and a dashboard read in Russian was answered in Uzbek with
+		// nothing anywhere reporting a fault.
+		{"ru", "", "", "нет открытой смены"},
+		{"en", "", "", "no shift is open"},
+		// The header outranks both: only a client that knows which language it
+		// is drawing in sends it, and a cookie left by another tab is staler.
+		{"ru", "uz", "en-US", "нет открытой смены"},
+		// Something we do not answer in falls through rather than winning.
+		{"tr", "ru", "", "нет открытой смены"},
+		{"", "ru", "", "нет открытой смены"},
+		{"", "en", "", "no shift is open"},
+		{"", "uz", "", "ochiq smena yo'q"},
+		{"", "", "", "ochiq smena yo'q"},
 		// No cookie yet — the first request from a mini app or a tracking link.
-		{"", "ru-RU,ru;q=0.9", "нет открытой смены"},
-		// ⚠️ The cookie wins: a cashier on a Russian Windows who set the till
-		// to Uzbek gets what they chose.
-		{"uz", "ru-RU", "ochiq smena yo'q"},
+		{"", "", "ru-RU,ru;q=0.9", "нет открытой смены"},
+		// ⚠️ The cookie wins over the machine's own preference: a cashier on a
+		// Russian Windows who set the till to Uzbek gets what they chose.
+		{"", "uz", "ru-RU", "ochiq smena yo'q"},
 	} {
 		req := httptest.NewRequest("GET", "/", nil)
+		if tc.header != "" {
+			req.Header.Set(LangHeader, tc.header)
+		}
 		if tc.cookie != "" {
 			req.AddCookie(&http.Cookie{Name: LangCookie, Value: tc.cookie})
 		}
@@ -49,7 +64,8 @@ func TestErrorsAreAnsweredInTheCallersLanguage(t *testing.T) {
 			t.Fatal(err)
 		}
 		if body.Error != tc.want {
-			t.Errorf("cookie=%q accept=%q: %q kutilgan, %q keldi", tc.cookie, tc.accept, tc.want, body.Error)
+			t.Errorf("header=%q cookie=%q accept=%q: %q kutilgan, %q keldi",
+				tc.header, tc.cookie, tc.accept, tc.want, body.Error)
 		}
 	}
 }

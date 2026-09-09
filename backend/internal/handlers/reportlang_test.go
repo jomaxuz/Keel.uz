@@ -5,26 +5,38 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"restaurant-backend/internal/middleware"
 )
 
-func TestReportLangPrefersParamThenCookie(t *testing.T) {
-	req := func(query, cookie string) *http.Request {
+func TestReportLangPrefersParamThenHeaderThenCookie(t *testing.T) {
+	req := func(query, header, cookie string) *http.Request {
 		r := httptest.NewRequest(http.MethodGet, "/admin/reports/sales"+query, nil)
+		if header != "" {
+			r.Header.Set(middleware.LangHeader, header)
+		}
 		if cookie != "" {
 			r.AddCookie(&http.Cookie{Name: "lang", Value: cookie})
 		}
 		return r
 	}
 	cases := []struct {
-		name, query, cookie, want string
+		name, query, header, cookie, want string
 	}{
-		{"param wins", "?lang=ru", "uz", "ru"},
-		{"cookie is the fallback", "", "ru", "ru"},
-		{"nothing said is Uzbek", "", "", "uz"},
-		{"an unknown language is Uzbek", "?lang=de", "", "uz"},
+		{"param wins", "?lang=ru", "uz", "uz", "ru"},
+		// ⚠️ **The case this whole tier exists for.** The panel and the API are
+		// two origins, so the cookie below is simply never sent — and every
+		// handler that reads this (the briefing among them) answered in Uzbek
+		// on a Russian dashboard, silently.
+		{"the header carries it when no cookie arrives", "", "ru", "", "ru"},
+		{"the header outranks the cookie", "", "ru", "uz", "ru"},
+		{"cookie is the fallback", "", "", "ru", "ru"},
+		{"nothing said is Uzbek", "", "", "", "uz"},
+		{"an unknown language is Uzbek", "?lang=de", "", "", "uz"},
+		{"an unknown header falls through", "", "tr", "ru", "ru"},
 	}
 	for _, c := range cases {
-		if got := reportLang(req(c.query, c.cookie)); got != c.want {
+		if got := reportLang(req(c.query, c.header, c.cookie)); got != c.want {
 			t.Errorf("%s: lang = %q, want %q", c.name, got, c.want)
 		}
 	}

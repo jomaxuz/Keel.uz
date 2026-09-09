@@ -2164,6 +2164,15 @@ Qo'shilgan beshta fakt (`insightgrowth.go`) — eganing o'z savollari:
 `pickQuietHour`) va testlari bor. Agregatsiya ichida qolgan chegara faqat jonli
 bazada ishlaydi, ya'ni uni hech kim tekshirmaydi.
 
+**⚠️ Brifing uch tilli edi-yu, doim o'zbekcha chiqardi.** Til `lang` cookie'sida
+turardi, panel esa API'ga boshqa origindan murojaat qiladi — cookie yo'lda
+yo'qolar, server zaxiraga (o'zbekcha) tushardi. Xususiyatning butun mahsuloti
+jumlalar bo'lgani uchun bu uni **rus egasi uchun butunlay ishlatib bo'lmaydigan**
+qilardi, va hech qanday alomat bermasdi. Tuzatildi: `X-Keel-Lang` sarlavhasi har
+so'rovda ketadi — qarang «Server xabarlari ham uch tilda» → «To'rtinchi teshik».
+Saqlangan brifing kaliti allaqachon tilni o'z ichiga oladi, ya'ni uch til uch
+kartochka to'plami bo'lib yashaydi.
+
 **⚠️ Sarlavha muammosi prompt'da edi.** "Title: at most six words, naming the
 thing" degan qoida aynan "Haftalik tushum pasayishi" ni chiqaradi — turkum
 nomi, xulosa emas. Endi qoida: **sarlavha nima bo'lganini aytadi**, iloji
@@ -3120,8 +3129,10 @@ jumla esa yo'q.
   o'zbekcha qolgan edi. `httpx.LangOf(w)` shu ikkinchi yo'l, va u **ham
   yozuvchidan** o'qiydi: bitta savolning ikki manbasi bo'lsa, ular
   kelishmay qoladi.
-- **Cookie ustun, `Accept-Language` zaxira**: Windows'i ruscha bo'lgan va
-  kassani o'zbekchaga qo'ygan kassir o'zi tanlaganini oladi.
+- **Sarlavha ustun, keyin cookie, oxirida `Accept-Language`**: Windows'i
+  ruscha bo'lgan va kassani o'zbekchaga qo'ygan kassir o'zi tanlaganini oladi.
+  Sarlavha (`X-Keel-Lang`) esa cookie'dan ham ustun — pastdagi to'rtinchi
+  teshikka qarang.
 - ⚠️ **Tarjimasi yo'q xabar o'zbekcha qoladi** — bu eski xatti-harakat: o'quvchi
   tarjimani yo'qotadi, jumlani emas.
 
@@ -3187,6 +3198,36 @@ POS, ATS, Telegram, fiskal kassa, domen, menyu importi, kassalar limiti.
 - ⚠️ **Bitta joyda tarjima yozuvchisiz qurilardi** (`tillCapReached` javob
   tanasini qaytaradi, `w` si yo'q) — jumla shu sababli **yozilayotgan joyda**
   tarjima qilinadi: tilni biladigan narsa yozuvchi, tanani quruvchi emas.
+
+**To'rtinchi teshik: til brauzerdan umuman chiqmasdi** (`X-Keel-Lang`).
+Yuqoridagi uch teshik ham *serverdagi* jumlaning tarjimasi haqida edi. To'rtinchisi
+undan oldinroq: server **kim o'qiyotganini bilmasdi**. Til `lang` cookie'sida
+yozilgan, panel esa API'ga **boshqa origin** orqali murojaat qiladi
+(dev'da `localhost:3000` → `localhost:8080`; telefon ilovasida esa umuman
+cookie yo'q), va cross-origin `fetch` **hech qanday cookie yubormaydi**. Ya'ni
+`middleware.Lang` doim zaxiraga tushardi va har javob o'zbekcha bo'lardi.
+- **Alomati eng yomon turdan**: hech nima yiqilmaydi, log'da hech nima yo'q,
+  ekran to'liq chizilgan. Noto'g'ri tildagi brifing to'g'ri tildagi brifingga
+  **aynan o'xshaydi**, faqat o'qiyotgan odam uni o'qiy olmaydi.
+- **Eng ko'zga tashlangani ertalabki brifing** edi (`/admin/insights`): uning
+  butun mahsuloti — modeldan kelgan **jumlalar**, ya'ni til noto'g'ri bo'lsa
+  xususiyatdan hech nima qolmaydi. Lekin yolg'iz emasdi: kampaniya matni,
+  `?lang=` qo'yishni unutgan hisobotlar va **har bir xato xabari** ham shu
+  yo'ldan yurardi.
+- ⚠️ **Har so'rovda yuboriladigan sarlavha, unutilishi mumkin bo'lgan parametr
+  emas.** Hisobotlar `?lang=` ni so'rovga qo'yardi va bu **har bir yangi
+  chaqiruv joyi eslab qolgunicha** ishlardi — eslamaganlari (brifing, kampaniya
+  yozuvchisi) jimgina, o'zbekchani ravon o'qiydigan odam yozgan kodda buzilardi.
+  Endi `X-Keel-Lang` `request()` da bir marta qo'yiladi va handler javobni
+  **so'rovdan** so'raydi, chaqiruvchidan emas.
+- ⚠️ **CORS ro'yxatiga qo'shilmagan sarlavha umuman jo'natilmaydi** — brauzer
+  uni so'rov ketishidan oldin tashlab yuboradi va hech qayerda xato chiqmaydi.
+  Ya'ni `router.go` dagi `AllowedHeaders` shu tuzatishning yarmi.
+- **Beshta klient, bitta mexanizm**: sayt/panel (`LangProvider` → `setApiLang`),
+  Expo ilovalari (`prefs.ts`), va native ilovalar (`KeelApi.prepare` tilni
+  `Prefs` yozadigan **o'sha kalitdan** o'qiydi — startda o'rnatilgan maydon
+  sozlamalar ekranida almashtirilganda yangilanishi unutiladigan maydondir).
+  Mehmon ilovasi `Accept-Language` bilan qolgan: u zaxira pog'onasi va ishlaydi.
 
 **Kassa ekranidagi to'rt jumla brauzerning o'zida tug'iladi** (`lib/fiscal.ts`:
 manzil noto'g'ri, brauzer bloklagan, javob kechikdi, ulanib bo'lmadi) — server

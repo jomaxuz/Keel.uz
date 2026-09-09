@@ -27,6 +27,20 @@ import (
 // only thing that knows.
 const LangCookie = "lang"
 
+// LangHeader is the same answer, sent explicitly by the caller.
+//
+// ⚠️ **The cookie does not reach this server, and that is the ordinary case
+// rather than the exception.** The panel is served from one origin and the API
+// answers on another (`NEXT_PUBLIC_API_URL`), and a cross-origin `fetch` sends
+// no cookies — so every sentence written by the server for a panel read in
+// Russian arrived in Uzbek, including the morning briefing, whose words are the
+// whole feature. Nothing failed and nothing logged: a briefing in the wrong
+// language looks exactly like a briefing.
+//
+// The phone apps have no cookie jar at all and are in the same position, so
+// this is one mechanism for every client rather than a patch for the browser.
+const LangHeader = "X-Keel-Lang"
+
 // Lang tags the response with the language the caller reads.
 //
 // ⚠️ **On the writer and nowhere else.** The obvious second home is the request
@@ -40,13 +54,22 @@ func Lang(next http.Handler) http.Handler {
 	})
 }
 
-// langOf reads the cookie first and the browser's own preference second.
+// langOf reads what the caller said, then the cookie, then the browser's own
+// preference.
 //
-// ⚠️ **The cookie wins**, and the order matters for exactly one person: a
-// cashier whose Windows is Russian and who set the till to Uzbek. What they
-// chose beats what their machine was installed with — the same precedence the
-// site itself uses.
+// ⚠️ **Anything the caller chose wins**, and the order matters for exactly one
+// person: a cashier whose Windows is Russian and who set the till to Uzbek.
+// What they chose beats what their machine was installed with — the same
+// precedence the site itself uses.
+//
+// ⚠️ The header before the cookie because it is the more specific statement:
+// only a client that knows which language its screen is drawn in sends it, and
+// a stale cookie from another tab must not outrank the tab that is asking.
 func langOf(r *http.Request) string {
+	switch h := strings.ToLower(strings.TrimSpace(r.Header.Get(LangHeader))); h {
+	case i18n.RU, i18n.EN, i18n.UZ:
+		return h
+	}
 	if c, err := r.Cookie(LangCookie); err == nil {
 		switch c.Value {
 		case i18n.RU, i18n.EN, i18n.UZ:

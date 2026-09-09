@@ -206,10 +206,12 @@ func (h *Handler) exportDisplayName(r *http.Request) string {
 //
 // The panel passes its own language, because the panel is the only thing that
 // knows it: an owner reading a Russian dashboard should not open a file written
-// in Uzbek. The `lang` cookie is the fallback (it is where the choice lives),
-// and Uzbek is the base — the same order every other localised surface uses.
-func exportLang(param, cookie string) string {
-	for _, v := range []string{param, cookie} {
+// in Uzbek. Sources are tried in the order given — the query first, then the
+// `X-Keel-Lang` header every client sends, then the `lang` cookie (which never
+// crosses an origin) — and Uzbek is the base, the same order every other
+// localised surface uses.
+func exportLang(sources ...string) string {
+	for _, v := range sources {
 		switch strings.ToLower(strings.TrimSpace(v)) {
 		case "ru":
 			return "ru"

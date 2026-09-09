@@ -11,6 +11,7 @@ import {
 import { DICTS, type Dict, type Lang } from "./i18n";
 import { THEMES, useSystemScheme, type Scheme, type Theme } from "./theme";
 import { readSaved, saveValue } from "./tokens";
+import { setApiLang } from "@/lib/api";
 
 // Language and appearance: what somebody chose, remembered.
 //
@@ -71,12 +72,20 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     return saved === "cards" || saved === "photos" ? saved : "list";
   });
 
+  // ⚠️ **The shared API client is told too, and it is not decoration.** Half of
+  // what these screens show is written by the server — report headings, error
+  // messages, the owner's morning briefing — and a phone has no cookie for the
+  // server to read the choice from. Without this the app is Russian and its
+  // sentences are Uzbek, which nothing reports as a fault.
+  setApiLang(lang);
+
   const system = useSystemScheme();
   const scheme: Scheme = choice === "system" ? system : choice;
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
     saveValue(LANG_KEY, l);
+    setApiLang(l);
   }, []);
 
   const setChoice = useCallback((c: ThemeChoice) => {

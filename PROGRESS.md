@@ -14511,3 +14511,42 @@ o'chirardi), egalik `deploy-keel` ga qaytarildi (ma'lumot papkalari chetlab
 o'tildi), va `appkeys/` `appbuilds/` `secrets/` `.gitignore` ga yozildi.
 
 Tuzoq CLAUDE.md ga qo'shildi.
+
+---
+
+## 2026-09-09 — Til brauzerdan chiqmasdi: brifing (va qolgan hammasi) o'zbekcha edi
+
+Dashboard'dagi «bugun nimalar qilish kerak» kartochkalari — AI yozadigan yagona
+matn — ruscha panelda ham o'zbekcha chiqardi.
+
+**Sabab brifingda emas edi.** Til `lang` cookie'sida yashaydi, panel esa API'ga
+boshqa origindan murojaat qiladi (dev'da `:3000` → `:8080`, telefonda umuman
+cookie yo'q), va cross-origin `fetch` cookie yubormaydi. `middleware.Lang` har
+so'rovda zaxiraga tushardi. Ya'ni buzilgani brifing emas, **butun server matni**
+edi: xato xabarlari, `?lang=` ni unutgan hisobotlar, kampaniya matni.
+
+Alomat yo'q edi: hech nima yiqilmaydi, log toza, ekran to'liq. Noto'g'ri tildagi
+brifing to'g'risiga aynan o'xshaydi.
+
+**Tuzatish — bitta sarlavha, har klientda:**
+- `middleware.LangHeader` (`X-Keel-Lang`) → `langOf` da cookie'dan **ustun**
+  (tab o'zi chizayotgan tilni biladi, cookie esa boshqa tabdan qolgan bo'lishi
+  mumkin), `reportLang` da esa `?lang=` dan keyin, cookie'dan oldin.
+- `router.go` → CORS `AllowedHeaders`. ⚠️ Ro'yxatda bo'lmagan sarlavhani brauzer
+  **jimgina tashlaydi**, ya'ni bu tuzatishning yarmi.
+- `frontend/src/lib/api.ts` → `setApiLang()` va `request()` da har so'rovga
+  qo'yiladi; `LangProvider` uni render'da va til almashtirilganda o'rnatadi.
+  Hisobotlardagi `?lang=` usuli har yangi chaqiruv joyi **eslab qolgunicha**
+  ishlardi; sarlavha esa unutilmaydi.
+- Expo (owner/waiter/courier/team) → `prefs.ts` shu `setApiLang` ni chaqiradi.
+- Native (owner/waiter/courier/team-android) → `KeelApi.prepare` tilni `Prefs`
+  yozadigan **o'sha `TokenStore.LANG` kalitidan** o'qiydi: startda o'rnatilgan
+  maydon — sozlamalar ekranida yangilanishi unutiladigan maydon.
+  `guest-android` `Accept-Language` bilan qoldi — u zaxira pog'onasi va ishlaydi.
+
+Testlar: `middleware/lang_test.go` (cookie'siz sarlavha — aynan buzilgan holat),
+`handlers/reportlang_test.go` (uch pog'onaning tartibi). To'rtala Android ilova
+`compileDebugKotlin` dan o'tdi, frontend `tsc` + 266 test yashil.
+
+Qaror `docs/DECISIONS.md` → «Server xabarlari ham uch tilda» → «To'rtinchi
+teshik» ga yozildi; brifing bo'limida havola bor.

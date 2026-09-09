@@ -572,6 +572,26 @@ let adminScope: { brandId: string; branchId: string } = {
 let device: { id: string; app: string; platform: string; name: string } | null =
   null;
 
+// ---- Which language the answer is written in ----
+//
+// ⚠️ **The server writes sentences, so every request has to say who is
+// reading.** Report headings, the period note under a chart, error messages and
+// — most visibly — the morning briefing's cards are composed on the server;
+// nothing in the panel can translate them afterwards. The `lang` cookie was
+// carrying that answer, and it stops carrying it the moment the API is a
+// different origin (dev is `localhost:3000` against `localhost:8080`, and a
+// phone app has no cookie jar at all): a cross-origin fetch sends no cookies,
+// the server falls back to Uzbek, and a Russian dashboard is answered in Uzbek
+// with nothing anywhere reporting a fault.
+//
+// Set by `LangProvider` on the web and by each app at startup. Empty means "do
+// not say", and the server then falls back exactly as it did before.
+let apiLang = "";
+
+export function setApiLang(next: string): void {
+  apiLang = next;
+}
+
 export function setDevice(next: {
   id: string;
   app: string;
@@ -624,6 +644,15 @@ async function request<T>(
     const token = getToken();
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
+
+  // ⚠️ **On every request, not on the ones somebody remembered.** The reports
+  // put `?lang=` in their query and the archive takes an argument, which worked
+  // for exactly as long as each new call site remembered to — and the ones that
+  // forgot (the briefing, the campaign writer) failed silently, in a language
+  // the person who wrote them reads fluently. One header, one place, and a
+  // handler that wants the answer asks the request rather than the caller.
+  const lang = panelLang();
+  if (lang) headers["X-Keel-Lang"] = lang;
 
   if (device) {
     headers["X-Keel-Device"] = device.id;
@@ -688,6 +717,10 @@ function reportQuery(params: Record<string, string | undefined>): string {
  *  is usually a different origin, and a cross-origin fetch carries no cookies.
  *  Empty on the server (no `document`), where reports are never requested. */
 function panelLang(): string {
+  // ⚠️ What the running app says it is drawing, before the cookie. The apps
+  // have no cookie at all, and on the web a cookie written by another tab is a
+  // staler answer than the provider that just rendered this screen.
+  if (apiLang) return apiLang;
   if (typeof document === "undefined") return "";
   return /(?:^|;\s*)lang=([^;]+)/.exec(document.cookie)?.[1] ?? "";
 }

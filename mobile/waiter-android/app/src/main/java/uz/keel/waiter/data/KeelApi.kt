@@ -109,6 +109,14 @@ class KeelApi(private val tokens: TokenStore) {
 
     private fun io.ktor.client.request.HttpRequestBuilder.prepare(bearer: String?, body: JsonObject?) {
         if (bearer != null) header("Authorization", "Bearer $bearer")
+        // ⚠️ **The language on every request, read from the store rather than
+        // held here.** Server-written text — a refusal, an order status, the
+        // owner's briefing — is translated by the writer (`middleware.Lang`),
+        // and a phone has no cookie for it to read the choice from. Taken from
+        // the same key `Prefs` writes, so the two cannot drift: a field set at
+        // startup would be the field somebody forgets to update when the
+        // language is changed on the settings screen.
+        header("X-Keel-Lang", tokens.read(TokenStore.LANG) ?: "uz")
         device?.let { d ->
             header("X-Keel-Device", d.id)
             header("X-Keel-App", d.app)

@@ -60,9 +60,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(30 * time.Second))
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   cfg.CORSOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowedOrigins: cfg.CORSOrigins,
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		// ⚠️ **`X-Keel-Lang` is on this list or it is not sent at all.** A
+		// header the browser was not told it may send is dropped before the
+		// request leaves, with no error anywhere — and the symptom is the one
+		// this header exists to fix: a panel read in Russian answered in Uzbek.
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", appmw.LangHeader},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
