@@ -84,10 +84,10 @@ export default function Header({
         </Link>
 
         {/* Which brand's shop this is — absent unless there is more than one. */}
-        <BrandSwitch brands={brands} active={activeBrand} className="hidden md:flex" />
+        <BrandSwitch brands={brands} active={activeBrand} className="hidden lg:flex" />
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {nav.map((n) => (
             <Link
               key={n.href}
@@ -113,7 +113,7 @@ export default function Header({
             onClick={() => setMenuOpen((v) => !v)}
             aria-expanded={menuOpen}
             aria-label={t.nav.menuLabel}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink-soft transition-colors hover:border-brand hover:text-brand md:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink-soft transition-colors hover:border-brand hover:text-brand lg:hidden"
           >
             <svg
               viewBox="0 0 24 24"
@@ -137,7 +137,7 @@ export default function Header({
               stops being noticed, and the cart is the one control that carries
               money. Language and theme are still one tap away, just behind a
               button that names itself. */}
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-2 lg:flex">
             <LangSwitch />
             <ThemeToggle />
           </div>
@@ -145,7 +145,7 @@ export default function Header({
           {user ? (
             <Link
               href="/profile"
-              className="hidden items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1 pr-3 text-sm font-semibold text-ink-soft transition-colors hover:border-brand hover:text-brand md:flex"
+              className="hidden items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1 pr-3 text-sm font-semibold text-ink-soft transition-colors hover:border-brand hover:text-brand lg:flex"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-tint text-xs font-bold text-brand">
                 {(user.firstName || user.phone || "?").charAt(0).toUpperCase()}
@@ -155,7 +155,7 @@ export default function Header({
           ) : (
             <Link
               href="/login"
-              className="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink-soft transition-colors hover:text-brand md:inline"
+              className="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink-soft transition-colors hover:text-brand lg:inline"
             >
               {t.nav.login}
             </Link>
@@ -198,7 +198,7 @@ export default function Header({
           links in the tab order and in the accessibility tree, so a phone reader
           walks through a menu nobody opened. */}
       {menuOpen && (
-        <div className="border-t border-line bg-cream md:hidden">
+        <div className="border-t border-line bg-cream lg:hidden">
           <nav className="container-page flex flex-col py-2">
             {nav.map((n) => (
               <Link
