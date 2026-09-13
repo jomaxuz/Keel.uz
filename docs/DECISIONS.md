@@ -109,6 +109,15 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   shakldagi nosozlik: yangi brendning nomi ostida eski brendning kartalari,
   hech qayerda xato yo'q. Tanlov `localStorage` ga **reload'dan oldin**
   yoziladi, aks holda yangi sahifa egani endi tark etgan brendni o'qib oladi.
+- **Saytda ham brend modal oynada tanlanadi** (`components/site/BrandSwitch.tsx`).
+  Ilgari brendlar headerda yonma-yon tugma bo'lib turardi va har yangi brend
+  navbar so'zlarining joyini olardi — uchtasida havolalar siqilib qolardi.
+  Endi barda faqat **joriy brend** (logo + nom), ro'yxat esa logolari bilan
+  oynada. Tanlanganda cookie yoziladi va **to'liq yuklash** bilan `/menu` ga
+  o'tiladi (`location.assign`, `router.refresh()` emas: tema, menyu va savat
+  kaliti brendga bog'liq). ⚠️ Oyna `<body>` ga **portal** qilinadi: header'da
+  `backdrop-blur` bor, u esa `fixed` bolalarining konteyneriga aylanadi —
+  portalsiz oyna 80px lik bar ichida chizilardi.
 - ⚠️ **Brend o'chirish tugmasi hech qachon ishlamaydigan holatga tushib
   qolgandi.** Buyurtma ko'rgan filial o'chirilmaydi — **yopiladi** (cheklar
   javobsiz qolmasin), brend esa **hamma** filiallarini sanardi. Ya'ni ishini

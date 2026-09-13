@@ -32,6 +32,10 @@ const uz = {
     booking: "Stol bron qilish",
     privacy: "Maxfiylik siyosati",
   },
+  brandSwitch: {
+    title: "Brendni tanlang",
+    hint: "Har brendning o'z menyusi va savati bor.",
+  },
   // Brauzer bildirishnomalari. ⚠️ Ruxsat brauzer umrida **bir marta**
   // so'raladi: rad etilgandan keyin oyna boshqa chiqmaydi va uni faqat
   // odamning o'zi sozlamalardan qaytara oladi.
@@ -576,6 +580,10 @@ const ru: Dict = {
     booking: "Бронь стола",
     privacy: "Политика конфиденциальности",
   },
+  brandSwitch: {
+    title: "Выберите бренд",
+    hint: "У каждого бренда своё меню и своя корзина.",
+  },
   recommend: {
     title: "Часто заказывают вместе с этим",
     cartTitle: "Добавить что-нибудь ещё?",
@@ -1077,6 +1085,10 @@ const en: Dict = {
     logout: "Sign out",
     booking: "Book a table",
     privacy: "Privacy policy",
+  },
+  brandSwitch: {
+    title: "Choose a brand",
+    hint: "Each brand has its own menu and its own cart.",
   },
   recommend: {
     title: "Often ordered with this",
