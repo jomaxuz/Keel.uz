@@ -33,3 +33,27 @@ func TestFloorColoursAreCheckedOnSave(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **The dead end this fixes.** Deleting a branch that has ever taken an
+// order does not delete it — it closes it, so the receipts stay answerable. The
+// brand's rule counted every branch, open or closed, so an owner who had
+// finished with a brand deleted its branches, watched them go quiet, pressed
+// delete on the brand and was told to delete its branches first. Nothing on any
+// screen offered a next step, and there wasn't one short of a database.
+func TestABrandWithOnlyClosedBranchesCanBeClosed(t *testing.T) {
+	cases := []struct {
+		name       string
+		live, kept int64
+		want       brandFate
+	}{
+		{"still trading", 2, 3, brandRefuse},
+		{"one branch still open", 1, 1, brandRefuse},
+		{"only history left", 0, 3, brandClose},
+		{"nothing underneath", 0, 0, brandDelete},
+	}
+	for _, c := range cases {
+		if got := brandDeleteAction(c.live, c.kept); got != c.want {
+			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
+		}
+	}
+}

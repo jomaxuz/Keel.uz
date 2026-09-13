@@ -9,10 +9,32 @@
 // the language and theme controls it sits under. A bare select in a sidebar
 // reads as a label: it has no affordance next to the pill-shaped buttons above
 // it, and an owner looking for "the switcher" walks straight past it.
+//
+// ⚠️ **The brand is chosen in a dialog, the branch in the dropdown.** They were
+// both dropdowns — a column of names in a rail narrow enough to truncate most
+// of them — and the two questions are not the same size. A branch is a room of
+// one business somebody is already looking at; a brand is the whole business,
+// and picking the wrong one puts an owner in somebody else's menu, orders and
+// money with nothing on the page saying so. So it takes the middle of the
+// screen, it carries each brand's own logo (which is how an owner recognises
+// their businesses — they named them, they did not memorise a list order), and
+// the choice is deliberate enough to be worth an extra press.
+//
+// ⚠️ **Switching brand reloads the page, on purpose.** Every screen in the
+// panel reads through this lens, and not all of them refetch on `scopeKey`:
+// the briefing, anything holding a draft, anything that loaded once in an
+// effect with an empty dependency list. The result was a dashboard wearing the
+// new brand's name over the old brand's figures — which is worse than a slow
+// switch, because nothing about it looks wrong. A reload is the one way to be
+// certain nothing survives the change, and it costs a second on an action
+// somebody takes a handful of times a day.
 
 import { useEffect, useRef, useState } from "react";
+import { imageUrl } from "@/lib/api";
 import { useAdminScope } from "@/lib/adminScope";
 import { useAdminT } from "@/lib/i18n/admin";
+import Modal from "@/components/admin/Modal";
+import type { Brand } from "@/lib/types";
 
 export default function ScopeSwitcher({
   className = "",
@@ -48,12 +70,18 @@ export default function ScopeSwitcher({
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       {brands.length > 1 && (
-        <Picker
-          label={t.scope.brand}
-          value={brand?.name ?? ""}
-          options={brands.map((b) => ({ id: b.id, label: b.name }))}
-          selected={brand?.id ?? ""}
-          onPick={setBrand}
+        <BrandPicker
+          brands={brands}
+          current={brand}
+          onPick={(id) => {
+            if (id === brand?.id) return;
+            setBrand(id);
+            // ⚠️ **The choice is written before the reload, not after.**
+            // `setBrand` puts it in localStorage synchronously and the fresh
+            // page reads it back on load; a reload scheduled first would race
+            // the write and land on the brand the owner just left.
+            window.location.reload();
+          }}
         />
       )}
       {brandBranches.length > 1 && (
@@ -76,6 +104,136 @@ export default function ScopeSwitcher({
         />
       )}
     </div>
+  );
+}
+
+/** The brands, as a dialog with faces in it.
+ *
+ *  ⚠️ **The logo, not only the name.** An owner running three businesses knows
+ *  them by their signs; the panel knew them by a list order it had inherited
+ *  from whichever was created first. A tile with the mark on it is recognised
+ *  before it is read, which is the whole difference on a control that changes
+ *  what every other screen is about.
+ *
+ *  ⚠️ **The trigger says which brand is current even while shut**, because the
+ *  rail is the only place in the panel that answers "whose numbers am I looking
+ *  at?" — and that question is asked most often by somebody who has just walked
+ *  back to the laptop. */
+function BrandPicker({
+  brands,
+  current,
+  onPick,
+}: {
+  brands: Brand[];
+  current: Brand | null;
+  onPick: (id: string) => void;
+}) {
+  const t = useAdminT();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+        {t.scope.brand}
+      </span>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        className="flex w-full items-center gap-2 rounded-xl border border-line-strong bg-surface px-2.5 py-2 text-left text-sm font-semibold text-ink-soft transition-colors hover:border-brand hover:text-brand"
+      >
+        <BrandLogo brand={current} className="h-7 w-7 text-[13px]" />
+        <span className="min-w-0 flex-1 truncate">{current?.name ?? ""}</span>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <Modal onClose={() => setOpen(false)}>
+          <h2 className="text-lg font-bold">{t.scope.brandPickTitle}</h2>
+          <p className="mt-1 text-sm text-ink-muted">{t.scope.brandPickHint}</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {brands.map((b) => {
+              const on = b.id === current?.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onPick(b.id);
+                  }}
+                  aria-current={on ? "true" : undefined}
+                  className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                    on
+                      ? "border-brand bg-brand-tint"
+                      : "border-line bg-surface hover:border-brand"
+                  }`}
+                >
+                  <BrandLogo brand={b} className="h-11 w-11 text-lg" />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">
+                      {b.name}
+                    </span>
+                    {/* A brand switched off is still switchable *to* — its
+                        orders and its reports did not stop existing — so it is
+                        listed and labelled rather than hidden. */}
+                    {!b.isActive && (
+                      <span className="block text-xs text-ink-muted">
+                        {t.scope.inactive}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/** A brand's mark, or its initial when it has not uploaded one.
+ *
+ *  ⚠️ Never an empty box: a fresh brand has no logo for as long as it takes
+ *  somebody to upload one, and that is exactly when this control is being
+ *  learned. Same fallback as the site header's BrandMark, which is deliberately
+ *  not imported — that one belongs to the guest's page and carries its sizing. */
+function BrandLogo({
+  brand,
+  className,
+}: {
+  brand: Brand | null;
+  className: string;
+}) {
+  const src = imageUrl(brand?.logoUrl ?? "", 300);
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        className={`shrink-0 rounded-xl object-cover ${className}`}
+      />
+    );
+  }
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-xl bg-brand font-bold text-white ${className}`}
+      aria-hidden
+    >
+      {(brand?.name ?? "").trim().charAt(0).toUpperCase() || "?"}
+    </span>
   );
 }
 

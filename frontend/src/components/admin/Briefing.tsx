@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useAdminScope } from "@/lib/adminScope";
 import type { BriefingCard as Card } from "@/lib/types";
 import { useAdminT } from "@/lib/i18n/admin";
 
@@ -35,8 +36,14 @@ const AREA_TINT: Record<string, string> = {
   money: "bg-rose-500",
 };
 
-export default function Briefing({ scope }: { scope?: string }) {
+export default function Briefing() {
   const t = useAdminT();
+  // ⚠️ **The lens is a dependency, not decoration.** The request carries the
+  // current brand and branch (api.adminInsights), so the cards have to be
+  // fetched again when either moves — otherwise the panel keeps drawing the
+  // answer it was given for the business the owner just left, under the new
+  // one's name.
+  const { scopeKey, loading: scopeLoading } = useAdminScope();
   const [cards, setCards] = useState<Card[] | null>(null);
   // ⚠️ Held separately from the cards so "you do not have this yet" is not
   // confused with "there is nothing to say today". They look identical on
@@ -45,9 +52,20 @@ export default function Briefing({ scope }: { scope?: string }) {
   const [failed, setFailed] = useState("");
 
   useEffect(() => {
+    // ⚠️ **Nothing is asked until the lens has loaded.** For the first moment
+    // of every page the brand is empty, and asking then is not merely early: a
+    // briefing is written by a model and stored per lens per day, so that
+    // request would spend one of the day's answers on a scope nobody is looking
+    // at — and the panel would then show it for a second before replacing it.
+    if (scopeLoading) return;
     let alive = true;
+    // Cleared first: the cards of the brand being left must not stand over the
+    // new one's name while the next answer is in flight.
+    setCards(null);
+    setOffer(null);
+    setFailed("");
     api
-      .adminInsights(scope)
+      .adminInsights()
       .then((r) => {
         if (!alive) return;
         setCards(r.cards ?? []);
@@ -61,7 +79,7 @@ export default function Briefing({ scope }: { scope?: string }) {
     return () => {
       alive = false;
     };
-  }, [scope]);
+  }, [scopeKey, scopeLoading]);
 
   // Nothing to say, still loading, or switched off all render as absence: this
   // is an addition to the page, never a hole in it.

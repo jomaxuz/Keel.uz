@@ -30,6 +30,12 @@ export default function BranchesEditor() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  /** What happened to one brand, drawn on that brand's own card. */
+  const [brandMsg, setBrandMsg] = useState<{
+    id: string;
+    text: string;
+    bad?: boolean;
+  } | null>(null);
   const [draft, setDraft] = useState<Record<string, Partial<Branch>>>({});
 
   async function addBrand() {
@@ -61,6 +67,12 @@ export default function BranchesEditor() {
     }
   }
 
+  // ⚠️ **The answer is printed on the brand, not at the top of the page.**
+  // Every other message here is, and with four brands open the top of the page
+  // is several screens away from the button that was pressed — so a refusal
+  // ("close its branches first") read as the button doing nothing at all, which
+  // is how this was reported. A deletion that cannot happen has to say so where
+  // the finger is.
   async function removeBrand(brand: Brand) {
     if (
       !(await ask({
@@ -70,11 +82,19 @@ export default function BranchesEditor() {
     )
       return;
     setError(null);
+    setBrandMsg(null);
     try {
-      await api.deleteBrand(brand.id);
+      const res = await api.deleteBrand(brand.id);
+      if (res.deactivated) {
+        setBrandMsg({ id: brand.id, text: t.scope.brandDeactivated });
+      }
       reload();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : t.common.deleteFailed);
+      setBrandMsg({
+        id: brand.id,
+        text: e instanceof ApiError ? e.message : t.common.deleteFailed,
+        bad: true,
+      });
     }
   }
 
@@ -184,6 +204,16 @@ export default function BranchesEditor() {
                   {t.common.delete}
                 </button>
               </div>
+
+              {brandMsg?.id === brand.id && (
+                <p
+                  className={`mt-2 text-xs ${
+                    brandMsg.bad ? "text-red-600" : "text-ink-muted"
+                  }`}
+                >
+                  {brandMsg.text}
+                </p>
+              )}
 
               {/* Which services this brand offers at all — a samsa point has no
                   tables to book. */}

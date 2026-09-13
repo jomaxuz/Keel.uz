@@ -164,9 +164,57 @@ func (h *Handler) AdminUpdateBrand(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, brand)
 }
 
-// AdminDeleteBrand refuses while the brand still has branches: deleting it
-// would orphan their orders, and an orphaned order is unanswerable when the
-// customer rings about it.
+// What pressing delete on a brand can actually do.
+//
+// Pure, so the case that had no way out can be argued with in a test rather
+// than in a restaurant — the same shape as the till's register cap next door.
+type brandFate int
+
+const (
+	// A branch of this brand is still open: deleting would orphan orders that
+	// are being taken today.
+	brandRefuse brandFate = iota
+	// Only closed branches are left. Their receipts still have to be
+	// answerable, so the brand is closed the same way they were.
+	brandClose
+	// Nothing underneath it at all.
+	brandDelete
+)
+
+// brandDeleteAction decides which of the three it is.
+//
+// ⚠️ **`kept > live` is the case this exists for.** Deleting a branch that has
+// ever taken an order closes it rather than removing it, so a brand somebody
+// has finished with ends up with zero open branches and several closed ones —
+// and the old rule ("any branch at all refuses") told the owner to delete the
+// branches they had just deleted. There was no next step from there.
+func brandDeleteAction(live, kept int64) brandFate {
+	switch {
+	case live > 0:
+		return brandRefuse
+	case kept > 0:
+		return brandClose
+	default:
+		return brandDelete
+	}
+}
+
+// AdminDeleteBrand removes a brand, or closes it when its history has to stay.
+//
+// ⚠️ **It refuses while the brand still has a branch that is open**, because
+// deleting it would orphan their orders, and an orphaned order is unanswerable
+// when the customer rings about it.
+//
+// ⚠️ **But a brand whose branches are all closed could never be deleted at
+// all, and that was a dead end nobody could see from the panel.** Deleting a
+// branch that has ever taken an order does not delete it — it closes it, so the
+// receipts stay answerable — and this counted every branch, open or closed. So
+// the owner of a brand they had finished with deleted its branches, watched
+// them go quiet, pressed delete on the brand, and got "delete its branches
+// first" about branches they had just deleted. There was no next step: the only
+// way out was a database. The brand is now closed the same way its branches
+// were, which is the same answer branches give and the one the button can
+// actually deliver.
 func (h *Handler) AdminDeleteBrand(w http.ResponseWriter, r *http.Request) {
 	if err := h.requireOwner(r); err != nil {
 		httpx.Error(w, http.StatusForbidden, err.Error())
@@ -186,17 +234,45 @@ func (h *Handler) AdminDeleteBrand(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "oxirgi brendni o'chirib bo'lmaydi")
 		return
 	}
-	branches, err := h.Store.Branches.CountDocuments(r.Context(), bson.M{"brandId": id})
+	// ⚠️ **Open ones refuse; closed ones do not.** A working branch is a place
+	// taking orders today and the refusal is right. A closed one is history
+	// being kept deliberately, and counting it as a reason to refuse turned
+	// "delete the branches first" into an instruction that could not be carried
+	// out — see the note above.
+	live, err := h.Store.Branches.CountDocuments(r.Context(),
+		bson.M{"brandId": id, "isActive": true})
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if branches > 0 {
+	kept, err := h.Store.Branches.CountDocuments(r.Context(), bson.M{"brandId": id})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	what := brandDeleteAction(live, kept)
+	if what == brandRefuse {
 		httpx.Error(w, http.StatusBadRequest, "avval shu brendning filiallarini o'chiring")
 		return
 	}
 	var brand models.Brand
 	_ = h.Store.Brands.FindOne(r.Context(), bson.M{"_id": id}).Decode(&brand)
+
+	if what == brandClose {
+		// Closed rather than deleted, exactly as its branches were, and for the
+		// same reason: the orders underneath still have to be answerable.
+		if _, err := h.Store.Brands.UpdateByID(r.Context(), id, bson.M{"$set": bson.M{
+			"isActive": false, "updatedAt": time.Now(),
+		}}); err != nil {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		h.logAction(r, ActBrandUpdate, "brand", id.Hex(), brand.Name,
+			"brend o'chirildi (yopilgan filiallari bor)")
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "deactivated": true})
+		return
+	}
+
 	if _, err := h.Store.Brands.DeleteOne(r.Context(), bson.M{"_id": id}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return

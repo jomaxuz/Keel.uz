@@ -2403,6 +2403,9 @@ export const adminUz = {
   // ---- Courier PWA ----
   scope: {
     brand: "Brend",
+    brandPickTitle: "Qaysi brend",
+    brandPickHint:
+      "Brendni almashtirsangiz butun panel — menyu, buyurtmalar, hisobotlar — o'sha brendniki bo'ladi va sahifa yangilanadi.",
     branch: "Filial",
     allBranches: "Hamma filiallar",
     inactive: "faol emas",
@@ -2435,6 +2438,8 @@ export const adminUz = {
     featureDineIn: "Stolda (QR)",
     featureBooking: "Stol bron qilish",
     confirmDeleteBrand: (name: string) => `"${name}" brendi o'chirilsinmi?`,
+    brandDeactivated:
+      "Bu brendning yopilgan filiallari bor — o'chirilmadi, faqat yopildi (tarix saqlanadi).",
     branchCount: (n: number) => `${n} ta filial`,
   },
 
@@ -7289,6 +7294,9 @@ export const adminRu: AdminDict = {
   },
   scope: {
     brand: "Бренд",
+    brandPickTitle: "Какой бренд",
+    brandPickHint:
+      "После смены бренда вся панель — меню, заказы, отчёты — будет его, и страница обновится.",
     branch: "Филиал",
     allBranches: "Все филиалы",
     inactive: "не работает",
@@ -7319,6 +7327,8 @@ export const adminRu: AdminDict = {
     featureDineIn: "За столом (QR)",
     featureBooking: "Бронь столов",
     confirmDeleteBrand: (name: string) => `Удалить бренд "${name}"?`,
+    brandDeactivated:
+      "У этого бренда есть закрытые филиалы — он не удалён, а закрыт (история сохраняется).",
     branchCount: (n: number) => `${n} филиалов`,
   },
 
@@ -11930,6 +11940,9 @@ export const adminEn: AdminDict = {
   },
   scope: {
     brand: "Brand",
+    brandPickTitle: "Which brand",
+    brandPickHint:
+      "Switching brand makes the whole panel — menu, orders, reports — that brand's, and reloads the page.",
     branch: "Branch",
     allBranches: "All branches",
     inactive: "closed",
@@ -11961,6 +11974,8 @@ export const adminEn: AdminDict = {
     featureDineIn: "Dine-in (QR)",
     featureBooking: "Table booking",
     confirmDeleteBrand: (name: string) => `Delete the brand "${name}"?`,
+    brandDeactivated:
+      "This brand still has closed branches — it was closed rather than deleted, so their history stays.",
     branchCount: (n: number) => `${n} branches`,
   },
 

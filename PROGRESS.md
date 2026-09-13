@@ -14550,3 +14550,59 @@ Testlar: `middleware/lang_test.go` (cookie'siz sarlavha — aynan buzilgan holat
 
 Qaror `docs/DECISIONS.md` → «Server xabarlari ham uch tilda» → «To'rtinchi
 teshik» ga yozildi; brifing bo'limida havola bor.
+
+---
+
+## 2026-09-13 — Oltita shikoyat: kassa limiti, qurilma ro'yxati, brend va zal sxemasi
+
+Bittasi bir kechada olti joydan kelgan, va ikkitasi bir xil shakldagi nosozlik
+edi: **hech nima xato bermaydi, ekran to'liq, javob esa boshqa narsaniki**.
+
+**1. Windows ilovasi limitni status kodi bilan ko'rsatardi.** Beshta qurilmadan
+keyingi bog'lashda «qurilma kaliti: server 402». Server sababni so'z bilan va
+sanog'i bilan yuboradi — endi setup ekrani shuni yozadi: «kassa ekranlari
+limiti tugadi (5 / 5) — panelda ishlatilmayotgan ekranni uzing yoki tarifni
+ko'taring». `desktop/tillcap.go` **build tegsiz** faylda (testi bor):
+restoran eng yomon paytda o'qiydigan gap test yeta olmaydigan joyda qolmasin.
+
+**2. Qurilma qatori qaysi mashina ekanini aytmasdi.** «Kassa 1 / Kassa 2» —
+qatorning nomi; limitga yetgan menejer esa aynan bu ro'yxatdan qaysi birini
+uzishni tanlaydi. Qatorga **filial nomi**, **Windows kompyuter nomi** va **IP**
+qo'shildi. Nomni ilovaning o'zi `X-Till-Host` sarlavhasida yuboradi (proxy har
+so'rovga qo'yadi), IP `clientIP(r)` dan; ikkalasi `touchTillDevice` da ham
+yangilanadi, chunki havolani bergan kompyuter bilan kassa bo'lib qoladigan
+kompyuter ko'pincha boshqa mashina. Brauzerdan ulangan ekranda nom **bo'sh**
+qoladi — bu ham ma'lumot: orqasida mashina turmagan qator odatda tashlab
+ketilgan havola.
+
+**3. Brend endi modal oynada tanlanadi, logosi bilan**, va almashganda sahifa
+**to'liq yangilanadi**. `ScopedMain` remount qilardi, lekin remount
+komponentni qayta quradi — serverdan kelgan javobni emas.
+
+**4. Zal sxemasidagi stolni barmoq bilan ochib bo'lmasdi** (sichqoncha bilan —
+bemalol, shuning uchun faqat monobloklardan xabar qilingan). `TillAppliance`
+barmoq tushgan elementni yozib olib `el.click()` chaqiradi, stol esa
+`<g role="button">` — SVG'da bunday metod yo'q, istisno tashlanadi, va
+qo'riqchi allaqachon qurollangani uchun brauzerning **ishlaydigan** bosishi
+yutib yuborilardi. Endi metodi yo'q element uchun hodisa qo'lda yuboriladi;
+testi bor.
+
+**5. Brend o'chirish tugmasi hech qachon ishlamaydigan holatga tushib
+qolgandi.** Buyurtma ko'rgan filial o'chirilmaydi — yopiladi; brend esa hamma
+filiallarini sanardi, ya'ni «avval filiallarini o'chiring» degan javob endigina
+o'chirilgan filiallar haqida edi va keyingi qadam yo'q edi. Endi uch holat
+(`brandDeleteAction`, testi bor): ochiq filial bor → rad; faqat yopilganlari
+qolgan → brendning o'zi ham yopiladi; hech nima yo'q → o'chiriladi. Javob
+brendning o'z kartochkasida chiziladi.
+
+**6. Brifing linzani so'ramas edi.** Server kartalarni `(kun, til, qamrov)`
+bo'yicha saqlaydi, panel esa `/admin/insights` ni qamrovsiz so'rardi: brend
+almashtirilganda sahifaning raqamlari o'zgarardi, kartalar esa joyida qolardi.
+`scope: true` + `scopeKey` bog'liqligi, va linza yuklanmaguncha **hech nima
+so'ralmaydi** — o'sha so'rov kunning modeldagi javoblaridan bittasini hech kim
+qaramaydigan qamrovga sarflardi.
+
+Backend `go build` + `go test ./internal/...` yashil, frontend `tsc` + 268 test
+yashil, `GOOS=windows go build ./desktop/...` o'tdi. Qarorlar
+`docs/DECISIONS.md` → «Brend va filial», «Kassa ekranlari ro'yxati: limit va
+qaysi mashina», «tez bosganda qotib qolish», «AI yordamchi» bo'limlarida.

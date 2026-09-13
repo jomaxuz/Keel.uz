@@ -91,6 +91,37 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   ochish/o'chirish; `requireBranchAccess` — menejer faqat o'z filialini.
   Panelda `branchId` qo'yilgan menejer uchun linza qulflanadi (almashtirgich
   o'rniga filial nomi) va kompaniya/brend bo'limlari ko'rinmaydi.
+- **Brend modal oynada tanlanadi, filial esa ro'yxatchada**
+  (`ScopeSwitcher`). Ikkalasi bir xil tor ro'yxatcha edi, savollari esa bir
+  o'lchamda emas: filial — odam allaqachon qarab turgan biznesning bir xonasi,
+  brend esa **butun biznes**, va noto'g'ri tanlash egani boshqa menyu, boshqa
+  buyurtma va boshqa pulning ustiga olib boradi — ekranda esa bu haqda hech
+  nima yozilmaydi. Shuning uchun modal ekran o'rtasini oladi va **har brendning
+  o'z logosi** bilan chiziladi: ega o'z bizneslarini belgisidan taniydi,
+  ro'yxatdagi tartibidan emas. Logo yo'q bo'lsa — nomning birinchi harfi
+  (saytning `BrandMark` i bilan bir qoida, lekin **ko'chirma emas**: u
+  mehmonning sahifasiniki va o'z o'lchamini olib yuradi).
+- ⚠️ **Brend almashganda sahifa to'liq yangilanadi** (`location.reload()`).
+  `ScopedMain` allaqachon `scopeKey` bo'yicha remount qiladi, lekin remount
+  komponentni qayta quradi — **serverdan kelgan javobni emas**: `scope: true`
+  bermagan har bir chaqiruv eski linzaning javobini qaytarib berardi. Eng
+  ko'rinadigan qurboni brifing edi (pastga qarang), va alomati eng yomon
+  shakldagi nosozlik: yangi brendning nomi ostida eski brendning kartalari,
+  hech qayerda xato yo'q. Tanlov `localStorage` ga **reload'dan oldin**
+  yoziladi, aks holda yangi sahifa egani endi tark etgan brendni o'qib oladi.
+- ⚠️ **Brend o'chirish tugmasi hech qachon ishlamaydigan holatga tushib
+  qolgandi.** Buyurtma ko'rgan filial o'chirilmaydi — **yopiladi** (cheklar
+  javobsiz qolmasin), brend esa **hamma** filiallarini sanardi. Ya'ni ishini
+  tugatgan ega filiallarni o'chirib, ularning o'chganini ko'rib, brendga
+  bosardi va "avval filiallarini o'chiring" degan javobni olardi — endigina
+  o'chirgan filiallari haqida. Keyingi qadam **yo'q** edi, bazadan boshqa.
+  Endi qoida uch holatli (`brandDeleteAction`, testi bor): **ochiq filial bor**
+  → rad etiladi; **faqat yopilganlari qolgan** → brendning o'zi ham
+  **yopiladi** (filiallari kabi, va o'sha sabab bilan); **hech nima yo'q** →
+  o'chiriladi. ⚠️ Javob **brendning o'z kartochkasida** chiziladi, sahifaning
+  tepasida emas: to'rtta brend ochiq turganda tepa bir necha ekran naridadir,
+  va o'sha yerdagi rad javobi "tugma umuman ishlamayapti" bo'lib o'qiladi —
+  aynan shunday xabar qilingan.
 
 ### Chas pik: yuklama ko'rsatiladi, buyurtma qo'lda ko'chiriladi
 - ⚠️ **Avtomatik qayta yo'naltirish ataylab yo'q.** Band filialdan boshqasiga
@@ -2129,6 +2160,20 @@ Canva'ning chop etish sifatidagi eksporti undan oshadi, va rad javobi
 - **Fakt nomini aytmagan kartochka tashlanadi** (`insight.Keep`). Model
   javobda faqat kalit qaytaradi; biz yubormagan kalit chizilmaydi. O'ylab
   topilgan statistikaga yashaydigan joy qolmaydi.
+- ⚠️ **Brifing linzani so'ramas edi, server esa uni linza bo'yicha saqlaydi.**
+  Kunlik kartalar `(kun, til, brend/filial)` bo'yicha yoziladi — bu birinchi
+  kundan shunday — lekin panel `/admin/insights` ni **qamrovsiz** so'rardi,
+  ya'ni ikki brendli kompaniya ikkalasida ham qamrovsiz nusxani olardi. Ega
+  brendni almashtirganda sahifaning o'z raqamlari o'zgarardi, ustidagi kartalar
+  esa **joyida qolardi**: yordamchi ekranda bo'lmagan restoran haqida gapirib
+  turgandek. Hech nima xato bermaydi va kartalar **rost** — faqat boshqa
+  biznesning rosti. Endi chaqiruv `scope: true`, va komponent `scopeKey` ni
+  bog'liqlik sifatida oladi.
+- ⚠️ **Linza yuklanmaguncha hech nima so'ralmaydi.** Sahifaning birinchi
+  lahzasida brend bo'sh, va o'sha paytdagi so'rov shunchaki erta emas: javob
+  modelga pul turadi va kunlik slotga yoziladi, ya'ni hech kim qaramaydigan
+  qamrov kunning javoblaridan bittasini sarflab qo'yardi — keyin esa ekranda
+  bir soniya ko'rinib, almashardi.
 
 **⚠️ Brifing yettita signalizatsiya edi (2026-08-30 da tuzatildi).** Yo'qolgan
 mijozlar, tushayotgan hafta, o'lik taomlar, sanalmagan ombor, kam qoldiq,

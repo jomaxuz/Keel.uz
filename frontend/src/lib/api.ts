@@ -1207,8 +1207,11 @@ export const api = {
     request<Brand>("/admin/brands", { method: "POST", body, auth: true }),
   updateBrand: (id: string, body: Partial<Brand>) =>
     request<Brand>(`/admin/brands/${id}`, { method: "PUT", body, auth: true }),
+  /** ⚠️ `deactivated` means the brand was closed rather than removed: it still
+   *  has closed branches under it, and their orders have to stay answerable.
+   *  The same shape, and the same reason, as deleteBranch. */
   deleteBrand: (id: string) =>
-    request<{ ok: boolean }>(`/admin/brands/${id}`, {
+    request<{ ok: boolean; deactivated?: boolean }>(`/admin/brands/${id}`, {
       method: "DELETE",
       auth: true,
     }),
@@ -2917,9 +2920,18 @@ export const api = {
       auth: true,
     }),
 
-  /** This morning's briefing: two to four things worth doing before service. */
-  adminInsights: (scope?: string) =>
-    request<BriefingResponse>(`/admin/insights${scope ?? ""}`, { auth: true }),
+  /** This morning's briefing: two to four things worth doing before service.
+   *
+   *  ⚠️ **Scoped, and it was not.** The server has always keyed a briefing by
+   *  brand and branch — it stores one per lens per day — but the panel asked
+   *  for it without saying which lens it was looking through, so a company with
+   *  two brands got the unscoped one on both. An owner switching brand saw the
+   *  page's own figures change and the cards above them stay exactly as they
+   *  were: the assistant appearing to talk about a restaurant that was no
+   *  longer on screen. Nothing errored, and the cards were true — of a
+   *  different business. */
+  adminInsights: () =>
+    request<BriefingResponse>("/admin/insights", { auth: true, scope: true }),
 
   /** Three proposed messages for one segment. Proposed only — nothing is sent
    *  until the owner presses send on the campaign screen. */
