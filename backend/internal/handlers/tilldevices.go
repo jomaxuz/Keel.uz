@@ -241,18 +241,63 @@ func (h *Handler) StaffTillUnbind(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"unbound": true})
 }
 
-// touchTillDevice records that a bound screen was seen.
+// tillHost is the computer name the till application sends about itself.
+//
+// ⚠️ **Trimmed and capped, because it is a string from a machine we do not
+// administer.** It is drawn in the panel beside a button that unbinds a
+// register, and a hostname long enough to push that button off the row is a
+// hostname that decides something.
+//
+// ⚠️ Empty when the screen was paired from a browser rather than from the
+// Windows application — a distinction worth keeping rather than filling in:
+// a row with no machine behind it is usually the abandoned link.
+func tillHost(r *http.Request) string {
+	name := strings.TrimSpace(r.Header.Get("X-Till-Host"))
+	// One line, always: a header with a newline in it would be drawn as two
+	// rows in the panel and read as two machines.
+	name = strings.Map(func(c rune) rune {
+		if c < ' ' {
+			return -1
+		}
+		return c
+	}, name)
+	if len(name) > 60 {
+		name = name[:60]
+	}
+	return name
+}
+
+// touchTillDevice records that a bound screen was seen, and from where.
 //
 // ⚠️ **Throttled to once an hour, and it never fails a request.** A till polls
 // several times a minute; writing on each would be a write per poll per machine
-// for a field whose only job is telling a manager which row is the abandoned
-// one. An hour is far finer than that question needs.
+// for fields whose only job is telling a manager which row is the abandoned one
+// and which machine each of the others is. An hour is far finer than either
+// question needs.
+//
+// ⚠️ **The machine is written here rather than only when the link is issued**,
+// because the two are often not the same computer at all: a manager who pairs a
+// till by scanning the panel's QR code with the monoblock is the good case, and
+// a link issued on a laptop and opened later on the counter is the ordinary
+// one. Whoever is actually calling is the answer to "which machine is this",
+// and this is the only place that sees them.
 func (h *Handler) touchTillDevice(r *http.Request, devID primitive.ObjectID) {
 	now := time.Now()
+	set := bson.M{"lastSeenAt": now}
+	if ip := clientIP(r); ip != "" {
+		set["ip"] = ip
+	}
+	if host := tillHost(r); host != "" {
+		// ⚠️ Only when it is sent. A till that has been upgraded to the Windows
+		// application and a browser tab on the same machine take turns calling
+		// these endpoints, and blanking the name on every browser call would
+		// leave the column empty exactly as often as it was filled.
+		set["host"] = host
+	}
 	_, _ = h.Store.TillDevices.UpdateOne(r.Context(), bson.M{
 		"_id":        devID,
 		"lastSeenAt": bson.M{"$not": bson.M{"$gt": now.Add(-time.Hour)}},
-	}, bson.M{"$set": bson.M{"lastSeenAt": now}})
+	}, bson.M{"$set": set})
 }
 
 // deviceName cleans what the panel typed, or names the machine by its number.

@@ -743,9 +743,15 @@ func (h *Handler) AdminTillToken(w http.ResponseWriter, r *http.Request) {
 	// a restaurant quietly running more registers than it bought, which is the
 	// failure this whole registry was added to close.
 	dev := models.TillDevice{
-		BranchID:  id,
-		Name:      deviceName(r.URL.Query().Get("name"), n),
-		Version:   branch.TillVersion,
+		BranchID: id,
+		Name:     deviceName(r.URL.Query().Get("name"), n),
+		Version:  branch.TillVersion,
+		// ⚠️ Whoever is asking, which is the till application itself when the
+		// setup screen is doing the asking. Paired from the panel instead, this
+		// is the manager's laptop — corrected by the first call the machine
+		// makes for itself (touchTillDevice), which is within the minute.
+		Host:      tillHost(r),
+		IP:        clientIP(r),
 		IssuedBy:  h.adminName(r),
 		CreatedAt: time.Now(),
 	}

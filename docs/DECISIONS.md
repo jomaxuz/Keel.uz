@@ -5123,6 +5123,51 @@ Uch kafolat, uchtasi uch xil sababdan yiqiladi:
   Ctrl+C/X/A) — maydonlarda esa qoladi, ular kassir hozir yozgan matn.
 - ⚠️ **Paste to'silmaydi.** U faqat maydonga tushadi, va to'silsa "yozish
   o'rniga qo'yish" rejimiga sozlangan skaner ishlamay qoladi.
+- ⚠️ **`click()` — `HTMLElement` ning metodi, va zal sxemasi SVG.** Stol
+  `<g role="button">` bo'lib chiziladi, ya'ni yuqoridagi tanlagichga mukammal
+  tushadi: barmoq tushgan element yozib olinadi, aks-sado qo'riqchisi
+  **qurollanadi**, keyin `el.click()` — SVG guruhida bunday metod yo'q —
+  **istisno tashlaydi**. Natijada brauzerning o'z bosishi (ishlab ketadigani)
+  o'tib ketayotganda yutib yuborilardi: zal sxemasidagi stolni **barmoq bilan
+  umuman ochib bo'lmasdi**, sichqoncha bilan esa mukammal ochilardi — shuning
+  uchun u faqat monobloklardan xabar qilindi va brauzerda hech qachon
+  takrorlanmadi. Endi metodi yo'q element uchun hodisa qo'lda yuboriladi
+  (`activate`), va buning testi bor. Xuddi shu tuzoq yetkazish zonasi kabi har
+  qanday SVG ustiga bosiladigan sirtni kutib turgan edi.
+
+### Kassa ekranlari ro'yxati: limit va qaysi mashina
+
+Tarif **kassa ekranlari soni** bilan sotiladi, va cheklov faqat **eshikda**
+tekshiriladi (havola berilayotganda) — ishlab turgan kassa hech qachon
+to'xtatilmaydi; sababi `handlers/tilldevices.go` da yozilgan.
+
+- ⚠️ **Windows ilovasi limitni raqam bo'lib ko'rsatardi.** Oltinchi monoblokni
+  bog'layotgan odam «qurilma kaliti: server 402» degan javobni olardi — yangi
+  mashina oldida turgan odamga **status kodi**, va u bilan qiladigan ishi yo'q.
+  Server allaqachon sababni so'z bilan va **sanog'i bilan** yuboradi
+  (`registers`, `limit`), va setup ekrani — buni ko'rsata oladigan yagona joy:
+  «kassa ekranlari limiti tugadi (5 / 5) — panelda ishlatilmayotgan ekranni
+  uzing yoki tarifni ko'taring». ⚠️ Sanoq bo'lmasa ham gap gap bo'lib qolishi
+  kerak (eski server 402 ni raqamsiz qaytaradi) — `capMessage` va uning testi
+  `desktop/tillcap.go` da, **build tegsiz faylda**: restoran eng yomon paytda
+  o'qiydigan gap test yeta olmaydigan joyda qolmasligi kerak.
+- ⚠️ **Ro'yxatdagi qator qaysi mashina ekanini aytmasdi.** «Kassa 1», «Kassa 2»
+  — qatorning nomi, binoda turgan narsaning nomi emas; va aynan shu ro'yxatdan
+  limitga yetgan menejer **qaysi birini uzishni** tanlaydi. Yonidagi yagona
+  fakt — oxirgi ishlatilgan kuni, u esa ishlayotgan restoranda hamma qator
+  uchun bugun. Endi qatorda **filial nomi**, **Windows kompyuter nomi** va
+  **IP** turadi: `X-Till-Host` sarlavhasini ilovaning o'zi qo'yadi (proxy har
+  so'rovga — `proxy_windows.go`, va bog'lash so'roviga), IP esa
+  `clientIP(r)` dan. ⚠️ Sarlavha — **nom, kalit emas**: u hech nimaga ruxsat
+  bermaydi va hech qachon ruxsat sifatida o'qilmaydi (proxy'ning «hech qanday
+  kalit qo'yilmaydi» qoidasi shu sababdan buzilmaydi).
+- ⚠️ **Brauzerdan ulangan ekranda kompyuter nomi bo'sh qoladi, va bu ham
+  ma'lumot**: orqasida mashina turmagan qator — odatda tashlab ketilgan
+  havola, ya'ni limitga yetgan menejer aynan izlayotgan qator.
+- ⚠️ Nom va IP **`touchTillDevice`** da ham yangilanadi (soatiga bir marta,
+  `lastSeenAt` bilan birga), faqat havola berilganda emas: panelda QR chiqarib
+  uni monoblokda ochish odatiy yo'l, ya'ni havolani bergan kompyuter bilan
+  kassa bo'lib qoladigan kompyuter ko'pincha **boshqa** mashina.
 
 ### Kassa (POS) va zal: shu sessiyada qo'shilganlar
 

@@ -39,6 +39,13 @@ func (a *App) proxy(next http.Handler) http.Handler {
 			pr.Out.URL.Scheme = origin.Scheme
 			pr.Out.URL.Host = origin.Host
 			pr.Out.Host = origin.Host
+			// ⚠️ **A name, not a credential**, which is what the note above
+			// forbids. The server records it against this branch's register row
+			// so the panel can say which computer each one is; it authorises
+			// nothing and is never read as permission. Stamped here because the
+			// screens are shared with the browser till, and a browser cannot
+			// know the name of the machine it is running on.
+			setTillHost(pr.Out.Header)
 		},
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

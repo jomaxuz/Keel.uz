@@ -158,6 +158,11 @@ func (a *App) Pair(branchID string) error {
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+a.pairing.token)
+	// ⚠️ Which machine is being bound, recorded on the row the server is about
+	// to write. It is the answer to "which of these five is the one in the
+	// kitchen" months later, and this request is the only moment the panel and
+	// the monoblock are the same computer.
+	setTillHost(req.Header)
 	res, err := pairClient().Do(req)
 	if err != nil {
 		return fmt.Errorf("qurilma kalitini olib bo'lmadi")
@@ -166,6 +171,15 @@ func (a *App) Pair(branchID string) error {
 	raw, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
 	if res.StatusCode == http.StatusForbidden {
 		return fmt.Errorf("bu hisobda shu filialga ruxsat yo'q")
+	}
+	// ⚠️ **The one refusal that is not a fault**, and it arrived here as
+	// "qurilma kaliti: server 402" — a number, on the screen of somebody
+	// standing in front of a new monoblock with nothing to act on. The plan's
+	// register limit is full; the server already says so in words and sends the
+	// count with it, and this is the only place that can put those in front of
+	// the person who just pressed the button. See handlers/tilldevices.go.
+	if res.StatusCode == http.StatusPaymentRequired {
+		return fmt.Errorf("%s", capMessage(raw))
 	}
 	if res.StatusCode >= 300 {
 		return fmt.Errorf("qurilma kaliti: server %d", res.StatusCode)

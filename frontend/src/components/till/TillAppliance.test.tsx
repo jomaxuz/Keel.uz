@@ -167,6 +167,27 @@ describe("the till's global tap layer", () => {
 
   // ⚠️ Form fields keep the browser's own behaviour, all of it: a caret has to
   // be placeable, and a checkbox toggled twice is a discount nobody agreed to.
+  // ⚠️ **The floor plan's tables are SVG**, and `click()` is a method of
+  // HTMLElement alone. Activating one used to throw, after the echo guard had
+  // already been armed — so the browser's own click was swallowed on its way
+  // past and a table could not be opened by touch at all. It opened fine with a
+  // mouse, which is why this was only ever reported from the monoblocks.
+  it("opens a table drawn in SVG", () => {
+    const onClick = vi.fn();
+    render(
+      <>
+        <TillAppliance />
+        <svg>
+          <g role="button" aria-label="7-stol" onClick={onClick}>
+            <rect width="40" height="40" />
+          </g>
+        </svg>
+      </>,
+    );
+    touch(screen.getByLabelText("7-stol"), [60, 60], [63, 61]);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps a checkbox's own behaviour", () => {
     const onChange = vi.fn();
     render(

@@ -25,7 +25,14 @@ export default function TillDeviceSettings({ branch }: { branch: Branch }) {
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<
-    { id: string; name: string; lastSeenAt?: string; issuedBy?: string }[]
+    {
+      id: string;
+      name: string;
+      lastSeenAt?: string;
+      issuedBy?: string;
+      host?: string;
+      ip?: string;
+    }[]
   >([]);
   const [limit, setLimit] = useState(0);
 
@@ -170,7 +177,32 @@ export default function TillDeviceSettings({ branch }: { branch: Branch }) {
                 className="flex items-center justify-between gap-3 px-3 py-2 text-xs"
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-medium">{d.name}</span>
+                  {/* ⚠️ **The branch is printed on the row, not only above
+                      it.** "Kassa 1" is the same name in every branch of a
+                      chain, and this list is read in two situations that both
+                      cross branches: deciding which register to unbind when the
+                      plan is full, and answering "which machine is this?" from
+                      a screenshot somebody sent. A row that cannot say where it
+                      stands answers neither. */}
+                  <span className="block truncate font-medium">
+                    {d.name}
+                    <span className="font-normal text-ink-muted">
+                      {" · "}
+                      {branch.name}
+                    </span>
+                  </span>
+                  {/* ⚠️ **Which computer, and where it called from.** Until the
+                      till application sent its own name there was nothing on
+                      this row that identified anything standing in a building —
+                      and the row is next to a button that takes a register out
+                      of service. The name is missing for a screen paired from a
+                      browser, which is itself worth seeing: a row with no
+                      machine behind it is usually the abandoned link. */}
+                  {(d.host || d.ip) && (
+                    <span className="block truncate font-mono text-[11px] text-ink-soft">
+                      {[d.host, d.ip].filter(Boolean).join(" · ")}
+                    </span>
+                  )}
                   {/* ⚠️ "Never used" is the most useful thing this row can say:
                       it is how a manager at their cap tells an abandoned link
                       from the machine somebody is selling on right now. */}

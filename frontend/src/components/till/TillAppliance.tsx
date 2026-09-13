@@ -54,19 +54,31 @@ export default function TillAppliance() {
     // pressed it and it did not register", and felt most often by whoever is
     // fastest. Here the element under the finger when it landed is the one that
     // is activated, and the release only has to be near it.
-    let startEl: HTMLElement | null = null;
+    let startEl: Element | null = null;
     let startX = 0;
     let startY = 0;
     let startAt = 0;
     // The element whose next native click is ours to swallow, and until when.
-    let echoEl: HTMLElement | null = null;
+    let echoEl: Element | null = null;
     let echoUntil = 0;
     // True while we are dispatching a click ourselves, so the capture listener
     // below can tell our own event from the browser's echo of it.
     let dispatching = false;
 
-    /** The pressable thing under a point, or null. */
-    const pressable = (target: EventTarget | null): HTMLElement | null => {
+    /** The pressable thing under a point, or null.
+     *
+     *  ⚠️ **An Element, not an HTMLElement, and that difference was a bug in a
+     *  restaurant.** The floor plan is drawn in SVG and its tables are
+     *  `<g role="button">` — which matches the selector below perfectly well,
+     *  so a finger landing on table 7 was recorded here and then activated by
+     *  `el.click()`. `click()` is defined on HTMLElement and on nothing else:
+     *  an SVG group does not have it, so the call threw, the echo guard had
+     *  already been armed a line earlier, and the browser's own click — the one
+     *  that would have worked — was swallowed on its way past. The result was a
+     *  floor plan where tables could not be opened by touch and opened
+     *  perfectly with a mouse, which is why it was only ever reported from the
+     *  monoblocks. See `activate`. */
+    const pressable = (target: EventTarget | null): Element | null => {
       if (!(target instanceof Element)) return null;
       // ⚠️ Form fields keep the browser's own behaviour, all of it: a caret
       // has to be placeable, a select has to open, and a checkbox toggled
@@ -74,7 +86,7 @@ export default function TillAppliance() {
       if (target.closest("input, textarea, select, label, [contenteditable]")) {
         return null;
       }
-      const el = target.closest<HTMLElement>('button, [role="button"], a[href]');
+      const el = target.closest('button, [role="button"], a[href]');
       if (!el) return null;
       if (el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true") {
         return null;
@@ -82,8 +94,26 @@ export default function TillAppliance() {
       // The opt-out, for anything that genuinely wants the browser's own
       // sequence. Nothing uses it today; it exists so the next thing that needs
       // to can say so rather than fight this.
-      if (el.dataset.tap === "native") return null;
+      if (el.getAttribute("data-tap") === "native") return null;
       return el;
+    };
+
+    /** Press it, whatever kind of element it is.
+     *
+     *  ⚠️ **`click()` is an HTMLElement method.** Everything else — an SVG
+     *  table on the floor plan, an SVG zone on a delivery map — gets the event
+     *  dispatched by hand: bubbling and cancellable, which is all React needs
+     *  to route it to the handler on the group. ⚠️ No `view` — the element is
+     *  what matters here, and passing a window belonging to another realm is a
+     *  thrown constructor rather than a wrong view. */
+    const activate = (el: Element) => {
+      if (typeof (el as HTMLElement).click === "function") {
+        (el as HTMLElement).click();
+        return;
+      }
+      el.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     };
 
     const onDown = (e: PointerEvent) => {
@@ -128,7 +158,7 @@ export default function TillAppliance() {
       echoUntil = Date.now() + ECHO_MS;
       dispatching = true;
       try {
-        el.click();
+        activate(el);
       } finally {
         dispatching = false;
       }

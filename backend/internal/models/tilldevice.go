@@ -46,6 +46,22 @@ type TillDevice struct {
 	// to remove when the cap is reached.
 	LastSeenAt *time.Time `bson:"lastSeenAt,omitempty" json:"lastSeenAt,omitempty"`
 
+	// ⚠️ **Which machine this actually is.** "Kassa 1" and "Kassa 2" name rows
+	// in a list; they do not name anything standing in a building. A manager at
+	// their cap has to decide which row to unbind, and until these two fields
+	// existed the only way to tell one row from another was the day it was last
+	// used — which is the same day for every till in a working restaurant.
+	//
+	// Host is the Windows computer name, sent by the till application itself
+	// (X-Till-Host). Empty for a screen paired from a browser, which is exactly
+	// the distinction worth seeing: a row with no machine behind it is the
+	// abandoned link.
+	Host string `bson:"host,omitempty" json:"host,omitempty"`
+	// IP is where that machine last called from, on the restaurant's own
+	// network. ⚠️ Recorded rather than trusted: it identifies a monoblock for
+	// somebody walking the floor and decides nothing.
+	IP string `bson:"ip,omitempty" json:"ip,omitempty"`
+
 	// Who added it, so a machine nobody recognises has somebody to ask.
 	IssuedBy  string    `bson:"issuedBy,omitempty" json:"issuedBy,omitempty"`
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`

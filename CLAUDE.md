@@ -796,6 +796,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Onlayn to'lov, callback | Onlayn to'lov: Payme / Click / Uzum / ATMOS |
 | Kassada karta: QR skanerlash, bank terminali | Kassada karta: QR skanerlash (Click Pass / Uzum FastPay) |
 | Tez bosganda qotish, zoom, copy (kassa/zal/KDS/kiosk) | Kassa, zal, oshxona, kiosk: tez bosganda qotib qolish |
+| Kassa ekranlari: limit, qurilma ro'yxati, qaysi mashina | Kassa ekranlari ro'yxati: limit va qaysi mashina |
 | SMS, mijoz auth, admin parol | SMS provayderi · Mijoz auth · Admin parolini tiklash |
 | Telegram bot, mini app, til | Telegram bot va mini app · Bot javob berishi (webhook) · Mini app'da til |
 | Telefon, call-markaz, ATS | Call-markaz · Telefoniya: onlinePBX |

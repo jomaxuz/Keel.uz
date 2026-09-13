@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"restaurant-backend/internal/models"
@@ -108,5 +111,30 @@ func TestOnlyManagersMayRetireAScreen(t *testing.T) {
 		if !s.Can(models.PermVoid) {
 			t.Errorf("%q cannot retire a till screen — then nobody in the room can", name)
 		}
+	}
+}
+
+// ⚠️ **The name comes from a machine nobody here administers**, and it is drawn
+// in the panel beside the button that unbinds a register. A control character
+// would draw as a second line and read as a second machine; sixty characters is
+// as much as the row has before the button leaves it.
+func TestTillHostIsTrimmedToSomethingDrawable(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Set("X-Till-Host", "  KASSA-01\r\n  ")
+	if got := tillHost(r); got != "KASSA-01" {
+		t.Errorf("tillHost = %q, want %q", got, "KASSA-01")
+	}
+
+	r.Header.Set("X-Till-Host", strings.Repeat("k", 200))
+	if got := len(tillHost(r)); got != 60 {
+		t.Errorf("a 200-character name came back %d long", got)
+	}
+
+	// ⚠️ A browser sends nothing, and that absence is information: a row with no
+	// machine behind it is the abandoned link, which is the row a manager at
+	// their cap is looking for. Filling it in with anything would hide it.
+	r.Header.Del("X-Till-Host")
+	if got := tillHost(r); got != "" {
+		t.Errorf("a browser was named %q", got)
 	}
 }

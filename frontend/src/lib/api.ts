@@ -3394,6 +3394,11 @@ export const api = {
         name: string;
         lastSeenAt?: string;
         issuedBy?: string;
+        /** The Windows computer name, when the till application is what is
+         *  calling. Absent for a screen opened in a browser. */
+        host?: string;
+        /** Where that machine last called from, on the restaurant's network. */
+        ip?: string;
         createdAt: string;
       }[];
       /** 0 means no cap. */
