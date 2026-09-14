@@ -933,6 +933,21 @@ bo'lgani holda.
   yo'naltiriladi (`consoleHome`): agent/menejer/admin — mijozlarga, support —
   navbatga. Avval render qilish sahifa so'rovlarini yuborib, aynan shu
   odamlarga «ma'lumot yo'q» ni ko'rsatardi.
+- ⚠️ **Tab yashirish sahifani himoya qilish emas** (2026-09-14, agent hisobi
+  bilan sinovda topildi): agent `/console/seo` ni manzilga yozsa **sahifaning
+  o'zi** ochilardi — sarlavhalar, tugmalar, tushuntirish — ostidagi har so'rovni
+  server 403 bilan rad etgan holda. Bazadan hech nima chiqmadi, lekin sahifa
+  ham ma'lumot, va bu tashqaridan aynan teshik bo'lib ko'rinadi. Endi layout
+  **render qilishdan oldin** `canOpen(path, can)` ni so'raydi
+  (`lib/consoleAccess.ts` — yo'l → ruxsat xaritasi bitta joyda); ruxsatsiz
+  sahifa o'z ekraniga yo'naltiradi, hech bir bo'limi yo'q hisob "ruxsat yo'q"
+  ko'radi (cheksiz yo'naltirish emas). ⚠️ Sahifa almashganda ham har renderda
+  tekshiriladi — effekt yangi sahifa bir marta chizilgandan keyin ishlaydi.
+  ⚠️ **Noma'lum sahifa — yopiq**, va `consoleAccess.test.ts` `app/console` dagi
+  **har papka** xaritada borligini tekshiradi: yangi sahifa ochiq eshik emas,
+  yiqilgan test bo'lib chiqadi. Server tomoni o'zgarmagan va lokal sinovda
+  agent `/seo`, `/blog`, `/referrers`, `/support`, `/reports`, `/staff` dan 403
+  oldi.
 - **O'chirish ikki xil**: «Vaqtincha o'chirish» (`isActive: false`, login
   saqlanadi) va «Butunlay o'chirish» (`DELETE /staff/{id}`, tasdiq bilan).
   ⚠️ O'zingizni va oxirgi **faol** owner'ni o'chirib bo'lmaydi. Yozuvlar

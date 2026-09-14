@@ -9,6 +9,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { useT } from "@/lib/i18n/client";
 import { clearToken, getToken, me, type Me } from "@/lib/api";
 import { consoleHome } from "@/lib/consoleHome";
+import { canOpen } from "@/lib/consoleAccess";
 
 export default function DashboardLayout({
   children,
@@ -21,7 +22,7 @@ export default function DashboardLayout({
   const isLogin = path === "/console/login";
   // "unknown" until the token has been proven, so a protected page never
   // flashes its contents to somebody whose session has already expired.
-  const [state, setState] = useState<"unknown" | "in" | "out">("unknown");
+  const [state, setState] = useState<"unknown" | "in" | "out" | "denied">("unknown");
   // Asked once, at the top: every tab below and every page inside reads the same
   // answer, so a role change cannot leave two parts of the console disagreeing.
   const [who, setWho] = useState<Me | null>(null);
@@ -38,12 +39,20 @@ export default function DashboardLayout({
     }
     me()
       .then((u) => {
-        // ⚠️ `/console` is the owner's overview. Everybody else is sent to the
-        // screen their work is on *before* anything renders — rendering first
-        // would fire the overview's requests and flash "no data" at exactly the
-        // people this redirect exists for. The effect runs again on the new path.
-        if (path === "/console" && !u.can.overview) {
-          router.replace(consoleHome(u));
+        // ⚠️ **Every page is guarded here, before it renders** — not only
+        // hidden from the tabs. An agent who typed `/console/seo` used to get
+        // the page itself, every request under it refused by the server; see
+        // lib/consoleAccess.ts. A page the account may not open sends it to its
+        // own screen, and the effect runs again on the new path.
+        if (!canOpen(path, u.can)) {
+          const home = consoleHome(u);
+          if (home !== path && canOpen(home, u.can)) {
+            router.replace(home);
+            return;
+          }
+          // An account with no section at all: said, not bounced forever.
+          setWho(u);
+          setState("denied");
           return;
         }
         setWho(u);
@@ -56,7 +65,28 @@ export default function DashboardLayout({
   }, [isLogin, router, path]);
 
   if (isLogin) return <>{children}</>;
-  if (state !== "in") {
+  if (state === "denied") {
+    return (
+      <div className="container-page py-20 text-sm text-ink-muted">
+        <p>{t.dash.noAccess}</p>
+        <button
+          type="button"
+          onClick={() => {
+            clearToken();
+            router.replace("/console/login");
+          }}
+          className="mt-3 rounded-xl px-3 py-2 text-sm font-semibold text-ink hover:text-ink-soft"
+        >
+          {t.dash.signOut}
+        </button>
+      </div>
+    );
+  }
+  // ⚠️ **Checked on every render too**, not only when `/me` answers: moving
+  // between pages keeps the session, and the effect that redirects runs after
+  // the new page has already painted once. A known account on a page it may
+  // not open sees the loading line for that instant, never the page.
+  if (state !== "in" || (who && !canOpen(path, who.can))) {
     return (
       <p className="container-page py-20 text-sm text-ink-muted">
         {t.dash.loading}

@@ -17,6 +17,8 @@ export default defineConfig({
       // Where each console role lands after signing in — the redirect that keeps
       // sales and support accounts off the owner's overview.
       "src/lib/consoleHome.test.ts",
+      // Which role may open which console page — the guard behind the tabs.
+      "src/lib/consoleAccess.test.ts",
     ],
   },
 });

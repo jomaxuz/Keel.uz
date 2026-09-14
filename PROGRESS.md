@@ -14717,3 +14717,20 @@ kategoriya, qoldiq 99 / stop 0 / limit 5, noma'lum filial 404, tokensiz 401.
 
 ⏳ Uzum test muhitida sinalmagan: ayniqsa bo'sh `measure` va ID'dan olingan
 `barcode` ularning validatsiyasidan o'tishini tekshirish kerak.
+
+## 2026-09-14 (5) — Konsol: agent manzil orqali SEO sahifasiga kirardi
+
+Agent hisobi bilan sinovda topildi: `/console/seo` manzilga yozilsa sahifa
+ochilardi. **Server ma'lumot bermagan** — lokal sinovda agent `/seo`, `/blog`,
+`/referrers`, `/support`, `/reports`, `/staff`, `/console-log`, `/stats` dan 403,
+`POST /seo/indexnow` dan 403 oldi, owner `/seo` dan 200. Teshik — sahifa
+qobig'i: layout faqat tabni yashirardi, sahifani emas.
+
+- `lib/consoleAccess.ts` — yo'l → ruxsat xaritasi (`tenants/visits/outreach/
+  leaflet` → mijozlar, `support/reports` → yordam, `referrers` → hamkorlar,
+  `seo`, `blog`, `staff`, `/console` → umumiy ko'rinish). Noma'lum sahifa yopiq.
+- Layout har sahifani render qilishdan oldin tekshiradi; ruxsatsiz — o'z
+  ekraniga, hech bir bo'limsiz hisob — "ruxsat yo'q".
+- `consoleAccess.test.ts`: agent / admin / support / owner jadvali, so'z
+  prefiksi, uyga yo'naltirish har rol ochadigan sahifaga tushishi, va
+  `app/console` dagi **har papka** xaritada borligi.
