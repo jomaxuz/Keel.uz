@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"sort"
+	"sync"
 	"time"
 
 	"keel-control/internal/httpx"
@@ -68,8 +69,17 @@ func (h *Handler) SampleStatus(ctx context.Context) {
 	// The customers we believe should be serving. A container that should be
 	// running and is not is an outage for that restaurant, whatever the
 	// database says.
+	//
+	// ⚠️ **Down in two samples in a row, not in one.** A deploy or a rollout
+	// recreates a container in seconds, and a sample that lands inside those
+	// seconds used to count the whole minute as an outage — which is how the
+	// 90-day strip filled with red days that were 1,439 minutes of 1,440 fine.
+	// A container that stays down is counted from its second minute on; one
+	// that was only being replaced is never counted. The database check above
+	// is left immediate: a control plane that cannot reach its own database is
+	// down for everybody, deploy or not.
 	if ok && h.Docker != nil {
-		if down := h.downTenants(ctx); down > 0 {
+		if down := h.confirmDown(h.downTenantSlugs(ctx)); down > 0 {
 			ok = false
 			note = "tenant containers down: " + itoa(down)
 		}
@@ -99,24 +109,62 @@ func (h *Handler) SampleStatus(ctx context.Context) {
 // downTenants counts customers whose container is not running when it should
 // be. A stopped customer is not an outage — it was stopped on purpose.
 func (h *Handler) downTenants(ctx context.Context) int {
+	return len(h.downTenantSlugs(ctx))
+}
+
+// downTenantSlugs names them, so a sample can be compared with the one before.
+func (h *Handler) downTenantSlugs(ctx context.Context) []string {
 	cur, err := h.Store.Tenants.Find(ctx, bson.M{
 		"status": bson.M{"$in": []string{models.StatusActive, models.StatusTrial}},
 	})
 	if err != nil {
-		return 0
+		return nil
 	}
 	var tenants []models.Tenant
 	if err := cur.All(ctx, &tenants); err != nil {
-		return 0
+		return nil
 	}
-	down := 0
+	var down []string
 	for _, t := range tenants {
 		st, err := h.Docker.Status(ctx, t.Slug)
 		if err != nil || st.Status != "running" {
-			down++
+			down = append(down, t.Slug)
 		}
 	}
 	return down
+}
+
+// statusDown is which tenants the previous sample found down.
+//
+// ⚠️ **In memory, and that is enough.** One control plane samples, once a
+// minute, from one goroutine; after a restart the first sample has nothing to
+// compare with and counts nobody — which errs towards a missed minute, never
+// towards an outage that did not happen.
+var statusDown struct {
+	sync.Mutex
+	prev map[string]bool
+}
+
+func (h *Handler) confirmDown(now []string) int {
+	statusDown.Lock()
+	defer statusDown.Unlock()
+	n, next := confirmedDown(statusDown.prev, now)
+	statusDown.prev = next
+	return n
+}
+
+// confirmedDown counts the tenants down now that were also down last time, and
+// returns the set to remember for the next sample.
+func confirmedDown(prev map[string]bool, now []string) (int, map[string]bool) {
+	next := make(map[string]bool, len(now))
+	n := 0
+	for _, slug := range now {
+		next[slug] = true
+		if prev[slug] {
+			n++
+		}
+	}
+	return n, next
 }
 
 // StatusPage is what keel.uz/status renders. Public, and deliberately so: a

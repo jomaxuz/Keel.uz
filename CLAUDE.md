@@ -844,6 +844,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Yangi install: nomi, namuna menyu | Birinchi profil: yangi install o'zini nima deb ataydi · Namuna menyu |
 | Restoranning o'z ilovasi, brendlash, build | Restoranning o'z ilovasi: bitta kod bazasi, har restoranga bitta build |
 | Uzum Tezkor, marketplace buyurtmasi | Uzum Tezkor: marketplace buyurtmani o'zi yuboradi |
+| Status sahifasi, uptime, rang | Status sahifasi: rang va qisqa uzilishlar |
 | Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
 
 ### Qo'shni hujjatlar

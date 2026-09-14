@@ -218,6 +218,7 @@ export const uz = {
     last90d: "So'nggi 90 kun",
     legendOk: "ishladi",
     legendBad: "nosozlik",
+    legendPartial: "qisman",
     legendNone: "ma'lumot yo'q",
     method:
       "Har daqiqada avtomatik tekshiruv: boshqaruv xizmatining bazasi va mijoz konteynerlari ishlab turibdimi. Natijalar soatlik guruhlanadi. Bu — o'z-o'zini tekshiruv: agar butun server o'chsa, o'sha davr \"ma'lumot yo'q\" bo'lib qoladi, yashil emas.",
@@ -1498,6 +1499,7 @@ export const ru: Dict = {
     last90d: "Последние 90 дней",
     legendOk: "работало",
     legendBad: "сбой",
+    legendPartial: "частично",
     legendNone: "нет данных",
     method:
       "Автоматическая проверка каждую минуту: база управляющего сервиса и контейнеры клиентов. Результаты группируются по часам. Это самопроверка: если сервер выключен целиком, тот период останется «нет данных», а не зелёным.",
@@ -2730,6 +2732,7 @@ export const en: Dict = {
     last90d: "Last 90 days",
     legendOk: "working",
     legendBad: "failure",
+    legendPartial: "partial",
     legendNone: "no data",
     method:
       'An automatic check every minute: the control service\'s database and the customer containers. Results are grouped by hour. It is a self-check: if the whole server is off, that period stays "no data" rather than turning green.',

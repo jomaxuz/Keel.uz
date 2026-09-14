@@ -8,10 +8,11 @@
 // So everything here is measured. The control plane samples itself once a
 // minute — its own database, and whether the customer containers it believes
 // should be running actually are — and those samples are what is drawn.
-// Three states, not two:
+// Four states:
 //
-//   • **passed** — every sample in that hour was fine
-//   • **failed** — at least one was not, and the hour carries the reason
+//   • **passed** — every sample in that period was fine
+//   • **partial** — some were not, but at least half were
+//   • **failed** — fewer than half passed; the hour carries the reason
 //   • **no data** — nothing was measured; drawn as a gap, never as green and
 //     never as red. A page that paints ignorance either colour is one nobody
 //     believes the second time.
@@ -177,6 +178,7 @@ function Panel({
         <p className="text-sm font-semibold text-ink">{title}</p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
           <Key className="bg-emerald-500" label={legend.status.legendOk} />
+          <Key className="bg-amber-400" label={legend.status.legendPartial} />
           <Key className="bg-rose-500" label={legend.status.legendBad} />
           <Key className="bg-line-strong" label={legend.status.legendNone} />
         </div>
@@ -204,14 +206,22 @@ function Axis({ left, right }: { left: string; right: string }) {
   );
 }
 
-/** Three states, and the third is not a shade of the other two. */
+// The share of samples that must pass for a period to be "partial" rather than
+// "failed".
+//
+// ⚠️ **Red is kept for periods that were down more than they were up.** It used
+// to be any failed sample at all, and one minute out of 1,440 painted a whole
+// day the same red as the day of a real outage — nine of the ten red days on
+// the 90-day strip were 99.65–99.93%, and a reader could not find the one that
+// was 96%. A partial period is still not green: something did fail, and the
+// colour says so without saying "down".
+const PARTIAL_FROM = 0.5;
+
+/** Four states, and "no data" is not a shade of the other three. */
 function barClass(checks: number, ok: number, seen: boolean): string {
   if (!seen || checks === 0) return "bg-line-strong/60";
   if (ok === checks) return "bg-emerald-500";
-  // A partial hour is still a failed hour: somebody's order did not go
-  // through. Drawn at full strength rather than as a paler red, which would
-  // read as "nearly fine".
-  return "bg-rose-500";
+  return ok / checks >= PARTIAL_FROM ? "bg-amber-400" : "bg-rose-500";
 }
 
 function hourTitle(h: StatusHour, t: Awaited<ReturnType<typeof getT>>): string {

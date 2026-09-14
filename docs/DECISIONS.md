@@ -4998,6 +4998,35 @@ integratsiyasi deyarli shu kontrakt bo'ladi.
   control yo'naltirishi kerak bo'ladi; hozirgi yozuv har restoranning **o'z
   domeni** bilan ishlaydi.
 
+### Status sahifasi: rang va qisqa uzilishlar (`keel.uz/status`)
+
+Control har daqiqada o'zini tekshiradi (o'z bazasiga ping + ishlashi kerak
+bo'lgan har tenant konteyneri) va natijani soatlik bucketga yig'adi
+(`control/internal/handlers/status.go`).
+
+- ⚠️ **Qizil — faqat 50% dan past** (2026-09-14). Ilgari bitta muvaffaqiyatsiz
+  daqiqa ham butun kunni to'liq qizil qilardi: 90 kunlik chiziqdagi 10 qizil
+  kundan 9 tasi 99.65–99.93% edi (1–5 daqiqa), va o'quvchi haqiqiy uzilish
+  bo'lgan 96% lik kunni ulardan ajrata olmasdi. Endi to'rt holat: **100% —
+  yashil**, **≥50% — sariq "qisman"**, **<50% — qizil**, **ma'lumot yo'q —
+  bo'shliq**. Qisman davr yashil **emas** — nimadir yiqilgan, va rang buni
+  "ishlamadi" demasdan aytadi. Soat va kun chizig'i bir qoidada
+  (`PARTIAL_FROM`).
+- ⚠️ **Konteyner ketma-ket ikki tekshiruvda ishlamasa sanaladi**
+  (`confirmedDown`, testi bor). Deploy va rollout konteynerni bir necha
+  soniyada qayta yaratadi; shu soniyalarga tushgan bitta tekshiruv butun
+  daqiqani uzilish qilib yozardi. Qolib ketgan konteyner **ikkinchi
+  daqiqasidan** boshlab sanaladi, faqat almashtirilgani — hech qachon. Deploy
+  haqida hech narsa bilish shart emas: qoida CI deploy'ga ham, control
+  rollout'iga ham, qo'lda `docker restart` ga ham bir xil ishlaydi.
+- ⚠️ **Baza tekshiruvi darhol qoladi**: o'z bazasiga yeta olmagan control
+  deploy bo'lsa ham hamma uchun ishlamayapti.
+- Oldingi natija **xotirada** (bitta control, bitta goroutine): restartdan
+  keyingi birinchi tekshiruv hech kimni sanamaydi — ya'ni xato bo'lsa, o'tkazib
+  yuborilgan daqiqa tomonga, yo'q uzilish tomonga emas.
+- ⚠️ Eski bucketlar **qayta hisoblanmaydi** — 31.08–08.09 dagi 1–5 daqiqalik
+  kunlar endi sariq bo'lib ko'rinadi, lekin raqamlari o'sha qoladi.
+
 ### Tashrif hisobi (`visit`)
 - `POST /visit` — sayt sahifasidan otiladigan mayoq. Restoran paneli nechta
   **buyurtma** kelganini aytardi-yu, nechta odam **qaraganini** aytmasdi — bu

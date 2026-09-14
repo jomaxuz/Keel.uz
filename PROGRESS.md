@@ -14734,3 +14734,21 @@ qobig'i: layout faqat tabni yashirardi, sahifani emas.
 - `consoleAccess.test.ts`: agent / admin / support / owner jadvali, so'z
   prefiksi, uyga yo'naltirish har rol ochadigan sahifaga tushishi, va
   `app/console` dagi **har papka** xaritada borligi.
+
+## 2026-09-14 (6) — Status sahifasi: 99.93% lik kun qizil edi
+
+keel.uz/status da 90 kunlik chiziqning 10 qizil kunidan 9 tasi 99.65–99.93%
+(1–5 muvaffaqiyatsiz daqiqa) edi — bitta daqiqa butun kunni to'liq qizil
+qilardi, va 96.40% lik haqiqiy uzilish (07.08) ulardan ajralmasdi.
+
+1. **Ranglar**: 100% — yashil, ≥50% — sariq "qisman", <50% — qizil, ma'lumot
+   yo'q — bo'shliq. Soat va kun chizig'i bir qoidada, legendada "qisman" uch
+   tilda.
+2. **Qisqa uzilish**: tenant konteyneri faqat **ketma-ket ikki tekshiruvda**
+   ishlamasa uzilish (`confirmedDown`). Deploy/rollout konteynerni soniyalarda
+   qayta yaratadi va endi uzilish bo'lib yozilmaydi; qolib ketgan konteyner
+   ikkinchi daqiqasidan sanaladi. Baza ping'i darhol qoladi.
+
+Tekshiruv: control `go build` + `go vet` + `go test ./internal/handlers`
+(yangi `status_test.go`), keel-site `tsc` + 22 test yashil. ⚠️ Eski bucketlar
+qayta hisoblanmaydi — o'sha kunlar sariq ko'rinadi, foizi o'sha.
