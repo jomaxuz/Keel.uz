@@ -1,6 +1,7 @@
 package uz.keel.owner.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -43,6 +45,7 @@ import uz.keel.owner.data.AdminAlerts
 import uz.keel.owner.data.ApiError
 import uz.keel.owner.data.KeelApi
 import uz.keel.owner.data.LossAlert
+import uz.keel.owner.data.opensCheck
 import uz.keel.owner.i18n.timeAgo
 import uz.keel.owner.t
 
@@ -61,7 +64,7 @@ import uz.keel.owner.t
 // day it was right.
 
 @Composable
-fun AlertsScreen(api: KeelApi, bottomInset: PaddingValues) {
+fun AlertsScreen(api: KeelApi, bottomInset: PaddingValues, onOpenCheck: (String) -> Unit) {
     val c = KeelTheme.colors
     val scope = rememberCoroutineScope()
     var alerts by remember { mutableStateOf<AdminAlerts?>(null) }
@@ -151,7 +154,7 @@ fun AlertsScreen(api: KeelApi, bottomInset: PaddingValues) {
                     style = MaterialTheme.typography.titleMedium, color = c.ink,
                     modifier = Modifier.padding(top = 8.dp),
                 )
-                losses.forEach { LossRow(it) }
+                losses.forEach { l -> LossRow(l) { onOpenCheck(l.refId) } }
             } else if (a != null && queue.isNotEmpty()) {
                 Text(
                     t.alerts.lossEmpty,
@@ -167,12 +170,19 @@ fun AlertsScreen(api: KeelApi, bottomInset: PaddingValues) {
  *
  *  ⚠️ **The amount, the person and the reason, and no verdict.** "Who" is here
  *  because an owner's next move is a conversation, not a screen — and the reason
- *  is here because most of the time it is the answer. */
+ *  is here because most of the time it is the answer.
+ *
+ *  ⚠️ **Tappable only when it is about a sale.** The same `refId` names a cash
+ *  shift or a dish for other kinds, and opening those as a check is a "not
+ *  found" on the row the owner was most worried about. */
 @Composable
-private fun LossRow(l: LossAlert) {
+private fun LossRow(l: LossAlert, onOpen: () -> Unit) {
     val c = KeelTheme.colors
+    val opens = l.opensCheck()
     Column(
-        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(18.dp)).padding(14.dp),
+        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(18.dp))
+            .then(if (opens) Modifier.clickable(onClick = onOpen) else Modifier)
+            .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -191,10 +201,20 @@ private fun LossRow(l: LossAlert) {
         }
         val who = l.by ?: ""
         val when_ = timeAgo(l.at, t.common.timeAgo)
-        Text(
-            listOfNotNull(who.takeIf { it.isNotEmpty() }, when_).joinToString(" · "),
-            style = MaterialTheme.typography.labelMedium, color = c.muted,
-        )
+        // ⚠️ The check number and the table: "6-stol" alone names a table that
+        // has had nine checks today.
+        val where = t.alerts.checkRef(l.number, l.table)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                listOfNotNull(who.takeIf { it.isNotEmpty() }, where.takeIf { it.isNotEmpty() }, when_)
+                    .joinToString(" · "),
+                Modifier.weight(1f),
+                style = MaterialTheme.typography.labelMedium, color = c.muted,
+            )
+            if (opens) {
+                Icon(Icons.Rounded.ChevronRight, null, tint = c.muted, modifier = Modifier.size(18.dp))
+            }
+        }
         l.subject?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
         }

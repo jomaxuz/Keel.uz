@@ -14606,3 +14606,26 @@ Backend `go build` + `go test ./internal/...` yashil, frontend `tsc` + 268 test
 yashil, `GOOS=windows go build ./desktop/...` o'tdi. Qarorlar
 `docs/DECISIONS.md` → «Brend va filial», «Kassa ekranlari ro'yxati: limit va
 qaysi mashina», «tez bosganda qotib qolish», «AI yordamchi» bo'limlarida.
+
+## 2026-09-14 — Owner ilovasi: chek tafsiloti va «Pul qayerda»
+
+Ikkala backend endpointi ham tayyor edi (`/admin/checks/{id}`, `/admin/money`),
+ilovada esa ularga yo'l yo'q edi. Server tomoni o'zgarmadi.
+
+**1. Diqqat → hodisa → chek.** README'ning o'zidagi savol — «oltinchi stoldan
+nega 400 000 yechilgan» — endi telefonda javob topadi: qatorlar, olib tashlangan
+taom (o'z joyida, ustidan chizilgan, kim, qachon, sabab, hisob ko'rsatilgandan
+keyinmi, isrofmi), chegirma (kim qo'ydi, kim tasdiqladi), xizmat haqi, qaytarish,
+fiskal xato. Hodisa qatorida endi chek raqami va stol ham yoziladi.
+- ⚠️ Faqat `void_after_precheck`, `big_discount`, `check_cancelled` bosiladi:
+  boshqa turlarda `refId` smena yoki taom id'si.
+- ⚠️ Chek so'rovi filial linzasisiz — hodisalar ro'yxati ham linzasiz.
+
+**2. Hisobot → «Pul qayerda».** Naqd / bankda / yo'lda, uchta alohida jami,
+har qator «sanalgan» yoki «hujjatlardan yig'ilgan», bir haftadan eski sanoq
+sariq. Limitdan oshgan naqd ogohlantirishi. Bank qoldig'i telefondan yoziladi
+(bugungi sana bilan); inkassatsiya va limit panelda qoldi.
+
+Navigatsiya: `help: Boolean` → `Overlay` (Help / Money / Check). `WireShapeTest`
+ga Go struct teglaridan uchta shakl + vaqt parse testi; 15 test yashil,
+`assembleDebug` o'tdi. ⏳ Telefonda sinalmagan.

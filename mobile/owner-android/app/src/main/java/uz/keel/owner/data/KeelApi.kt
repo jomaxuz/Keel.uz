@@ -189,6 +189,29 @@ class KeelApi(private val tokens: TokenStore) {
 
     suspend fun lossAlerts(): LossAlerts = call("/admin/alerts/loss")
 
+    /** One sale, voided lines included.
+     *
+     *  ⚠️ **No branch lens**, because the loss list it is opened from has none:
+     *  an alert from Yunusobod read while the lens says Chilonzor would be a
+     *  404 on the one tap this screen exists for. The server still scopes it to
+     *  what the account may see. */
+    suspend fun check(id: String): CheckDetail = call("/admin/checks/$id")
+
+    // ---- Where the money is ----
+
+    suspend fun money(branchId: String): MoneyPosition = call("/admin/money" + scope(branchId))
+
+    /** A bank balance read off the bank's own app, as of today.
+     *
+     *  ⚠️ **A new row every time on the server**, never an edit: the figure is
+     *  worth something only with the date it was true on. */
+    suspend fun saveBankBalance(branchId: String, account: String, amount: Long, day: String): JsonObject =
+        call("/admin/money/bank" + scope(branchId), HttpMethod.Post, buildJsonObject {
+            put("account", JsonPrimitive(account))
+            put("amount", JsonPrimitive(amount))
+            put("at", JsonPrimitive(day))
+        })
+
     // ---- Orders ----
 
     suspend fun orders(status: String = "", limit: Int = 50, branchId: String = ""): List<Order> {

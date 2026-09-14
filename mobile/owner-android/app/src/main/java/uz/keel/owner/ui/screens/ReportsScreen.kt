@@ -1,5 +1,6 @@
 package uz.keel.owner.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +65,7 @@ private fun rangeFor(span: Span): Pair<String, String> {
 }
 
 @Composable
-fun ReportsScreen(api: KeelApi, bottomInset: PaddingValues) {
+fun ReportsScreen(api: KeelApi, bottomInset: PaddingValues, onOpenMoney: () -> Unit) {
     val c = KeelTheme.colors
     val prefs = LocalPrefs.current
     val branchId = prefs.branch.value
@@ -106,6 +111,23 @@ fun ReportsScreen(api: KeelApi, bottomInset: PaddingValues) {
                 .padding(bottom = bottomInset.calculateBottomPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // ⚠️ **Above the period, and outside it.** Where the money is has no
+            // "this week": it is a position right now, and a row that changed
+            // with the chips would suggest the safe was emptier last month.
+            Row(
+                Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp))
+                    .clickable(onClick = onOpenMoney).padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(Icons.Rounded.AccountBalanceWallet, null, tint = c.accent)
+                Column(Modifier.weight(1f)) {
+                    Text(t.money.title, style = MaterialTheme.typography.titleMedium, color = c.ink)
+                    Text(t.money.entryHint, style = MaterialTheme.typography.labelMedium, color = c.muted)
+                }
+                Icon(Icons.Rounded.ChevronRight, null, tint = c.muted)
+            }
+
             if (stats == null && error.isEmpty()) {
                 Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) {
                     CircularProgressIndicator(color = c.accent)

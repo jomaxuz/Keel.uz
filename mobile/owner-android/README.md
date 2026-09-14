@@ -31,6 +31,35 @@ Shundan kelib chiqadi: ekran qo'shishdan oldin savol «bu panelda bormi?» emas,
 | **Hisobotlar** | Davr bo'yicha raqamlar. |
 | **Sozlamalar** | Til, tema, filial, bildirishnoma holati, chiqish. Yordam chati shu yerdan. |
 
+Tab ustida ochiladigan ekranlar (bitta daraja, `MainActivity` → `Overlay`):
+
+| Ekran | Qayerdan | Nima uchun |
+|---|---|---|
+| **Chek** | Diqqat → pul bilan bog'liq hodisa | «Oltinchi stoldan nega 400 000 yechilgan» — qatorlar, kim olib tashlagani, chegirmani kim qo'ygani va kim tasdiqlagani, qaytarish. |
+| **Pul qayerda** | Hisobot → yuqoridagi qator | Naqd / bankda / yo'lda — uchta jami, **hech qachon bitta**. Bank qoldig'i shu yerdan yoziladi. |
+| **Yordam** | Sozlamalar | Bilim bazasi va chat. |
+
+⚠️ **Hodisani faqat `kind` sotuv haqida bo'lsa ochish mumkin** (`opensCheck`):
+`refId` kamomadda kassa smenasini, texkartada taomni bildiradi. Faqat id bor-yo'qligiga
+qarash ega eng xavotirlangan qatorni «topilmadi» bilan ochardi. Bo'sh id esa
+`"000…0"` bo'lib keladi — `hasId()`.
+
+⚠️ **Chekda olib tashlangan qatorlar o'z joyida, ustidan chizilgan holda turadi.**
+Iz qoldirmaydigan void — restorandan pul olib chiqishning eng eski usuli.
+Qaytarish va qayta chop etish tugmasi **yo'q**: ikkalasi ham ega turmagan binoda
+pul yoki qog'oz qimirlatadi.
+
+⚠️ **Pul qayerda: telefondan faqat bank qoldig'i yoziladi**, chunki uni aynan
+telefonda — bank ilovasida — o'qiydi. Inkassatsiya sumka qo'lda turganda kassada
+imzolanadi, limit esa shartnomadan bir marta kiritiladi — ikkalasi panelda.
+Server joylarning birinchi to'rttasini o'zbekcha nomlaydi, ilova ularni `kind`
+bo'yicha o'z tilida yozadi.
+
+⚠️ **Vaqt `OffsetDateTime` bilan o'qiladi** (`localTime`): chek endpointi vaqtni
+`+05:00` bilan yuboradi, Mongo'dan to'g'ridan-to'g'ri kelgani `Z` bilan. Eski
+Android'dagi `Instant.parse` birinchisini qabul qilmaydi, va o'qilmagan vaqt xato
+emas — bo'sh joy.
+
 ⚠️ **Filiallar sessiya bilan olinadi**, har ekranda emas: linza to'rtta ekran
 ustida turadi, va menejerni (serverda bitta filialga qisqartiriladi) boshqasini
 tanlay oladigandek ko'rsatadigan tanlagich yolg'on bo'lardi.
@@ -80,7 +109,7 @@ ularsiz uchalasi bir xil «Ro'yxatdan o'tmadi» bo'lib ko'rinadi.
 ```bash
 export ANDROID_HOME=$HOME/Android/Sdk
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-./gradlew :app:testDebugUnitTest      # wire shakli + yordam saralashi (11 ta)
+./gradlew :app:testDebugUnitTest      # wire shakli + yordam saralashi (15 ta)
 ./gradlew :app:assembleDebug
 $ANDROID_HOME/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```

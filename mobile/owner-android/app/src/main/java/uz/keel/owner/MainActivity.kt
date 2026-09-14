@@ -55,8 +55,10 @@ import uz.keel.design.NoticeHost
 import uz.keel.design.TabItem
 import uz.keel.owner.push.rememberPushRegistration
 import uz.keel.owner.ui.screens.AlertsScreen
+import uz.keel.owner.ui.screens.CheckScreen
 import uz.keel.owner.ui.screens.FeedbackScreen
 import uz.keel.owner.ui.screens.LoginScreen
+import uz.keel.owner.ui.screens.MoneyScreen
 import uz.keel.owner.ui.screens.OfflineScreen
 import uz.keel.owner.ui.screens.OrdersScreen
 import uz.keel.owner.ui.screens.ReportsScreen
@@ -73,9 +75,10 @@ import uz.keel.owner.ui.screens.TodayScreen
 // asked for right now, accept this order, why was 400 000 taken off table six.
 // Every screen here answers one of those in three seconds.
 //
-// ⚠️ **One level of navigation, held here, rather than a router.** Help is the
-// only place a tab leads to, and the phone's back button has nothing else to
-// mean. A navigation library at this size is a dependency carrying one decision.
+// ⚠️ **One level of navigation, held here, rather than a router.** A tab leads
+// to at most one screen over it (help, a check, where the money is), and the
+// phone's back button has nothing else to mean. A navigation library at this
+// size is a dependency carrying one decision.
 
 class MainActivity : ComponentActivity() {
 
@@ -150,7 +153,7 @@ private fun Root(app: KeelOwnerApp, pendingTab: String?, onConsumed: () -> Unit)
     val ready = session as? Session.Ready
 
     var tab by remember { mutableStateOf("today") }
-    var help by remember { mutableStateOf(false) }
+    var overlay by remember { mutableStateOf<Overlay?>(null) }
 
     val push = rememberPushRegistration(app.api, ready != null, app.prefs.lang.value.code)
 
@@ -160,12 +163,14 @@ private fun Root(app: KeelOwnerApp, pendingTab: String?, onConsumed: () -> Unit)
         val to = pendingTab ?: return@LaunchedEffect
         if (ready == null) return@LaunchedEffect
         tab = to
+        overlay = null
         onConsumed()
     }
 
-    // ⚠️ Only while help is open, so back from a tab still leaves the app — an
-    // owner who cannot put their phone away is an owner fighting it.
-    BackHandler(enabled = help) { help = false }
+    // ⚠️ Only while something is open over a tab, so back from a tab still
+    // leaves the app — an owner who cannot put their phone away is an owner
+    // fighting it.
+    BackHandler(enabled = overlay != null) { overlay = null }
 
     val bottomInset = WindowInsets.navigationBars.asPaddingValues()
     // ⚠️ The bar's own height *plus* the system's strip: the bar applies the
@@ -175,7 +180,7 @@ private fun Root(app: KeelOwnerApp, pendingTab: String?, onConsumed: () -> Unit)
 
     Box(Modifier.fillMaxSize()) {
         AnimatedContent(
-            targetState = Triple(session::class, tab, help),
+            targetState = Triple(session::class, tab, overlay),
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "root",
         ) { _ ->
@@ -199,17 +204,22 @@ private fun Root(app: KeelOwnerApp, pendingTab: String?, onConsumed: () -> Unit)
                 )
 
                 is Session.Ready -> {
-                    if (help) {
-                        SupportScreen(app.api, bottomInset) { help = false }
+                    val over = overlay
+                    if (over != null) {
+                        when (over) {
+                            Overlay.Help -> SupportScreen(app.api, bottomInset) { overlay = null }
+                            Overlay.Money -> MoneyScreen(app.api, bottomInset) { overlay = null }
+                            is Overlay.Check -> CheckScreen(app.api, over.id, bottomInset) { overlay = null }
+                        }
                     } else {
                         Column(Modifier.fillMaxSize()) {
                             Box(Modifier.weight(1f)) {
                                 when (tab) {
                                     "today" -> TodayScreen(app.api, s.branches, tabsInset)
-                                    "alerts" -> AlertsScreen(app.api, tabsInset)
+                                    "alerts" -> AlertsScreen(app.api, tabsInset) { overlay = Overlay.Check(it) }
                                     "orders" -> OrdersScreen(app.api, tabsInset)
                                     "feedback" -> FeedbackScreen(app.api, tabsInset)
-                                    "reports" -> ReportsScreen(app.api, tabsInset)
+                                    "reports" -> ReportsScreen(app.api, tabsInset) { overlay = Overlay.Money }
                                     else -> SettingsScreen(
                                         api = app.api,
                                         user = s.user,
@@ -221,7 +231,7 @@ private fun Root(app: KeelOwnerApp, pendingTab: String?, onConsumed: () -> Unit)
                                         pushState = push.state,
                                         pushDetail = push.detail,
                                         onRetryPush = push.retry,
-                                        onOpenHelp = { help = true },
+                                        onOpenHelp = { overlay = Overlay.Help },
                                         // ⚠️ The phone is dropped **before** the
                                         // token is cleared, or the request goes
                                         // out unauthenticated and the row stays
@@ -243,7 +253,7 @@ private fun Root(app: KeelOwnerApp, pendingTab: String?, onConsumed: () -> Unit)
         }
 
         // The bar belongs to the tabs, not to a screen you came *into*.
-        if (ready != null && !help) {
+        if (ready != null && overlay == null) {
             GlassTabBar(
                 items = listOf(
                     TabItem("today", Icons.Rounded.Today, t.tabs.today),
@@ -259,4 +269,11 @@ private fun Root(app: KeelOwnerApp, pendingTab: String?, onConsumed: () -> Unit)
             )
         }
     }
+}
+
+/** What sits over the tabs, when anything does. */
+private sealed interface Overlay {
+    data object Help : Overlay
+    data object Money : Overlay
+    data class Check(val id: String) : Overlay
 }

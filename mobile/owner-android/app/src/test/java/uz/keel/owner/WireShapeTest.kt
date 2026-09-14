@@ -2,10 +2,18 @@ package uz.keel.owner
 
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import uz.keel.owner.data.AdminStats
+import uz.keel.owner.data.CheckDetail
+import uz.keel.owner.data.LossAlerts
+import uz.keel.owner.data.MoneyPosition
 import uz.keel.owner.data.Order
 import uz.keel.owner.data.ShoppingList
+import uz.keel.owner.data.opensCheck
 
 // The models, fed the shape the server actually sends.
 //
@@ -103,5 +111,106 @@ class WireShapeTest {
         )
         assertEquals("7", orders[0].tableNumber)
         assertEquals("", orders[0].address.text)
+    }
+
+    /** `models.LossAlert`. ⚠️ The same `refId` names a sale or a cash shift, and
+     *  an unset one arrives as Go's zero ObjectID — non-empty. */
+    @Test
+    fun `only an alert about a sale opens a check`() {
+        val list = json.decodeFromString<LossAlerts>(
+            """
+            {"alerts":[
+              {"id":"a1","kind":"void_after_precheck","at":"2026-09-05T14:05:00Z",
+               "by":"Aziz","amount":64000,"reason":"mehmon voz kechdi","subject":"Lag'mon",
+               "refId":"66d9a1b2c3d4e5f601234567","number":"A-104","table":"6",
+               "afterPrecheck":true},
+              {"id":"a2","kind":"cash_short","at":"2026-09-05T23:10:00Z","by":"Dilnoza",
+               "amount":30000,"refId":"66d9a1b2c3d4e5f607654321"},
+              {"id":"a3","kind":"big_discount","at":"2026-09-05T20:00:00Z","amount":90000,
+               "refId":"000000000000000000000000"}
+            ]}
+            """.trimIndent(),
+        )
+        assertEquals("A-104", list.alerts[0].number)
+        assertEquals("6", list.alerts[0].table)
+        assertTrue(list.alerts[0].afterPrecheck)
+        assertTrue(list.alerts[0].opensCheck())
+        assertFalse(list.alerts[1].opensCheck())
+        assertFalse(list.alerts[2].opensCheck())
+    }
+
+    /** `handlers/adminchecks.go` → `checkDetail` (embeds `checkRow`). Times are
+     *  moved into the restaurant's zone before sending, hence the offsets. */
+    @Test
+    fun `a check keeps its voided line and who took it off`() {
+        val k = json.decodeFromString<CheckDetail>(
+            """
+            {"id":"66d9a1b2c3d4e5f601234567","number":"A-104","table":"6","guests":3,
+             "server":"Aziz","closedBy":"Dilnoza",
+             "openedAt":"2026-09-05T18:30:00+05:00","closedAt":"2026-09-05T20:15:00+05:00",
+             "items":3,"subtotal":160000,"discount":16000,"service":14400,"servicePercent":10,
+             "total":158400,"paymentMethod":"cash","open":false,
+             "lines":[
+               {"name":"Lag'mon","qty":2,"price":32000,"sum":64000,
+                "options":[{"name":"Hajmi","choice":"Katta","priceDelta":5000}],
+                "firedAt":"2026-09-05T18:35:00+05:00"},
+               {"name":"Shashlik","qty":2,"price":48000,"sum":0,
+                "voidedBy":"Aziz","voidReason":"mehmon voz kechdi",
+                "voidedAt":"2026-09-05T19:50:00+05:00","wasted":true}
+             ],
+             "discounts":[{"name":"Tanish","kind":"percent","trigger":"manual","amount":16000,
+                           "by":"Aziz","authBy":"Dilnoza","reason":"doimiy mehmon"}],
+             "openedBy":"Aziz","precheckAt":"2026-09-05T19:40:00+05:00",
+             "refund":{"at":"2026-09-05T21:00:00+05:00","by":"Dilnoza","reason":"sovuq",
+                       "amount":20000,"method":"cash"},
+             "fiscalSign":"123456789012"}
+            """.trimIndent(),
+        )
+        assertEquals(2, k.lines.size)
+        assertFalse(k.lines[0].voided)
+        assertEquals("Katta", k.lines[0].options[0].choice)
+        assertTrue(k.lines[1].voided)
+        assertEquals(0.0, k.lines[1].sum, 0.0)
+        assertEquals(48000.0, k.lines[1].price, 0.0)
+        assertEquals("Dilnoza", k.discounts[0].authBy)
+        assertEquals(20000.0, k.refund!!.amount, 0.0)
+        assertEquals(158400.0, k.total, 0.0)
+        assertEquals(10, k.servicePercent)
+    }
+
+    /** `models.MoneyPosition` as `/admin/money` returns it. */
+    @Test
+    fun `money comes back as three totals and says what was counted`() {
+        val m = json.decodeFromString<MoneyPosition>(
+            """
+            {"cash":[{"kind":"safe","name":"Seyf","amount":-50000,"at":"2026-09-05T10:00:00Z"},
+                     {"kind":"drawer","name":"Kassa yashigi","amount":1250000,"note":"Dilnoza",
+                      "at":"2026-09-05T09:00:00Z"}],
+             "bank":[{"kind":"bank","name":"Kapitalbank","amount":42000000,"counted":true,
+                      "at":"2026-09-01T00:00:00Z"}],
+             "rails":[{"kind":"rail","name":"Uzum Tezkor","amount":3100000,"note":"2026-08-31"}],
+             "cashTotal":1200000,"bankTotal":42000000,"railsTotal":3100000,
+             "cashLimit":1000000,"overLimit":true,"branchId":"66d9a1b2c3d4e5f601234500"}
+            """.trimIndent(),
+        )
+        assertEquals(-50000.0, m.cash[0].amount, 0.0)
+        assertEquals("Dilnoza", m.cash[1].note)
+        assertTrue(m.bank[0].counted)
+        assertEquals("2026-08-31", m.rails[0].note)
+        assertEquals(1200000.0, m.cashTotal, 0.0)
+        assertEquals(1000000.0, m.cashLimit, 0.0)
+        assertTrue(m.overLimit)
+    }
+
+    /** ⚠️ Both shapes a time arrives in: `Z` from Mongo, `+05:00` from a handler
+     *  that moved it into local time first. A failed parse is a blank, silently. */
+    @Test
+    fun `times parse with and without an offset`() {
+        val z = uz.keel.owner.ui.screens.localTime("2026-09-05T14:05:00Z")
+        val off = uz.keel.owner.ui.screens.localTime("2026-09-05T19:05:00+05:00")
+        assertNotNull(z)
+        assertNotNull(off)
+        assertEquals(z!!.toInstant(), off!!.toInstant())
+        assertNull(uz.keel.owner.ui.screens.localTime(""))
     }
 }

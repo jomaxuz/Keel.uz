@@ -132,10 +132,132 @@ data class LossAlert(
     val amount: Double = 0.0,
     val reason: String? = null,
     val subject: String? = null,
+    /** The document it came from. ⚠️ **Which document depends on `kind`**: a
+     *  sale for a void or a discount, a cash shift for a short drawer, a dish for
+     *  a raised recipe. The id alone does not say which, so the screen asks the
+     *  kind before it opens anything (`opensCheck`). */
+    val refId: String = "",
+    val number: String = "",
+    val table: String = "",
+    val afterPrecheck: Boolean = false,
 )
 
 @Serializable
 data class LossAlerts(val alerts: List<LossAlert> = emptyList())
+
+/** A real id, not Go's zero ObjectID. ⚠️ `omitempty` does not drop a
+ *  `[12]byte`, so an unset reference arrives as twenty-four noughts — non-empty,
+ *  and therefore "present" to anything that only checks emptiness. */
+fun hasId(id: String?): Boolean = !id.isNullOrEmpty() && id.any { it != '0' }
+
+/** The kinds whose `refId` is a sale — the only ones a tap can open as a check. */
+private val CHECK_KINDS = setOf("void_after_precheck", "big_discount", "check_cancelled")
+
+fun LossAlert.opensCheck(): Boolean = kind in CHECK_KINDS && hasId(refId)
+
+// ---- One sale, opened (`handlers/adminchecks.go` → `checkDetail`) ----
+
+@Serializable
+data class CheckOption(val name: String = "", val choice: String = "", val priceDelta: Double = 0.0)
+
+@Serializable
+data class CheckLine(
+    val name: String = "",
+    val qty: Int = 0,
+    val price: Double = 0.0,
+    /** Zero for a voided line: it stays on the bill's face, out of its total. */
+    val sum: Double = 0.0,
+    val options: List<CheckOption> = emptyList(),
+    val comment: String = "",
+    val guest: Int = 0,
+    val course: Int = 0,
+    val firedAt: String? = null,
+    val voidedBy: String = "",
+    val voidReason: String = "",
+    val voidedAt: String? = null,
+    val wasted: Boolean = false,
+) {
+    val voided: Boolean get() = voidedAt != null || voidedBy.isNotEmpty()
+}
+
+@Serializable
+data class CheckDiscount(
+    val name: String = "",
+    val amount: Double = 0.0,
+    val code: String = "",
+    val by: String = "",
+    val authBy: String = "",
+    val reason: String = "",
+)
+
+@Serializable
+data class CheckRefund(
+    val at: String? = null,
+    val by: String = "",
+    val reason: String = "",
+    val amount: Double = 0.0,
+    val method: String = "",
+)
+
+@Serializable
+data class CheckDetail(
+    val id: String = "",
+    val number: String = "",
+    val table: String = "",
+    val guests: Int = 0,
+    val server: String = "",
+    val closedBy: String = "",
+    val openedAt: String? = null,
+    val closedAt: String? = null,
+    val items: Int = 0,
+    val subtotal: Double = 0.0,
+    val discount: Double = 0.0,
+    val service: Double = 0.0,
+    val servicePercent: Int = 0,
+    val total: Double = 0.0,
+    val paymentMethod: String = "",
+    val fiscal: String = "",
+    val open: Boolean = false,
+    val cancelled: Boolean = false,
+    val refunded: Boolean = false,
+    val split: Boolean = false,
+    val lines: List<CheckLine> = emptyList(),
+    val discounts: List<CheckDiscount> = emptyList(),
+    val openedBy: String = "",
+    val precheckAt: String? = null,
+    val refund: CheckRefund? = null,
+    val fiscalError: String = "",
+    val fiscalSign: String = "",
+)
+
+// ---- Where the money is (`models/bank.go` → `MoneyPosition`) ----
+
+@Serializable
+data class MoneyPlace(
+    /** "safe" | "drawer" | "courier" | "advance" | "bank" | "rail" */
+    val kind: String = "",
+    /** ⚠️ Uzbek words from the server for the first four kinds; the screen
+     *  names those itself and uses this only for a bank account or a rail. */
+    val name: String = "",
+    val amount: Double = 0.0,
+    val note: String = "",
+    /** Counted (goes stale) or added up from documents (goes wrong). */
+    val counted: Boolean = false,
+    val at: String? = null,
+)
+
+@Serializable
+data class MoneyPosition(
+    val cash: List<MoneyPlace> = emptyList(),
+    val bank: List<MoneyPlace> = emptyList(),
+    val rails: List<MoneyPlace> = emptyList(),
+    val cashTotal: Double = 0.0,
+    val bankTotal: Double = 0.0,
+    val railsTotal: Double = 0.0,
+    val cashLimit: Double = 0.0,
+    val overLimit: Boolean = false,
+    val branchId: String = "",
+)
 
 // ---- Orders ----
 
