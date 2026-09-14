@@ -140,7 +140,9 @@ export default function OrderReceipt({
         <p className="mt-2 text-xs text-ink-muted">
           {t.receipt.paymentLine(
             PAYMENT_LABEL[order.paymentMethod],
-            order.type === "delivery"
+            order.type === "uzum_tezkor"
+              ? t.dashboard.uzumTezkor
+              : order.type === "delivery"
               ? t.receipt.delivery
               : order.type === "dinein"
                 ? t.receipt.tableLine(order.tableNumber ?? "—")

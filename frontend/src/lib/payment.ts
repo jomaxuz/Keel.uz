@@ -1,4 +1,4 @@
-import type { PaymentMethod } from "./types";
+import type { PaymentMethod, OrderPaymentMethod } from "./types";
 
 export const PAYMENT_METHODS: PaymentMethod[] = [
   "cash",
@@ -8,7 +8,7 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
   "atmos",
 ];
 
-export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+export const PAYMENT_LABEL: Record<OrderPaymentMethod, string> = {
   cash: "Naqd",
   payme: "Payme",
   click: "Click",
@@ -17,4 +17,6 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   // label they do not recognise on the button they are about to press is a
   // reason to close the tab.
   atmos: "ATMOS",
+  // Paid to the marketplace, which settles later — see the payouts screen.
+  uzum_tezkor: "Uzum Tezkor",
 };

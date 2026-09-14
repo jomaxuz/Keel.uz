@@ -109,6 +109,9 @@ type Store struct {
 	// part of any public payload) and the transaction ledger.
 	PaymentSettings *mongo.Collection
 	Payments        *mongo.Collection
+	// The credentials Uzum Tezkor calls us with. Its own collection for the
+	// same reason as PaymentSettings — see models/uzumtezkor.go.
+	UzumTezkorSettings *mongo.Collection
 	// The till the restaurant already runs: one connection per branch, and the
 	// map from our dishes to its products.
 	POSSettings *mongo.Collection
@@ -238,8 +241,9 @@ func New(db *mongo.Database) *Store {
 		StaffPayments: db.Collection("staff_payment"),
 		Calls:         db.Collection("call"),
 
-		PaymentSettings: db.Collection("payment_settings"),
-		Payments:        db.Collection("payment"),
+		PaymentSettings:    db.Collection("payment_settings"),
+		Payments:           db.Collection("payment"),
+		UzumTezkorSettings: db.Collection("uzum_tezkor_settings"),
 
 		POSSettings:    db.Collection("pos_settings"),
 		POSMappings:    db.Collection("pos_mapping"),

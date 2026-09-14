@@ -10,13 +10,21 @@ export const FLOW: OrderStatus[] = [
   "delivered",
 ];
 
+// Whether the order leaves the building with a courier — ours or the
+// marketplace's.
+function travels(order: Order): boolean {
+  return order.type === "delivery" || order.type === "uzum_tezkor";
+}
+
 // The status that follows the current one for this order type.
 export function nextStatus(order: Order): OrderStatus | null {
   if (order.status === "delivered" || order.status === "cancelled") return null;
   const i = FLOW.indexOf(order.status);
   if (i < 0) return null;
-  // Pickup orders never go "on the way".
-  if (order.type !== "delivery" && FLOW[i + 1] === "on_the_way") {
+  // Pickup orders never go "on the way". ⚠️ A Uzum Tezkor order does: its
+  // courier collecting the food is the step Uzum reads as TAKEN_BY_COURIER, and
+  // skipping it would jump the marketplace straight from cooking to delivered.
+  if (!travels(order) && FLOW[i + 1] === "on_the_way") {
     return "delivered";
   }
   return FLOW[i + 1] ?? null;
@@ -35,10 +43,16 @@ export function nextActionLabel(
     preparing: string;
     preparingPickup: string;
     on_the_way: string;
+    /** Handing a Uzum Tezkor order to their courier — nobody of ours drives
+     *  it. Falls back to the delivery wording when a caller has none. */
+    uzumHandover?: string;
   },
 ): string | null {
   if (!nextStatus(order)) return null;
-  if (order.status === "preparing" && order.type !== "delivery") {
+  if (order.status === "preparing" && order.type === "uzum_tezkor") {
+    return labels.uzumHandover ?? labels.preparing;
+  }
+  if (order.status === "preparing" && !travels(order)) {
     return labels.preparingPickup;
   }
   switch (order.status) {

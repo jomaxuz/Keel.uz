@@ -27,6 +27,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 	// few times is normal, and only a machine reaches the wall.
 	smsGate := appmw.NewRateLimit(5, time.Minute)
 	authGate := appmw.NewRateLimit(10, time.Minute)
+	// Uzum Tezkor asks for a token before its requests and polls every open
+	// order's status once a minute, all from its own servers — authGate's ten a
+	// minute would lock it out on a busy evening, which is when it matters.
+	tezkorGate := appmw.NewRateLimit(300, time.Minute)
 	// ⚠️ **Loose on purpose, and it is not defending money or CPU.** A screen
 	// that has genuinely broken reports in a burst, and throttling the burst
 	// throws away the reports that describe it. What this stops is one machine
@@ -215,6 +219,25 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// ATMOS asks permission before charging, so this one endpoint decides
 		// whether a real guest's card is debited. See handlers/payatmos.go.
 		r.Post("/payments/atmos", h.AtmosCallback)
+
+		// ---- Uzum Tezkor: the marketplace calls us ----
+		//
+		// They fetch a token, POST each order and poll its status. Authenticated
+		// by their own bearer token (TezkorAuth), not by our sessions. ⚠️ Every
+		// path twice, with and without `/v1`: their docs put `v1` on the menu
+		// calls and not on the order ones, and they store one host for both —
+		// see docs/vendor/uzum-tezkor-retail.md.
+		r.Route("/uzum-tezkor", func(r chi.Router) {
+			r.Use(tezkorGate)
+			for _, p := range []string{"", "/v1"} {
+				r.Post(p+"/security/oauth/token", h.TezkorToken)
+				r.Post(p+"/order", h.TezkorAuth(h.TezkorCreateOrder))
+				r.Get(p+"/order/{orderId}", h.TezkorAuth(h.TezkorGetOrder))
+				r.Put(p+"/order/{orderId}", h.TezkorAuth(h.TezkorUpdateOrder))
+				r.Delete(p+"/order/{orderId}", h.TezkorAuth(h.TezkorCancelOrder))
+				r.Get(p+"/order/{orderId}/status", h.TezkorAuth(h.TezkorOrderStatus))
+			}
+		})
 		// What is on offer today, for the site to advertise. Codes are never
 		// listed — a code nobody was given is a leak, not a promotion.
 		r.With(cache10).Get("/promotions", h.GetPromotions)
@@ -1168,6 +1191,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/orders/quote", h.AdminOrderQuote)
 			r.Get("/admin/orders/{id}", h.AdminGetOrder)
 			r.Put("/admin/orders/{id}/status", h.UpdateOrderStatus)
+			// Uzum Tezkor credentials. Owner only, inside the handlers.
+			r.Get("/admin/uzum-tezkor", h.AdminUzumTezkor)
+			r.Put("/admin/uzum-tezkor", h.AdminUzumTezkorEnable)
+			r.Post("/admin/uzum-tezkor/credentials", h.AdminUzumTezkorCredentials)
 			r.Put("/admin/orders/{id}/courier", h.AdminAssignCourier)
 			r.Put("/admin/orders/{id}/address", h.AdminUpdateOrderAddress)
 

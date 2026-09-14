@@ -14651,3 +14651,42 @@ Branch `console/staff-roles`.
 
 Go `build` + `go test ./internal/...` yashil, keel-site `tsc` + vitest.
 Qarorlar `docs/DECISIONS.md` → «Konsol xodimlari». ⏳ Brauzerda sinalmagan.
+
+## 2026-09-14 (3) — Uzum Tezkor: buyurtma avtomatik restoranga tushadi
+
+Uzum Tezkor hamkor API hujjatini (Notion + OpenAPI `.yml`) berdi. U **bizni
+chaqiradi**: token oladi, buyurtmani `POST /order` qiladi, holatini daqiqada bir
+so'raydi. Yetkazishni doim Uzum kuryeri qiladi. Branch
+`dashboard/uzum-tezkor-orders`.
+
+1. **Endpointlar** (`/api/v1/uzum-tezkor`, har biri `/v1` bilan ham):
+   `security/oauth/token` (OAuth2 client credentials), `order` POST/GET/PUT/
+   DELETE, `order/{id}/status`. Xatolar ularning shaklida
+   (`[{code, description}]`, 401 — `{reason}`).
+2. **Buyurtma** turi `uzum_tezkor`: manzil, yetkazish narxi va bizning kuryer
+   yo'q; `paymentStatus: paid` (pul Uzum'da); narx Uzum sotgani; modifikatsiyalar
+   qator izohida; yarim portsiya rad etiladi; jiringlaydi (`queuedAt`).
+3. **Qayta yuborish** — birinchi buyurtma: `eatsId` bo'yicha unique partial
+   indeks, duplicate-key xatosi o'sha `orderId` ga aylanadi.
+4. **Holat**: `pending→NEW … readyAt→READY … on_the_way→TAKEN_BY_COURIER`;
+   panelda Uzum buyurtmasi "yo'lda" bosqichini tashlab ketmaydi, tugma "Uzum
+   kuryeriga berildi". `GET /order/{id}` kelgan tanani bayt-bayt qaytaradi.
+5. **Bekor qilish** (Uzum `DELETE`) — sabab bilan, ombor qaytadi, egaga push.
+   `PUT` — 422.
+6. **Kalitlar**: Sozlamalar → "Uzum Tezkor" (faqat ega): host, `client_id`,
+   bir marta ko'rsatiladigan secret (serverda faqat SHA-256), filial ID'lari.
+   Yangi secret eski tokenlarni darhol o'ldiradi; o'chirish keyingi so'rovda
+   ta'sir qiladi.
+
+Tekshiruv: `go build`, `go vet`, `go test ./internal/...` yashil (yangi
+`uzumtezkor_test.go`: holat xaritasi, validatsiya, secret, vaqt formati,
+modifikatsiya matni); frontend `tsc` + vitest yashil. **Haqiqiy serverda
+uchidan-uchiga** (vaqtinchalik baza, keyin o'chirildi): noto'g'ri/to'g'ri
+token, buyurtma, o'sha `eatsId` qayta → o'sha `orderId`, yarim portsiya → 400,
+`NEW` → `READY`, GET tanasi aynan kelgani, bekor qilish → `CANCELLED` + izoh,
+`PUT` → 422, soxta token va o'chirilgan integratsiya → 401 — 13 tadan 13.
+
+⏳ **Hali yo'q**: katalog va qoldiq (`nomenclature/{storeId}/composition|
+availability`), perechisleniye API (hujjatda yo'q), Uzum test muhiti, bitta
+host bilan ko'p tenant (control yo'naltirishi). Qarorlar `docs/DECISIONS.md` →
+"Uzum Tezkor".

@@ -123,11 +123,14 @@ var Untranslated = map[string]bool{
 	"fiscal: provider not configured":                true,
 	"fiscal: provider not connected yet":             true,
 	"forbidden":                                      true,
-	"getsms send: %d %s":                             true,
-	"getsms send: %s":                                true,
-	"images: format not resized":                     true,
-	"insert category %s: %s":                         true,
-	"insert items for %s: %s":                        true,
+	// A marketplace's name, used as a notification title: the same word in
+	// every language, so there is nothing to translate.
+	"Uzum Tezkor":                true,
+	"getsms send: %d %s":         true,
+	"getsms send: %s":            true,
+	"images: format not resized": true,
+	"insert category %s: %s":     true,
+	"insert items for %s: %s":    true,
 	// The shop's sample catalogue, written on a tenant's very first boot. Read
 	// in the server log by us, never by a person in a panel.
 	"insert %s: %s":                                 true,

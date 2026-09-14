@@ -24,6 +24,7 @@ import FiscalEditor from "@/components/admin/FiscalEditor";
 import ReceiptEditor from "@/components/admin/ReceiptEditor";
 import AlertSettings from "@/components/admin/AlertSettings";
 import PaymentsEditor from "@/components/admin/PaymentsEditor";
+import UzumTezkorCard from "@/components/admin/UzumTezkorCard";
 import SmsEditor from "@/components/admin/SmsEditor";
 import TelegramEditor from "@/components/admin/TelegramEditor";
 import DataExport from "@/components/admin/DataExport";
@@ -1053,6 +1054,14 @@ export default function AdminSettingsPage() {
         {scope.isOwner && (
           <Section title={t.payments.title} group="money">
             <PaymentsEditor />
+          </Section>
+        )}
+
+        {/* Uzum Tezkor: the marketplace sends its orders straight here. Owner-
+          only for the reason payments are — the secret is the company's. */}
+        {scope.isOwner && (
+          <Section title={t.payments.uzumTitle} group="money">
+            <UzumTezkorCard />
           </Section>
         )}
 

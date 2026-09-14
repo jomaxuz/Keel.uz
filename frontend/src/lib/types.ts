@@ -900,7 +900,7 @@ export interface Order {
   number: string;
   status: OrderStatus;
   customer: OrderCustomer;
-  type: "delivery" | "pickup" | "dinein";
+  type: "delivery" | "pickup" | "dinein" | "uzum_tezkor";
   address: OrderAddress;
   items: OrderItem[];
   subtotal: number;
@@ -912,7 +912,7 @@ export interface Order {
   pointsEarned?: number;
   deliveryFee: number;
   total: number;
-  paymentMethod: PaymentMethod;
+  paymentMethod: OrderPaymentMethod;
   deliveryZone: string;
   distanceKm: number;
   statusHistory?: StatusEvent[] | null;
@@ -922,6 +922,9 @@ export interface Order {
   courierId?: string;
   courierName?: string;
   externalDelivery?: ExternalDelivery | null;
+  /** Set when a marketplace placed the order and its own courier carries it
+   *  (Uzum Tezkor). Absent on every order of our own. */
+  aggregator?: OrderAggregator | null;
   /** The operator who took this order over the phone. Absent when the guest
    *  placed it themselves — which is what makes it worth showing. */
   takenBy?: string;
@@ -961,7 +964,7 @@ export interface OrderTrack {
   tableNumber?: string;
   number: string;
   status: OrderStatus;
-  type: "delivery" | "pickup" | "dinein";
+  type: "delivery" | "pickup" | "dinein" | "uzum_tezkor";
   total: number;
   createdAt: string;
   /** Set on a pre-order: the time the guest asked for. Without it the page
@@ -1283,7 +1286,26 @@ export interface OrderQuote {
   pointsEarn: number;
 }
 
+/** What a marketplace told us about an order it placed. */
+export interface OrderAggregator {
+  /** "uzum_tezkor" */
+  provider: string;
+  /** The marketplace's own order id (Uzum's `eatsId`). */
+  externalId: string;
+  /** When their courier is due at the counter. */
+  courierAt?: string;
+  courierPhone?: string;
+  persons?: number;
+  comment?: string;
+}
+
 export type PaymentMethod = "cash" | "payme" | "click" | "uzum" | "atmos";
+
+// ⚠️ **What an order was paid with, which is wider than what checkout offers.**
+// `uzum_tezkor` is an order the marketplace placed and was paid for there; it
+// is never a choice on the site, so it is not a PaymentMethod — widening that
+// type would put it into every checkout map keyed by it.
+export type OrderPaymentMethod = PaymentMethod | "uzum_tezkor";
 
 // ---- External delivery services ----
 
@@ -2602,7 +2624,7 @@ export interface CallerOrder {
   id: string;
   number: string;
   status: OrderStatus;
-  type: "delivery" | "pickup" | "dinein";
+  type: "delivery" | "pickup" | "dinein" | "uzum_tezkor";
   total: number;
   items: OrderItem[];
   address: OrderAddress;
@@ -2750,6 +2772,19 @@ export interface Payment {
 
 /** Admin view of the credentials. The secrets themselves are never returned —
  *  only whether each one is stored. */
+/** Uzum Tezkor, as the panel sees it. ⚠️ The secret never comes back — only
+ *  whether one exists. */
+export interface UzumTezkorSettings {
+  enabled: boolean;
+  clientId: string;
+  hasSecret: boolean;
+  rotatedAt?: string | null;
+  /** Path the routes are mounted on; the host is this panel's own origin. */
+  basePath: string;
+  /** Every branch and its id — the `restaurantId` Uzum sends each order to. */
+  stores: { id: string; name: string }[];
+}
+
 export interface PaymentSettings {
   returnUrl: string;
   payme: {

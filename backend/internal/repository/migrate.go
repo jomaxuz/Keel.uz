@@ -682,6 +682,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 	// Pre-orders: "what is this branch due to cook next", which is also what
 	// every open panel tab asks every fifteen seconds (AdminAlerts).
 	//
+	// ⚠️ **One marketplace order, one row — enforced, not hoped for.** Uzum
+	// Tezkor resends an order whenever our answer did not reach it, with the
+	// same `eatsId`. A look-up before the insert is a race two retries a second
+	// apart both win; this index turns the second into a duplicate-key error,
+	// which the handler answers with the first order. Partial, because every
+	// order of our own has no marketplace id at all.
+	if _, err := s.Orders.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "aggregator.provider", Value: 1}, {Key: "aggregator.externalId", Value: 1},
+		},
+		Options: options.Index().SetUnique(true).SetPartialFilterExpression(
+			bson.M{"aggregator.externalId": bson.M{"$exists": true}}),
+	}); err != nil {
+		return err
+	}
+
 	// ⚠️ **Partial, not sparse.** A sparse compound index would buy nothing
 	// here — Mongo only skips a document missing *every* indexed field, and
 	// `branchId` is on all of them, so all of them would be indexed anyway.

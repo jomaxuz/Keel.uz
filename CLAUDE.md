@@ -204,6 +204,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   sozlanmaydi, birinchi ishlatishda generatsiya qilinadi va **hech qachon
   almashtirilmaydi**: har obuna o'zi yaratilgan ochiq kalitga bog'langan);
   `pos_settings` + `pos_mapping` (filial darajasida), `telegram_chat`.
+- **Marketplace**: `uzum_tezkor_settings` (Uzum Tezkor bizni chaqiradigan
+  `client_id` + secret'ning **faqat hash'i**; qarang `docs/DECISIONS.md` →
+  "Uzum Tezkor").
 - **Brauzer bildirishnomalari**: `push_subscription` — bir brauzer, bir hujjat.
   ⚠️ `endpoint` **unique**: service worker brauzer yangilanganidan keyin jimgina
   qayta ro'yxatdan o'tadi, indekssiz mijoz har kampaniyani ikki marta olardi.
@@ -212,7 +215,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
 
 Buyurtma holati: `pending → confirmed → preparing → on_the_way → delivered |
 cancelled` (`statusHistory` har o'zgarish vaqtini yozadi; `cancelled` uchun
-`cancelReason` majburiy). `order.type`: `delivery | pickup | dinein`.
+`cancelReason` majburiy). `order.type`: `delivery | pickup | dinein |
+uzum_tezkor` (⚠️ oxirgisini **Uzum kuryeri** olib ketadi — manzil, yetkazish
+narxi va bizning kuryer yo'q; `order.aggregator` da ularning `eatsId` si).
 Bron holati: `pending → confirmed → seated → done | cancelled`.
 
 ⚠️ **Sirlar `restaurant` hujjatidan tashqarida.** Profil har tashrifchiga
@@ -267,6 +272,10 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   (JSON-RPC), `/payments/click/prepare|complete`, `/payments/uzum/*`,
   `/payments/atmos/*`. Webhook'lar: `/pbx/onlinepbx/{token}`,
   `/telegram/{token}` — manzildagi token **kalit** (qarang §10).
+- **Uzum Tezkor** (`/uzum-tezkor/*`, public — o'z OAuth2 tokeni bilan):
+  `security/oauth/token`, `order` (POST/GET/PUT/DELETE), `order/{id}/status`;
+  har yo'l `/v1` bilan ham. ⚠️ Javoblar **ularning** shaklida
+  (`[{code, description}]`), `httpx.Error` dan o'tmaydi.
 - **Kuryer** (`role: courier`): `/courier/login|me|status|location|orders|
   stats|history`, `/courier/push` (POST/DELETE — telefonning Expo tokeni va
   **tili**; matnni server yozadi, ya'ni telefon uni tarjima qila olmaydi).
@@ -833,6 +842,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Kesh, siqish, indeks, yuk | Yuk: nima siqiladi, nima keshlanadi |
 | Yangi install: nomi, namuna menyu | Birinchi profil: yangi install o'zini nima deb ataydi · Namuna menyu |
 | Restoranning o'z ilovasi, brendlash, build | Restoranning o'z ilovasi: bitta kod bazasi, har restoranga bitta build |
+| Uzum Tezkor, marketplace buyurtmasi | Uzum Tezkor: marketplace buyurtmani o'zi yuboradi |
 | Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
 
 ### Qo'shni hujjatlar

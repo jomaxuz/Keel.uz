@@ -459,7 +459,9 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3 font-medium">#{o.number}</td>
                     <td className="px-4 py-3">{o.customer.name}</td>
                     <td className="px-4 py-3 text-ink-muted">
-                      {o.type === "delivery"
+                      {o.type === "uzum_tezkor"
+                        ? t.dashboard.uzumTezkor
+                        : o.type === "delivery"
                         ? t.dashboard.delivery
                         : o.type === "dinein"
                           ? t.receipt.tableLine(o.tableNumber ?? "—")

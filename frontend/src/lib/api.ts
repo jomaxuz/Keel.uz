@@ -198,6 +198,7 @@ import type {
   TillReservation,
   BookingSettings,
   Printer,
+  UzumTezkorSettings,
 } from "./types";
 import {
   apiOverride,
@@ -3285,6 +3286,27 @@ export const api = {
     request<PaymentSettings>("/admin/payments", {
       method: "PUT",
       body,
+      auth: true,
+    }),
+  // ---- Uzum Tezkor (owner) ----
+  adminUzumTezkor: () =>
+    request<UzumTezkorSettings>("/admin/uzum-tezkor", {
+      auth: true,
+      cache: "no-store",
+    }),
+  // ⚠️ The secret is in this answer and nowhere else, ever. Minting a new one
+  // ends every token issued under the old one.
+  generateUzumTezkorCredentials: () =>
+    request<{
+      enabled: boolean;
+      clientId: string;
+      clientSecret: string;
+      rotatedAt: string;
+    }>("/admin/uzum-tezkor/credentials", { method: "POST", auth: true }),
+  setUzumTezkorEnabled: (enabled: boolean) =>
+    request<{ enabled: boolean }>("/admin/uzum-tezkor", {
+      method: "PUT",
+      body: { enabled },
       auth: true,
     }),
   // ---- SMS gateway (admin) ----

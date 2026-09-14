@@ -1757,10 +1757,13 @@ type Order struct {
 	CourierName string             `bson:"courierName,omitempty" json:"courierName,omitempty"`
 	// Set instead of a courier when an outside service carries the order.
 	ExternalDelivery *ExternalDelivery `bson:"externalDelivery,omitempty" json:"externalDelivery,omitempty"`
-	Number           string            `bson:"number" json:"number"`
-	Status           OrderStatus       `bson:"status" json:"status"`
-	Customer         OrderCustomer     `bson:"customer" json:"customer"`
-	Type             string            `bson:"type" json:"type"` // "delivery" | "pickup" | "dinein"
+	// Set when a marketplace placed the order and carries it (Uzum Tezkor) —
+	// see models/uzumtezkor.go. Absent on every order of our own.
+	Aggregator *OrderAggregator `bson:"aggregator,omitempty" json:"aggregator,omitempty"`
+	Number     string           `bson:"number" json:"number"`
+	Status     OrderStatus      `bson:"status" json:"status"`
+	Customer   OrderCustomer    `bson:"customer" json:"customer"`
+	Type       string           `bson:"type" json:"type"` // "delivery" | "pickup" | "dinein"
 	// Dine-in only: which table the guest scanned. The number is a snapshot —
 	// the floor plan may be redrawn, the receipt must still read correctly.
 	TableID     string       `bson:"tableId,omitempty" json:"tableId,omitempty"`

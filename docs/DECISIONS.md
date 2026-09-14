@@ -4874,6 +4874,88 @@ bajariladigan ish** sifatida tanlandi:
   `apiBaseUrl` sozlanadi (sandbox/mock). Mahalliy xizmatlarda ommaviy API yo'q —
   ular `phone`/`link`; API paydo bo'lsa `clientFor` ga yangi `apiProvider`.
 
+### Uzum Tezkor: marketplace buyurtmani o'zi yuboradi
+
+Hujjat: `docs/vendor/uzum-tezkor-retail.md` (Notion + OpenAPI `.yml`, o'qildi
+2026-09-14). ⚠️ Bu **Yandex Eda vendor API** ning nusxasi — Yandex Eats
+integratsiyasi deyarli shu kontrakt bo'ladi.
+
+- ⚠️ **Ular bizni chaqiradi, biz ularni emas.** Uzum token oladi
+  (`/security/oauth/token`), har buyurtmani `POST /order` qiladi va holatini
+  daqiqada bir so'raydi (`GET /order/{id}/status`). Biz server, ular klient.
+  Manzil: `{domen}/api/v1/uzum-tezkor`, har yo'l **`v1` bilan ham, `v1` siz
+  ham** — ularning hujjati katalogga `v1` qo'yadi, buyurtmaga qo'ymaydi, host
+  esa bitta.
+- ⚠️ **Yetkazishni doim Uzum kuryeri qiladi.** Shuning uchun buyurtmada manzil,
+  yetkazish narxi va bizning kuryer yo'q, va u **alohida tur**:
+  `order.type = "uzum_tezkor"` (to'lov usuli va `channel` ham shu). `delivery`
+  ga bayroq qo'shish o'rniga — chunki bizning kuryer, zona va kuryer olib
+  keladigan pul haqida o'ylaydigan har ekran undan uzoq turishi kerak.
+- **Pul Uzum'da**: `paymentStatus: paid`, `paymentMethod: uzum_tezkor` —
+  kassada hech kim pul olmaydi, perechisleniye ekrani esa to'langan
+  `uzum_tezkor` sotuvlarini allaqachon "Uzum ushlab turgan pul" deb sanaydi.
+- ⚠️ **Narx — Uzum sotgani, menyudan qayta hisoblanmaydi.** Sayt buyurtmasi
+  brauzerga ishonilmagani uchun qayta narxlanadi; bu yerda narx marketplace
+  shartnomasi, va chekdagi boshqa raqam hech kim solishtira olmaydigan hisob.
+  ⚠️ `items.price` — **modifikatsiyalar qo'shilgan** bitta pozitsiya narxi
+  (spetsifikatsiya "keyingi versiyada tuzatiladi" deydi), shuning uchun
+  modifikatsiyalar **option emas, izoh** bo'lib yoziladi: option narx farqini
+  olib yuradi va chekda ikki marta qo'shilardi.
+- ⚠️ **`quantity` — float**; yarim portsiya oshxona pishira oladigan qator
+  emas, shuning uchun butun bo'lmagan son **rad etiladi** (yumaloqlanmaydi).
+- **Menyuda o'chirilgan taom ham qabul qilinadi**: Uzum uni allaqachon sotgan,
+  rad etish qayta yuborishni boshlaydi va mijoz ko'radigan bekor qilish bilan
+  tugaydi. Oshxona buyurtmani ko'radi va o'zi hal qiladi.
+- ⚠️ **Qayta yuborish — birinchi buyurtma**: 4xx/5xx olsa Uzum o'sha `eatsId`
+  bilan qayta yuboradi. Oldin qidirish ikki qayta urinish orasidagi poygani
+  yopmaydi, shuning uchun `(aggregator.provider, aggregator.externalId)`
+  **unique partial** indeks, va duplicate-key xatosi birinchi buyurtmaning
+  javobiga aylanadi (`200`, o'sha `orderId`).
+- ⚠️ **`GET /order/{id}` kelgan tanani bayt-bayt qaytaradi**
+  (`aggregator.payload`): Uzum boshqacha tarkibni restoran buyurtmani
+  **o'zgartirgani** deb o'qiydi — mijozga push va tranzaksiya. O'z
+  qatorlarimizdan qayta qurilgan tana yumaloqlash yoki tushib qolgan maydonda
+  farq qilardi, va har biri hech kim qilmagan o'zgarish bo'lardi.
+- **Holat xaritasi** (`tezkorStatusOf`, testi bor): `pending→NEW`,
+  `confirmed→ACCEPTED_BY_RESTAURANT`, `preparing→COOKING`, `readyAt→READY`,
+  `on_the_way→TAKEN_BY_COURIER`, `delivered→DELIVERED`, `cancelled→CANCELLED`.
+  ⚠️ `READY` — bizning `readyAt` (status emas) va **faqat qabul qilingandan
+  keyin**: Uzum orqaga qadam va qabulni chetlab o'tishni qabul qilmaydi.
+- ⚠️ **Panelda "yo'lda" bosqichi tashlab ketilmaydi** (`orderFlow.travels`):
+  olib ketish uni o'tkazib yuboradi, lekin Uzum buyurtmasida aynan shu bosqich
+  `TAKEN_BY_COURIER`. Tugma "Uzum kuryeriga berildi".
+- ⚠️ **15 daqiqa**: qabul qilinmagan buyurtmani Uzum bekor qiladi. Buyurtma
+  `queuedAt` bilan keladi (jiringlaydi), queue watch esa 10 daqiqada egaga
+  aytadi — alohida qoida kerak emas.
+- **Bekor qilish**: Uzum `DELETE` → holat `cancelled`, sabab `"Uzum Tezkor:
+  <izoh>"`, ombor qaytadi (`syncOrderStock`) va egaga push. ⚠️ Filtr holat
+  bo'yicha: "yetkazildi" bilan poygada bekor qilish uni qaytara olmaydi.
+  `PUT` (ular tomonidan o'zgartirish) — **422**: spetsifikatsiya uni kam va
+  kelishuv bilan deydi, jimgina qabul qilish esa pishayotgan taomni
+  o'zgartirardi.
+- **Kalitlar** (`uzum_tezkor_settings`, sozlamalar → "Uzum Tezkor", faqat
+  ega): `client_id` + `client_secret`, serverda **faqat SHA-256**; secret
+  **bir marta** ko'rsatiladi. Har yangi secret `tokenVersion` ni oshiradi —
+  eski tokenlar keyingi so'rovda o'ladi, bir soat kutmaydi. Sozlamalar **har
+  so'rovda** o'qiladi (o'chirish darhol ta'sir qiladi). Token — JWT, rol
+  `uzum_tezkor`, subject `client_id` (ObjectID emas — boshqa yo'lda hech kimni
+  nomlamaydi), 1 soat.
+- ⚠️ **Xatolar ularning shaklida** — `[{code, description}]`, 401 esa
+  `{reason}` — va `httpx.Error` dan **o'tmaydi**: ularni Uzum support
+  muhandisi o'qiydi, tarjima qilinsa sarlavhaga qarab bir kun ruscha, bir kun
+  o'zbekcha bo'lardi.
+- **So'rov cheklovi** alohida (300/daq): Uzum har so'rov oldidan token oladi va
+  har ochiq buyurtmani daqiqada bir so'raydi — `authGate` ning 10 tasi band
+  kechqurun uni qulflardi.
+- ⚠️ **Identifikatorlar `tezkor*`**: `payuzum.go` (Uzum Bank to'lovi) bir
+  paketda `uzum*` nomlarini band qilgan — ikki xil Uzum bir faylda
+  adashtirilmasin.
+- ⏳ **Hali yo'q**: katalog va qoldiq (`/v1/nomenclature/{storeId}/composition|
+  availability`), perechisleniye API (hujjatda yo'q), test muhiti. ⚠️ Bizda
+  har restoran alohida server — Uzum "texnologik hamkor"ga bitta host yozsa,
+  so'rovni tenantga control yo'naltirishi kerak bo'ladi; hozirgi yozuv har
+  restoranning **o'z domeni** bilan ishlaydi.
+
 ### Tashrif hisobi (`visit`)
 - `POST /visit` — sayt sahifasidan otiladigan mayoq. Restoran paneli nechta
   **buyurtma** kelganini aytardi-yu, nechta odam **qaraganini** aytmasdi — bu

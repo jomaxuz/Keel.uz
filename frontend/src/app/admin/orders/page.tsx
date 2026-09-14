@@ -490,7 +490,9 @@ export default function AdminOrdersPage() {
                       </div>
                       <p className="mt-1 text-sm text-ink-muted">
                         {o.customer.name} · {o.customer.phone} ·{" "}
-                        {o.type === "delivery"
+                        {o.type === "uzum_tezkor"
+                          ? t.dashboard.uzumTezkor
+                          : o.type === "delivery"
                           ? t.dashboard.delivery
                           : o.type === "dinein"
                             ? t.receipt.tableLine(o.tableNumber ?? "—")

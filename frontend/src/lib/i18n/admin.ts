@@ -359,6 +359,7 @@ export const adminUz = {
     status: "Holat",
     delivery: "Yetkazish",
     pickup: "Olib ketish",
+    uzumTezkor: "Uzum Tezkor",
     periodToday: "Bugun",
     periodWeek: "7 kun",
     periodMonth: "30 kun",
@@ -503,6 +504,7 @@ export const adminUz = {
     confirmed: "Tayyorlashni boshlash",
     preparing: "Yo'lga chiqdi",
     preparingPickup: "Berildi (olib ketildi)",
+    uzumHandover: "Uzum kuryeriga berildi",
     on_the_way: "Yetkazildi",
   },
 
@@ -3961,6 +3963,28 @@ export const adminUz = {
     aggregatorCommission: "Odatdagi komissiya",
     aggregatorRateHint:
       "⚠️ Bu foiz faqat perechisleniye formasini oldindan to'ldiradi — pul hech qachon undan hisoblanmaydi. Hisob-kitob doim agregator hisobotidagi raqamlar bo'yicha.",
+    uzumTitle: "Uzum Tezkor",
+    uzumIntro:
+      "Uzum Tezkor buyurtmalari to'g'ridan-to'g'ri panelga tushadi — turi «Uzum Tezkor», yetkazishni esa Uzum kuryeri qiladi. Quyidagi server manzili, client_id, client_secret va filial ID'larini Uzum Tezkor menejeriga bering.",
+    uzumEnabled: "Uzum Tezkor buyurtmalarini qabul qilish",
+    uzumHost: "Server manzili (host)",
+    uzumClientId: "client_id",
+    uzumSecret: "client_secret",
+    uzumSecretSaved: "saqlangan — xavfsizlik uchun qayta ko'rsatilmaydi",
+    uzumSecretNone: "hali yaratilmagan",
+    uzumSecretOnce:
+      "⚠️ Bu kalit faqat hozir ko'rsatiladi. Nusxalab Uzum Tezkor menejeriga yuboring — sahifani yangilasangiz qayta ko'rinmaydi.",
+    uzumGenerate: "Kalit yaratish",
+    uzumRotate: "Yangi kalit yaratish",
+    uzumRotateConfirm:
+      "Yangi kalit yaratilsa eskisi darhol ishlamay qoladi va Uzum Tezkor yangisini kiritmaguncha buyurtmalar kelmaydi. Davom etasizmi?",
+    uzumRotated: (when: string) => `Oxirgi marta yaratilgan: ${when}`,
+    uzumStores: "Filiallar va ularning ID'si",
+    uzumStoresHint:
+      "Uzum Tezkor buyurtmani qaysi filialga yuborishni shu ID orqali biladi — har filialnikini menejerga bering.",
+    uzumCopy: "Nusxalash",
+    uzumCopied: "Nusxalandi",
+    uzumLoadFailed: "Uzum Tezkor sozlamalarini yuklab bo'lmadi",
     inStoreIntro:
       "Mijoz o'z ilovasida to'lov QR kodini ochadi, kassir uni skanerlaydi \u2014 pul shu zahoti yechiladi. Summani bank terminaliga qo'lda kiritish shart emas.",
     inStoreNotReady:
@@ -5473,6 +5497,7 @@ export const adminRu: AdminDict = {
     status: "Статус",
     delivery: "Доставка",
     pickup: "Самовывоз",
+    uzumTezkor: "Uzum Tezkor",
     periodToday: "Сегодня",
     periodWeek: "7 дней",
     periodMonth: "30 дней",
@@ -5611,6 +5636,7 @@ export const adminRu: AdminDict = {
     confirmed: "Начать готовить",
     preparing: "Выехал",
     preparingPickup: "Выдан (самовывоз)",
+    uzumHandover: "Передан курьеру Uzum",
     on_the_way: "Доставлен",
   },
 
@@ -8679,6 +8705,28 @@ export const adminRu: AdminDict = {
     aggregatorCommission: "Обычная комиссия",
     aggregatorRateHint:
       "⚠️ Процент только подставляется в форму перечисления — деньги по нему никогда не считаются. Расчёт всегда по цифрам из отчёта агрегатора.",
+    uzumTitle: "Uzum Tezkor",
+    uzumIntro:
+      "Заказы Uzum Tezkor попадают прямо в панель — с типом «Uzum Tezkor», доставляет курьер Uzum. Передайте менеджеру Uzum Tezkor адрес сервера, client_id, client_secret и ID филиалов ниже.",
+    uzumEnabled: "Принимать заказы Uzum Tezkor",
+    uzumHost: "Адрес сервера (host)",
+    uzumClientId: "client_id",
+    uzumSecret: "client_secret",
+    uzumSecretSaved: "сохранён — из соображений безопасности больше не показывается",
+    uzumSecretNone: "ещё не создан",
+    uzumSecretOnce:
+      "⚠️ Ключ показан только сейчас. Скопируйте и отправьте менеджеру Uzum Tezkor — после обновления страницы он больше не появится.",
+    uzumGenerate: "Создать ключ",
+    uzumRotate: "Создать новый ключ",
+    uzumRotateConfirm:
+      "Старый ключ перестанет работать сразу, и заказы не будут приходить, пока Uzum Tezkor не введёт новый. Продолжить?",
+    uzumRotated: (when: string) => `Последний раз создан: ${when}`,
+    uzumStores: "Филиалы и их ID",
+    uzumStoresHint:
+      "По этому ID Uzum Tezkor понимает, в какой филиал отправить заказ — передайте менеджеру ID каждого филиала.",
+    uzumCopy: "Копировать",
+    uzumCopied: "Скопировано",
+    uzumLoadFailed: "Не удалось загрузить настройки Uzum Tezkor",
     inStoreIntro:
       "Клиент открывает QR-код оплаты в своём приложении, кассир его сканирует \u2014 деньги списываются сразу. Сумму в банковский терминал вводить не нужно.",
     inStoreNotReady:
@@ -10123,6 +10171,7 @@ export const adminEn: AdminDict = {
     status: "Status",
     delivery: "Delivery",
     pickup: "Pickup",
+    uzumTezkor: "Uzum Tezkor",
     periodToday: "Today",
     periodWeek: "7 days",
     periodMonth: "30 days",
@@ -10262,6 +10311,7 @@ export const adminEn: AdminDict = {
     confirmed: "Start preparing",
     preparing: "Out for delivery",
     preparingPickup: "Handed over (pickup)",
+    uzumHandover: "Handed to Uzum courier",
     on_the_way: "Delivered",
   },
 
@@ -13327,6 +13377,28 @@ export const adminEn: AdminDict = {
     aggregatorCommission: "Usual commission",
     aggregatorRateHint:
       "⚠️ The rate only prefills the payout form — money is never computed from it. The figures always come from the provider's own statement.",
+    uzumTitle: "Uzum Tezkor",
+    uzumIntro:
+      "Uzum Tezkor orders arrive straight in the panel — typed \"Uzum Tezkor\", delivered by Uzum's own courier. Give the Uzum Tezkor manager the server address, client_id, client_secret and branch ids below.",
+    uzumEnabled: "Accept Uzum Tezkor orders",
+    uzumHost: "Server address (host)",
+    uzumClientId: "client_id",
+    uzumSecret: "client_secret",
+    uzumSecretSaved: "saved — never shown again, for safety",
+    uzumSecretNone: "not created yet",
+    uzumSecretOnce:
+      "⚠️ This key is shown only now. Copy it and send it to the Uzum Tezkor manager — it will not appear again after you reload.",
+    uzumGenerate: "Create key",
+    uzumRotate: "Create a new key",
+    uzumRotateConfirm:
+      "The old key stops working immediately, and no orders arrive until Uzum Tezkor enters the new one. Continue?",
+    uzumRotated: (when: string) => `Last created: ${when}`,
+    uzumStores: "Branches and their ids",
+    uzumStoresHint:
+      "Uzum Tezkor uses this id to know which branch an order goes to — give the manager the id of every branch.",
+    uzumCopy: "Copy",
+    uzumCopied: "Copied",
+    uzumLoadFailed: "Could not load Uzum Tezkor settings",
     inStoreIntro:
       "The guest opens a payment code in their own app and the cashier scans it \u2014 the card is charged straight away. Nobody retypes the total into a bank terminal.",
     inStoreNotReady:
