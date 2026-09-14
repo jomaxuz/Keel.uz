@@ -88,6 +88,10 @@ func bankConfirmed(method string) bool {
 
 type closeCheckRequest struct {
 	PaymentMethod string `json:"paymentMethod"`
+	// Which of the owner's till buttons was pressed. ⚠️ Its kind, read from the
+	// settings, decides how the money is booked — not what the screen sent as
+	// paymentMethod, which is only the fallback when the button has gone.
+	MethodID string `json:"methodId"`
 	// Who owes it, when the method is debt. ⚠️ Required in that case: "somebody
 	// will pay later" is exactly the record the paper book already keeps badly.
 	UserID string `json:"userId"`
@@ -126,6 +130,16 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	method := req.PaymentMethod
 	if method == "" {
 		method = models.ProviderCash
+	}
+	// ⚠️ **Only for money taken at the counter.** A button id beside "debt" or
+	// "payme" is a screen bug, and letting it turn the slate into cash would
+	// book takings that never arrived.
+	var option models.TillMethod
+	if req.MethodID != "" && models.IsTillKind(method) {
+		if m, ok := h.paymentSettings(r.Context()).TillMethodByID(req.MethodID); ok {
+			option = m
+			method = m.Kind
+		}
 	}
 	if !tillMethods[method] {
 		httpx.Error(w, http.StatusBadRequest, "noma'lum to'lov turi")
@@ -301,6 +315,12 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	// dictionaries that already know how to read an order's life.
 	set["status"] = models.StatusDelivered
 	set["paymentMethod"] = method
+	if option.ID != "" {
+		set["paymentOptionId"] = option.ID
+		if option.Name != "" {
+			set["paymentOptionName"] = option.Name
+		}
+	}
 	// ⚠️ **A debt is closed but not paid**, and every screen downstream is
 	// built on that distinction already: `received()` asks whether the money is
 	// in the restaurant's hands, the drawer sums cash sales *paid* inside the
@@ -402,6 +422,9 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	if aset := h.alertSettingsOf(r.Context(), o.BranchID); aset.Enabled {
 		h.alertOnVoidsAfterPrecheck(o, aset)
 		h.alertOnDiscount(o, aset)
+		if method == models.MethodDebt {
+			h.alertOnDebt(o, aset, s.Name, req.DebtNote)
+		}
 	}
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }

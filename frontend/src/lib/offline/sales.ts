@@ -29,6 +29,8 @@ export interface PendingSale {
   label: string;
   total: number;
   method: TillPaymentMethod;
+  /** The owner's button, when one was pressed. */
+  methodId?: string;
   discount?: number;
   discountReason?: string;
   at: number;
@@ -123,6 +125,7 @@ async function drainSalesOnce(): Promise<number> {
     try {
       await api.tillClose(sale.checkId, {
         paymentMethod: sale.method,
+        methodId: sale.methodId,
         discount: sale.discount,
         discountReason: sale.discountReason,
       });

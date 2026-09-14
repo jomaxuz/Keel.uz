@@ -67,8 +67,26 @@ func (h *Handler) TillPaymentMethods(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.tillStaff(w, r, models.PermWaiter); !ok {
 		return
 	}
-	s := h.paymentSettings(r.Context())
-	methods := []string{models.ProviderCash, "card", "transfer"}
+	methods, options := tillOffer(h.paymentSettings(r.Context()))
+	httpx.JSON(w, http.StatusOK, map[string]any{"methods": methods, "options": options})
+}
+
+// tillOffer is what a till may be paid with: the owner's buttons, then the
+// rails this restaurant signed up for, then the slate.
+//
+// `methods` is the list of kinds and rails, as it always was — the screens
+// that predate named buttons read it. `options` is the owner's buttons
+// themselves, each with the kind the money is booked as.
+func tillOffer(s *models.PaymentSettings) ([]string, []models.TillMethod) {
+	options := s.EnabledTillMethods()
+	methods := []string{}
+	seenKind := map[string]bool{}
+	for _, o := range options {
+		if !seenKind[o.Kind] {
+			seenKind[o.Kind] = true
+			methods = append(methods, o.Kind)
+		}
+	}
 	for _, p := range []string{
 		models.ProviderPayme, models.ProviderClick, models.ProviderUzum,
 	} {
@@ -88,13 +106,22 @@ func (h *Handler) TillPaymentMethods(w http.ResponseWriter, r *http.Request) {
 	}
 	// The marketplaces this restaurant sells through. ⚠️ Settings-gated rather
 	// than always present: two extra buttons on every till in the country, for
-	// the restaurants that have never heard of Uzum Tezkor, is how a payment
-	// screen becomes something cashiers guess at.
+	// the restaurants that have never heard of them, is how a payment screen
+	// becomes something cashiers guess at.
 	for _, a := range s.EnabledAggregators() {
+		// ⚠️ **Never Uzum Tezkor.** Its orders arrive in the panel by
+		// themselves (handlers/uzumtezkor.go), already paid to Uzum; a button
+		// for it on the till is an invitation to ring the same order up a
+		// second time. The switch in settings still matters — it is what the
+		// payouts screen reads. The server keeps *accepting* the id on close,
+		// so a sale queued offline before this change still lands.
+		if a.ID == models.ProviderUzumTezkor {
+			continue
+		}
 		methods = append(methods, a.ID)
 	}
 	methods = append(methods, models.MethodDebt)
-	httpx.JSON(w, http.StatusOK, map[string]any{"methods": methods})
+	return methods, options
 }
 
 type tillPayRequest struct {

@@ -841,6 +841,7 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		}
 		h.logAction(r, ActOrderCancel, "order", id.Hex(), "#"+order.Number,
 			order.CancelReason)
+		h.alertOnOrderCancelled(&order, h.adminName(r), h.requireOwner(r) == nil)
 	} else {
 		h.logAction(r, ActOrderStatus, "order", id.Hex(), "#"+order.Number,
 			string(req.Status))

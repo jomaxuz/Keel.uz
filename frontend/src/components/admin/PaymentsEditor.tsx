@@ -52,6 +52,7 @@ const EMPTY: PaymentSettingsInput = {
     baseUrl: "",
   },
   aggregators: [],
+  tillMethods: [],
 };
 
 /** The marketplaces offered before anybody types one.
@@ -119,12 +120,25 @@ export default function PaymentsEditor() {
             const saved = (s.aggregators ?? []).find((a) => a.id === k.id);
             return saved ?? { ...k, enabled: false };
           }),
+          tillMethods: s.tillMethods ?? [],
         });
       })
       .catch(() => setError(t.common.loadFailed));
   }, [t]);
 
   async function save() {
+    const buttons = form.tillMethods ?? [];
+    // ⚠️ Said here, on the rows, rather than as a 400 after the press: a till
+    // with no button and a custom button with no name are both refused by the
+    // server, and a refusal with the form scrolled away is a mystery.
+    if (buttons.length > 0 && !buttons.some((b) => b.enabled)) {
+      setError(t.payments.tillMethodsNone);
+      return;
+    }
+    if (buttons.some((b) => !isDefaultButton(b.id) && !b.name.trim())) {
+      setError(t.payments.tillMethodNameRequired);
+      return;
+    }
     setSaving(true);
     setError("");
     setMessage("");
@@ -149,6 +163,10 @@ export default function PaymentsEditor() {
           ),
         },
       }));
+      // ⚠️ The buttons come back with the ids the server gave new rows. Keeping
+      // the form's own copy would send those rows again as new ones on the
+      // next save — two "Humo" buttons, then three.
+      setForm((f) => ({ ...f, tillMethods: saved.tillMethods ?? f.tillMethods }));
       setMessage(t.payments.saved);
     } catch (e) {
       setError(e instanceof Error ? e.message : t.common.saveFailed);
@@ -405,6 +423,107 @@ export default function PaymentsEditor() {
           extra payment buttons on every counter in the country, for the
           restaurants that have never heard of Uzum Tezkor, is how a payment
           screen becomes something cashiers guess at. */}
+      {/* ---- The till's own buttons ----
+
+          ⚠️ **A name over a kind.** The owner names the buttons the cashier
+          presses — "Humo terminal", "Beznal (hisob raqam)" — and picks which of
+          the three kinds the money is: the drawer counts cash, the reports split
+          card from transfer, and nothing downstream has to learn the name. */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="font-display text-lg font-bold">
+            {t.payments.tillMethodsTitle}
+          </h3>
+          <p className="mt-1 text-sm text-ink-muted">{t.payments.tillMethodsIntro}</p>
+        </div>
+        {(form.tillMethods ?? []).map((m, i) => (
+          <div
+            key={m.id || `new-${i}`}
+            className="flex flex-wrap items-center gap-3 rounded-2xl border border-line p-3"
+          >
+            <input
+              type="checkbox"
+              aria-label={t.payments.tillMethodEnabled}
+              checked={m.enabled}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  tillMethods: (f.tillMethods ?? []).map((x, j) =>
+                    j === i ? { ...x, enabled: e.target.checked } : x,
+                  ),
+                }))
+              }
+            />
+            <input
+              className="input min-w-[10rem] flex-1"
+              value={m.name}
+              maxLength={40}
+              placeholder={
+                isDefaultButton(m.id)
+                  ? defaultButtonName(m.kind, t.till)
+                  : t.payments.tillMethodNamePlaceholder
+              }
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  tillMethods: (f.tillMethods ?? []).map((x, j) =>
+                    j === i ? { ...x, name: e.target.value } : x,
+                  ),
+                }))
+              }
+            />
+            <select
+              className="input w-auto"
+              value={m.kind}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  tillMethods: (f.tillMethods ?? []).map((x, j) =>
+                    j === i
+                      ? { ...x, kind: e.target.value as "cash" | "card" | "transfer" }
+                      : x,
+                  ),
+                }))
+              }
+            >
+              <option value="cash">{t.payments.tillKindCash}</option>
+              <option value="card">{t.payments.tillKindCard}</option>
+              <option value="transfer">{t.payments.tillKindTransfer}</option>
+            </select>
+            {!isDefaultButton(m.id) && (
+              <button
+                type="button"
+                className="text-sm text-danger"
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    tillMethods: (f.tillMethods ?? []).filter((_, j) => j !== i),
+                  }))
+                }
+              >
+                {t.payments.tillMethodRemove}
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          className="btn"
+          onClick={() =>
+            setForm((f) => ({
+              ...f,
+              tillMethods: [
+                ...(f.tillMethods ?? []),
+                { id: "", name: "", kind: "card", enabled: true },
+              ],
+            }))
+          }
+        >
+          {t.payments.tillMethodAdd}
+        </button>
+        <p className="text-xs text-ink-muted">{t.payments.tillMethodsHint}</p>
+      </div>
+
       <div className="space-y-3">
         <div>
           <h3 className="font-display text-lg font-bold">
@@ -732,4 +851,17 @@ function Rail({
       </div>
     </div>
   );
+}
+
+/** The three buttons a till always had. Their names may be left empty, and
+ *  they cannot be removed — only switched off. */
+function isDefaultButton(id: string): boolean {
+  return id === "cash" || id === "card" || id === "transfer";
+}
+
+function defaultButtonName(
+  kind: "cash" | "card" | "transfer",
+  t: { methodCash: string; methodCard: string; methodTransfer: string },
+): string {
+  return kind === "cash" ? t.methodCash : kind === "card" ? t.methodCard : t.methodTransfer;
 }

@@ -25,6 +25,7 @@ import type {
 } from "@/lib/types";
 
 import PayDialog from "./PayDialog";
+import { optionLabel, optionShortLabel, useTillPay } from "@/lib/tillPayOptions";
 import GuestTabs from "@/components/till/GuestTabs";
 import { isLocal } from "@/lib/offline/checks";
 import VoidDialog from "@/components/till/VoidDialog";
@@ -112,7 +113,11 @@ export default function CheckPanel({
   const [cancelOverride, setCancelOverride] = useState<string | null>(null);
   const [cancelOverrideError, setCancelOverrideError] = useState("");
   const [paying, setPaying] = useState(false);
-  const [method, setMethod] = useState<TillPaymentMethod>("cash");
+  // The owner's button the guest named, by id. ⚠️ An id rather than a kind:
+  // two card terminals are two buttons, and the dialog must open on the one
+  // that was pressed.
+  const [choice, setChoice] = useState<string>("cash");
+  const pay = useTillPay();
   const [voiding, setVoiding] = useState<CheckLine | null>(null);
   const [commenting, setCommenting] = useState<CheckLine | null>(null);
   // The void the server asked a manager to authorise, held so the retry sends
@@ -587,19 +592,19 @@ export default function CheckPanel({
                 check is still being read back, and a dialog that opens on cash
                 every time is one more tap on the busiest screen there is. */}
             <div className="mt-2.5 grid grid-cols-3 gap-2">
-              {METHODS.map((m) => (
+              {pay.options.map((m) => (
                 <button
                   key={m.id}
-                  onClick={() => setMethod(m.id)}
+                  onClick={() => setChoice(m.id)}
                   disabled={busy || live.length === 0}
-                  title={t.till[m.full]}
+                  title={optionLabel(m, t.till)}
                   className={`min-h-11 truncate rounded-[11px] border px-1 text-[13px] font-semibold transition disabled:opacity-40 ${
-                    method === m.id
+                    choice === m.id
                       ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
                       : "border-line bg-surface text-ink-soft hover:border-line-strong"
                   }`}
                 >
-                  {t.till[m.label]}
+                  {optionShortLabel(m, t.till)}
                 </button>
               ))}
             </div>
@@ -649,7 +654,7 @@ export default function CheckPanel({
         <PayDialog
           check={check}
           currency={currency}
-          initialMethod={method}
+          initialChoice={choice}
           onOffline={onOffline}
           onSeen={onSeen}
           onCancel={() => setPaying(false)}
@@ -797,21 +802,6 @@ function nextGuest(check: Check): number {
   return Math.max(highest, check.guests ?? 0) + 1;
 }
 
-/** The three ways a guest pays at the counter. Named here rather than inside
- *  the dialog because the panel now asks first. */
-// ⚠️ **The short card label.** "Karta (terminal)" is right in the payment
-// dialog, where there is room to say which card machine; in a 300px column
-// shared by three chips it wrapped to two lines and spilled out of its own
-// button. The full name stays as the tooltip.
-const METHODS: {
-  id: TillPaymentMethod;
-  label: "methodCash" | "methodCardShort" | "methodTransfer";
-  full: "methodCash" | "methodCard" | "methodTransfer";
-}[] = [
-  { id: "cash", label: "methodCash", full: "methodCash" },
-  { id: "card", label: "methodCardShort", full: "methodCard" },
-  { id: "transfer", label: "methodTransfer", full: "methodTransfer" },
-];
 
 /** When a table has been sitting long enough to be worth a colour. Matches the
  *  floor tile's threshold — one fact, one number, wherever you are standing. */

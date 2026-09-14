@@ -1778,13 +1778,20 @@ type Order struct {
 	// Points the guest put towards this order, and the cashback it earned once
 	// it was delivered. Both frozen here so the receipt explains itself and the
 	// refund on a cancellation knows exactly what to undo.
-	PointsSpent   int     `bson:"pointsSpent,omitempty" json:"pointsSpent,omitempty"`
-	PointsEarned  int     `bson:"pointsEarned,omitempty" json:"pointsEarned,omitempty"`
-	DeliveryFee   int     `bson:"deliveryFee" json:"deliveryFee"`
-	Total         int     `bson:"total" json:"total"`
-	PaymentMethod string  `bson:"paymentMethod" json:"paymentMethod"`
-	DeliveryZone  string  `bson:"deliveryZone" json:"deliveryZone"`
-	DistanceKm    float64 `bson:"distanceKm" json:"distanceKm"`
+	PointsSpent   int    `bson:"pointsSpent,omitempty" json:"pointsSpent,omitempty"`
+	PointsEarned  int    `bson:"pointsEarned,omitempty" json:"pointsEarned,omitempty"`
+	DeliveryFee   int    `bson:"deliveryFee" json:"deliveryFee"`
+	Total         int    `bson:"total" json:"total"`
+	PaymentMethod string `bson:"paymentMethod" json:"paymentMethod"`
+	// Which of the owner's till buttons took it, and its name at the time —
+	// "Humo terminal". ⚠️ **PaymentMethod stays the kind** (cash / card /
+	// transfer): the drawer, the shift report and the financial report read
+	// that, and a button id there would drop cash out of the drawer. Absent on
+	// every non-till order and every sale before owners could name buttons.
+	PaymentOptionID   string  `bson:"paymentOptionId,omitempty" json:"paymentOptionId,omitempty"`
+	PaymentOptionName string  `bson:"paymentOptionName,omitempty" json:"paymentOptionName,omitempty"`
+	DeliveryZone      string  `bson:"deliveryZone" json:"deliveryZone"`
+	DistanceKm        float64 `bson:"distanceKm" json:"distanceKm"`
 	// What the room added for service, in so'm, frozen at the moment the check
 	// was closed.
 	//

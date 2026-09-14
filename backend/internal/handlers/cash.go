@@ -413,6 +413,12 @@ func (h *Handler) addCashEntry(
 		return entry, http.StatusInternalServerError, err
 	}
 	entry.ID = oidOf(res.InsertedID)
+	// ⚠️ Here, in the one function the till and the panel both write through,
+	// so a withdrawal cannot reach the drawer by a door the alert does not
+	// watch.
+	if entry.Kind == models.CashOut {
+		h.alertOnCashOut(entry)
+	}
 
 	// ⚠️ **The safe's side is the mirror, not a copy.** Money taken *out* of the
 	// drawer and carried to the office goes *into* the safe; a float brought

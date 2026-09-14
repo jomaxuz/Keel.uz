@@ -662,6 +662,7 @@ func (h *Handler) AdminRefundCheck(w http.ResponseWriter, r *http.Request) {
 	h.correctDrawer(r, &o, refund)
 	h.reverseCounterPay(r.Context(), &o)
 	h.queueFiscalRefund(r.Context(), &o, refund)
+	h.alertOnRefund(&o, refund, h.requireOwner(r) == nil)
 	h.logAction(r, "check.refund", "order", o.ID.Hex(), o.Number, reason)
 	httpx.JSON(w, http.StatusOK, map[string]any{"refund": refund})
 }

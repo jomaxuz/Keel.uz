@@ -82,6 +82,15 @@ func (h *Handler) raiseAlert(a models.LossAlert) {
 }
 
 func (h *Handler) raiseAlertSync(ctx context.Context, a models.LossAlert) {
+	h.deliverAlert(ctx, a, false)
+}
+
+// deliverAlert records an event and, unless the owner muted its kind, sends it.
+//
+// ⚠️ `force` is the settings page's test button and nothing else: the test is
+// sent as a large discount, and an owner who muted discounts and pressed
+// "test" would hear nothing and conclude the whole channel is broken.
+func (h *Handler) deliverAlert(ctx context.Context, a models.LossAlert, force bool) {
 	set := h.alertSettingsOf(ctx, a.BranchID)
 	if !set.Enabled {
 		return
@@ -94,6 +103,14 @@ func (h *Handler) raiseAlertSync(ctx context.Context, a models.LossAlert) {
 		return
 	}
 	a.ID = oidOf(res.InsertedID)
+
+	// ⚠️ **After the record, before the buzzing.** A muted kind still lands in
+	// the list the panel and the owner app read; only the phone and the chat
+	// stay quiet. Checked before the ceiling too, so a muted kind never uses up
+	// a message another kind would have needed.
+	if !force && set.IsMuted(a.Kind) {
+		return
+	}
 
 	// ⚠️ **The ceiling is counted over what was *sent*, not what was
 	// recorded.** A bad night keeps producing records — that is the point of
@@ -240,6 +257,11 @@ func alertTitle(a models.LossAlert, lang string) string {
 		models.AlertPanelAction:       w.PanelAction,
 		models.AlertCheckCancelled:    w.CheckCancelled,
 		models.AlertShiftOverdue:      w.ShiftOverdue,
+		models.AlertCheckRefunded:     w.CheckRefunded,
+		models.AlertOrderCancelled:    w.OrderCancelled,
+		models.AlertCashOut:           w.CashOut,
+		models.AlertBigWriteoff:       w.BigWriteoff,
+		models.AlertDebtWritten:       w.DebtWritten,
 	}[a.Kind]; ok && head != "" {
 		return head
 	}
@@ -257,6 +279,11 @@ func alertText(a models.LossAlert, restaurant, lang string) string {
 		models.AlertPanelAction:       w.PanelAction,
 		models.AlertCheckCancelled:    w.CheckCancelled,
 		models.AlertShiftOverdue:      w.ShiftOverdue,
+		models.AlertCheckRefunded:     w.CheckRefunded,
+		models.AlertOrderCancelled:    w.OrderCancelled,
+		models.AlertCashOut:           w.CashOut,
+		models.AlertBigWriteoff:       w.BigWriteoff,
+		models.AlertDebtWritten:       w.DebtWritten,
 	}[a.Kind]
 	if head == "" {
 		head = w.Unknown
@@ -537,7 +564,10 @@ func (h *Handler) AdminSaveAlertSettings(w http.ResponseWriter, r *http.Request)
 			"branchId": branch, "enabled": in.Enabled,
 			"discountFrom": in.DiscountFrom, "cashShortFrom": in.CashShortFrom,
 			"stockShortFrom": in.StockShortFrom, "voidFrom": in.VoidFrom,
-			"dailyMax": in.DailyMax, "updatedAt": in.UpdatedAt,
+			"dailyMax": in.DailyMax, "muted": mutedKinds(in.Muted),
+			"refundFrom": in.RefundFrom, "cashOutFrom": in.CashOutFrom,
+			"writeoffFrom": in.WriteoffFrom, "debtFrom": in.DebtFrom,
+			"updatedAt": in.UpdatedAt,
 		}},
 		options.Update().SetUpsert(true)); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -545,6 +575,21 @@ func (h *Handler) AdminSaveAlertSettings(w http.ResponseWriter, r *http.Request)
 	}
 	h.logAction(r, ActSettingsUpdate, "alerts", branch.Hex(), "Nazorat sozlamalari", "")
 	httpx.JSON(w, http.StatusOK, h.alertSettingsOf(r.Context(), branch).WithDefaults())
+}
+
+// mutedKinds keeps the kinds this server knows, once each. ⚠️ An unknown name
+// is dropped rather than stored: a typo saved here would look like a muted kind
+// in the database and mute nothing.
+func mutedKinds(in []models.AlertKind) []models.AlertKind {
+	out := []models.AlertKind{}
+	seen := map[models.AlertKind]bool{}
+	for _, k := range in {
+		if models.IsAlertKind(k) && !seen[k] {
+			seen[k] = true
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 // AdminUnlinkAlerts stops this owner's chat receiving them.
@@ -612,7 +657,7 @@ func (h *Handler) AdminTestAlert(w http.ResponseWriter, r *http.Request) {
 	// ⚠️ Run synchronously, unlike every real trigger: the person is watching a
 	// spinner and the whole point is the answer. A real alert is raised in a
 	// goroutine because a cashier must never wait for Telegram.
-	h.raiseAlertSync(r.Context(), a)
+	h.deliverAlert(r.Context(), a, true)
 
 	// ⚠️ **The verdict is read back off the stored record**, not assumed from
 	// the fact that nothing panicked. `sentAt` and `sendErr` are what the real

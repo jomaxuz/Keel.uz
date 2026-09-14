@@ -312,6 +312,10 @@ var messages = map[string]pair{
 		"этот список ещё не отправлен",
 		"this list has not been sent yet",
 	},
+	"kassada kamida bitta to'lov usuli yoqilgan bo'lishi kerak": {
+		"На кассе должен быть включён хотя бы один способ оплаты",
+		"At least one payment method must be switched on for the till",
+	},
 	"skladdan tovar chiqarishga ruxsat berilmagan — administratorga murojaat qiling": {
 		"нет доступа к выдаче товара со склада — обратитесь к администратору",
 		"you may not issue goods from the store — ask an administrator",

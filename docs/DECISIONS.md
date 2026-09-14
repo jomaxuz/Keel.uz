@@ -4659,6 +4659,47 @@ hujjatlari **ataylab yo'q**: ular telefonda yomon bajariladi, va svetofor
 oldida narx o'zgartira oladigan ekran oxir-oqibat o'zgartiradi. Ilovadagi
 yagona yozuv amali — buyurtmani tasdiqlash va (sabab bilan) bekor qilish.
 
+⚠️ **Ega qaysi turdagi xabar yuborilishini o'zi tanlaydi** (2026-09-14,
+Sozlamalar → Integratsiyalar → "Shubhali holatlar haqida xabar"): 8 tur
+raqamlangan ro'yxatda, har biriga checkbox. Tartib — pul chiqib ketadigan
+tartib: chek bekor qilindi, hisobdan keyin olib tashlandi, katta chegirma,
+kassa kamomadi, smena uzoq ochiq, ombor kamomadi, texkarta, paneldagi amal
+(`models.AlertKindsInOrder`, frontend'da `ALERT_KINDS`).
+- ⚠️ **O'chirilgani saqlanadi, yoqilgani emas** (`alert_settings.muted`): bu
+  imkoniyatdan oldingi har restoranda ro'yxat yo'q, va bo'sh "yoqilgan" ro'yxat
+  hammasini o'chirardi. Bo'sh "o'chirilgan" — ular bor narsa: hammasi.
+- ⚠️ **O'chirilgan — yuborilmaydi, yozilmay qolmaydi.** Hodisa bazaga tushadi,
+  panel va ega ilovasining ro'yxatida turadi; faqat Telegram ham, push ham jim.
+  Tekshiruv yozuvdan **keyin**, kunlik chegaradan **oldin** — o'chirilgan tur
+  boshqa turga kerak bo'lgan xabar o'rnini egallamaydi.
+- ⚠️ **Sinov tugmasi filtrni chetlab o'tadi** (`deliverAlert(..., force)`):
+  sinov katta chegirma sifatida yuboriladi, va chegirmani o'chirgan ega sinovni
+  bosib hech narsa eshitmasa, butun kanalni buzuq deb o'ylardi.
+- Noma'lum tur nomi saqlanmaydi (`mutedKinds`): bazada o'chirilgan turga
+  o'xshab turib hech narsani o'chirmaydigan xato yozuv bo'lardi.
+- **Beshta yangi tur** (`handlers/alertsmore.go`, har biri haqiqiy bazada
+  testlangan): **yopilgan chekda pul qaytarildi** (`AdminRefundCheck`,
+  chegara `refundFrom`, standart 50 000), **tayyorlangan buyurtma bekor
+  qilindi** (sayt/telefon buyurtmasi, `statusHistory` da `preparing` yoki
+  `on_the_way` bo'lgan yoki `readyAt` qo'yilgan — chegara yo'q), **kassadan
+  katta chiqim** (`addCashEntry` — kassa ham, panel ham shu eshikdan yozadi,
+  `cashOutFrom`, 500 000; kategoriya xabar mavzusi), **katta spisaniya**
+  (`writeOffFrom`, 300 000; masalliq nomi mavzu), **qarzga katta summa**
+  (chek qarzga yopilganda, `debtFrom`, 300 000).
+  - ⚠️ **Buyurtma holati emas, tarixi o'qiladi**: ogohlantirish ishlaganda holat
+    allaqachon `cancelled`, oshxonaga yetganini faqat qanday harakatlangani
+    aytadi. Kutilayotgan buyurtmani bekor qilish — fikridan qaytgan mehmon, eng
+    ko'p uchraydigan bekor qilish, va unga xabar kanalni o'chirtiradi.
+  - ⚠️ **Kassa cheki bu turga kirmaydi** — uning o'z turi bor (pishirilgan
+    qatorlar qiymati bilan, jami emas).
+  - ⚠️ **Egasining o'z amali xabar bermaydi** (qaytarish, spisaniya, bekor
+    qilish panelda ega qilgan bo'lsa) — "paneldagi amal" turining qoidasi:
+    o'quvchini o'ziga xabar qiladigan kanal o'chiriladi.
+  - Standart chegaralar ataylab baland: choy qaytarish — fikridan qaytgan
+    mehmon, non mashinasiga pul — har ertalab.
+  - Ega ilovasi (`owner-android`) turlar nomlarini ham oldi — yangi tur
+    telefonda xom id bo'lib chiqmasin.
+
 ⚠️ **Loss alertlar endi telefonga ham boradi.** Ular `sendToOwners` orqali
 **faqat Telegram**da edi, ya'ni Telegram ulamagan restoran hisobdan keyingi
 olib tashlashni ham, kassadagi kamomadni ham **ko'rmasdi** — va hech nima buni
@@ -5143,6 +5184,57 @@ bo'lgan har tenant konteyneri) va natijani soatlik bucketga yig'adi
   bo'yicha yozilgan qoida yo'lning o'zi prefiks olishi bilan mos kelmay qoladi.
 - Tashrif mayog'i prefiksni yechib yozadi: aks holda eng band sahifa uchta
   sokin sahifaga bo'linardi.
+
+### Kassadagi to'lov tugmalari: nom egasiniki, tur uchta
+
+Egasi sozlamalarda (To'lov tizimlari → "Kassadagi to'lov usullari") kassir
+ko'radigan tugmalarni o'zi yozadi: nom ("Humo terminal", "Beznal") va **tur** —
+`cash` / `card` / `transfer` (`payment_settings.tillMethods`).
+
+- ⚠️ **Tugma — tur ustidagi nom, yangi tur emas.** Yashik `cash` ni sanaydi,
+  smena hisoboti `cash` / `card` / qolganini ajratadi, perechisleniye `card` ni
+  terminal hisob-kitobi deb o'qiydi. Tugma id'si `order.paymentMethod` ga
+  yozilsa uchalasidan tushib qolardi — "Naqd (dollar)" sotuvi o'zi tushgan
+  yashikda yo'q. Shuning uchun buyurtmada **tur qoladi**, tugma esa yonida:
+  `paymentOptionId` + muzlatilgan `paymentOptionName`. Hech bir hisobot
+  o'zgarmadi.
+- **Pulni tugmaning sozlamadagi turi belgilaydi**, ekran yuborgan
+  `paymentMethod` emas — u faqat tugma o'chirilgan holatdagi zaxira. ⚠️ Faqat
+  kassadagi pul uchun: `debt` yoki `payme` yonidagi tugma id'si ekran xatosi,
+  va u qarzni naqdga aylantira olmaydi.
+- ⚠️ **O'chirilgan tugma ham topiladi** (`TillMethodByID`): uzilish paytida
+  kassada qolgan sotuv o'sha tugmada qilingan, nomini yo'qotish kerak emas.
+  Internetsiz yo'l ham id'ni olib yuradi (`PendingSale.methodId`,
+  `LocalCheck.paymentMethodId`, `syncCheck.paymentMethodId`).
+- **Hech narsa sozlanmagan bo'lsa — eski uchta** (id = tur, nomsiz, kassa o'z
+  tilida nomlaydi): bu o'zgarishdan oldingi har sotuv xuddi shunday o'qiladi.
+  Standart uchtasini o'chirib bo'lmaydi, faqat yashirish mumkin.
+- ⚠️ **Kamida bittasi yoqilgan** — server rad etadi, jimgina qaytarib yoqmaydi
+  (sozlamalar egani aytmasdan bekor qilgan bo'lardi). Yangi qatorga id
+  **serverda** beriladi, nomdan emas: "Karta" ni "Humo" ga qayta nomlash o'tgan
+  oy hisobotida o'sha tugma bo'lib qolishi kerak. Saqlagandan keyin forma
+  serverning id'lari bilan yangilanadi — aks holda keyingi saqlash yangi
+  qatorlarni ikkinchi marta yaratardi.
+- ⚠️ **Eski server `options` yubormaydi** — kassa `methods` dagi turlardan
+  standart uchtasini tiklaydi (`payOptionsFrom`), ya'ni yangi kassa eski
+  serverda ham tugmasiz qolmaydi.
+- ⚠️ **Uzum Tezkor kassada taklif qilinmaydi** (`tillOffer`): buyurtmalari
+  panelga o'zi tushadi va Uzum'ga to'langan, kassadagi tugma bir buyurtmani
+  ikkinchi marta urishga taklif. Sozlamadagi kalit qoladi (perechisleniye
+  ekrani o'qiydi), server esa id'ni **qabul qilishda davom etadi** — o'zgarishdan
+  oldin internetsiz navbatga tushgan sotuv yo'qolmasin.
+
+**To'lov oynasi (`app/kassa/PayDialog.tsx`) — ikki yarim.** Chapda **pul**:
+to'lanadigan summa eng katta shriftda, taomlar va chegirma, naqd bo'lsa
+olingan summa + **tez summa tugmalari** (aniq summa va undan yuqori yumaloq
+pullar — 6 ta bosish o'rniga 1) + katta **qaytim**; chegirma yig'ilgan blokda
+(ko'p chekda yo'q, va navbat bor kassir uni o'tkazib ko'rmasligi kerak). O'ngda
+**usul plitkalari** ikonka bilan: egasining tugmalari, relslar, qarz.
+- ⚠️ **Plitkaning accessible nomi — faqat yorliq**, ikonkalar `aria-hidden`:
+  kassa testlari va ekran o'quvchi usulni so'z bo'yicha topadi.
+- ⚠️ **Bosilgan tugma taklifda bo'lmasa, birinchisiga o'tadi**: panelda "Humo"
+  bosilgan paytda ega uni o'chirgan bo'lishi mumkin, va hech bir plitka yonmagan
+  oyna server bilmaydigan tugmada chek yopardi.
 
 ### Kassada karta: QR skanerlash (Click Pass / Uzum FastPay)
 

@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"log"
 	"net/http"
@@ -360,6 +362,9 @@ func (h *Handler) AdminGetPaymentSettings(w http.ResponseWriter, r *http.Request
 		// draws no marketplaces at all, and the owner's first thought is that
 		// the feature is missing rather than that it is off.
 		"aggregators": aggregatorView(s),
+		// Every button, on or off, with the three defaults filled in when the
+		// owner has never touched this — the form always has rows to draw.
+		"tillMethods": s.TillMethodList(),
 	})
 }
 
@@ -428,6 +433,17 @@ type paymentSettingsRequest struct {
 	// The marketplaces the restaurant sells through. Carries no secret — an
 	// aggregator's money arrives by bank transfer, not through an API we call.
 	Aggregators []aggregatorInput `json:"aggregators"`
+	// The till's buttons. ⚠️ **Nil keeps what is stored**: a panel tab opened
+	// before this field existed saves without it, and reading its absence as
+	// "no buttons" would leave every till in the building with nothing to press.
+	TillMethods []tillMethodInput `json:"tillMethods"`
+}
+
+type tillMethodInput struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Kind    string `json:"kind"`
+	Enabled bool   `json:"enabled"`
 }
 
 type aggregatorInput struct {
@@ -472,6 +488,15 @@ func (h *Handler) AdminUpdatePaymentSettings(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	current := h.paymentSettings(r.Context())
+	tillMethods := current.TillMethods
+	if req.TillMethods != nil {
+		cleaned, err := tillMethodsFrom(req.TillMethods)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		tillMethods = cleaned
+	}
 
 	next := models.PaymentSettings{
 		ReturnURL: strings.TrimSpace(req.ReturnURL),
@@ -509,6 +534,7 @@ func (h *Handler) AdminUpdatePaymentSettings(w http.ResponseWriter, r *http.Requ
 		// ⚠️ Written straight through rather than merged: this list *is* the
 		// form, and a marketplace the owner removed has to actually go.
 		Aggregators: aggregatorsFrom(req.Aggregators),
+		TillMethods: tillMethods,
 		UpdatedAt:   time.Now(),
 	}
 
@@ -663,6 +689,60 @@ func paymentStatusOf(order *models.Order) string {
 		return models.PayUnpaid
 	}
 	return order.PaymentStatus
+}
+
+var errNoTillMethod = errors.New("kassada kamida bitta to'lov usuli yoqilgan bo'lishi kerak")
+
+// tillMethodsFrom cleans the till buttons the settings form sends.
+//
+// ⚠️ **The kind is checked, the name is not invented.** A row with an unknown
+// kind is dropped — it would be a button whose money no report knows where to
+// put. A new row gets an id here, never from its name: renaming "Karta" to
+// "Humo" must stay the same button in last month's report. A custom row with
+// no name is dropped too; the three defaults may be nameless, the till names
+// them in its own language.
+//
+// ⚠️ **At least one switched on**, refused rather than fixed: silently turning
+// a button back on is the settings page overruling the owner without saying so.
+func tillMethodsFrom(rows []tillMethodInput) ([]models.TillMethod, error) {
+	out := []models.TillMethod{}
+	seen := map[string]bool{}
+	enabled := 0
+	for _, row := range rows {
+		kind := strings.TrimSpace(row.Kind)
+		if !models.IsTillKind(kind) {
+			continue
+		}
+		name := clampText(strings.TrimSpace(row.Name), 40)
+		id := clampText(strings.TrimSpace(row.ID), 40)
+		if id == "" {
+			if name == "" {
+				continue
+			}
+			id = newTillMethodID()
+		}
+		if name == "" && !models.IsTillKind(id) {
+			continue
+		}
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		if row.Enabled {
+			enabled++
+		}
+		out = append(out, models.TillMethod{ID: id, Name: name, Kind: kind, Enabled: row.Enabled})
+	}
+	if enabled == 0 {
+		return nil, errNoTillMethod
+	}
+	return out, nil
+}
+
+func newTillMethodID() string {
+	b := make([]byte, 5)
+	_, _ = rand.Read(b)
+	return "m_" + hex.EncodeToString(b)
 }
 
 // aggregatorsFrom cleans the marketplace list the settings form sends.

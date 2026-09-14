@@ -44,6 +44,8 @@ export interface LocalCheck extends Check {
   /** Set when the money was taken; the sale is then owed to the server. */
   paidAt?: string;
   paymentMethod?: TillPaymentMethod;
+  /** The owner's button, when one was pressed. */
+  paymentMethodId?: string;
   discount?: number;
   discountReason?: string;
 }
@@ -256,9 +258,11 @@ export async function payLocal(
   method: TillPaymentMethod,
   discount: number,
   discountReason: string,
+  methodId?: string,
 ): Promise<void> {
   check.paidAt = stamp();
   check.paymentMethod = method;
+  check.paymentMethodId = methodId;
   check.discount = discount;
   check.discountReason = discountReason;
   await put(CHECKS, check);
@@ -280,6 +284,7 @@ export function syncPayload(check: LocalCheck) {
     guests: check.guests,
     serverName: check.serverName,
     paymentMethod: check.paymentMethod,
+    paymentMethodId: check.paymentMethodId,
     discount: check.discount,
     discountReason: check.discountReason,
     // ⚠️ The rate, not the amount. The server recomputes the som from it with

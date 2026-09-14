@@ -2832,6 +2832,9 @@ export interface PaymentSettings {
    *  Carries no secret: an aggregator's money arrives by bank transfer, not
    *  through an API we call. */
   aggregators?: AggregatorAccount[];
+  /** The till's payment buttons, on or off — the three defaults when the owner
+   *  has never set any. */
+  tillMethods?: TillMethodSetting[];
 }
 
 /** One counter rail as the settings page draws it. */
@@ -2917,6 +2920,8 @@ export interface PaymentSettingsInput {
    *  can be both at once, and one record for both would give a restaurant that
    *  merely hires the courier fleet a balance it does not have. */
   aggregators?: AggregatorAccount[];
+  /** The till's payment buttons. Omitted keeps what is stored. */
+  tillMethods?: TillMethodSetting[];
 }
 
 // ---- SMS gateway (login codes) ----
@@ -3767,7 +3772,24 @@ export type TillPaymentMethod =
   | "click"
   | "uzum"
   | "click_pass"
-  | "uzum_fastpay";
+  | "uzum_fastpay"
+  // A marketplace rung up by hand. ⚠️ Never Uzum Tezkor — its orders arrive by
+  // themselves, and the server no longer offers it here.
+  | "yandex_eats";
+
+/** One of the owner's till buttons, as the till draws it. ⚠️ `kind` is how the
+ *  money is booked; the name is only what the cashier reads. Empty name on the
+ *  three defaults, which the till names in its own language. */
+export interface TillPayOption {
+  id: string;
+  name: string;
+  kind: "cash" | "card" | "transfer";
+}
+
+/** The same button as the settings page edits it. */
+export interface TillMethodSetting extends TillPayOption {
+  enabled: boolean;
+}
 
 /** One unpaid check, as the till shows it while a guest settles up. */
 export interface TillDebt {
@@ -4978,7 +5000,37 @@ export interface AlertSettings {
    *  and forty messages is silence. Past it, events are still recorded and the
    *  panel still shows them. */
   dailyMax: number;
+  /** The kinds the owner does not want sent. ⚠️ What is off, not what is on:
+   *  empty means everything, which is what every restaurant had before. A muted
+   *  kind is still recorded and still listed in the panel. */
+  muted: string[];
+  /** A refund on a closed check at or above this. */
+  refundFrom: number;
+  /** One cash withdrawal from the drawer at or above this. */
+  cashOutFrom: number;
+  /** A write-off worth at least this much. */
+  writeoffFrom: number;
+  /** A check put on the slate for at least this much. */
+  debtFrom: number;
 }
+
+/** Every alert kind, in the order the settings page lists them — money leaving
+ *  first. Mirrors models.AlertKindsInOrder. */
+export const ALERT_KINDS = [
+  "check_cancelled",
+  "check_refunded",
+  "order_cancelled",
+  "void_after_precheck",
+  "big_discount",
+  "debt_written",
+  "cash_short",
+  "cash_out",
+  "shift_overdue",
+  "stock_short",
+  "big_writeoff",
+  "recipe_up",
+  "panel_action",
+] as const;
 
 /** One thing the owner was told about. */
 export interface LossAlert {

@@ -96,6 +96,40 @@ const (
 	// about, and the second message would be the one that got the channel
 	// muted.
 	AlertShiftOverdue AlertKind = "shift_overdue"
+
+	// Money handed back on a check that was already closed.
+	//
+	// ⚠️ **The void's quieter sibling.** A void removes a dish before the money
+	// changes hands; a refund gives money back after it did — and "the guest
+	// complained, I gave it back" is an ordinary sentence that covers the drawer
+	// being lighter by exactly one bill.
+	AlertCheckRefunded AlertKind = "check_refunded"
+
+	// A delivery, pickup or phone order cancelled after the kitchen had started
+	// on it.
+	//
+	// ⚠️ **The till's cancelled-check alert, for everything that is not a
+	// table.** Food was made, nobody paid, and the only record of why is the
+	// reason typed into the panel.
+	AlertOrderCancelled AlertKind = "order_cancelled"
+
+	// Cash taken out of the drawer, above what this restaurant calls ordinary.
+	//
+	// ⚠️ **Every withdrawal is already written down with a reason** — that is
+	// what the drawer's entries are. What was missing is anybody hearing about
+	// the large one on the evening it happened, rather than at the count.
+	AlertCashOut AlertKind = "cash_out"
+
+	// Stock written off above a threshold, in money.
+	AlertBigWriteoff AlertKind = "big_writeoff"
+
+	// A check closed on the slate for a large sum.
+	//
+	// ⚠️ **The owner already decides who may owe; this is how much.** A regular
+	// allowed a tab is ordinary. The same regular's name on a bill ten times the
+	// usual size is the evening's shortfall moved onto somebody who will not see
+	// it until Friday.
+	AlertDebtWritten AlertKind = "debt_written"
 )
 
 // LossAlert is one thing worth telling the owner about now.
@@ -189,6 +223,27 @@ type AlertSettings struct {
 	// whose shifts run latest — the ones this is for.
 	ShiftMaxHours int `bson:"shiftMaxHours" json:"shiftMaxHours"`
 
+	// A refund at or above this raises one.
+	RefundFrom int `bson:"refundFrom" json:"refundFrom"`
+	// A single cash withdrawal from the drawer at or above this.
+	CashOutFrom int `bson:"cashOutFrom" json:"cashOutFrom"`
+	// A write-off worth at least this much.
+	WriteoffFrom int `bson:"writeoffFrom" json:"writeoffFrom"`
+	// A check put on the slate for at least this much.
+	DebtFrom int `bson:"debtFrom" json:"debtFrom"`
+
+	// The kinds the owner does not want delivered.
+	//
+	// ⚠️ **What is off is stored, not what is on.** Every restaurant that set
+	// this up before the choice existed has no list at all, and reading an
+	// empty "on" list would silence all of them on the day it shipped. An empty
+	// "off" list is exactly what they had: everything.
+	//
+	// ⚠️ **Muted means not sent, never not recorded.** The panel's list and the
+	// owner app's attention screen still show the event — the owner chose which
+	// ones buzz, not which ones happened.
+	Muted []AlertKind `bson:"muted,omitempty" json:"muted"`
+
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
@@ -211,6 +266,14 @@ const (
 	// following evening has stopped being counted. Eighteen hours sits between
 	// those and needs no knowledge of the branch's hours to be right.
 	DefaultShiftMaxHours = 18
+
+	// ⚠️ High on purpose, like the ones above: a refund of a tea is a guest
+	// who changed their mind, and a withdrawal to pay the bread van happens
+	// every morning. The first week decides whether anybody reads these.
+	DefaultRefundFrom   = 50_000
+	DefaultCashOutFrom  = 500_000
+	DefaultWriteoffFrom = 300_000
+	DefaultDebtFrom     = 300_000
 )
 
 // DefaultStockCardWarnFrom is the covered-revenue share below which the morning
@@ -247,5 +310,62 @@ func (s AlertSettings) WithDefaults() AlertSettings {
 	if s.ShiftMaxHours <= 0 {
 		s.ShiftMaxHours = DefaultShiftMaxHours
 	}
+	if s.RefundFrom <= 0 {
+		s.RefundFrom = DefaultRefundFrom
+	}
+	if s.CashOutFrom <= 0 {
+		s.CashOutFrom = DefaultCashOutFrom
+	}
+	if s.WriteoffFrom <= 0 {
+		s.WriteoffFrom = DefaultWriteoffFrom
+	}
+	if s.DebtFrom <= 0 {
+		s.DebtFrom = DefaultDebtFrom
+	}
+	// ⚠️ Never nil: a `null` here is a settings page that cannot tell "nothing
+	// muted" from "not loaded".
+	if s.Muted == nil {
+		s.Muted = []AlertKind{}
+	}
 	return s
+}
+
+// AlertKindsInOrder is every kind, in the order the settings page lists them:
+// money leaving the building first, then the drawer, then the store and the
+// panel. ⚠️ One list, so a kind added later is either here — and shown with a
+// checkbox — or missing from a test that says so.
+var AlertKindsInOrder = []AlertKind{
+	AlertCheckCancelled,
+	AlertCheckRefunded,
+	AlertOrderCancelled,
+	AlertVoidAfterPrecheck,
+	AlertBigDiscount,
+	AlertDebtWritten,
+	AlertCashShort,
+	AlertCashOut,
+	AlertShiftOverdue,
+	AlertStockShort,
+	AlertBigWriteoff,
+	AlertRecipeUp,
+	AlertPanelAction,
+}
+
+// IsAlertKind reports whether k is a kind this server raises.
+func IsAlertKind(k AlertKind) bool {
+	for _, known := range AlertKindsInOrder {
+		if known == k {
+			return true
+		}
+	}
+	return false
+}
+
+// IsMuted reports whether the owner switched this kind's messages off.
+func (s AlertSettings) IsMuted(k AlertKind) bool {
+	for _, m := range s.Muted {
+		if m == k {
+			return true
+		}
+	}
+	return false
 }

@@ -14752,3 +14752,65 @@ qilardi, va 96.40% lik haqiqiy uzilish (07.08) ulardan ajralmasdi.
 Tekshiruv: control `go build` + `go vet` + `go test ./internal/handlers`
 (yangi `status_test.go`), keel-site `tsc` + 22 test yashil. ⚠️ Eski bucketlar
 qayta hisoblanmaydi — o'sha kunlar sariq ko'rinadi, foizi o'sha.
+
+## 2026-09-14 (7) — Kassa: to'lov tugmalari egasiniki, Uzum Tezkor kassadan chiqdi, yangi to'lov oynasi
+
+1. **Uzum Tezkor kassada taklif qilinmaydi** (`tillOffer`): buyurtmalari panelga
+   o'zi tushadi va Uzum'ga to'langan. Sozlamadagi kalit qoladi (perechisleniye
+   o'qiydi), server id'ni qabul qilishda davom etadi (internetsiz navbat).
+2. **Kassadagi to'lov tugmalari sozlamada** (To'lov tizimlari → "Kassadagi
+   to'lov usullari"): nom egasiniki ("Humo terminal", "Beznal"), tur — naqd /
+   karta / beznal. ⚠️ Buyurtmada `paymentMethod` **tur** bo'lib qoladi, tugma
+   `paymentOptionId` + `paymentOptionName` da — yashik, smena va hisobotlar
+   o'zgarmadi. Pulni tugmaning sozlamadagi turi belgilaydi; o'chirilgan tugma
+   ham topiladi; internetsiz yo'l (navbat, lokal chek, sync) id'ni olib yuradi;
+   kamida bittasi yoqilgan bo'lishi shart; eski server uchun kassa standart
+   uchtasini tiklaydi.
+3. **To'lov oynasi qayta chizildi** (`PayDialog.tsx`): chapda pul — katta
+   summa, taomlar/chegirma, naqd uchun tez summa tugmalari va katta qaytim,
+   yig'ilgan chegirma bloki; o'ngda ikonkali usul plitkalari. Mantiq o'zgarmadi
+   (qarz, QR, skaner, override, internetsiz, fiskal). Yandex Eats plitkasining
+   bo'sh yorlig'i ham tuzatildi.
+
+Tekshiruv: backend `go build` + `go vet` + `go test ./internal/handlers
+./internal/models ./internal/i18n` yashil (yangi `tillmethods_test.go`);
+frontend `tsc` + 271 test yashil (yangi `tillPayOptions.test.ts`, kassa
+oqimi testlari — qarz, Payme QR — yangi oyna bilan o'tdi). ⚠️ Birinchi to'liq
+yugurishda handlers paketi osilgan va ikki live-alert testi 44–60 s kutib
+yiqilgan edi; ular toza HEAD'da ham, bu o'zgarishlar bilan yolg'iz ham o'tdi,
+va hech narsa ishlamayotganda paket 4.4 s da toza o'tdi — atrof-muhit, kod emas.
+⏳ Windows kassada (monoblok) ko'z bilan sinalmagan.
+
+## 2026-09-14 (8) — Nazorat xabarlari: ega qaysilari yuborilishini tanlaydi
+
+Sozlamalar → Integratsiyalar → "Shubhali holatlar haqida xabar": 8 tur
+raqamlangan ro'yxatda, har biriga checkbox va qisqa izoh (1. chek bekor qilindi
+… 8. paneldagi amal). O'chirilgan tur **yozuvda qoladi**, faqat Telegramga va
+ega ilovasiga yuborilmaydi; sozlamada o'chirilganlar saqlanadi (`muted`), ya'ni
+mavjud restoranlar hammasini olishda davom etadi. Sinov tugmasi filtrni
+chetlab o'tadi. Lug'atga yo'q "smena uzoq ochiq qoldi" nomi ham qo'shildi.
+
+Tekshiruv: backend build + vet + `go test ./internal/handlers ./internal/models
+./internal/i18n` yashil — yangi `alertmute_test.go` haqiqiy Mongo'da: o'chirilgan
+tur yoziladi-yu yuborilmaydi, yoqilgani yuboriladi, sinov o'chirilganga ham
+boradi; frontend `tsc` + 271 test yashil.
+
+## 2026-09-14 (9) — Nazorat xabarlari: yana beshta tur, har biri ishlaydi
+
+Sozlamalardagi ro'yxat 8 tadan 13 taga ko'paydi; har yangi tur haqiqiy
+hodisaga ulandi va o'z chegarasi bor (`handlers/alertsmore.go`):
+
+1. **Yopilgan chekda pul qaytarildi** — `AdminRefundCheck`, chegara 50 000.
+2. **Tayyorlangan buyurtma bekor qilindi** — sayt/telefon buyurtmasi oshxonaga
+   yetganidan keyin bekor qilinganda (tarix bo'yicha), kassa cheki emas.
+3. **Kassadan katta chiqim** — yashikdan chiqim, kassa ham panel ham, 500 000.
+4. **Katta spisaniya** — spisaniya hujjati qiymati, 300 000.
+5. **Qarzga katta summa** — chek qarzga yopilganda, 300 000.
+
+Pul qaytarish, spisaniya va bekor qilish **egasi o'zi** qilgan bo'lsa xabar
+yo'q. Chegaralar sozlamada (uch tilda), ega ilovasi ham turlar nomlarini oldi.
+
+Tekshiruv: backend build + vet + `go test ./internal/handlers ./internal/models
+./internal/i18n` yashil — `alertsmore_test.go` haqiqiy Mongo'da har tur uchun
+chegaradan past/baland va egasi holatini, har tur uch tilda sarlavhasi borligini
+tekshiradi; frontend `tsc` + 271 test; owner-android unit testlari (15) yashil.

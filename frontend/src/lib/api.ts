@@ -199,6 +199,7 @@ import type {
   BookingSettings,
   Printer,
   UzumTezkorSettings,
+  TillPayOption,
 } from "./types";
 import {
   apiOverride,
@@ -4731,7 +4732,7 @@ export const api = {
   // to a bank page that rejects the merchant loses the sale, and the guest
   // blames the restaurant.
   tillPaymentMethods: () =>
-    request<{ methods: TillPaymentMethod[] }>(`/staff/payment-methods`, {
+    request<{ methods: TillPaymentMethod[]; options?: TillPayOption[] }>(`/staff/payment-methods`, {
       bearer: tillBearer(),
       cache: "no-store",
     }),
@@ -4830,6 +4831,9 @@ export const api = {
     id: string,
     body: {
       paymentMethod: TillPaymentMethod;
+      /** Which of the owner's buttons was pressed; the server books the money
+       *  by that button's kind. */
+      methodId?: string;
       discount?: number;
       discountReason?: string;
       /** Who owes it, when the method is `debt`. Required by the server in

@@ -128,6 +128,7 @@ func (h *Handler) AdminCreateWriteOff(w http.ResponseWriter, r *http.Request) {
 	}
 	in.ID = oidOf(res.InsertedID)
 	h.logAction(r, "writeoff.create", "writeoff", in.ID.Hex(), ing.Name, in.Reason)
+	h.alertOnWriteOff(in, ing.Name, h.requireOwner(r) == nil)
 	httpx.JSON(w, http.StatusCreated, in)
 }
 

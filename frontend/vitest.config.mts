@@ -38,6 +38,9 @@ export default defineConfig({
       // — spooler or browser dialog — and it fails silently on the hardware
       // none of these tests run on.
       "src/lib/print.test.ts",
+      // The till's payment buttons: the owner's names over three kinds, and the
+      // defaults an older server still needs.
+      "src/lib/tillPayOptions.test.ts",
       // The address a printer is stored under: wrong here, and it saves, lists,
       // and never prints.
       "src/lib/printerTarget.test.ts",

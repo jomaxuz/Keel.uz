@@ -67,7 +67,11 @@ type syncCheck struct {
 	Lines []syncLine `json:"lines"`
 
 	PaymentMethod string `json:"paymentMethod,omitempty"`
-	Discount      int    `json:"discount,omitempty"`
+	// Which of the owner's till buttons took it. ⚠️ Resolved against the
+	// settings as they are now, switched off or not: the button may have been
+	// hidden during the outage, and the sale was still made on it.
+	PaymentMethodID string `json:"paymentMethodId,omitempty"`
+	Discount        int    `json:"discount,omitempty"`
 	// The service rate the device charged this table at. ⚠️ Sent by the till
 	// rather than read from the branch here, for the same reason the prices
 	// are: this is the record of what the guest actually paid, and the setting
@@ -248,6 +252,13 @@ func (h *Handler) acceptOfflineCheck(
 	o.Total = payable + o.ServiceCharge
 
 	method := c.PaymentMethod
+	if c.PaymentMethodID != "" && models.IsTillKind(method) {
+		if m, ok := h.paymentSettings(r.Context()).TillMethodByID(c.PaymentMethodID); ok {
+			method = m.Kind
+			o.PaymentOptionID = m.ID
+			o.PaymentOptionName = m.Name
+		}
+	}
 	if !tillMethods[method] {
 		method = models.ProviderCash
 	}

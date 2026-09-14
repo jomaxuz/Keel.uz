@@ -195,7 +195,11 @@ type PaymentSettings struct {
 	// restaurant that merely hires the courier fleet an unpaid balance it does
 	// not have. See models/payout.go.
 	Aggregators []AggregatorAccount `bson:"aggregators,omitempty" json:"aggregators"`
-	UpdatedAt   time.Time           `bson:"updatedAt" json:"updatedAt"`
+	// The buttons the till offers for money taken at the counter — cash, the
+	// terminal, a bank transfer, under whatever names the owner gives them. See
+	// TillMethod. Empty means the three defaults.
+	TillMethods []TillMethod `bson:"tillMethods,omitempty" json:"tillMethods"`
+	UpdatedAt   time.Time    `bson:"updatedAt" json:"updatedAt"`
 }
 
 // Configured reports whether a provider can actually take money, which is what
@@ -305,4 +309,78 @@ type Payment struct {
 
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+// ---- The till's own payment buttons ----
+
+// The three kinds of money a counter takes, and the only values a till button
+// may have as its kind.
+const (
+	TillKindCash     = "cash"
+	TillKindCard     = "card"
+	TillKindTransfer = "transfer"
+)
+
+// TillMethod is one way of paying the owner offers at the counter: "Naqd",
+// "Humo terminal", "Beznal (hisob raqamga)".
+//
+// ⚠️ **A name over a kind, never a new kind.** The drawer counts `cash`, the
+// shift report splits `cash` / `card` / everything else, and the payouts screen
+// reads `card` as the terminal's settlement. A button with its own id in
+// `order.paymentMethod` would fall out of all three — a "Naqd (dollar)" sale
+// missing from the drawer it went into. So the order keeps the kind, and the
+// button's id and name travel beside it (Order.PaymentOptionID).
+type TillMethod struct {
+	ID string `bson:"id" json:"id"`
+	// Empty on the three defaults, which the till names in its own language.
+	Name    string `bson:"name" json:"name"`
+	Kind    string `bson:"kind" json:"kind"`
+	Enabled bool   `bson:"enabled" json:"enabled"`
+}
+
+// IsTillKind reports whether k is one of the three kinds a till button may be.
+func IsTillKind(k string) bool {
+	return k == TillKindCash || k == TillKindCard || k == TillKindTransfer
+}
+
+// DefaultTillMethods is what a till offers before the owner has set anything:
+// the three buttons it always had, with ids equal to their kinds so sales made
+// before this existed read the same.
+func DefaultTillMethods() []TillMethod {
+	return []TillMethod{
+		{ID: TillKindCash, Kind: TillKindCash, Enabled: true},
+		{ID: TillKindCard, Kind: TillKindCard, Enabled: true},
+		{ID: TillKindTransfer, Kind: TillKindTransfer, Enabled: true},
+	}
+}
+
+// TillMethodList is every till button, switched on or not.
+func (s *PaymentSettings) TillMethodList() []TillMethod {
+	if len(s.TillMethods) == 0 {
+		return DefaultTillMethods()
+	}
+	return s.TillMethods
+}
+
+// EnabledTillMethods is what the till draws. ⚠️ Never nil.
+func (s *PaymentSettings) EnabledTillMethods() []TillMethod {
+	out := []TillMethod{}
+	for _, m := range s.TillMethodList() {
+		if m.Enabled && IsTillKind(m.Kind) {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// TillMethodByID finds a button by id — ⚠️ **switched off or not**. A sale
+// rung up offline an hour ago on a button the owner has since hidden is still a
+// sale on that button, and refusing it would lose the name, not the money.
+func (s *PaymentSettings) TillMethodByID(id string) (TillMethod, bool) {
+	for _, m := range s.TillMethodList() {
+		if m.ID == id && IsTillKind(m.Kind) {
+			return m, true
+		}
+	}
+	return TillMethod{}, false
 }

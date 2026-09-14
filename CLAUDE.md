@@ -197,7 +197,10 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   ⚠️ **Kelgan pul tushum emas**: sotuv mijoz to'lagan kuni sanalgan, o'tkazma —
   o'sha pulning joyi o'zgarishi. Hisobotga faqat `commission` tushadi; `net`
   hech qachon `gross − commission` dan hisoblanmaydi — farqi ko'rinishi kerak).
-- **Integratsiya sozlamalari (singleton)**: `payment_settings` (+ `inStore` —
+- **Integratsiya sozlamalari (singleton)**: `payment_settings` (+ `tillMethods` —
+  kassadagi to'lov tugmalari: egasining nomi + uchta turdan biri; ⚠️ buyurtmada
+  `paymentMethod` **tur** bo'lib qoladi, tugma `paymentOptionId`/`Name` da — qarang
+  `docs/DECISIONS.md` → "Kassadagi to'lov tugmalari"; + `inStore` —
   kassada QR skanerlab karta yechish relslari; qarang `docs/DECISIONS.md` →
   "Kassada karta"), `sms_settings`,
   `pbx_settings`, `telegram_settings`, `push_settings` (VAPID juftligi —
@@ -790,6 +793,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Menyu, qidiruv, variant, combo, izoh | Menyu qidiruvi va filtrlar · Menyu variantlari · Ulushlab sotish · Combo · Taomga izoh va bekor qilish sababi |
 | Narx, chegirma, ball | Chegirmalar · Loyalty |
 | Stol: QR, bron, zal | QR menyu · Stol bron qilish · Kassa (POS) va zal |
+| Kassa to'lov tugmalari, to'lov oynasi | Kassadagi to'lov tugmalari: nom egasiniki, tur uchta |
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
 | Ombor, tannarx, sanash | Tannarx va ombor |
 | Kamomad, sanoq topilmasi, javob | Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi |

@@ -12,7 +12,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
-import type { AlertSettings as Settings } from "@/lib/types";
+import { ALERT_KINDS, type AlertSettings as Settings } from "@/lib/types";
 
 export default function AlertSettings() {
   const t = useAdminT();
@@ -61,7 +61,15 @@ export default function AlertSettings() {
   };
 
   const money = (
-    key: "voidFrom" | "discountFrom" | "cashShortFrom" | "stockShortFrom",
+    key:
+      | "voidFrom"
+      | "discountFrom"
+      | "cashShortFrom"
+      | "stockShortFrom"
+      | "refundFrom"
+      | "cashOutFrom"
+      | "writeoffFrom"
+      | "debtFrom",
   ) => (
     <label className="block text-sm">
       <span className="font-medium">{t.alerts.fields[key]}</span>
@@ -146,11 +154,55 @@ export default function AlertSettings() {
             )}
           </div>
 
+          {/* ---- Which messages are sent ----
+
+              ⚠️ **In a fixed order, numbered, one checkbox each.** The owner
+              reads it top to bottom as "what do I want my phone to tell me",
+              and the order is the one money leaves in: a cancelled check first,
+              the store and the panel last. Unticking a kind stops the message,
+              not the record — the list below still shows it, and saying so is
+              what keeps an owner from unticking everything to "clean up". */}
+          <div className="rounded-xl border border-line p-3">
+            <p className="text-sm font-medium">{t.alerts.sendKinds}</p>
+            <p className="mt-1 text-xs text-ink-muted">{t.alerts.sendKindsHint}</p>
+            <ol className="mt-3 space-y-2">
+              {ALERT_KINDS.map((kind, i) => {
+                const on = !(set.muted ?? []).includes(kind);
+                return (
+                  <li key={kind}>
+                    <label className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-1.5 hover:bg-ink/[0.03]">
+                      <span className="mt-0.5 w-5 shrink-0 text-right text-sm tabular-nums text-ink-muted">
+                        {i + 1}.
+                      </span>
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={on}
+                        onChange={(e) => {
+                          const rest = (set.muted ?? []).filter((k) => k !== kind);
+                          patch({ muted: e.target.checked ? rest : [...rest, kind] });
+                        }}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">{t.alerts.kinds[kind]}</span>
+                        <span className="block text-xs text-ink-muted">{t.alerts.kindNotes[kind]}</span>
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             {money("voidFrom")}
             {money("discountFrom")}
             {money("cashShortFrom")}
             {money("stockShortFrom")}
+            {money("refundFrom")}
+            {money("cashOutFrom")}
+            {money("writeoffFrom")}
+            {money("debtFrom")}
           </div>
 
           <label className="block text-sm">

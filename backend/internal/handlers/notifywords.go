@@ -34,6 +34,11 @@ type notifyWords struct {
 	RecipeUp          string
 	PanelAction       string
 	CheckCancelled    string
+	CheckRefunded     string
+	OrderCancelled    string
+	CashOut           string
+	BigWriteoff       string
+	DebtWritten       string
 	// ⚠️ **Hours, not money.** Nothing has been lost yet, and a figure would
 	// read as an accusation about one; what has been lost is the ability to
 	// check, and the unit that says so is time.
@@ -77,6 +82,11 @@ func notifyWordsFor(lang string) notifyWords {
 			PanelAction:       "Действие в панели",
 			CheckCancelled:    "Счёт отменён",
 			ShiftOverdue:      "Кассовая смена не закрыта",
+			CheckRefunded:     "Деньги возвращены по закрытому счёту",
+			OrderCancelled:    "Заказ отменён после начала готовки",
+			CashOut:           "Крупная выдача из кассы",
+			BigWriteoff:       "Крупное списание",
+			DebtWritten:       "Крупная сумма в долг",
 			Hours:             "ч",
 			Table:             "Стол",
 			AfterPrecheck:     "счёт уже был распечатан",
@@ -102,6 +112,11 @@ func notifyWordsFor(lang string) notifyWords {
 			PanelAction:       "Action in the panel",
 			CheckCancelled:    "A check was cancelled",
 			ShiftOverdue:      "The cash shift is still open",
+			CheckRefunded:     "Money refunded on a closed check",
+			OrderCancelled:    "An order was cancelled after cooking started",
+			CashOut:           "Large cash withdrawal from the till",
+			BigWriteoff:       "Large write-off",
+			DebtWritten:       "Large sum put on the slate",
 			Hours:             "h",
 			Table:             "Table",
 			AfterPrecheck:     "the bill had already been printed",
@@ -127,6 +142,11 @@ func notifyWordsFor(lang string) notifyWords {
 		PanelAction:       "Panelda amal",
 		CheckCancelled:    "Chek bekor qilindi",
 		ShiftOverdue:      "Kassa smenasi yopilmagan",
+		CheckRefunded:     "Yopilgan chek bo'yicha pul qaytarildi",
+		OrderCancelled:    "Buyurtma tayyorlash boshlangandan keyin bekor qilindi",
+		CashOut:           "Kassadan katta summa chiqarildi",
+		BigWriteoff:       "Katta spisaniya",
+		DebtWritten:       "Qarzga katta summa yozildi",
 		Hours:             "soat",
 		Table:             "Stol",
 		AfterPrecheck:     "hisob chiqarilgan edi",
