@@ -14690,3 +14690,30 @@ token, buyurtma, o'sha `eatsId` qayta → o'sha `orderId`, yarim portsiya → 40
 availability`), perechisleniye API (hujjatda yo'q), Uzum test muhiti, bitta
 host bilan ko'p tenant (control yo'naltirishi). Qarorlar `docs/DECISIONS.md` →
 "Uzum Tezkor".
+
+## 2026-09-14 (4) — Uzum Tezkor: menyu va qoldiq
+
+Branch `dashboard/uzum-tezkor-orders` (buyurtma qismi `b2a75fb` da).
+
+1. **Katalog** — `GET /v1/nomenclature/{storeId}/composition` (Uzum soatiga bir
+   o'qiydi). `storeId` = filial ID, katalog — shu filial brendining menyusi.
+   Faqat savolsiz sotib bo'ladigan taom: model qatori, **majburiy variantli
+   taom** (Uzum katalogida modifikator guruhi yo'q) va narxi 0 chiqmaydi; yopiq
+   kategoriya va bo'sh kategoriya ham.
+2. **Qoldiq** — `GET /v1/nomenclature/{storeId}/availability` (5 daqiqada bir).
+   Katalogdagi **har** taom: o'chirilgan / to'rtala stop list / stopdagi a'zosi
+   bor combo → 0, kunlik limit → qolgan son, qolgani → 99. O'chirilgan taom
+   katalogda qoladi — qayta yoqilsa bir soat emas, 5 daqiqada qaytadi.
+3. **Do'kon maydonlari halol**: `barcode` — taomniki yoki ID, `vendorCode` — ID,
+   `measure` — bo'sh (o'ylab topilgan og'irlik yo'q). Rasm hash'i — faylning
+   SHA-1'i (faqat `/uploads/` dagi o'z fayllarimiz, `os.Root` ichida, keshlanadi).
+   ИКПУ bo'lsa `serviceCodesUz`.
+
+Tekshiruv: `go test ./internal/...` yashil (yangi `uzumtezkormenu_test.go`:
+katalog tanlovi, qoldiq sabablari, upload yo'li). **Haqiqiy serverda**
+(vaqtinchalik baza, keyin o'chirildi): Content-Type ikkalasida to'g'ri, rasm
+hash'i `sha1sum` bilan bir xil, katalogda faqat 3 ta sotiladigan taom va 1
+kategoriya, qoldiq 99 / stop 0 / limit 5, noma'lum filial 404, tokensiz 401.
+
+⏳ Uzum test muhitida sinalmagan: ayniqsa bo'sh `measure` va ID'dan olingan
+`barcode` ularning validatsiyasidan o'tishini tekshirish kerak.

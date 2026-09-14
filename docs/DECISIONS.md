@@ -4950,11 +4950,38 @@ integratsiyasi deyarli shu kontrakt bo'ladi.
 - ⚠️ **Identifikatorlar `tezkor*`**: `payuzum.go` (Uzum Bank to'lovi) bir
   paketda `uzum*` nomlarini band qilgan — ikki xil Uzum bir faylda
   adashtirilmasin.
-- ⏳ **Hali yo'q**: katalog va qoldiq (`/v1/nomenclature/{storeId}/composition|
-  availability`), perechisleniye API (hujjatda yo'q), test muhiti. ⚠️ Bizda
-  har restoran alohida server — Uzum "texnologik hamkor"ga bitta host yozsa,
-  so'rovni tenantga control yo'naltirishi kerak bo'ladi; hozirgi yozuv har
-  restoranning **o'z domeni** bilan ishlaydi.
+- **Katalog** (`/v1/nomenclature/{storeId}/composition`, soatiga bir) va
+  **qoldiq** (`…/availability`, 5 daqiqada bir) — `handlers/uzumtezkormenu.go`.
+  `storeId` — filial ID; katalog — o'sha filial **brendining** menyusi.
+- ⚠️ **Katalogga faqat savolsiz sotib bo'ladigan taom chiqadi**
+  (`tezkorSellable`): model qatori (o'lcham/rang) — hech qachon; **majburiy
+  variant guruhi bor taom — yo'q**, chunki Uzum katalogida modifikator guruhi
+  yo'q va har buyurtma javobsiz keladi; narxi 0 — Uzum baribir tashlaydi.
+  Yopiq kategoriyadagi taom va taomsiz kategoriya ham chiqmaydi — Uzum
+  `categoryId` ni yuborilgan kategoriyalar bo'yicha tekshiradi.
+- ⚠️ **O'chirilgan yoki stopdagi taom katalogda qoladi, qoldig'i 0**: katalogdan
+  tushirish uni oshxona qayta yoqqandan keyin ham bir soatgacha Uzum'da
+  yashirardi. Qoldiq — biz sotuvni rad etadigan **hamma** sabab va yangisi yo'q:
+  `isAvailable`, `Branch.IsSoldOut` (to'rtala stop list + kunlik limit), stopdagi
+  a'zosi bor combo. Kunlik limit — **qolgan son**; qolgan hammasi — 99 ("bor").
+  Ro'yxatda yo'q taom Uzum uchun sotilmaydi, shuning uchun qoldiq **katalogdagi
+  har bir** taomni beradi.
+- ⚠️ **Do'kon uchun majburiy maydonlar halol to'ldiriladi**: `barcode` — taomning
+  o'z shtrix-kodi (do'konda bor), aks holda ID; `vendorCode` — ID; `measure` —
+  **bo'sh obyekt**. O'ylab topilgan "500 g" mijoz telefonida taom tagida
+  yozilardi. ⏳ Uzum buni qabul qilishini test muhitida tekshirish kerak.
+- **Rasm hash'i — faylning SHA-1'i** (spetsifikatsiya: hash o'zgarsa Uzum qayta
+  yuklaydi; URL hash'i almashtirilgan rasmni sezmasdi). Faqat `/uploads/` dagi
+  **o'z** fayllarimiz, `ServeUploads` bilan bir xil tozalanib va `os.Root`
+  ichida o'qiladi; hajm + vaqt bo'yicha keshlanadi. Begona serverdagi rasm
+  **chiqarilmaydi** — hash'siz rasm butun taomni validatsiyadan yiqitadi.
+- **ИКПУ** bo'lsa `serviceCodesUz`, bo'lmasa **umuman yo'q** (ИКПУ qoidasi);
+  `oldPrice` — faqat narxdan **yuqori** bo'lsa (aks holda eskirgan maydon).
+- ⏳ **Hali yo'q**: perechisleniye API (hujjatda yo'q), Uzum test muhiti, taom
+  nomining tili (hozir asosiy — o'zbekcha nom). ⚠️ Bizda har restoran alohida
+  server — Uzum "texnologik hamkor"ga bitta host yozsa, so'rovni tenantga
+  control yo'naltirishi kerak bo'ladi; hozirgi yozuv har restoranning **o'z
+  domeni** bilan ishlaydi.
 
 ### Tashrif hisobi (`visit`)
 - `POST /visit` — sayt sahifasidan otiladigan mayoq. Restoran paneli nechta

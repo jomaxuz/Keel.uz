@@ -16,7 +16,7 @@ ishongan restoranda **bironta ham to'lov o'tkazmaydigan** kod.
 | `uzum-fastpay.md` | Uzum FastPay v2 — xuddi shu, fiskal havola bilan | adapter yozildi |
 | `didox.md` | Didox — elektron hujjat aylanishi (ЭСФ), hamkor API | adapter yozildi (imzosiz) |
 | `1c-exchange.md` | 1C «Обмен с сайтом» (CommerceML 2) protokoli | almashinuv yozildi |
-| `uzum-tezkor-retail.md` | Uzum Tezkor Retail API — ular bizning serverni so'raydi, buyurtmani bizga POST qiladi | token, buyurtma va holat yozildi (`handlers/uzumtezkor.go`); katalog va qoldiq — hali |
+| `uzum-tezkor-retail.md` | Uzum Tezkor Retail API — ular bizning serverni so'raydi, buyurtmani bizga POST qiladi | token, buyurtma, holat, katalog va qoldiq yozildi (`handlers/uzumtezkor*.go`); test muhitida sinalmagan |
 
 **Payme GO** — ochiq API topilmadi (2026-08-30 da tekshirildi:
 `developer.help.paycom.uz` faqat Merchant API va Subscribe API'ni, ya'ni

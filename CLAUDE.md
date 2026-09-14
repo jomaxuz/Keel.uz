@@ -273,7 +273,8 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   `/payments/atmos/*`. Webhook'lar: `/pbx/onlinepbx/{token}`,
   `/telegram/{token}` — manzildagi token **kalit** (qarang §10).
 - **Uzum Tezkor** (`/uzum-tezkor/*`, public — o'z OAuth2 tokeni bilan):
-  `security/oauth/token`, `order` (POST/GET/PUT/DELETE), `order/{id}/status`;
+  `security/oauth/token`, `order` (POST/GET/PUT/DELETE), `order/{id}/status`,
+  `nomenclature/{storeId}/composition|availability` (`storeId` = filial ID);
   har yo'l `/v1` bilan ham. ⚠️ Javoblar **ularning** shaklida
   (`[{code, description}]`), `httpx.Error` dan o'tmaydi.
 - **Kuryer** (`role: courier`): `/courier/login|me|status|location|orders|

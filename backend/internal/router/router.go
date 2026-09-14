@@ -236,6 +236,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 				r.Put(p+"/order/{orderId}", h.TezkorAuth(h.TezkorUpdateOrder))
 				r.Delete(p+"/order/{orderId}", h.TezkorAuth(h.TezkorCancelOrder))
 				r.Get(p+"/order/{orderId}/status", h.TezkorAuth(h.TezkorOrderStatus))
+				// The catalogue (hourly) and the stock (every five minutes), per
+				// branch — see handlers/uzumtezkormenu.go.
+				r.Get(p+"/nomenclature/{storeId}/composition", h.TezkorAuth(h.TezkorComposition))
+				r.Get(p+"/nomenclature/{storeId}/availability", h.TezkorAuth(h.TezkorAvailability))
 			}
 		})
 		// What is on offer today, for the site to advertise. Codes are never
