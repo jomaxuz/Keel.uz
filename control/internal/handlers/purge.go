@@ -128,7 +128,7 @@ func (h *Handler) PurgeTenant(w http.ResponseWriter, r *http.Request) {
 	// wrongly suspended customer is one click from live again. This is the only
 	// button in the console that destroys something no button can restore, and
 	// the account that presses it should be the one that owns the consequences.
-	if actor.RoleOf() != models.RoleOwner {
+	if !actor.Has(models.RoleOwner) {
 		fail(w, errForbidden)
 		return
 	}

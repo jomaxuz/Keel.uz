@@ -13,29 +13,38 @@ import (
 // with the owner's login can suspend a paying customer, read every restaurant's
 // numbers and change the billing.
 //
-// Four roles, and the boundaries are drawn where the damage is:
+// Five roles, and the boundaries are drawn where the damage is:
 //
-//   - **owner** — everything. The only role that can create accounts, read the
-//     activity log and touch the server itself.
-//   - **admin** — runs the platform day to day: provisioning, domains, invoices.
-//     Cannot create accounts and cannot read the log, because an account that can
-//     grant itself more is not a boundary, and a log its subject can edit is not a
-//     record.
+//   - **owner** — everything. The only role that can create and delete accounts,
+//     read the activity log and the platform overview, touch the server itself,
+//     and the only one besides support that sees the support queue.
+//   - **admin** — runs the platform day to day: provisioning, domains, invoices,
+//     the blog. Cannot create accounts and cannot read the log, because an
+//     account that can grant itself more is not a boundary, and a log its subject
+//     can edit is not a record.
 //   - **manager** — sales oversight: every customer and who brought them in, no
 //     server controls and no billing changes.
 //   - **agent** — their own customers only, and ⚠️ **no restaurant statistics at
 //     all**. An agent needs to know who they signed up and what they promised; a
 //     restaurant's turnover is that restaurant's business, and handing it to a
 //     salesperson is a leak with a friendly name.
+//   - **support** — the support queue and the crash reports, and **nothing else**:
+//     no customers list, no visits, no money. The person answering "the panel is
+//     blank" needs the thread and the stack, not the price list.
+//
+// ⚠️ **An account may hold several roles, and permissions are their union.** A
+// small team is one agent who also answers support on Saturdays; making that
+// person two logins is how a password ends up on a sticky note.
 const (
 	RoleOwner   = "owner"
 	RoleAdmin   = "admin"
 	RoleManager = "manager"
 	RoleAgent   = "agent"
+	RoleSupport = "support"
 )
 
 // StaffRoles is the set an account may hold, in order of reach.
-var StaffRoles = []string{RoleOwner, RoleAdmin, RoleManager, RoleAgent}
+var StaffRoles = []string{RoleOwner, RoleAdmin, RoleManager, RoleAgent, RoleSupport}
 
 // normalizeRole reads a stored role, with the two edge cases that decide who is
 // locked out.
@@ -52,11 +61,74 @@ func normalizeRole(role string) string {
 	switch role {
 	case "":
 		return RoleOwner
-	case RoleOwner, RoleAdmin, RoleManager, RoleAgent:
+	case RoleOwner, RoleAdmin, RoleManager, RoleAgent, RoleSupport:
 		return role
 	default:
 		return RoleAgent
 	}
+}
+
+// NormalizeRoles is an account's roles: the list when there is one, the single
+// legacy `role` when there is not. Deduplicated, in order of reach, never empty.
+//
+// ⚠️ **The fallback is what keeps every account created before multiple roles
+// working** — including the seeded owner, whose empty `role` still reads as owner.
+func NormalizeRoles(roles []string, legacy string) []string {
+	if len(roles) == 0 {
+		return []string{normalizeRole(legacy)}
+	}
+	seen := map[string]bool{}
+	for _, r := range roles {
+		seen[normalizeRole(r)] = true
+	}
+	out := make([]string, 0, len(seen))
+	for _, r := range StaffRoles {
+		if seen[r] {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// RolesOf is every role this account holds. See NormalizeRoles.
+func (u User) RolesOf() []string { return NormalizeRoles(u.Roles, u.Role) }
+
+// RoleOf is the account's widest role — what a log row or a customer's
+// "signed up by" records in one word.
+func (u User) RoleOf() string { return u.RolesOf()[0] }
+
+// Has reports whether the account holds this exact role.
+func (u User) Has(role string) bool {
+	for _, r := range u.RolesOf() {
+		if r == role {
+			return true
+		}
+	}
+	return false
+}
+
+// Can reports whether **any** of the account's roles passes the check.
+//
+// ⚠️ **Always this, never `CanX(u.RoleOf())`.** The widest role is not the
+// union: an agent who also holds support is primarily an agent, and asking only
+// that role would shut them out of the queue they were given.
+func (u User) Can(check func(role string) bool) bool {
+	for _, r := range u.RolesOf() {
+		if check(r) {
+			return true
+		}
+	}
+	return false
+}
+
+func roleIn(role string, allowed ...string) bool {
+	role = normalizeRole(role)
+	for _, a := range allowed {
+		if role == a {
+			return true
+		}
+	}
+	return false
 }
 
 // CanSeeAllTenants reports whether this role reads the whole customer list.
@@ -66,34 +138,73 @@ func normalizeRole(role string) string {
 // every future screen — and a rule spelled out five times is a rule that will be
 // spelled out wrong the sixth.
 func CanSeeAllTenants(role string) bool {
-	role = normalizeRole(role)
-	return role == RoleOwner || role == RoleAdmin || role == RoleManager
+	return roleIn(role, RoleOwner, RoleAdmin, RoleManager)
+}
+
+// CanUseTenants reports whether this role works with customers at all — its own
+// or everybody's. ⚠️ Support does not: the queue names the restaurant, and that
+// is all the queue needs.
+func CanUseTenants(role string) bool {
+	return roleIn(role, RoleOwner, RoleAdmin, RoleManager, RoleAgent)
 }
 
 // CanSeeStats reports whether this role may read a customer's own business figures.
-func CanSeeStats(role string) bool {
-	role = normalizeRole(role)
-	return role == RoleOwner || role == RoleAdmin
-}
+func CanSeeStats(role string) bool { return roleIn(role, RoleOwner, RoleAdmin) }
 
-// CanManageStaff reports whether this role may create accounts. Owner only.
-func CanManageStaff(role string) bool { return normalizeRole(role) == RoleOwner }
+// CanSeeOverview reports whether this role lands on the platform overview. Owner
+// only: everybody else is sent straight to the screen their work is on, rather
+// than to a page of numbers that are not theirs to act on.
+func CanSeeOverview(role string) bool { return roleIn(role, RoleOwner) }
+
+// CanManageStaff reports whether this role may create and delete accounts. Owner only.
+func CanManageStaff(role string) bool { return roleIn(role, RoleOwner) }
 
 // CanSeeLog reports whether this role may read the activity log. Owner only — the
 // point of the log is answering "who did this", and a record its subjects can read
 // selectively is a record they can argue with.
-func CanSeeLog(role string) bool { return normalizeRole(role) == RoleOwner }
+func CanSeeLog(role string) bool { return roleIn(role, RoleOwner) }
 
 // CanProvision reports whether this role may create, suspend or delete a customer.
-func CanProvision(role string) bool {
-	role = normalizeRole(role)
-	return role == RoleOwner || role == RoleAdmin
-}
+func CanProvision(role string) bool { return roleIn(role, RoleOwner, RoleAdmin) }
 
 // CanBill reports whether this role may issue or void invoices.
-func CanBill(role string) bool {
-	role = normalizeRole(role)
-	return role == RoleOwner || role == RoleAdmin
+func CanBill(role string) bool { return roleIn(role, RoleOwner, RoleAdmin) }
+
+// CanSupport reports whether this role answers the support queue and reads crash
+// reports. Owner and support.
+//
+// ⚠️ **This reverses an earlier decision on purpose.** The queue used to be open
+// to every role, on the grounds that whoever is at a desk should answer. With a
+// dedicated support role that reasoning is gone, and a sales account answering a
+// technical question is a promise the platform then has to keep.
+func CanSupport(role string) bool { return roleIn(role, RoleOwner, RoleSupport) }
+
+// CanSeePartners reports whether this role reads the referral partners and what
+// we owe them. Owner only: it is money and it is contracts.
+func CanSeePartners(role string) bool { return roleIn(role, RoleOwner) }
+
+// CanSeo reports whether this role runs search-engine settings. Owner only.
+func CanSeo(role string) bool { return roleIn(role, RoleOwner) }
+
+// CanBlog reports whether this role writes the blog. Owner and admin.
+func CanBlog(role string) bool { return roleIn(role, RoleOwner, RoleAdmin) }
+
+// Permissions is every named permission, as the router's gates and `/me` spell
+// them. ⚠️ **One map for both**, so a gate and the tab that hides it cannot
+// disagree about what a name means — and a name that is not here fails closed.
+var Permissions = map[string]func(role string) bool{
+	"allTenants": CanSeeAllTenants,
+	"tenants":    CanUseTenants,
+	"stats":      CanSeeStats,
+	"overview":   CanSeeOverview,
+	"staff":      CanManageStaff,
+	"log":        CanSeeLog,
+	"provision":  CanProvision,
+	"billing":    CanBill,
+	"support":    CanSupport,
+	"partners":   CanSeePartners,
+	"seo":        CanSeo,
+	"blog":       CanBlog,
 }
 
 // Visit is a planned or completed call on a business.

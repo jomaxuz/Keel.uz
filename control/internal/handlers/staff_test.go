@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"os"
+	"regexp"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -113,6 +115,96 @@ func TestPermissionsRefuseAgentsEverywhereItMatters(t *testing.T) {
 		}
 		if got := models.CanSeeStats(role); got != w.stats {
 			t.Fatalf("CanSeeStats(%q) = %v, want %v", role, got, w.stats)
+		}
+	}
+}
+
+// ⚠️ Who sees which console section. The table *is* the request it came from:
+// support sees only Yordam and Xatoliklar; admin, manager and agent see none of
+// Yordam, Xatoliklar, Hamkorlar, Qidiruv, Xodimlar; only owner and admin see the
+// blog; only the owner lands on the overview.
+func TestSectionsPerRole(t *testing.T) {
+	type sections struct{ overview, tenants, support, partners, seo, blog, staff bool }
+	cases := map[string]sections{
+		models.RoleOwner:   {true, true, true, true, true, true, true},
+		models.RoleAdmin:   {false, true, false, false, false, true, false},
+		models.RoleManager: {false, true, false, false, false, false, false},
+		models.RoleAgent:   {false, true, false, false, false, false, false},
+		models.RoleSupport: {false, false, true, false, false, false, false},
+		"":                 {true, true, true, true, true, true, true}, // the seeded owner
+	}
+	for role, w := range cases {
+		got := sections{
+			models.CanSeeOverview(role), models.CanUseTenants(role), models.CanSupport(role),
+			models.CanSeePartners(role), models.CanSeo(role), models.CanBlog(role),
+			models.CanManageStaff(role),
+		}
+		if got != w {
+			t.Fatalf("role %q: sections %+v, want %+v", role, got, w)
+		}
+	}
+}
+
+// ⚠️ Several roles are a union, and the widest role alone is not it: an agent who
+// also answers support must reach the queue, and must still see only their own
+// customers.
+func TestSeveralRolesAreAUnion(t *testing.T) {
+	id := primitive.NewObjectID()
+	u := &models.User{ID: id, Role: models.RoleAgent, Roles: []string{models.RoleSupport, models.RoleAgent}}
+	if u.RoleOf() != models.RoleAgent {
+		t.Fatalf("widest role = %q, want agent", u.RoleOf())
+	}
+	if !u.Can(models.CanSupport) || !u.Can(models.CanUseTenants) {
+		t.Fatal("agent+support lost one half of its roles")
+	}
+	if u.Can(models.CanSeeAllTenants) || u.Can(models.CanManageStaff) {
+		t.Fatal("agent+support gained reach neither role has")
+	}
+	if scope := tenantScope(u); scope["createdById"] != id {
+		t.Fatalf("agent+support is not narrowed to its own customers: %v", scope)
+	}
+	// A manager among the roles widens the list, because that is what manager is.
+	u.Roles = append(u.Roles, models.RoleManager)
+	if len(tenantScope(u)) != 0 {
+		t.Fatal("agent+manager is still narrowed")
+	}
+	// Legacy accounts: no list, the single role decides — and the seeded owner is
+	// still an owner.
+	if !(models.User{}).Has(models.RoleOwner) {
+		t.Fatal("the seeded account (no role, no roles) is not an owner")
+	}
+}
+
+// ⚠️ A request that names no role must not become an owner — the stored empty
+// role means owner only because of the seeded account.
+func TestRequestWithNoRoleIsNotOwner(t *testing.T) {
+	if got := requestRoles(staffRequest{}); got != nil {
+		t.Fatalf("no roles asked, got %v", got)
+	}
+	if got := requestRoles(staffRequest{Roles: []string{"", "  "}}); got != nil {
+		t.Fatalf("blank roles asked, got %v", got)
+	}
+	got := requestRoles(staffRequest{Roles: []string{"support", "sales", "support"}})
+	if len(got) != 2 || got[0] != models.RoleAgent || got[1] != models.RoleSupport {
+		t.Fatalf("support+typo = %v, want [agent support]", got)
+	}
+}
+
+// ⚠️ Every gate the router names exists in the permission map. A misspelt gate
+// fails closed — which is safe, and also a route nobody can reach, discovered by
+// a customer.
+func TestEveryRouterGateIsAKnownPermission(t *testing.T) {
+	src, err := os.ReadFile("router.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := regexp.MustCompile(`h\.need\("([^"]+)"`).FindAllStringSubmatch(string(src), -1)
+	if len(found) == 0 {
+		t.Fatal("no gates found — has the wrapper been renamed?")
+	}
+	for _, m := range found {
+		if _, ok := models.Permissions[m[1]]; !ok {
+			t.Fatalf("router gate %q is not in models.Permissions", m[1])
 		}
 	}
 }

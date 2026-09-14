@@ -8,6 +8,7 @@ import LangSwitch from "@/components/LangSwitch";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useT } from "@/lib/i18n/client";
 import { clearToken, getToken, me, type Me } from "@/lib/api";
+import { consoleHome } from "@/lib/consoleHome";
 
 export default function DashboardLayout({
   children,
@@ -37,6 +38,14 @@ export default function DashboardLayout({
     }
     me()
       .then((u) => {
+        // ⚠️ `/console` is the owner's overview. Everybody else is sent to the
+        // screen their work is on *before* anything renders — rendering first
+        // would fire the overview's requests and flash "no data" at exactly the
+        // people this redirect exists for. The effect runs again on the new path.
+        if (path === "/console" && !u.can.overview) {
+          router.replace(consoleHome(u));
+          return;
+        }
         setWho(u);
         setState("in");
       })
@@ -70,42 +79,38 @@ export default function DashboardLayout({
   // role on its own. But a console whose every tab answers "no permission" teaches an
   // agent that their tool is broken, and an agent has no use for the platform
   // overview: it is the platform's money and the customers' turnover.
+  const can = who?.can;
   const tabs = [
-    ...(who?.can.stats === false
-      ? []
-      : [{ href: "/console", label: t.dash.overview }]),
-    { href: "/console/tenants", label: t.dash.tenants },
-    { href: "/console/visits", label: t.console.nav.visits },
-    // Beside the visits, because it is the same job from the other end: what to
-    // write to the place you are about to walk into or have just left.
-    { href: "/console/outreach", label: t.console.nav.outreach },
-    // ⚠️ **No role check, unlike the tabs around it.** Every one of those hides
-    // a screen an agent has no use for; this one is the screen where the person
-    // who can help is whoever is at a desk. A support tab only some roles can
-    // see is a waiting restaurant held until one particular operator is back
-    // from lunch.
-    { href: "/console/support", label: t.console.nav.support },
-    // ⚠️ Beside Yordam and for the same reason it has no role check: this is
-    // the same queue read from the other end — what broke, arriving before
-    // somebody writes in to say so.
-    { href: "/console/reports", label: t.console.nav.reports },
-    // Money, so the same gate the invoices are behind: an agent reading what
-    // another channel earns is not part of selling.
-    ...(who?.can.billing
-      ? [{ href: "/console/referrers", label: t.console.nav.referrers }]
-      : []),
-    // Beside the platform controls, not the sales ones: this is the site's own
-    // presence, and the same hands run it as run domains and deploys.
-    ...(who?.can.provision
+    // Owner only — see consoleHome for why everybody else skips it.
+    ...(can?.overview ? [{ href: "/console", label: t.dash.overview }] : []),
+    ...(can?.tenants
       ? [
-          { href: "/console/seo", label: t.console.nav.seo },
-          // ⚠️ Beside the site's own presence and behind the same gate: the
-          // blog is published under our name, and the hands that run domains
-          // and deploys are the hands that run it.
-          { href: "/console/blog", label: t.blogAdmin.title },
+          { href: "/console/tenants", label: t.dash.tenants },
+          { href: "/console/visits", label: t.console.nav.visits },
+          // Beside the visits, because it is the same job from the other end:
+          // what to write to the place you are about to walk into or have just left.
+          { href: "/console/outreach", label: t.console.nav.outreach },
         ]
       : []),
-    ...(who?.can.staff
+    // ⚠️ **Owner and support only.** This used to have no role check ("whoever is
+    // at a desk answers"); with a dedicated support role, a sales account
+    // answering a technical question is a promise the platform has to keep.
+    // Xatoliklar sits beside it: the same queue read from the other end.
+    ...(can?.support
+      ? [
+          { href: "/console/support", label: t.console.nav.support },
+          { href: "/console/reports", label: t.console.nav.reports },
+        ]
+      : []),
+    // Money and contracts: owner only.
+    ...(can?.partners
+      ? [{ href: "/console/referrers", label: t.console.nav.referrers }]
+      : []),
+    ...(can?.seo ? [{ href: "/console/seo", label: t.console.nav.seo }] : []),
+    // ⚠️ Owner and admin: the blog is published under our name, and the hands
+    // that run domains and deploys are the hands that run it.
+    ...(can?.blog ? [{ href: "/console/blog", label: t.blogAdmin.title }] : []),
+    ...(can?.staff
       ? [{ href: "/console/staff", label: t.console.nav.staff }]
       : []),
   ];

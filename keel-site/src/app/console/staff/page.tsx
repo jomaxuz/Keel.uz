@@ -8,13 +8,15 @@
 //
 // The one number worth putting beside a name is **how many customers they brought
 // in** — it is what a sales account is for, and it is the column an owner opens this
-// page to read.
+// page to read. Everything else about a person is one click away, on their own page.
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   consoleLog,
   createStaff,
+  deleteStaff,
   me as fetchMe,
   staffList,
   updateStaff,
@@ -23,25 +25,24 @@ import {
   type StaffRow,
 } from "@/lib/api";
 import { useT } from "@/lib/i18n/client";
-
-// ⚠️ Ids here, words from the dictionary at render — a const map is evaluated
-// at import, before the language is known.
-const ROLES = ["owner", "admin", "manager", "agent"] as const;
+import { LogBlock, RolePicker } from "@/components/console/StaffParts";
 
 export default function StaffPage() {
   const { t } = useT();
+  const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [rows, setRows] = useState<StaffRow[]>([]);
   const [log, setLog] = useState<ConsoleLogRow[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({
+  const empty = {
     username: "",
     password: "",
     name: "",
     phone: "",
-    role: "agent",
-  });
+    roles: ["agent"] as string[],
+  };
+  const [form, setForm] = useState(empty);
 
   const load = useCallback(() => {
     staffList()
@@ -64,13 +65,7 @@ export default function StaffPage() {
     setError("");
     try {
       await createStaff(form);
-      setForm({
-        username: "",
-        password: "",
-        name: "",
-        phone: "",
-        role: "agent",
-      });
+      setForm(empty);
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "saqlanmadi");
@@ -79,12 +74,26 @@ export default function StaffPage() {
     }
   }
 
-  async function patch(id: string, body: Record<string, unknown>) {
+  async function patch(id: string, body: Parameters<typeof updateStaff>[1]) {
+    setError("");
     try {
       await updateStaff(id, body);
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "saqlanmadi");
+    }
+  }
+
+  async function remove(s: StaffRow) {
+    // ⚠️ Asked every time: this is the one button on the page that cannot be
+    // undone, sitting beside the one that can.
+    if (!window.confirm(t.console.staff.confirmDelete(s.name || s.username))) return;
+    setError("");
+    try {
+      await deleteStaff(s.id);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "o'chirilmadi");
     }
   }
 
@@ -111,12 +120,8 @@ export default function StaffPage() {
         <h2 className="text-sm font-semibold text-ink">
           {t.console.staff.newAccount}
         </h2>
-        <p className="mt-1 text-xs text-ink-muted">
-          Agent faqat o&apos;zi jalb qilgan mijozlarni ko&apos;radi va restoran
-          statistikasini umuman ko&apos;rmaydi. Sotuv menejeri hamma mijozni
-          ko&apos;radi, lekin server va hisob-kitobga tegmaydi.
-        </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <p className="mt-1 text-xs text-ink-muted">{t.console.staff.rolesHint}</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <input
             className="input"
             placeholder={t.console.staff.login}
@@ -135,17 +140,6 @@ export default function StaffPage() {
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
-          <select
-            className="select"
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value })}
-          >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {t.console.staff.roles[r]}
-              </option>
-            ))}
-          </select>
           <input
             className="input"
             placeholder={t.console.staff.password}
@@ -153,11 +147,20 @@ export default function StaffPage() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
         </div>
+        <div className="mt-3">
+          <RolePicker
+            value={form.roles}
+            onChange={(roles) => setForm({ ...form, roles })}
+          />
+        </div>
         <button
           type="button"
           onClick={() => void add()}
           disabled={
-            busy || form.username.length < 3 || form.password.length < 8
+            busy ||
+            form.username.length < 3 ||
+            form.password.length < 8 ||
+            form.roles.length === 0
           }
           className="mt-3 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-surface disabled:opacity-40"
         >
@@ -165,7 +168,7 @@ export default function StaffPage() {
         </button>
       </section>
 
-      <section className="card overflow-hidden p-0">
+      <section className="card overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="border-b border-line bg-raised text-left text-xs text-ink-muted">
             <tr>
@@ -178,31 +181,35 @@ export default function StaffPage() {
           </thead>
           <tbody className="divide-y divide-line">
             {rows.map((s) => (
+              // ⚠️ The whole row opens the person, and every control inside it
+              // stops the click: a role pill that also navigated away would
+              // save a change nobody saw happen.
               <tr
                 key={s.id}
-                className={s.isActive === false ? "opacity-50" : ""}
+                onClick={() => router.push(`/console/staff/${s.id}`)}
+                className={`cursor-pointer hover:bg-raised ${
+                  s.isActive === false ? "opacity-50" : ""
+                }`}
               >
                 <td className="p-3">
-                  <span className="block font-semibold text-ink">
+                  <Link
+                    href={`/console/staff/${s.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="block font-semibold text-ink hover:underline"
+                  >
                     {s.name || s.username}
-                  </span>
+                  </Link>
                   <span className="block text-xs text-ink-muted">
                     {s.username}
                     {s.phone ? ` · ${s.phone}` : ""}
+                    {s.isActive === false ? ` · ${t.console.staff.inactive}` : ""}
                   </span>
                 </td>
                 <td className="p-3">
-                  <select
-                    className="select h-9 py-1 text-xs"
-                    value={s.role || "owner"}
-                    onChange={(e) => void patch(s.id, { role: e.target.value })}
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {t.console.staff.roles[r]}
-                      </option>
-                    ))}
-                  </select>
+                  <RolePicker
+                    value={s.roles?.length ? s.roles : [s.role || "owner"]}
+                    onChange={(roles) => void patch(s.id, { roles })}
+                  />
                 </td>
                 {/* The column this page exists for. */}
                 <td className="p-3 tabular-nums">{s.tenants}</td>
@@ -212,17 +219,36 @@ export default function StaffPage() {
                     : "—"}
                 </td>
                 <td className="p-3 text-right">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void patch(s.id, { isActive: s.isActive === false })
-                    }
-                    className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft"
-                  >
-                    {s.isActive === false
-                      ? t.console.staff.enable
-                      : t.console.staff.disable}
-                  </button>
+                  <div className="flex justify-end gap-1.5">
+                    {/* ⚠️ Two buttons, on purpose. Switching off keeps the login
+                        for when the person comes back; deleting frees it and
+                        cannot be undone. One button that did the first while
+                        reading like the second is the bug this replaced. */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void patch(s.id, { isActive: s.isActive === false });
+                      }}
+                      className="whitespace-nowrap rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft"
+                    >
+                      {s.isActive === false
+                        ? t.console.staff.enable
+                        : t.console.staff.disable}
+                    </button>
+                    {s.username !== me?.username && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void remove(s);
+                        }}
+                        className="whitespace-nowrap rounded-lg border border-hot-600/40 px-2 py-1 text-[11px] text-hot-600"
+                      >
+                        {t.console.staff.deleteForever}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -232,31 +258,12 @@ export default function StaffPage() {
 
       {/* ⚠️ The log is here rather than on its own page: the question it answers —
           "who signed this customer up, and who changed what" — is asked while looking
-          at the list of people it names. */}
-      <section className="card p-5">
-        <h2 className="text-sm font-semibold text-ink">
-          {t.console.staff.log}
-        </h2>
-        <ul className="mt-2 divide-y divide-line text-xs">
-          {log.slice(0, 60).map((l) => (
-            <li
-              key={l.id}
-              className="flex flex-wrap items-baseline gap-2 py-1.5"
-            >
-              <span className="text-ink-muted">
-                {new Date(l.at).toLocaleString()}
-              </span>
-              <span className="font-semibold text-ink">{l.actor}</span>
-              <span className="text-ink-soft">{l.action}</span>
-              {l.target && <span className="text-ink-muted">{l.target}</span>}
-              {l.detail && <span className="text-ink-muted">· {l.detail}</span>}
-            </li>
-          ))}
-          {log.length === 0 && (
-            <li className="py-2 text-ink-muted">{t.console.staff.logEmpty}</li>
-          )}
-        </ul>
-      </section>
+          at the list of people it names.
+
+          ⚠️ **Its own block with its own scroll.** Three hundred rows inline made
+          this page as long as the log, and the list of people it is read beside
+          scrolled off the top. */}
+      <LogBlock rows={log} />
     </div>
   );
 }

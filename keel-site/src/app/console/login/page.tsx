@@ -6,7 +6,8 @@ import { Logo } from "@/components/Logo";
 import LangSwitch from "@/components/LangSwitch";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useT } from "@/lib/i18n/client";
-import { login } from "@/lib/api";
+import { login, me } from "@/lib/api";
+import { consoleHome } from "@/lib/consoleHome";
 
 export default function LoginPage() {
   const { t } = useT();
@@ -22,7 +23,9 @@ export default function LoginPage() {
     setError("");
     try {
       await login(username, password);
-      router.replace("/console");
+      // Straight to the screen this account works on, not via the overview.
+      const home = await me().then(consoleHome).catch(() => "/console");
+      router.replace(home);
     } catch (err) {
       setError(err instanceof Error ? err.message : "…");
     } finally {

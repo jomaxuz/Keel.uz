@@ -120,19 +120,16 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	role := u.RoleOf()
+	can := map[string]bool{}
+	for name, check := range models.Permissions {
+		can[name] = u.Can(check)
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"username": u.Username,
 		"name":     u.Name,
-		"role":     role,
-		"can": map[string]bool{
-			"allTenants": models.CanSeeAllTenants(role),
-			"stats":      models.CanSeeStats(role),
-			"staff":      models.CanManageStaff(role),
-			"log":        models.CanSeeLog(role),
-			"provision":  models.CanProvision(role),
-			"billing":    models.CanBill(role),
-		},
+		"role":     u.RoleOf(),
+		"roles":    u.RolesOf(),
+		"can":      can,
 	})
 }
 

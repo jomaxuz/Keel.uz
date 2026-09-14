@@ -106,55 +106,59 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// account that can grant itself more is not a boundary. See staff.go.
 			r.Get("/staff", h.need("staff", h.ListStaff))
 			r.Post("/staff", h.need("staff", h.CreateStaff))
+			r.Get("/staff/{id}", h.need("staff", h.GetStaff))
 			r.Put("/staff/{id}", h.need("staff", h.UpdateStaff))
+			// ⚠️ Gone for good, unlike switching an account off — see DeleteStaff.
+			r.Delete("/staff/{id}", h.need("staff", h.DeleteStaff))
 			// Who did what. Owner only, for the same reason.
 			r.Get("/console-log", h.need("log", h.ListConsoleLog))
 
-			// ⚠️ **Every console role answers support, and that is deliberate.**
-			// The queue is the one screen where the person who can help is
-			// whoever is at a desk; gating it behind a permission means a
-			// waiting restaurant is told to hold while the one operator who
-			// has the tick is at lunch.
+			// ⚠️ **Owner and support only.** This used to be open to every role
+			// ("whoever is at a desk answers"); with a dedicated support role a
+			// sales account answering a technical question is a promise the
+			// platform then has to keep. See models.CanSupport.
 			// Crash reports. ⚠️ Beside support rather than under stats: this is
 			// the same queue read from the other end — what broke, arriving
 			// before somebody writes in to say so.
-			r.Get("/reports", h.ConsoleReports)
-			r.Get("/reports/{id}", h.ConsoleReport)
-			r.Post("/reports/{id}/resolve", h.ConsoleReportResolve)
+			r.Get("/reports", h.need("support", h.ConsoleReports))
+			r.Get("/reports/{id}", h.need("support", h.ConsoleReport))
+			r.Post("/reports/{id}/resolve", h.need("support", h.ConsoleReportResolve))
 
-			r.Get("/support", h.ConsoleSupportList)
-			r.Get("/support/{id}", h.ConsoleSupportThread)
-			r.Post("/support/{id}/reply", h.ConsoleSupportReply)
+			r.Get("/support", h.need("support", h.ConsoleSupportList))
+			r.Get("/support/{id}", h.need("support", h.ConsoleSupportThread))
+			r.Post("/support/{id}/reply", h.need("support", h.ConsoleSupportReply))
 
 			// An agent's day: where they plan to go, and what happened. Everybody
 			// has these; only the roles that see every customer see everyone's.
 			// Who sends us customers from outside, and what we owe them.
-			// ⚠️ Behind "billing": this is money, and an agent reading what
-			// another channel earns is not part of selling. See
+			// ⚠️ Owner only ("partners"): this is money and contracts, and neither
+			// a salesperson nor the platform admin negotiates them. See
 			// handlers/referrals.go.
 			// Search engines. ⚠️ Behind "provision" rather than "billing": it
 			// touches the platform's own presence, not anybody's money, and it
 			// is the same hands that run domains and deploys.
-			// ⚠️ **Behind the same gate as the site's own presence**, because
-			// that is what it is: the blog is published under our name, and
+			// ⚠️ **Owner and admin**: the blog is published under our name, and
 			// the hands that run domains and deploys are the hands that run it.
-			r.Get("/blog", h.need("provision", h.ConsoleBlogList))
-			r.Post("/blog", h.need("provision", h.ConsoleBlogSave))
-			r.Delete("/blog/{id}", h.need("provision", h.ConsoleBlogDelete))
-			r.Post("/blog/upload", h.need("provision", h.ConsoleBlogUpload))
+			// Search settings (below) are owner only.
+			r.Get("/blog", h.need("blog", h.ConsoleBlogList))
+			r.Post("/blog", h.need("blog", h.ConsoleBlogSave))
+			r.Delete("/blog/{id}", h.need("blog", h.ConsoleBlogDelete))
+			r.Post("/blog/upload", h.need("blog", h.ConsoleBlogUpload))
 
-			r.Get("/seo", h.need("provision", h.SeoStatus))
-			r.Post("/seo/indexnow", h.need("provision", h.SeoPing))
+			r.Get("/seo", h.need("seo", h.SeoStatus))
+			r.Post("/seo/indexnow", h.need("seo", h.SeoPing))
 
-			r.Get("/referrers", h.need("billing", h.ListReferrers))
-			r.Get("/referrers/{id}", h.need("billing", h.GetReferrer))
-			r.Post("/referrers", h.need("billing", h.CreateReferrer))
-			r.Put("/referrers/{id}", h.need("billing", h.UpdateReferrer))
+			r.Get("/referrers", h.need("partners", h.ListReferrers))
+			r.Get("/referrers/{id}", h.need("partners", h.GetReferrer))
+			r.Post("/referrers", h.need("partners", h.CreateReferrer))
+			r.Put("/referrers/{id}", h.need("partners", h.UpdateReferrer))
 
-			r.Get("/visits", h.ListVisits)
-			r.Post("/visits", h.CreateVisit)
-			r.Put("/visits/{id}", h.UpdateVisit)
-			r.Delete("/visits/{id}", h.DeleteVisit)
+			// ⚠️ Behind "tenants": a support-only account has no customers and no
+			// visits, and an ungated route is the one it would reach anyway.
+			r.Get("/visits", h.need("tenants", h.ListVisits))
+			r.Post("/visits", h.need("tenants", h.CreateVisit))
+			r.Put("/visits/{id}", h.need("tenants", h.UpdateVisit))
+			r.Delete("/visits/{id}", h.need("tenants", h.DeleteVisit))
 			r.Get("/stats", h.need("stats", h.Stats))
 			// The whole platform over a window somebody chooses, as opposed to
 			// /stats, which answers the billing month. Same permission: an
@@ -172,12 +176,12 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// Frees what /system reports as reclaimable — orphaned images, stopped
 			// containers, build cache. Never volumes: see PruneDocker.
 			r.Post("/system/prune", h.need("provision", h.PruneDocker))
-			r.Get("/tenants", h.ListTenants)
+			r.Get("/tenants", h.need("tenants", h.ListTenants))
 			// What the assistant has cost, per tenant. Behind the console login
 			// with everything else here — it is our spending, not a customer's.
-			r.Get("/ai-usage", h.AIUsage)
-			r.Post("/tenants", h.CreateTenant)
-			r.Get("/tenants/{id}", h.GetTenant)
+			r.Get("/ai-usage", h.need("tenants", h.AIUsage))
+			r.Post("/tenants", h.need("tenants", h.CreateTenant))
+			r.Get("/tenants/{id}", h.need("tenants", h.GetTenant))
 			r.Put("/tenants/{id}", h.need("provision", h.UpdateTenant))
 			r.Post("/tenants/{id}/provision", h.need("provision", h.ProvisionTenant))
 			// ⚠️ Not behind "provision" like its neighbours — owner only, checked
@@ -225,7 +229,7 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// it spends the machine's memory for ten minutes and it mints a
 			// signing key that can never be replaced. Reading the history is
 			// open to anybody who can see the tenant.
-			r.Get("/tenants/{id}/app-builds", h.AppBuilds)
+			r.Get("/tenants/{id}/app-builds", h.need("tenants", h.AppBuilds))
 			r.Post("/tenants/{id}/app-build", h.need("provision", h.StartAppBuild))
 			r.Put("/tenants/{id}/android-app", h.need("provision", h.SetAndroidAppID))
 			// ⚠️ **Its own path, not under the tenant.** The download deletes

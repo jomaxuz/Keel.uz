@@ -52,7 +52,7 @@ func (h *Handler) ListVisits(w http.ResponseWriter, r *http.Request) {
 	filter := bson.M{}
 	// ⚠️ Only the roles that see every customer see every visit. An agent reading a
 	// colleague's calls is the same leak as reading their customers.
-	if !models.CanSeeAllTenants(u.RoleOf()) {
+	if !u.Can(models.CanSeeAllTenants) {
 		filter["agentId"] = u.ID
 	} else if a := strings.TrimSpace(r.URL.Query().Get("agentId")); a != "" {
 		if id, e := primitive.ObjectIDFromHex(a); e == nil {
@@ -101,7 +101,7 @@ func (h *Handler) ListVisits(w http.ResponseWriter, r *http.Request) {
 		"summary": map[string]int{
 			"planned": planned, "positive": positive, "negative": negative,
 		},
-		"canSeeAll": models.CanSeeAllTenants(u.RoleOf()),
+		"canSeeAll": u.Can(models.CanSeeAllTenants),
 	})
 }
 
@@ -177,7 +177,7 @@ func (h *Handler) UpdateVisit(w http.ResponseWriter, r *http.Request) {
 	}
 	// ⚠️ Own rows only, and 404 rather than 403 for somebody else's: an agent
 	// guessing ids should not learn that a colleague's visit exists.
-	if !models.CanSeeAllTenants(u.RoleOf()) && existing.AgentID != u.ID {
+	if !u.Can(models.CanSeeAllTenants) && existing.AgentID != u.ID {
 		httpx.Error(w, http.StatusNotFound, "topilmadi")
 		return
 	}
@@ -254,7 +254,7 @@ func (h *Handler) DeleteVisit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	filter := bson.M{"_id": id}
-	if !models.CanSeeAllTenants(u.RoleOf()) {
+	if !u.Can(models.CanSeeAllTenants) {
 		filter["agentId"] = u.ID
 	}
 	res, err := h.Store.Visits.DeleteOne(r.Context(), filter)

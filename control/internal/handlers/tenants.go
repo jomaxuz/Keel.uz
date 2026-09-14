@@ -237,7 +237,7 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	if !models.CanProvision(actor.RoleOf()) && actor.RoleOf() != models.RoleAgent {
+	if !actor.Can(models.CanProvision) && !actor.Has(models.RoleAgent) {
 		fail(w, errForbidden)
 		return
 	}
@@ -248,7 +248,9 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 	// could set them could sell at any price it liked — and the request is a JSON
 	// body, so hiding the fields in the form would prove nothing. Cleared here, on
 	// the server, where the role is known.
-	if actor.RoleOf() == models.RoleAgent {
+	// ⚠️ "Cannot provision", not "is an agent": an agent who is also an admin
+	// sets terms as the admin they are.
+	if !actor.Can(models.CanProvision) {
 		req.PricePerOrder = 0
 		req.Trial = nil
 		req.TrialDays = 0

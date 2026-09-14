@@ -12,6 +12,11 @@ export default defineConfig({
     // The article renderer's parser. Pure, so no browser is needed — and the
     // pieces worth pinning are what a YouTube link becomes and what a pasted
     // `javascript:` link does not.
-    include: ["src/components/blog/article.test.ts"],
+    include: [
+      "src/components/blog/article.test.ts",
+      // Where each console role lands after signing in — the redirect that keeps
+      // sales and support accounts off the owner's overview.
+      "src/lib/consoleHome.test.ts",
+    ],
   },
 });

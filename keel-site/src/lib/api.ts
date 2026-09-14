@@ -478,7 +478,11 @@ export interface StaffRow {
   username: string;
   name: string;
   phone?: string;
+  /** The widest role, for anything that still reads one word. */
   role: string;
+  /** Every role the account holds — resolved by the server, never re-derived
+   *  here from `role`. Permissions are their union. */
+  roles: string[];
   isActive?: boolean;
   createdBy?: string;
   createdAt: string;
@@ -520,7 +524,7 @@ export const createStaff = (body: {
   password: string;
   name: string;
   phone?: string;
-  role: string;
+  roles: string[];
 }) => req<StaffRow>("/staff", { method: "POST", body: JSON.stringify(body) });
 
 export const updateStaff = (
@@ -528,7 +532,7 @@ export const updateStaff = (
   body: {
     name?: string;
     phone?: string;
-    role?: string;
+    roles?: string[];
     password?: string;
     isActive?: boolean;
   },
@@ -539,6 +543,37 @@ export const updateStaff = (
   });
 
 export const consoleLog = () => req<{ items: ConsoleLogRow[] }>("/console-log");
+
+/** Removes an account for good — unlike `isActive: false`, which keeps the login
+ *  for when the person comes back. */
+export const deleteStaff = (id: string) =>
+  req<{ ok: boolean }>(`/staff/${id}`, { method: "DELETE" });
+
+/** One account and everything it has done, counted from the records the work
+ *  itself writes. */
+export interface StaffDetail {
+  account: Omit<StaffRow, "tenants">;
+  tenants: {
+    total: number;
+    thisMonth: number;
+    byStatus: Record<string, number>;
+    recent: { id: string; name: string; slug: string; status: string; createdAt: string }[];
+  };
+  visits: {
+    planned: number;
+    done: number;
+    positive: number;
+    negative: number;
+    callback: number;
+    recent: VisitRow[];
+  };
+  support: { total: number; waiting: number; open: number; closed: number };
+  reports: { resolved: number };
+  invoices: { issued: number; amount: number };
+  log: { total: number; thisMonth: number; recent: ConsoleLogRow[] };
+}
+
+export const staffDetail = (id: string) => req<StaffDetail>(`/staff/${id}`);
 
 export const visitList = (params?: {
   status?: string;
@@ -896,13 +931,23 @@ export interface Me {
   username: string;
   name?: string;
   role: string;
+  roles: string[];
   can: {
     allTenants: boolean;
+    /** Works with customers at all (own or everybody's). Not support. */
+    tenants: boolean;
     stats: boolean;
+    /** Lands on the platform overview. Owner only. */
+    overview: boolean;
     staff: boolean;
     log: boolean;
     provision: boolean;
     billing: boolean;
+    /** The support queue and crash reports. Owner and support. */
+    support: boolean;
+    partners: boolean;
+    seo: boolean;
+    blog: boolean;
   };
 }
 

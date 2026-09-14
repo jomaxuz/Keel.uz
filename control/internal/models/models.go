@@ -906,20 +906,16 @@ type User struct {
 	// the only account that predates this field is the one seeded at first boot —
 	// treating it as an agent would lock the platform's owner out of their own
 	// console on the deploy that introduced roles.
-	Role        string     `bson:"role,omitempty" json:"role"`
+	Role string `bson:"role,omitempty" json:"role"`
+	// Every role this account holds; permissions are their union. ⚠️ Absent on
+	// accounts created before an account could hold several — `RolesOf` falls back
+	// to `Role`, which is still written (as the widest role) for that reason.
+	Roles       []string   `bson:"roles,omitempty" json:"roles,omitempty"`
 	Phone       string     `bson:"phone,omitempty" json:"phone,omitempty"`
 	IsActive    *bool      `bson:"isActive,omitempty" json:"isActive,omitempty"`
 	CreatedBy   string     `bson:"createdBy,omitempty" json:"createdBy,omitempty"`
 	CreatedAt   time.Time  `bson:"createdAt" json:"createdAt"`
 	LastLoginAt *time.Time `bson:"lastLoginAt,omitempty" json:"lastLoginAt,omitempty"`
-}
-
-// RoleOf is the account's role, with the empty value read as owner. See User.Role.
-func (u User) RoleOf() string {
-	if u.Role == "" {
-		return RoleOwner
-	}
-	return u.Role
 }
 
 // Active reports whether this account may sign in. Absent means yes: every account

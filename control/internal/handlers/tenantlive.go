@@ -44,7 +44,7 @@ func (h *Handler) TenantLive(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	if !models.CanSeeStats(actor.RoleOf()) {
+	if !actor.Can(models.CanSeeStats) {
 		fail(w, errForbidden)
 		return
 	}

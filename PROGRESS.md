@@ -14629,3 +14629,25 @@ sariq. Limitdan oshgan naqd ogohlantirishi. Bank qoldig'i telefondan yoziladi
 Navigatsiya: `help: Boolean` → `Overlay` (Help / Money / Check). `WireShapeTest`
 ga Go struct teglaridan uchta shakl + vaqt parse testi; 15 test yashil,
 `assembleDebug` o'tdi. ⏳ Telefonda sinalmagan.
+
+## 2026-09-14 (2) — Konsol: xodimni o'chirish, xodim sahifasi, tex-support roli
+
+Branch `console/staff-roles`.
+
+1. **«O'chirish» faqat to'xtatardi.** Endi ikki tugma: «Vaqtincha o'chirish»
+   (login saqlanadi, qayta yoqiladi) va «Butunlay o'chirish» (tasdiq bilan,
+   `DELETE /staff/{id}`; o'zini va oxirgi faol owner'ni o'chirib bo'lmaydi).
+2. **Xodim sahifasi** `/console/staff/[id]`: jalb qilgan mijozlar (jami, shu oy,
+   holat bo'yicha, oxirgilari), tashriflar (reja/bo'lgan/natijalar), yordam
+   suhbatlari, tuzatgan xatoliklar, hisob-fakturalar, konsoldagi amallar
+   jurnali. Ro'yxatda qator bosilsa ochiladi.
+3. **Amallar jurnali** alohida blok, ichida scroll (`max-h-96`).
+4. **`support` roli** — faqat Yordam va Xatoliklar.
+5. **Bo'limlar rolga qarab**: admin/menejer/agent — Yordam, Xatoliklar,
+   Hamkorlar, Qidiruv, Xodimlar ko'rinmaydi (server ham rad etadi); Blog —
+   owner va admin. Umumiy ko'rinish faqat owner'ga; qolganlar logindan keyin
+   to'g'ri mijozlarga (support — navbatga).
+6. **Bir xodimga bir nechta rol** (`user.roles`, ruxsatlar birlashmasi).
+
+Go `build` + `go test ./internal/...` yashil, keel-site `tsc` + vitest.
+Qarorlar `docs/DECISIONS.md` → «Konsol xodimlari». ⏳ Brauzerda sinalmagan.

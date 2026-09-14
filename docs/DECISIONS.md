@@ -530,8 +530,11 @@ Yana:
   iborat navbat ikki marta o'qiladi.
 - Konsolda **javob berish va yopish bitta bosish**: alohida yopish tugmasi
   navbatning yarmini abadiy ochiq qoldiradi.
-- Konsol tabida **rol tekshiruvi yo'q**, yonidagilardan farqli: yordam — kim
-  stolda bo'lsa, o'sha javob beradigan ekran.
+- ~~Konsol tabida rol tekshiruvi yo'q~~ — **2026-09-14 da bekor qilindi**:
+  yordam va xatoliklar endi faqat `owner` va `support` roliga ko'rinadi (qarang
+  «Konsol xodimlari»). Alohida tex-support roli paydo bo'lgach «kim stolda
+  bo'lsa, o'sha javob beradi» degan sabab qolmadi, sotuvchi texnik savolga
+  bergan javob esa platforma bajarishi kerak bo'lgan va'da bo'lib qoladi.
 - Operator ekranida **mijoz kartochkasi javob yozilayotgan paytda ko'rinadi**,
   jumladan konteyner holati: "panel bo'sh" va "panel o'chgan" — mijozdan bir
   xil jumla, bizdan butunlay boshqa javob.
@@ -906,6 +909,39 @@ bo'lgani holda.
   Konsol rol ishlatolmaydigan bo'limni yashiradi — server baribir rad etadi,
   lekin har tugmasi "ruxsat yo'q" deydigan sahifa odamga asbobi buzuq ekanini
   o'rgatadi.
+
+**2026-09-14: beshinchi rol, bir nechta rol, bo'limlar va to'liq o'chirish**
+- **`support`** (tex-support) — faqat Yordam va Xatoliklar. Mijozlar,
+  tashriflar, pul yo'q: «panel bo'sh» degan savolga javob beradigan odamga
+  thread va stek kerak, narxlar ro'yxati emas.
+- ⚠️ **Bir hisobda bir nechta rol, ruxsatlar — birlashma** (`user.roles`,
+  `User.Can(check)`). Hech qachon `CanX(u.RoleOf())` emas: `RoleOf()` — eng keng
+  rol, birlashma emas, va agent+support hisobini faqat agent deb so'rash uni
+  berilgan navbatdan qulflaydi. `role` ham yoziladi (eng keng rol) — eski
+  hisoblar `roles` siz o'qiladi va `RolesOf` shunga qaytadi (bo'sh `role` hali
+  ham owner).
+- ⚠️ **So'rovda rol yo'qligi owner emas** (`requestRoles`): saqlangan bo'sh rol
+  faqat seed qilingan hisob tufayli owner. Tahrirda **bo'sh ro'yxat rad
+  etiladi** — aks holda hisob `role` ga qaytib, seed hisobni *kengaytirardi*.
+- **Bo'limlar** (`models.Permissions` — router gate'lari va `/me` bitta
+  xaritadan, testi router.go'ni o'qib har gate nomi mavjudligini tekshiradi):
+  Umumiy ko'rinish — owner; Mijozlar/Tashriflar/Taklif — owner, admin,
+  manager, agent; Yordam/Xatoliklar — owner, support; Hamkorlar, Qidiruv,
+  Xodimlar — faqat owner; Blog — owner va admin.
+- ⚠️ **Faqat owner umumiy ko'rinishga tushadi**; qolganlar logindan keyin (va
+  `/console` ochilganda) **render qilinmasdan oldin** o'z ekraniga
+  yo'naltiriladi (`consoleHome`): agent/menejer/admin — mijozlarga, support —
+  navbatga. Avval render qilish sahifa so'rovlarini yuborib, aynan shu
+  odamlarga «ma'lumot yo'q» ni ko'rsatardi.
+- **O'chirish ikki xil**: «Vaqtincha o'chirish» (`isActive: false`, login
+  saqlanadi) va «Butunlay o'chirish» (`DELETE /staff/{id}`, tasdiq bilan).
+  ⚠️ O'zingizni va oxirgi **faol** owner'ni o'chirib bo'lmaydi. Yozuvlar
+  qoladi: mijoz, tashrif va jurnal ismni yozilgan paytda nusxalagan.
+- **Xodim sahifasi** (`/console/staff/[id]`, `GET /staff/{id}`): hamma raqam
+  ish o'zi yozadigan hujjatlardan sanaladi — mijozlar `createdById`, tashriflar
+  `agentId`, yordam `operatorId`, hisob-fakturalar `issuedBy`, jurnal
+  `actorId`. ⚠️ Tuzatilgan xatoliklar **ism bo'yicha** (`resolvedBy` ismni
+  saqlaydi) — ism o'zgarsa eski sanoq tushib qoladi.
 
 ### Mini app'da til: tanlanadi, taxmin qilinmaydi
 - Saytda tilni **URL + cookie** tashiydi. Mini app'da ikkalasi ham yo'q (bot
