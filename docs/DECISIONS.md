@@ -8271,3 +8271,65 @@ pagecache 64000 ga ko'tarildi (mongo allaqachon shunday edi). Bu eng yomon
 tarzda yiqiladi: `accept()` kunning eng gavjum daqiqasida "too many open files"
 qaytaradi va rush tugashi bilan **o'zi tuzaladi** — kimdir qaraganda hammasi
 joyida.
+
+### Reklama (AI targetolog): reja, variantlar va Meta
+
+Restoran ham, do'kon ham reklamaga muhtoj, lekin targetolog xizmati oyiga
+500–1000$. U ko'radigan narsa — bosishlar; **ko'rmaydigan** narsasi — oshxona.
+Shu bo'lim aynan oshxonani ko'radi, va butun tijorat argumenti shunda: maslahat
+yaxshiroq, chunki u nimani bilishga haqli ekani boshqacha.
+
+- **Qo'shimcha xizmat, hech bir tarifga kirmaydi** (`ModAds`, oyiga 1 250 000
+  so'm, kuniga 30 so'rov; konsoldan qo'shiladi). ⚠️ Pog'onaga qo'shish uni
+  **hech qachon reklama bermaydigan** har bir mijozning narxiga yozardi, va eng
+  og'ir foydalanuvchi eng arzoniga xizmat ko'rsatiladigan bo'lib qolardi.
+  Ikkita test ushlab turadi: sotib bo'ladimi (`AddonPrice` — sotiladiganlar
+  ro'yxati, narxsiz konstanta konsol atay oladigan, sotolmaydigan modul) va
+  hech bir tarif bermaydimi.
+- ⚠️ **Kunlik limiti brifingnikidan alohida** (`ads_log`, `briefing_log` emas).
+  Bitta idish bo'lsa, tushgacha to'rtta savol bergan restoran **ertangi
+  brifingini** yo'qotardi — ikki xususiyat bitta bo'lib yiqiladi va hech bir
+  ekran sababini ayta olmaydi. Konsoldagi AI xarajat ekrani qatorlarni sanaydi,
+  ya'ni bitta jadval ikkala raqamni ham noto'g'ri qilardi.
+- ⚠️ **Holat uchta faktni alohida qaytaradi**: sotib olinmagan / bu o'rnatmada
+  platforma yo'q / sotib olingan-u Meta akkaunti ulanmagan. Uchalasi egani uch
+  boshqa joyga yuboradi (savdo suhbati, hech qayerga, ulash tugmasi).
+  Maslahatchi tabi buni bir marta bitta bo'sh ekranga yig'ib, qimmatga tushgan.
+- ⚠️ **Qator «kampaniyalar» deb atalmaydi**: u so'z restoran **o'z mehmonlariga**
+  yuboradigan xabarlarga tegishli, va ikki byudjet ustidagi bitta so'z — odam
+  noto'g'risini bosadigan yo'l. Faqat ega ko'radi, xabar tugmasi yonida: ikkalasi
+  ham restorandan tashqariga chiqadi va ikkalasi ham pul sarflaydi.
+- **Reja** (`POST /admin/ads/plan`): raqamlarni **tenant serveri** hisoblaydi
+  (hafta ichida taomlar bo'yicha sotuv, ulush butun songa, o'tgan hafta,
+  filial manzili va yetkazish radiusi), konsol esa faqat **so'z** yozadi —
+  maslahatchi bilan bir chok. ⚠️ **Panel barlarni `facts` dan chizadi, rejadan
+  emas**: shunda qizib ketgan model yomon sabab yozishi mumkin, lekin barni
+  qimirlata olmaydi. Tekshirib bo'ladigan maslahat bilan ishonish kerak
+  bo'ladigan maslahatning farqi shu, va bu yerda ega **haqiqiy pul** sarflaydi.
+- ⚠️ **AI variant beradi, ega tanlaydi** — uchta taom, hudud, byudjet, matn.
+  `why` sxemada **majburiy**: sababsiz taklif — o'lchab bo'lmaydigani, va uni
+  tashlab yuboradigan model aynan ma'lumotda aytadigan narsasi yo'q model.
+  Bitta tavsiya bersa, bu birovning pulini o'z mulohazasi bilan sarflagan
+  mashina bo'lardi.
+- ⚠️ **Kuniga bitta reja** (`ads_plan`, `(day, scope)` unique, TTL 7 kun).
+  Bir haftalik sotuv tugma bosilgani uchun o'zgarmaydi. TTL maslahatchining
+  48 soatidan uzun: kampaniya ketayotganda ega rejaga **qaytib keladi**
+  («byudjet haqida nima degan edi?»).
+- ⚠️ **`POST`, garchi faqat o'qisa ham**: pul sarflashi mumkin bo'lgan `GET` ni
+  brauzer prefetch'i sizning o'rningizga sarflaydi.
+- ⚠️ **Bir haftalik sotuvi yo'q restoranga reja tuzilmaydi** — yo'qdan yozilgan
+  reja bordan yozilganiga **aynan o'xshab** o'qiladi.
+- ⚠️ **Mijoz platformaga chiqmaydi.** Maslahatchi yo'qolgan mijozlar qatorini
+  alias bilan to'laydi; reklama rejasiga esa ular **umuman kerak emas** — nima
+  sotilgani va furgon qayergacha yetishi kerak. Payload jimgina mijoz ro'yxatiga
+  o'sib qolmasligi test bilan ushlab turiladi.
+- ⚠️ **Meta ulanmagani ochiq aytiladi, va tanlov ostida yana bir marta**: ega
+  qo'lida reja bilan turib «ishga tushirish» tugmasini qidiradigan lahza aynan
+  o'sha yer, va uni o'zi topib olishiga qoldirish — ishlaydigan xususiyatni
+  buzuq qilib ko'rsatadigan yo'l.
+- ⚠️ **Reklama puli to'g'ridan-to'g'ri Meta'ga to'lanadi** va ekranda shu
+  yozilgan. Pulini biz sarfladik deb gumon qilgan ega paneldagi qolgan har bir
+  raqamga ishonmay qo'yadi, va bu gumon bilan keyin bahslashib bo'lmaydi.
+- Bosqichlar, Meta verifikatsiyasi va o'qilgan API shartnomalari —
+  `docs/reklama-reja.md` va `docs/vendor/meta-marketing.md`. P0 (reja va
+  variantlar) **Meta'siz ishlaydi** va review kutilayotganda sotiladi.
