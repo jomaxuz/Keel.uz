@@ -4997,6 +4997,15 @@ export const adminUz = {
     copies: "Nusxa",
     print: "Chiqarish",
     printChosen: (n: number) => `${n} ta tovarga yorliq`,
+    /** Kirimdan keyin chiqadigan taklif.
+     *
+     *  ⚠️ **Taklif, bosish emas.** 200 yashik 200 stiker bilan javob bersa —
+     *  bu hech kim so'ramagan rulon. Kirim olib tashlaydigan narsa — terish:
+     *  tovar ham, soni ham nakladnoyda allaqachon yozilgan. */
+    due: {
+      title: "Shu kirimdagi tovarlarga yorliq kerak",
+      hint: "Soni — kelgan miqdor. Kerak bo'lmasa katakni bo'shating. Yorliq «Yorliq» turi yoqilgan printerga chiqadi (Sozlamalar → Printerlar).",
+    },
     queued: (n: number) => `${n} ta yorliq navbatga qo'yildi`,
     barcoded: (names: string) => `shtrix-kod berildi: ${names}`,
     reason: {
@@ -9783,6 +9792,10 @@ export const adminRu: AdminDict = {
     copies: "Копий",
     print: "Печать",
     printChosen: (n: number) => `Этикетки: ${n} товаров`,
+    due: {
+      title: "Товарам из этой поставки нужны этикетки",
+      hint: "Количество — сколько пришло. Не нужно — очистите поле. Этикетки печатаются на принтере с включённым типом «Этикетка» (Настройки → Принтеры).",
+    },
     queued: (n: number) => `В очередь поставлено этикеток: ${n}`,
     barcoded: (names: string) => `присвоен штрихкод: ${names}`,
     reason: {
@@ -14531,6 +14544,10 @@ export const adminEn: AdminDict = {
     copies: "Copies",
     print: "Print",
     printChosen: (n: number) => `Labels for ${n} products`,
+    due: {
+      title: "Goods on this delivery need labels",
+      hint: 'How many arrived is the count offered. Clear the box for the ones that do not need one. Labels go to a printer with the "label" kind ticked (Settings → Printers).',
+    },
     queued: (n: number) => `${n} labels queued`,
     barcoded: (names: string) => `given a barcode: ${names}`,
     reason: {

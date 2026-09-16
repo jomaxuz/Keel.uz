@@ -28,6 +28,7 @@ import Modal from "@/components/admin/Modal";
 import type {
   AdvanceBalance,
   Ingredient,
+  LabelDue,
   Purchase,
   PurchaseLine,
   StaffRow,
@@ -66,6 +67,23 @@ export default function PurchasesPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  /** What the delivery just entered says needs a sticker.
+   *
+   *  ⚠️ **The server has proposed this since the labels screen shipped and no
+   *  screen listened.** The goods and the counts were already on the invoice
+   *  somebody had just typed, and they were being looked up again by hand in a
+   *  catalogue of four hundred — which is the step that stops happening, and a
+   *  shelf then says last month's price.
+   *
+   *  ⚠️ **A proposal, never a print.** Two hundred crates must not answer with
+   *  two hundred stickers: what the delivery removes is the typing, not the
+   *  decision. */
+  const [due, setDue] = useState<LabelDue[]>([]);
+  /** How many stickers per product, as text. ⚠️ Text so an emptied box stays
+   *  empty rather than snapping back while somebody is typing 12 — the labels
+   *  screen learned this already. */
+  const [dueCopies, setDueCopies] = useState<Record<string, string>>({});
+  const [printing, setPrinting] = useState(false);
   // ⚠️ Which invoice is being corrected, or empty for a new one. An invoice is
   // forty numbers typed at a door and the twenty-first is a transposition;
   // until now the only remedy was delete and retype, which loses the entry
@@ -131,11 +149,53 @@ export default function PurchasesPage() {
           ? t.purchases.pricesChanged(res.pricesChanged)
           : t.purchases.noPriceChange,
       );
+      // ⚠️ Shown after the delivery is saved rather than instead of saving it:
+      // the invoice is the job, the stickers are what follows from it.
+      const proposed = res.labelsDue ?? [];
+      setDue(proposed);
+      setDueCopies(
+        Object.fromEntries(proposed.map((x) => [x.id, String(x.copies)])),
+      );
       load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.common.loadFailed);
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** Print the stickers this delivery proposed.
+   *
+   *  ⚠️ **Only the rows somebody left a number on.** An emptied box means "not
+   *  this one" — a delivery of goods that are already labelled is the ordinary
+   *  case, and defaulting a blank back to the delivered quantity would print a
+   *  roll for a shelf nobody touched.
+   *
+   *  ⚠️ The same endpoint the labels screen uses, so a product with no barcode
+   *  is given one here too — at the moment it is printed, never before. */
+  async function printDue() {
+    const items = due
+      .map((row) => ({ id: row.id, copies: Number(dueCopies[row.id] ?? 0) }))
+      .filter((x) => x.copies > 0);
+    if (items.length === 0) {
+      setDue([]);
+      return;
+    }
+    setPrinting(true);
+    setError("");
+    try {
+      const res = await api.adminPrintLabels(items);
+      setNotice(
+        t.labels.queued(res.queued) +
+          (res.barcoded?.length
+            ? ` · ${t.labels.barcoded(res.barcoded.join(", "))}`
+            : ""),
+      );
+      setDue([]);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.common.loadFailed);
+    } finally {
+      setPrinting(false);
     }
   }
 
@@ -148,6 +208,65 @@ export default function PurchasesPage() {
 
       {error && <p className="text-sm text-danger">{error}</p>}
       {notice && <p className="text-sm text-ink-soft">{notice}</p>}
+
+      {due.length > 0 && (
+        <div className="card space-y-3 p-4">
+          <div>
+            <h2 className="font-semibold">{t.labels.due.title}</h2>
+            {/* ⚠️ Says where the paper comes out, because the commonest report
+                after pressing print is "nothing happened" — and the answer is
+                usually a printer with no label type ticked. */}
+            <p className="mt-0.5 text-xs text-ink-muted">{t.labels.due.hint}</p>
+          </div>
+          <ul className="space-y-1.5">
+            {due.map((row) => (
+              <li
+                key={row.id}
+                className="flex items-center gap-3 rounded-xl border border-line px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm">{row.name}</div>
+                  <div className="truncate text-xs text-ink-muted">
+                    {t.labels.reason[row.reason] ?? row.reason}
+                  </div>
+                </div>
+                <input
+                  className="input w-20 py-1.5 text-right text-sm"
+                  inputMode="numeric"
+                  value={dueCopies[row.id] ?? ""}
+                  onChange={(e) =>
+                    setDueCopies({
+                      ...dueCopies,
+                      [row.id]: e.target.value.replace(/\D/g, ""),
+                    })
+                  }
+                  aria-label={t.labels.copies}
+                />
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn-primary px-4 py-2 text-sm"
+              disabled={printing}
+              onClick={() => void printDue()}
+            >
+              {t.labels.print}
+            </button>
+            {/* ⚠️ A way out that is not "print". A delivery of goods that are
+                already labelled is the ordinary case, and a card with only one
+                button is a card people press to make it go away. */}
+            <button
+              type="button"
+              className="btn-ghost px-4 py-2 text-sm"
+              onClick={() => setDue([])}
+            >
+              {t.common.close}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ⚠️ **Beside the deliveries it pays for, not on a screen of its own.**
           The two questions are asked in one breath — "what came in" and "who is

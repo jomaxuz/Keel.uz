@@ -321,6 +321,61 @@ class KeelApi(private val tokens: TokenStore) {
         },
     )
 
+    // ---- Marking codes, read with the camera ----
+
+    /** What carries a marking code, so the phone can ask what is in the box.
+     *
+     *  ⚠️ Only flagged products: a list of the whole menu would bury the six
+     *  things this screen is for under four hundred that carry no code. */
+    suspend fun markItems(): MarkItems = call("/staff/marking/items")
+
+    /** File what the camera read.
+     *
+     *  ⚠️ **Sent in batches rather than one at a time.** A store room is where a
+     *  phone has no signal, and a request per bottle turns one bad minute into
+     *  forty failures. ⚠️ Every code is still answered separately by the server
+     *  — a box with one unreadable sticker is not a failed box. */
+    suspend fun receiveMarks(menuItemId: String, codes: List<String>): MarkResult = call(
+        "/staff/marking/receive",
+        HttpMethod.Post,
+        body = buildJsonObject {
+            if (menuItemId.isNotEmpty()) put("menuItemId", JsonPrimitive(menuItemId))
+            put("codes", JsonArray(codes.map { JsonPrimitive(it) }))
+        },
+    )
+
+    /** How many of this product the branch is still holding, by code. */
+    suspend fun markHeld(menuItemId: String): MarkHeld =
+        call("/staff/marking/stock" + if (menuItemId.isEmpty()) "" else "?menuItemId=$menuItemId")
+
+    // ---- The shop's own labels ----
+
+    /** What needs a sticker: no code at all, never printed, or a changed price. */
+    suspend fun labelCandidates(): LabelCandidates = call("/staff/labels/candidates")
+
+    /** Queue stickers.
+     *
+     *  ⚠️ **How many is the person's answer.** A crate of forty may need forty
+     *  stickers or one for the shelf edge, and only the person holding it knows
+     *  which — so the number is asked for and never inferred from a delivery. */
+    suspend fun printLabels(copies: Map<String, Int>): LabelResult = call(
+        "/staff/labels",
+        HttpMethod.Post,
+        body = buildJsonObject {
+            put(
+                "items",
+                JsonArray(
+                    copies.map { (id, n) ->
+                        buildJsonObject {
+                            put("id", JsonPrimitive(id))
+                            put("copies", JsonPrimitive(n))
+                        }
+                    },
+                ),
+            )
+        },
+    )
+
     // ---- Counting the store ----
 
     /** The rooms this employee's branch keeps things in.

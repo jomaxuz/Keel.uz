@@ -347,6 +347,21 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/buy/history", h.StaffBuyHistory)
 			// What this buyer is still holding of the restaurant's cash.
 			r.Get("/staff/buy/balance", h.StaffBuyBalance)
+			// Unpacking a delivery with the camera that is already in the
+			// room. ⚠️ Its own permission (`marking`): a filed code is unique
+			// across the platform, so one filed into the wrong branch cannot
+			// then be received by the branch that has the bottle. The codes go
+			// through the same function the panel's screen uses — see
+			// handlers/staffmarking.go.
+			r.Get("/staff/marking/items", h.StaffMarkItems)
+			r.Post("/staff/marking/receive", h.StaffReceiveMarks)
+			r.Get("/staff/marking/stock", h.StaffMarkStock)
+			// The shop's own stickers, printed from the shelf. ⚠️ A second
+			// permission (`label`) rather than a corner of the first: one scans
+			// what the state issued, the other prints what the shop invented,
+			// and the second one puts a price in front of a guest.
+			r.Get("/staff/labels/candidates", h.StaffLabelCandidates)
+			r.Post("/staff/labels", h.StaffPrintLabels)
 			// The kitchen screen. A staff token rather than an admin one
 			// because the tablet by the pass is shared and never logs out —
 			// see handlers/kitchen.go. The branch comes from the employee, so

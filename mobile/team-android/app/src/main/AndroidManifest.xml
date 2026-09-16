@@ -20,6 +20,19 @@
          first screen is answered before anybody knows what the app is for. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Reading a marking code off a delivery.
+         ⚠️ **Asked when the scanner is opened, never before** — the rule the
+         location permission next door already follows: a prompt that arrives
+         before anybody knows what it is for is answered "no", and the way back
+         is the system settings.
+         ⚠️ `required="false"`: a phone with no camera must still be able to
+         open this app for the shift clock, which is the one screen every
+         employee has. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
     <application
         android:name=".KeelTeamApp"
         android:allowBackup="false"

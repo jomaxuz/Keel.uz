@@ -135,6 +135,7 @@ import type {
   StaleLabel,
   LabelDesign,
   LabelDesignView,
+  LabelDue,
   TVScreenSelf,
   TVSlide,
   TVSlideKind,
@@ -1896,7 +1897,18 @@ export const api = {
     lines: PurchaseLine[];
     total?: number;
   }) =>
-    request<{ purchase: Purchase; pricesChanged: number }>("/admin/purchases", {
+    request<{
+      purchase: Purchase;
+      pricesChanged: number;
+      /** The goods on this delivery whose shelf label is now wrong, with the
+       *  delivered quantity as the number of stickers.
+       *
+       *  ⚠️ **A proposal, never a print.** Two hundred crates answering with two
+       *  hundred stickers is a roll nobody asked for and a printer switched off
+       *  by Friday. What the delivery removes is the *typing* — the goods and
+       *  the counts are already known — and the press is still somebody's. */
+      labelsDue?: LabelDue[];
+    }>("/admin/purchases", {
       method: "POST",
       auth: true,
       body,
@@ -1916,7 +1928,11 @@ export const api = {
       total?: number;
     },
   ) =>
-    request<{ purchase: Purchase; pricesChanged: number }>(
+    request<{
+      purchase: Purchase;
+      pricesChanged: number;
+      labelsDue?: LabelDue[];
+    }>(
       `/admin/purchases/${id}`,
       { method: "PUT", auth: true, body, scope: true },
     ),

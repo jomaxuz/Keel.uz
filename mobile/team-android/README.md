@@ -78,8 +78,29 @@ ham aynan shu sababdan veb sahifadan bu ilovaga ko'chgan.
   nuqtaga aylantiradigan maydon (`"1,5".toDouble()` = null, ya'ni qator
   jimgina sanoqdan chiqib ketardi).
 
+## ⚠️ Markirovka: kamera pistoletning o'rniga
+
+Kirimda skanerlash allaqachon bor edi, lekin **peshtaxtada** — pistolet o'sha
+yerga simlangan. Quti esa ombor xonasida, va shuning uchun yo quti peshtaxtaga
+olib kelinardi, yo keyinroq xotiradan yozilardi.
+
+- **Bitta tab, ikkita yarim**: kodlarni skanerlash (`marking`) va do'konning o'z
+  yorlig'ini bosish (`label`). Ekran faqat hisobda bor yarmini chizadi.
+- ⚠️ **Kamera faqat DataMatrix'ga qaraydi.** Shishada davlat kodi va EAN-13
+  yonma-yon; pistoletning eng keng tarqalgan xatosi — noto'g'risini o'qish.
+- ⚠️ **Takror kadr kesiladi**: bitta stiker kadrda o'nlab marta turadi, va usiz
+  bitta shisha qirqta skan bo'lardi.
+- ⚠️ **Rad etilgan kod ekranda qoladi**, qabul qilingani ketadi.
+- ⚠️ **Kamera ruxsati tugma bosilganda** so'raladi — smena tugmasidagi
+  joylashuv bilan bir qoida.
+- ⚠️ **Yozuv serverda bitta funksiyadan o'tadi** (`saveMarks`): panel va telefon
+  bitta quti haqida ikki xil yozmasin.
+- ⚠️ **Yorliq — davlat markirovkasi emas.** Bosiladigan narsa do'konning o'z
+  EAN-13 i (GS1 ning `2x` diapazoni); davlat kodini faqat skanerlash mumkin.
+
 ## ⚠️ Tab faqat ruxsati bor hisobda ko'rinadi
 
+- **Markirovka** — `marking` yoki `label` ruxsati.
 - **Sanoq** — `stock` ruxsati (texnolog).
 - **Bozor** — `buy` ruxsati.
 - **Zakup** — `buyorder` **va** (`void` yoki `stock`): kassirda `buyorder` bor,

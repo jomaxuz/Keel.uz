@@ -27,6 +27,7 @@ data class Dict(
     val zakup: Zakup,
     val sklad: Sklad,
     val sanoq: Sanoq,
+    val mark: Mark,
     val settings: Settings,
     val push: Push,
     val offline: Offline,
@@ -60,6 +61,10 @@ data class Dict(
         /** ⚠️ Counting is its own permission (`stock`), and the tab is drawn
          *  only for the account that carries it — the shipped Texnolog role. */
         val sanoq: String,
+        /** ⚠️ Its own permission (`marking`), like every other tab here: the
+         *  person who unpacks a delivery is not always the person who counts
+         *  the shelf. */
+        val mark: String,
         val settings: String,
     )
 
@@ -221,6 +226,43 @@ data class Dict(
         val sendFailed: String,
     )
 
+    /** Unpacking a delivery, and the stickers that follow it.
+     *
+     *  ⚠️ **Two halves with two permissions, and the words keep them apart.**
+     *  Scanning reads what the state issued; printing invents what the shop
+     *  owns. A screen that called both "markirovka" would teach a room that we
+     *  can print state codes, which is the one thing nobody may do. */
+    data class Mark(
+        val title: String,
+        val pickItem: String,
+        val scan: String,
+        val stop: String,
+        val scanned: (Int) -> String,
+        val held: (Int) -> String,
+        val save: (Int) -> String,
+        val saved: (Int) -> String,
+        val duplicate: String,
+        val badCode: String,
+        val needCamera: String,
+        val nothingScanned: String,
+        val noItems: String,
+        val loadFailed: String,
+        val sendFailed: String,
+        // ---- The shop's own labels ----
+        val labelsTitle: String,
+        val labelsEmpty: String,
+        val copies: String,
+        val print: String,
+        val printed: (Int) -> String,
+        /** ⚠️ Uchta sabab uch xil ish: kodi yo'q — sotib bo'lmaydi; hech qachon
+         *  bosilmagan; narxi o'zgargan — javon yolg'on gapiryapti. */
+        val reasonNoBarcode: String,
+        val reasonNever: String,
+        val reasonPrice: String,
+        val newBarcode: (String) -> String,
+        val noPrinter: String,
+    )
+
     data class Settings(
         val title: String,
         val language: String,
@@ -283,6 +325,7 @@ val UZ = Dict(
         zakup = "Zakup",
         sklad = "Sklad",
         sanoq = "Sanoq",
+        mark = "Markirovka",
         settings = "Sozlamalar",
     ),
     clock = Dict.Clock(
@@ -412,6 +455,34 @@ val UZ = Dict(
         loadFailed = "Ro'yxatni ochib bo'lmadi",
         sendFailed = "Saqlab bo'lmadi",
     ),
+    mark = Dict.Mark(
+        title = "Markirovka",
+        pickItem = "Mahsulotni tanlang",
+        scan = "Skanerlash",
+        stop = "To'xtatish",
+        scanned = { n -> "Skanerlandi: " + n },
+        held = { n -> "Omborda: " + n + " dona" },
+        save = { n -> "Saqlash — " + n + " ta kod" },
+        saved = { n -> n.toString() + " ta kod qabul qilindi" },
+        duplicate = "Bu kod allaqachon bor",
+        badCode = "Bu markirovka kodi emas",
+        needCamera = "Kameraga ruxsat berilmagan. Telefon sozlamalaridan yoqing — " +
+            "kod kamerasiz o'qilmaydi.",
+        nothingScanned = "Hali hech narsa skanerlanmadi",
+        noItems = "Markirovkalangan mahsulot yo'q — panelda belgilanadi",
+        loadFailed = "Ro'yxatni ochib bo'lmadi",
+        sendFailed = "Saqlab bo'lmadi",
+        labelsTitle = "Yorliq kerak",
+        labelsEmpty = "Hamma yorliq joyida",
+        copies = "Nechta",
+        print = "Bosish",
+        printed = { n -> n.toString() + " ta yorliq navbatga qo'yildi" },
+        reasonNoBarcode = "Kodi yo'q — sotib bo'lmaydi",
+        reasonNever = "Hech qachon bosilmagan",
+        reasonPrice = "Narxi o'zgargan",
+        newBarcode = { names -> "Yangi kod berildi: " + names },
+        noPrinter = "Yorliq bosadigan printer sozlanmagan",
+    ),
     sklad = Dict.Sklad(
         title = "Skladdan so'rovlar",
         empty = "Hozircha so'rov yo'q",
@@ -489,6 +560,7 @@ val RU = Dict(
         zakup = "Заявка",
         sklad = "Склад",
         sanoq = "Пересчёт",
+        mark = "Маркировка",
         settings = "Настройки",
     ),
     clock = Dict.Clock(
@@ -618,6 +690,34 @@ val RU = Dict(
         loadFailed = "Не удалось открыть список",
         sendFailed = "Не удалось сохранить",
     ),
+    mark = Dict.Mark(
+        title = "Маркировка",
+        pickItem = "Выберите товар",
+        scan = "Сканировать",
+        stop = "Остановить",
+        scanned = { n -> "Отсканировано: " + n },
+        held = { n -> "На складе: " + n + " шт." },
+        save = { n -> "Сохранить — " + n + " кодов" },
+        saved = { n -> "Принято кодов: " + n },
+        duplicate = "Этот код уже есть",
+        badCode = "Это не код маркировки",
+        needCamera = "Нет доступа к камере. Включите в настройках телефона — " +
+            "без камеры код не прочитать.",
+        nothingScanned = "Пока ничего не отсканировано",
+        noItems = "Нет товаров с маркировкой — отмечается в панели",
+        loadFailed = "Не удалось открыть список",
+        sendFailed = "Не удалось сохранить",
+        labelsTitle = "Нужны этикетки",
+        labelsEmpty = "Все этикетки в порядке",
+        copies = "Сколько",
+        print = "Печать",
+        printed = { n -> "В очередь поставлено этикеток: " + n },
+        reasonNoBarcode = "Нет кода — продать нельзя",
+        reasonNever = "Ни разу не печаталась",
+        reasonPrice = "Цена изменилась",
+        newBarcode = { names -> "Выдан новый код: " + names },
+        noPrinter = "Принтер для этикеток не настроен",
+    ),
     sklad = Dict.Sklad(
         title = "Заявки со склада",
         empty = "Заявок пока нет",
@@ -695,6 +795,7 @@ val EN = Dict(
         zakup = "Order",
         sklad = "Store",
         sanoq = "Count",
+        mark = "Marking",
         settings = "Settings",
     ),
     clock = Dict.Clock(
@@ -822,6 +923,34 @@ val EN = Dict(
         countedVs = { c, e -> "counted " + c + " · expected " + e },
         loadFailed = "Could not open the list",
         sendFailed = "Could not save",
+    ),
+    mark = Dict.Mark(
+        title = "Marking",
+        pickItem = "Pick the product",
+        scan = "Scan",
+        stop = "Stop",
+        scanned = { n -> "Scanned: " + n },
+        held = { n -> "In the store: " + n },
+        save = { n -> "Save — " + n + " codes" },
+        saved = { n -> n.toString() + " codes accepted" },
+        duplicate = "This code is already here",
+        badCode = "Not a marking code",
+        needCamera = "No camera permission. Turn it on in the phone's settings — " +
+            "a code cannot be read without it.",
+        nothingScanned = "Nothing scanned yet",
+        noItems = "No marked products — they are flagged in the panel",
+        loadFailed = "Could not open the list",
+        sendFailed = "Could not save",
+        labelsTitle = "Labels needed",
+        labelsEmpty = "Every label is current",
+        copies = "How many",
+        print = "Print",
+        printed = { n -> n.toString() + " labels queued" },
+        reasonNoBarcode = "No code — it cannot be sold",
+        reasonNever = "Never printed",
+        reasonPrice = "The price changed",
+        newBarcode = { names -> "New code issued: " + names },
+        noPrinter = "No printer is set to print labels",
     ),
     sklad = Dict.Sklad(
         title = "Store requests",

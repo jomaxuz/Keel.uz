@@ -324,6 +324,38 @@ var messages = map[string]pair{
 		"Выдача товара со склада",
 		"Issuing goods from the store",
 	},
+	"Markirovkani skanerlash": {
+		"Сканирование маркировки",
+		"Scanning marking codes",
+	},
+	"Yorliq va tsennik bosish": {
+		"Печать этикеток и ценников",
+		"Printing labels and price tags",
+	},
+	"bir marta 300 tagacha yorliq chiqarish mumkin": {
+		"за один раз можно напечатать до 300 этикеток",
+		"up to 300 labels can be printed at once",
+	},
+	"bu bo'lim faqat egasi va menejer uchun": {
+		"этот раздел только для владельца и менеджера",
+		"this section is for the owner and managers",
+	},
+	"javob kelmadi": {
+		"ответ не пришёл",
+		"no answer came back",
+	},
+	"savol yozing": {
+		"напишите вопрос",
+		"write a question",
+	},
+	"markirovka skanerlashga ruxsat berilmagan — administratorga murojaat qiling": {
+		"нет доступа к сканированию маркировки — обратитесь к администратору",
+		"you may not scan marking codes — ask an administrator",
+	},
+	"yorliq bosishga ruxsat berilmagan — administratorga murojaat qiling": {
+		"нет доступа к печати этикеток — обратитесь к администратору",
+		"you may not print labels — ask an administrator",
+	},
 	"Buyurtma qabul qilindi": {
 		"Заказ принят",
 		"Order accepted",

@@ -839,7 +839,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | SEO, sitemap, IndexNow, Google | Qidiruv tizimlari |
 | Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |
 | Didox (ЭСФ), 1C almashinuvi, buxgalteriya | Buxgalteriyaning ikki eshigi: Didox (ЭСФ) va 1C |
-| Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar · Markirovka: kirimda skanerlash |
+| Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar · Markirovka: kirimda skanerlash · Markirovka telefonda: kamera bilan qabul |
 | Panel yon paneli: qaysi qator, qanday tartib, qanday nom | Panel navigatsiyasi biznes turiga qarab |
 | Biznes turi qo'shish: predikat, narx pog'onasi, namuna | Biznes turlari: pishiradigan peshtaxta va narx pog'onasi |
 | Yorliq, tsennik, ichki shtrix-kod | Yorliq: do'konning o'z shtrix-kodi va tsennigi |

@@ -14867,3 +14867,35 @@ Tekshiruv: `go build ./...` + `go vet` ikkala modulda yashil; yangi
 `advisor_test.go` (kesh kaliti normalizatsiyasi, `c1`/`c12` almashtirish
 tartibi); frontend `tsc` + 271 test yashil.
 ⏳ Jonli modelga hali ulanib sinalmagan (kalit prod konsolda).
+
+## 2026-09-16 (3) — Markirovka telefonda, va kirimdan chiqadigan yorliq
+
+**A. Team ilovasida «Markirovka» tabi** — kamera bilan qabul. Pistolet
+peshtaxtaga simlangan, quti esa ombor xonasida edi; shuning uchun yo quti
+peshtaxtaga olib kelinardi, yo keyinroq xotiradan yozilardi.
+
+- Ikki yangi ruxsat: `marking` (skanerlash) va `label` (yorliq bosish). Rollar
+  ekrani ro'yxatni serverdan oladi, ya'ni ega ularni darhol ko'radi.
+- Yangi eshiklar: `/staff/marking/items|receive|stock`, `/staff/labels`,
+  `/staff/labels/candidates`. Filial **xodimdan** olinadi.
+- ⚠️ Kirim yozuvi panel bilan **bitta funksiyadan** o'tadi (`saveMarks`) —
+  `markinginbound.go` shu uchun refaktor qilindi.
+- Ilovada: CameraX + ML Kit, **faqat DataMatrix** (shishadagi EAN-13 ni
+  o'qimaydi — pistoletning eng keng tarqalgan xatosi), kadrdagi takror kod
+  kesiladi, rad etilgan kod ekranda qoladi, kamera ruxsati tugma bosilganda.
+
+**B. Kirim → yorliq taklifi.** `labelsDue` server javobida boshidan bor edi,
+lekin panel uni o'qimasdi (tipda ham yo'q edi). Endi kirim saqlangach taklif
+kartochkasi chiqadi: sabab bilan, soni kelgan miqdordan, bo'shatilgan katak —
+«kerak emas», va «Yopish» tugmasi bor.
+
+**C.** Telefonda yorliq yarmi ataylab soddaroq: faqat «nechta» va «Bosish»;
+dizayn tanlash paneldayoq qoladi (olti maketni rulon ushlab turgan odam
+ko'rib tanlaydi).
+
+Tekshiruv: `go build` + `vet` + `go test ./internal/{i18n,models,handlers}`
+yashil (i18n testi to'rtta tarjimasiz xabarni ushladi — uchtasi maslahatchi
+ishidan qolib ketgan edi, qo'shildi); team-android `testDebugUnitTest` yashil
+(yangi wire testlari: kod javobi uch qismli, bo'sh ro'yxatlar null emas, ikki
+ruxsat alohida); frontend `tsc` + testlar.
+⏳ Kamera **haqiqiy qurilmada sinalmagan** — emulyatorda ham, telefonda ham.

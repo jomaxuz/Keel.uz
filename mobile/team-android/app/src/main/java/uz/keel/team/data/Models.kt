@@ -298,6 +298,74 @@ data class FinishResult(
     val already: Boolean = false,
 )
 
+// ---- Marking codes and the shop's own labels ----
+
+/** One product that carries a state marking code. */
+@Serializable
+data class MarkItem(
+    val id: String = "",
+    val name: String = "",
+    /** The shop's own EAN-13, when one has been printed. ⚠️ **Never the state's
+     *  code** — the two live in different fields for the whole length of this
+     *  system, because one of them may go on a fiscal receipt and the other
+     *  never may. */
+    val barcode: String = "",
+)
+
+@Serializable
+data class MarkItems(val items: List<MarkItem> = emptyList())
+
+/** What the server made of a handful of scanned codes.
+ *
+ *  ⚠️ **Three answers, never one number.** A box of forty with one unreadable
+ *  sticker is thirty-nine bottles in the store room and one to look at; a
+ *  duplicate is either the same bottle twice or somebody else's; and only the
+ *  person holding the box can tell which. So duplicates come back **by code**
+ *  rather than as a count. */
+@Serializable
+data class MarkResult(
+    val added: Int = 0,
+    val duplicates: List<String> = emptyList(),
+    /** Not a marking code at all — a barcode read instead of a DataMatrix, or a
+     *  half-read frame. */
+    val bad: List<String> = emptyList(),
+)
+
+@Serializable
+data class MarkHeld(val held: Int = 0)
+
+/** One product whose shelf label no longer says the truth.
+ *
+ *  ⚠️ **`reason` is the server's word and the order matters**: `noBarcode`
+ *  stops a sale outright — no code, no scan, no ring-up — while `price` only
+ *  misdescribes one. A screen that treated them alike would bury the first
+ *  under the second. */
+@Serializable
+data class LabelRow(
+    val id: String = "",
+    val name: String = "",
+    val price: Double = 0.0,
+    val barcode: String = "",
+    /** `noBarcode` · `never` · `price`. ⚠️ Text, not an enum: a reason a newer
+     *  server invents must not throw while parsing the list that would have
+     *  explained it. */
+    val reason: String = "",
+    val wasPrice: Double = 0.0,
+)
+
+@Serializable
+data class LabelCandidates(val items: List<LabelRow> = emptyList())
+
+/** What came of pressing print. */
+@Serializable
+data class LabelResult(
+    val queued: Int = 0,
+    /** Products that were given a barcode on the way. ⚠️ Named rather than
+     *  counted: a code invented at this moment is a fact about the catalogue,
+     *  and the person printing is the only one who will ever see it happen. */
+    val barcoded: List<String> = emptyList(),
+)
+
 // ---- Counting the store ----
 
 /** One room that is counted on its own.

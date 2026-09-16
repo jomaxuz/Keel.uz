@@ -24,6 +24,15 @@ googleServices = "4.4.3"
 coreKtx = "1.17.0"
 junit = "4.13.2"
 splashscreen = "1.0.1"
+# ⚠️ **The camera and the decoder are two separate choices.** CameraX gives the
+# preview and the frames; ML Kit reads what is in them. Keeping them apart is
+# what lets the decoder be swapped — a DataMatrix on a bottle is read by one
+# library today, and the barcode on a packet may want another tomorrow.
+camerax = "1.4.2"
+# ⚠️ The bundled model, not the Play-services one: a store room is exactly where
+# a phone has no signal, and a scanner that downloads its model on first use
+# would fail on the morning it is needed.
+mlkitBarcode = "17.3.0"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -55,6 +64,11 @@ core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 junit = { module = "junit:junit", version.ref = "junit" }
 core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
+camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+mlkit-barcode = { module = "com.google.mlkit:barcode-scanning", version.ref = "mlkitBarcode" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

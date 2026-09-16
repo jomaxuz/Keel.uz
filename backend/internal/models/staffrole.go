@@ -91,6 +91,34 @@ const (
 	// the job itself (EnsureStockIssue): the screen is new, so refusing by
 	// default takes nothing away from anybody.
 	PermStockIssue = "stockissue"
+	// PermMarking: scanning the state's marking codes off a delivery, from a
+	// phone or from the panel.
+	//
+	// ⚠️ **Its own permission because a scan is a record, not a reading.** A
+	// code filed here is filed for good: `marked_unit.code` is unique across the
+	// whole platform, so a bottle scanned into the wrong branch cannot then be
+	// received by the branch that actually has it, and a code typed in by
+	// mistake refuses a real sale weeks later at a counter. That is the
+	// destroy-a-record half of the test this file opens with.
+	//
+	// ⚠️ **Not a corner of `stock`.** Counting a shelf is a monthly job for one
+	// person; unpacking a delivery is a daily job for whoever is nearest the
+	// door, and folding them together means either the storekeeper unpacks every
+	// box or everybody who unpacks can reset the baseline a shortfall is
+	// measured from.
+	PermMarking = "marking"
+	// PermLabel: printing the shop's own barcode stickers and shelf tags.
+	//
+	// ⚠️ **The permission is about the price, not about the paper.** A printed
+	// shelf tag is a promise to the guest standing in front of it, and a wrong
+	// one is settled at the counter with a queue behind them. It also invents
+	// the product's barcode the first time it runs (handlers/labels.go), which
+	// is a fact about the catalogue that nothing afterwards can quietly undo.
+	//
+	// ⚠️ Deliberately separate from `marking`: one scans what the state issued,
+	// the other prints what the shop invented, and a shop may well trust the
+	// same person with neither, either or both.
+	PermLabel = "label"
 )
 
 // AllPerms is every permission a role can carry, in the order the panel draws
@@ -98,6 +126,7 @@ const (
 var AllPerms = []string{
 	PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen,
 	PermStock, PermBuy, PermBuyOrder, PermStockIssue,
+	PermMarking, PermLabel,
 }
 
 // StaffRole is a job title and the permissions that come with it.

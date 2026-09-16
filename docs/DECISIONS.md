@@ -4338,6 +4338,16 @@ yaratmaydi: ular bitta raqamning **ikkinchi nusxasini** yaratadi.
   javob bersa — bu hech kim so'ramagan rulon va bir haftada o'chirilgan printer.
   Kirim olib tashlaydigan narsa — **terish**: tovar ham, soni ham allaqachon
   ma'lum.
+  - ⚠️ **Server buni taklif qilardi, ekran esa eshitmasdi** (2026-09-16 da
+    tuzatildi). `AdminCreatePurchase` javobida `labelsDue` boshidan bor edi,
+    lekin panel uni o'qimasdi — hatto `api.ts` dagi tipda ham yo'q edi. Ya'ni
+    odam endigina nakladnoyni terib bo'lgan, tovar ham soni ham o'sha yerda —
+    va u to'rt yuztalik katalogdan o'shalarni **qayta qidirardi**. Bu aynan
+    qirqinchi kirimdan keyin qilinmay qo'yadigan qadam, natijasi esa javondagi
+    o'tgan oyning narxi. Endi kirim saqlangach taklif kartochkasi chiqadi:
+    soni oldindan to'ldirilgan, bo'shatilgan katak — «bu kerak emas», va
+    yonida «Yopish» bor (yagona tugmasi «Bosish» bo'lgan kartochkani odamlar
+    ketsin deb bosadi).
 - ⚠️ **Shtrix-kodni printer chizadi** (`GS k`), biz rasterlamaymiz: bitta dither
   nuqtasi noto'g'ri chiziqda — skaner o'qimaydi, do'kon esa buni «yorliq buzuq»
   deb tushunadi. Raqamlar tagida — dog' bosgan stikerni kassir qo'lda tera
@@ -4428,6 +4438,53 @@ yaratmaydi: ular bitta raqamning **ikkinchi nusxasini** yaratadi.
 - ⚠️ **Koddagi GTIN — davlat katalogidagi mahsulot**, sizning menyungiz emas.
   Ikkalasini moslashtirish — hech kim to'ldirmagan mapping; ekran odamdan
   so'raydi va majburlamaydi.
+
+### Markirovka telefonda: kamera bilan qabul, va yorliq o'sha yerdan
+
+Kirimda skanerlash qoidasi o'zgarmadi (yuqoridagi bo'lim) — **qurilma**
+o'zgardi: pistolet peshtaxtaga simlangan, quti esa ombor xonasida. Shuning
+uchun yo quti peshtaxtaga olib kelinardi, yoki keyinroq **xotiradan**
+skanerlanardi — ikkinchisi umuman skanerlamaslik bilan bir xil.
+
+- **Team ilovasida bitta tab, ikkita yarim** (`mobile/team-android`,
+  `MarkScreen.kt`): kodlarni skanerlash va do'konning o'z yorlig'ini bosish.
+  ⚠️ **Bitta tab, chunki bu bitta daqiqa** — odam ochiq quti ustida turibdi;
+  ikki tab bitta quti uchun — hech kim o'qimaydigan telefon. Ekranning o'zi
+  esa **faqat hisobda bor yarmini** chizadi.
+- ⚠️ **Ikki ruxsat, bittasi emas** (`marking`, `label`). Biri **davlat**
+  bergan kodni o'qiydi, ikkinchisi **do'kon** o'ylab topgan kodni bosadi; do'kon
+  bir odamga ikkalasini ham, birini ham, hech qaysisini ham ishonmasligi mumkin.
+  ⚠️ `stock` ga qo'shilmadi: javonni sanash — oyiga bir marta, bir odam; qutini
+  ochish — har kuni, eshikka yaqin turgan odam.
+- ⚠️ **Skanerlash ruxsati alohida, chunki kod yozuvi qaytmas.**
+  `marked_unit.code` butun platforma bo'yicha unique: noto'g'ri filialga
+  yozilgan kodni **haqiqatan shishasi bor** filial endi qabul qila olmaydi, va
+  xato bir necha hafta keyin kassada, mijoz oldida chiqadi.
+- ⚠️ **Server tomonida ikkinchi nusxa yo'q** (`saveMarks`, `queueLabels`):
+  panel va telefon bitta funksiyadan yozadi — sanoq bilan bir qoida. Aks holda
+  bitta quti telefonda boshqacha, peshtaxtada boshqacha yoziladi.
+- ⚠️ **Kamera faqat DataMatrix'ga qaraydi** (ML Kit `FORMAT_DATA_MATRIX`).
+  Shishada davlat kodi va oddiy EAN-13 yonma-yon turadi, va pistoletning eng
+  keng tarqalgan xatosi — noto'g'risini o'qish; panel uni faqat **shakli**
+  bo'yicha keyin rad eta oladi. Kamera esa ikkinchisiga umuman qaramaydi — bu
+  uning pistoletdan yagona ustunligi.
+- ⚠️ **Bitta stiker kadrda o'nlab marta turadi.** Takrorni ekranda kesmasa,
+  bitta shisha qirqta skan bo'ladi va saqlashda «39 ta dublikat» chiqadi —
+  bu quti noto'g'ridek o'qiladi, kamera tez ekani emas.
+- ⚠️ **Rad etilgan kod ekranda qoladi, qabul qilingani ketadi.** Qirqtadan
+  bittasining stikeri o'qilmasa — o'ttiz to'qqiztasi yozildi, bittasi hali
+  odamning qo'lida; hammasini tozalash aynan o'shani yo'qotardi.
+- ⚠️ **Kamera ruxsati tugma bosilganda so'raladi**, ochilishda emas (smena
+  tugmasidagi joylashuv bilan bir qoida): nima uchunligi ma'lum bo'lishidan
+  oldin so'ralgan ruxsatning javobi — «yo'q».
+- **Yorliq yarmi** — `/staff/labels/candidates` + `/staff/labels`: sababi bilan
+  (kodi yo'q / hech qachon bosilmagan / narxi o'zgargan), soni **odamning
+  javobi**. ⚠️ Qirq donalik yashikka qirqta stiker ham, javonga bitta tsennik
+  ham kerak bo'lishi mumkin — buni faqat qutini ushlab turgan odam biladi,
+  shuning uchun son **so'raladi**, kirimdan taxmin qilinmaydi.
+- ⚠️ **Bu Asl Belgisi emas va bo'la olmaydi** — yuqoridagi «Yorliq» bo'limi
+  bilan bir xil sabab, va uchinchi marta yozilyapti, chunki aynan shu ikki
+  narsani bitta so'z bilan atash bu xususiyatni so'rashning tabiiy yo'li.
 
 ### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
 - **Ma'lumot mijozniki va u bilan ketishi kerak**: menyusini, buyurtmalarini va

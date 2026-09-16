@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.automirrored.rounded.FactCheck
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingBasket
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,7 +62,10 @@ import uz.keel.team.ui.screens.ServerScreen
 import uz.keel.team.ui.screens.SettingsScreen
 import uz.keel.team.ui.screens.ZakupScreen
 import uz.keel.team.ui.screens.SkladScreen
+import uz.keel.team.ui.screens.MarkScreen
 import uz.keel.team.ui.screens.canCountHere
+import uz.keel.team.ui.screens.canLabelHere
+import uz.keel.team.ui.screens.canScanHere
 import uz.keel.team.ui.screens.canIssueHere
 import uz.keel.team.ui.screens.canWriteHere
 
@@ -191,15 +195,22 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
     // accident — and asked in permissions rather than in the typed job title,
     // because a title grants nothing (models/staffrole.go).
     val canCount = ready?.staff?.let { canCountHere(it) } == true
+    // ⚠️ **One tab for two permissions, and it appears for either.** Scanning
+    // what the state issued and printing what the shop owns are different acts
+    // with different keys — but they are the same minute of somebody's morning,
+    // stood over an open box, and two tabs for one box is a phone nobody reads.
+    // The screen itself draws only the half the account holds.
+    val canMark = ready?.staff?.let { canScanHere(it) || canLabelHere(it) } == true
 
     // ⚠️ A permission taken away while somebody was standing on that tab leaves
     // them on a screen the server will refuse. Sent back to the one screen every
     // account has.
-    LaunchedEffect(canBuy, canOrder, canIssue, canCount) {
+    LaunchedEffect(canBuy, canOrder, canIssue, canCount, canMark) {
         if (tab == "buy" && !canBuy) tab = "profile"
         if (tab == "zakup" && !canOrder) tab = "profile"
         if (tab == "sklad" && !canIssue) tab = "profile"
         if (tab == "sanoq" && !canCount) tab = "profile"
+        if (tab == "mark" && !canMark) tab = "profile"
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -233,6 +244,7 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
                     // `AnimatedContent` throws the screen away every time
                     // somebody taps another tab. See CountDraft.
                     "sanoq" -> SanoqScreen(app.api, app.counting, tabsInset)
+                    "mark" -> MarkScreen(app.api, s.staff, tabsInset)
                     "settings" -> SettingsScreen(
                         staff = s.staff,
                         address = s.address,
@@ -268,6 +280,7 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
                     if (canCount) {
                         add(TabItem("sanoq", Icons.AutoMirrored.Rounded.FactCheck, t.tabs.sanoq))
                     }
+                    if (canMark) add(TabItem("mark", Icons.Rounded.QrCodeScanner, t.tabs.mark))
                     add(TabItem("settings", Icons.Rounded.Settings, t.tabs.settings))
                 },
                 selected = tab,

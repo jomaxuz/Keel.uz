@@ -118,6 +118,15 @@ dependencies {
     // anybody is at any other moment.
     implementation(libs.play.services.location)
 
+    // Reading a marking code off a bottle with the camera that is already in
+    // the room. ⚠️ CameraX for the frames, ML Kit for what is in them — see the
+    // note in the version catalogue for why they are two choices.
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.mlkit.barcode)
+
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 

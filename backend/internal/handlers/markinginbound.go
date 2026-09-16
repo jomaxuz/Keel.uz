@@ -74,42 +74,11 @@ func (h *Handler) AdminReceiveMarks(w http.ResponseWriter, r *http.Request) {
 	itemID, _ := objectID(req.MenuItemID)
 	purchaseID, _ := objectID(req.PurchaseID)
 
-	now := time.Now()
-	who := h.adminName(r)
-	added := 0
-	// ⚠️ Reported by code rather than counted: the person unpacking has the
-	// bottle in their hand, and "one duplicate" without saying which is a box
-	// they have to scan again from the start.
-	dup := []string{}
-	bad := []string{}
-
-	for _, raw := range req.Codes {
-		code := marking.Normalize(raw)
-		if err := marking.Check(code); err != nil {
-			bad = append(bad, raw)
-			continue
-		}
-		_, err := h.Store.MarkedUnits.InsertOne(r.Context(), models.MarkedUnit{
-			BranchID:   branchID,
-			Code:       code,
-			MenuItemID: itemID,
-			PurchaseID: purchaseID,
-			ReceivedAt: now,
-			ReceivedBy: who,
-		})
-		switch {
-		case err == nil:
-			added++
-		case mongo.IsDuplicateKeyError(err):
-			// ⚠️ **The unique index is the check, not a lookup before it.** Two
-			// people unpacking two boxes at two tills would both find nothing
-			// and both insert; the index is the only thing that is true at the
-			// moment of writing.
-			dup = append(dup, code)
-		default:
-			httpx.Error(w, http.StatusInternalServerError, err.Error())
-			return
-		}
+	added, dup, bad, err := h.saveMarks(
+		r.Context(), branchID, itemID, purchaseID, req.Codes, h.adminName(r))
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	h.logAction(r, "marking.receive", "menu", req.MenuItemID, "", "")
@@ -122,6 +91,60 @@ func (h *Handler) AdminReceiveMarks(w http.ResponseWriter, r *http.Request) {
 		// half-read scan, a scanner set to the wrong symbology.
 		"bad": bad,
 	})
+}
+
+// saveMarks files the codes somebody scanned, whichever screen they used.
+//
+// ⚠️ **One implementation for the panel and the phone**, the rule the stocktake
+// already follows: the shape check, the duplicate answer and the "one code, one
+// row" guarantee have to be one piece of code, or a box scanned on a phone
+// files differently from the same box scanned at the counter — and the
+// disagreement surfaces weeks later as a sale the till refuses.
+//
+// ⚠️ **Every code is answered separately.** A box of forty with one unreadable
+// sticker must not fail as a box of forty: the thirty-nine are in the store room
+// either way, and an all-or-nothing save is one that gets abandoned halfway
+// through unpacking.
+func (h *Handler) saveMarks(
+	ctx context.Context,
+	branchID, itemID, purchaseID primitive.ObjectID,
+	codes []string, who string,
+) (added int, dup, bad []string, err error) {
+	now := time.Now()
+	// ⚠️ Reported by code rather than counted: the person unpacking has the
+	// bottle in their hand, and "one duplicate" without saying which is a box
+	// they have to scan again from the start.
+	dup = []string{}
+	bad = []string{}
+
+	for _, raw := range codes {
+		code := marking.Normalize(raw)
+		if err := marking.Check(code); err != nil {
+			bad = append(bad, raw)
+			continue
+		}
+		_, insErr := h.Store.MarkedUnits.InsertOne(ctx, models.MarkedUnit{
+			BranchID:   branchID,
+			Code:       code,
+			MenuItemID: itemID,
+			PurchaseID: purchaseID,
+			ReceivedAt: now,
+			ReceivedBy: who,
+		})
+		switch {
+		case insErr == nil:
+			added++
+		case mongo.IsDuplicateKeyError(insErr):
+			// ⚠️ **The unique index is the check, not a lookup before it.** Two
+			// people unpacking two boxes at two tills would both find nothing
+			// and both insert; the index is the only thing that is true at the
+			// moment of writing.
+			dup = append(dup, code)
+		default:
+			return added, dup, bad, insErr
+		}
+	}
+	return added, dup, bad, nil
 }
 
 // AdminMarkStock is what this branch is holding, by product.

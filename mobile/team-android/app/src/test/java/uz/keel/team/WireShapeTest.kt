@@ -19,7 +19,12 @@ import uz.keel.team.data.ShoppingOrder
 import uz.keel.team.data.SavedCount
 import uz.keel.team.data.StocktakeSheet
 import uz.keel.team.data.Warehouses
+import uz.keel.team.data.LabelCandidates
+import uz.keel.team.data.MarkItems
+import uz.keel.team.data.MarkResult
 import uz.keel.team.ui.screens.canCountHere
+import uz.keel.team.ui.screens.canLabelHere
+import uz.keel.team.ui.screens.canScanHere
 import uz.keel.team.ui.screens.canIssueHere
 import uz.keel.team.ui.screens.canWriteHere
 
@@ -247,6 +252,83 @@ class WireShapeTest {
         // that cannot tell them apart accuses somebody.
         assertEquals(null, orders[0].lines[0].tookQty)
         assertEquals(3.5, orders[1].lines[0].tookQty)
+    }
+
+    // ---- Marking codes and the shop's own labels ----
+
+    /** `handlers/staffmarking.go` → `StaffMarkItems`. */
+    @Test
+    fun `the marked products carry the shop's own code beside the name`() {
+        val items = json.decodeFromString<MarkItems>(
+            """{"items":[{"id":"m1","name":"Coca-Cola 0.5","barcode":"2100000000010"},
+                         {"id":"m2","name":"Pepsi 1.0","barcode":""}]}""",
+        )
+        assertEquals(2, items.items.size)
+        assertEquals("Coca-Cola 0.5", items.items[0].name)
+        // ⚠️ The shop's own EAN, never the state's DataMatrix. The two live in
+        // different fields the whole length of this system, because one of them
+        // may reach a fiscal receipt and the other never may.
+        assertEquals("2100000000010", items.items[0].barcode)
+        assertEquals("", items.items[1].barcode)
+    }
+
+    /** `handlers/staffmarking.go` → `StaffReceiveMarks`.
+     *
+     *  ⚠️ **Three answers, never one number.** A box of forty with one
+     *  unreadable sticker is thirty-nine bottles filed and one still in
+     *  somebody's hand — and duplicates come back by code, because the person
+     *  is holding that bottle. */
+    @Test
+    fun `a scanned box answers with what was taken and what was refused`() {
+        val res = json.decodeFromString<MarkResult>(
+            """{"added":38,
+                "duplicates":["0104780123456789215Ab7"],
+                "bad":["4780123456789"]}""",
+        )
+        assertEquals(38, res.added)
+        assertEquals(1, res.duplicates.size)
+        // An EAN-13 read instead of a DataMatrix: not a marking code at all.
+        assertEquals(listOf("4780123456789"), res.bad)
+    }
+
+    /** ⚠️ **A clean box answers with empty lists, not with absent fields.** Read
+     *  as null the screen would crash on the one delivery where nothing went
+     *  wrong — the JSON trap this codebase has been bitten by twice. */
+    @Test
+    fun `a clean box still carries both lists`() {
+        val res = json.decodeFromString<MarkResult>("""{"added":40}""")
+        assertEquals(40, res.added)
+        assertTrue(res.duplicates.isEmpty())
+        assertTrue(res.bad.isEmpty())
+    }
+
+    /** `handlers/staffmarking.go` → `StaffLabelCandidates`. */
+    @Test
+    fun `a label candidate says why it is on the list`() {
+        val rows = json.decodeFromString<LabelCandidates>(
+            """{"items":[{"id":"p1","name":"Guruch 1kg","price":18000,"barcode":"",
+                          "reason":"noBarcode","wasPrice":0},
+                         {"id":"p2","name":"Shakar 1kg","price":12000,
+                          "barcode":"2100000000027","reason":"price","wasPrice":11000}]}""",
+        )
+        // ⚠️ The order matters: no code stops a sale outright, a changed price
+        // only misdescribes one.
+        assertEquals("noBarcode", rows.items[0].reason)
+        assertEquals("price", rows.items[1].reason)
+        assertEquals(11000.0, rows.items[1].wasPrice, 0.0)
+    }
+
+    /** ⚠️ **Two permissions, not one.** One scans what the state issued, the
+     *  other prints what the shop invented — and a shop may trust the same
+     *  person with neither, either or both. */
+    @Test
+    fun `scanning and printing are asked separately`() {
+        assertTrue(canScanHere(Staff(perms = listOf("marking"))))
+        assertFalse(canScanHere(Staff(perms = listOf("label", "stock"))))
+        assertTrue(canLabelHere(Staff(perms = listOf("label"))))
+        assertFalse(canLabelHere(Staff(perms = listOf("marking"))))
+        // ⚠️ The title grants nothing, however it is spelled.
+        assertFalse(canScanHere(Staff(position = "Omborchi")))
     }
 
     // ---- Counting the store ----
