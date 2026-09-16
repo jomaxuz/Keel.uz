@@ -17,6 +17,7 @@ ishongan restoranda **bironta ham to'lov o'tkazmaydigan** kod.
 | `didox.md` | Didox — elektron hujjat aylanishi (ЭСФ), hamkor API | adapter yozildi (imzosiz) |
 | `1c-exchange.md` | 1C «Обмен с сайтом» (CommerceML 2) protokoli | almashinuv yozildi |
 | `uzum-tezkor-retail.md` | Uzum Tezkor Retail API — ular bizning serverni so'raydi, buyurtmani bizga POST qiladi | token, buyurtma, holat, katalog va qoldiq yozildi (`handlers/uzumtezkor*.go`); test muhitida sinalmagan |
+| `meta-marketing.md` | Meta Marketing API — reklama (AI targetolog): ulanish, kampaniya zanjiri, targeting, insights, kvota | **kod yozilmagan**; ⚠️ Conversions API parametrlari hali o'qilmagan (o'sha faylning 10-bo'limi) |
 
 **Payme GO** — ochiq API topilmadi (2026-08-30 da tekshirildi:
 `developer.help.paycom.uz` faqat Merchant API va Subscribe API'ni, ya'ni

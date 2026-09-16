@@ -49,6 +49,17 @@ export const COMPANY = {
   account: "20208000907516890001",
   site: "keel.uz",
   email: "info@keel.uz",
+  // ⚠️ **Two forms of one number, and both are needed.** `tel:` refuses spaces
+  // on some Android dialers, and a number printed without them is read digit by
+  // digit by a person copying it onto a form.
+  //
+  // ⚠️ **It is here rather than in `links.ts` because it is a legal fact, not a
+  // link.** Meta's business verification compares the phone on the site with
+  // the phone on the registration document, and a second copy living beside the
+  // Telegram handle is the copy that stops matching — which is the commonest
+  // reason a verification is refused.
+  phone: "+998771887414",
+  phoneText: "+998 77 188 74 14",
 };
 
 const UPDATED = "2026-08-15";

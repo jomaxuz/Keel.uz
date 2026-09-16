@@ -6,6 +6,10 @@ import type { getT } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/url";
 import type { Lang } from "@/lib/i18n/dict";
 import { EMAIL, TELEGRAM } from "@/lib/links";
+// ⚠️ The same record the offer and the privacy policy are written from. A
+// footer with its own copy of the address is the copy that stops matching the
+// documents — and the first reader to notice is the one comparing them.
+import { COMPANY } from "@/lib/legal";
 
 // ---- The shell every landing page is built from ----
 //
@@ -177,15 +181,55 @@ export function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang:
         <div>
           <p className="text-sm font-semibold text-ink">{t.footer.contact}</p>
           <ul className="mt-3 space-y-2 text-sm text-ink-muted">
+            {/* ⚠️ **First, and tappable.** A phone number that is only printed
+                is a number somebody has to retype while holding the phone they
+                would have called from. `tel:` takes no spaces on some Android
+                dialers, so the two forms are kept apart in `COMPANY`. */}
+            <li><a href={`tel:${COMPANY.phone}`} className="hover:text-ink">{COMPANY.phoneText}</a></li>
             <li><a href={TELEGRAM} className="hover:text-ink">Telegram</a></li>
             <li><a href={`mailto:${EMAIL}`} className="hover:text-ink">{EMAIL}</a></li>
           </ul>
         </div>
       </div>
       <div className="border-t border-line">
-        <div className="container-page flex flex-col gap-2 py-6 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} Keel. {t.footer.rights}.</span>
-          <span>keel.uz</span>
+        <div className="container-page space-y-2 py-6 text-xs text-ink-muted">
+          {/* ⚠️ **Who we legally are, on every page.** It was only inside the
+              offer and the privacy policy — two clicks away and inside a wall
+              of text. A visitor deciding whether to hand a business over to us
+              should not have to open a legal document to find out whether we
+              are a company at all.
+
+              ⚠️ It also decides a verification we cannot pass without it: Meta
+              compares the legal name, the address and the phone on the site
+              against the registration document, and a site that shows none of
+              them is refused. Read off `COMPANY`, so the footer and the
+              documents cannot drift apart. */}
+          <p>
+            {lang === "ru"
+              ? COMPANY.nameRu
+              : lang === "en"
+                ? COMPANY.nameEn
+                : COMPANY.nameUz}
+            {" · "}STIR {COMPANY.inn}
+            {" · "}
+            {lang === "ru"
+              ? COMPANY.addressRu
+              : lang === "en"
+                ? COMPANY.addressEn
+                : COMPANY.addressUz}
+            {" · "}
+            <a href={`tel:${COMPANY.phone}`} className="hover:text-ink">
+              {COMPANY.phoneText}
+            </a>
+            {" · "}
+            <a href={`mailto:${COMPANY.email}`} className="hover:text-ink">
+              {COMPANY.email}
+            </a>
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span>© {new Date().getFullYear()} Keel. {t.footer.rights}.</span>
+            <span>keel.uz</span>
+          </div>
         </div>
       </div>
     </footer>

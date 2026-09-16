@@ -857,7 +857,8 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 - **`DEPLOY.md`** — prod deploy (VPS / Vercel), `cmd/adminreset`.
 - **`SAAS.md`** — Keel platformasi rejasi; **`CONSTRUCTOR.md`** — sayt
   konstruktori; **`POS_INTEGRATIONS.md`** — kassa provayderlari tafsiloti;
-  `docs/` — fiskal agent, markirovka, POS reja.
+  `docs/` — fiskal agent, markirovka, POS reja, **`reklama-reja.md`** (AI
+  targetolog: Meta verifikatsiyasi, bosqichlar, qo'riqlar — kod yozilmagan).
 - **`scripts/`** — deploy image'iga kirmaydigan ishchi vositalar, **o'z
   `package.json` i bilan**: `help-screens.mjs` (bilim bazasi uchun panel
   suratlari + annotatsiya koordinatalari), `landing-shots.mjs` (keel.uz bosh
