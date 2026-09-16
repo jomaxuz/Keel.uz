@@ -25,6 +25,10 @@ export const MODULE_LABEL: Record<string, string> = {
   multibranch: "Ko'p filial va brend",
   posint: "Tashqi kassa integratsiyasi",
   franchise: "Franshiza boshqaruvi",
+  // ⚠️ Named here or the upgrade card says "ads" to somebody who has never seen
+  // the word — the card exists to explain what is missing, and a module id is
+  // not an explanation.
+  ads: "Reklama (AI targetolog)",
 };
 
 export const PLAN_LABEL: Record<string, string> = {

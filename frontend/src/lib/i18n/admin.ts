@@ -104,6 +104,9 @@ export const adminUz = {
     expiring: "Muddati tugayapti",
     labels: "Yorliqlar",
     marking: "Markirovka",
+    /** ⚠️ «Kampaniya» emas: u so'z mijozlarga yuboriladigan xabarlarga band, va
+     *  ikki byudjet uchun bitta so'z — noto'g'risini bosish yo'li. */
+    ads: "Reklama",
     promotions: "Aksiyalar",
     feedback: "Fikrlar",
     vacancies: "Vakansiyalar",
@@ -4663,6 +4666,23 @@ export const adminUz = {
     failed: "Javob olinmadi. Biroz kutib, qayta urining.",
     empty: "Hozircha savol berilmagan.",
   },
+  /** Reklama bo'limi (AI targetolog).
+   *
+   *  ⚠️ **Reklama puli restoranniki va Meta'ga to'g'ridan-to'g'ri to'lanadi.**
+   *  Ekran buni aytib turishi kerak: aks holda ega «Keel mening pulimni
+   *  sarfladi» deb o'ylaydi, va bu bir marta o'ylangach qaytmaydi. */
+  ads: {
+    title: "Reklama",
+    lead: "Meta (Facebook va Instagram) reklamasi — nima reklama qilishni restoranning o'z sotuvi, marjasi va mijozlaridan chiqaramiz.",
+    spendNote:
+      "Reklama pulini Meta'ga o'zingiz to'laysiz — bu bo'lim faqat ishning o'zi uchun.",
+    notConnectedTitle: "Meta akkaunti hali ulanmagan",
+    notConnected:
+      "Ulanish Meta tekshiruvidan o'tgach ochiladi. Shu vaqtgacha bu yerda reklama rejasi tayyorlanadi — qaysi taom, qaysi hududga, qancha byudjet bilan.",
+    offTitle: "Platformaga ulanmagan",
+    off: "Bu o'rnatma Keel platformasiga ulanmagan, shuning uchun reklama bo'limi ishlamaydi.",
+    loadFailed: "Holatni o'qib bo'lmadi.",
+  },
   briefing: {
     title: "Bugun nimaga qarash kerak",
     open: "Ochish",
@@ -5350,6 +5370,7 @@ export const adminRu: AdminDict = {
     expiring: "Истекает срок",
     labels: "Этикетки",
     marking: "Маркировка",
+    ads: "Реклама",
     promotions: "Акции",
     feedback: "Отзывы",
     vacancies: "Вакансии",
@@ -9463,6 +9484,18 @@ export const adminRu: AdminDict = {
     failed: "Ответ не получен. Подождите немного и повторите.",
     empty: "Вопросов пока не было.",
   },
+  ads: {
+    title: "Реклама",
+    lead: "Реклама в Meta (Facebook и Instagram) — что рекламировать, решаем по вашим же продажам, марже и гостям.",
+    spendNote:
+      "Деньги за рекламу вы платите Meta напрямую — этот раздел только за саму работу.",
+    notConnectedTitle: "Рекламный аккаунт Meta ещё не подключён",
+    notConnected:
+      "Подключение откроется после проверки на стороне Meta. До тех пор здесь готовится план: какое блюдо, на какой район, с каким бюджетом.",
+    offTitle: "Нет связи с платформой",
+    off: "Эта установка не подключена к платформе Keel, поэтому раздел рекламы не работает.",
+    loadFailed: "Не удалось прочитать состояние.",
+  },
   briefing: {
     title: "На что смотреть сегодня",
     open: "Открыть",
@@ -10117,6 +10150,7 @@ export const adminEn: AdminDict = {
     expiring: "Expiring soon",
     labels: "Labels",
     marking: "Marking",
+    ads: "Advertising",
     promotions: "Campaigns",
     feedback: "Feedback",
     vacancies: "Vacancies",
@@ -14219,6 +14253,18 @@ export const adminEn: AdminDict = {
       "Today's allowance is used up (" + cap + "). It resets tomorrow, or add a block on the account page.",
     failed: "No answer came back. Wait a moment and try again.",
     empty: "No questions yet.",
+  },
+  ads: {
+    title: "Advertising",
+    lead: "Meta (Facebook and Instagram) ads — what to advertise is decided from your own sales, margins and guests.",
+    spendNote:
+      "You pay Meta for the advertising directly; this section is for the work around it.",
+    notConnectedTitle: "No Meta ad account connected yet",
+    notConnected:
+      "Connecting opens once Meta's review is through. Until then this is where the plan is built: which dish, which area, what budget.",
+    offTitle: "Not connected to the platform",
+    off: "This installation is not connected to the Keel platform, so the advertising section cannot work.",
+    loadFailed: "Could not read the status.",
   },
   briefing: {
     title: "What to look at today",

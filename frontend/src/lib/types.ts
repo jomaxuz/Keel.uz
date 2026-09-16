@@ -5081,6 +5081,23 @@ export interface OnlineOrder {
  *  cap is daily because that is what stops a stuck tab spending a month's
  *  allowance in an afternoon, and it is sold monthly because that is how a
  *  restaurant thinks about a bill. */
+/** What the advertising section knows before it draws anything.
+ *
+ *  ⚠️ **Three facts rather than one.** "Not bought", "no platform behind this
+ *  install" and "bought but no Meta account connected" send the owner to three
+ *  different places — a sales conversation, nowhere, and a connect button. The
+ *  advisor tab collapsed them once and reported "nothing here" for a feature
+ *  that was working. */
+export type AdsState = {
+  /** The add-on is bought. ⚠️ The panel also gates the route on the module, so
+   *  a `false` here normally means the gate was bypassed by address. */
+  entitled: boolean;
+  /** This install is connected to the Keel platform at all. */
+  on: boolean;
+  /** A Meta ad account is connected. False until the connect flow ships. */
+  connected: boolean;
+};
+
 /** What the advisor tab knows before anybody has typed anything.
  *
  *  ⚠️ `on: false` is a restaurant with no platform behind it — a self-hosted

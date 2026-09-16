@@ -4,6 +4,7 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  AdsState,
   AdvisorAnswer,
   AdvisorState,
   AIQuota,
@@ -2961,6 +2962,13 @@ export const api = {
    *  on screen — with true numbers, from another business. */
   advisorState: () =>
     request<AdvisorState>("/admin/advisor/state", { auth: true, scope: true }),
+
+  /** What the advertising section can offer right now.
+   *
+   *  ⚠️ Not scoped: what a restaurant bought and whether its Meta account is
+   *  connected are facts about the company, not about the brand currently on
+   *  screen — unlike the advisor, whose figures belong to one lens. */
+  adsState: () => request<AdsState>("/admin/ads/state", { auth: true }),
 
   /** One question about this restaurant, answered from this morning's figures.
    *

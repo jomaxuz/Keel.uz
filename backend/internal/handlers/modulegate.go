@@ -85,6 +85,18 @@ var moduleRoutes = []gatedPrefix{
 	{"/staff/buy", models.ModStock},
 	{"/staff/buy/orders", models.ModStock},
 
+	// ---- Advertising ----
+	//
+	// ⚠️ **The whole section, unlike the television one.** There is nothing here
+	// that keeps running in a room after the subscription lapses: every screen
+	// under this path either spends the restaurant's money at Meta or asks a
+	// model a question we pay for, and both should stop when the add-on does.
+	//
+	// ⚠️ Campaigns already running at Meta are **not** paused by this — they are
+	// the restaurant's, on their own ad account, paid with their own card. The
+	// gate closes our door, not theirs.
+	{"/admin/ads", models.ModAds},
+
 	// ---- The televisions on the wall ----
 	//
 	// ⚠️ **The panel only, and the screens themselves deliberately not.** This
