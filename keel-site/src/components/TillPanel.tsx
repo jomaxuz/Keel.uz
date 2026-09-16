@@ -37,6 +37,11 @@ const ADDONS = [
   // given it — the entitlement check looked for an add-on the console could
   // not grant. Mirrors billing.AddonAI / AIMonthly.
   { id: "ai", label: "AI yordamchisi", price: 250_000 },
+  // ⚠️ **In no plan, unlike the assistant above.** The briefing costs us one
+  // model call a morning; this runs a restaurant's Meta campaigns — a model
+  // call per question and an API quota measured per ad account. Mirrors
+  // billing.ModAds / AdsMonthly.
+  { id: "ads", label: "Reklama (AI targetolog)", price: 1_250_000 },
 ];
 
 // One bought increment of the AI assistant's daily allowance.
@@ -76,6 +81,10 @@ const MODULE_LABEL: Record<string, string> = {
   // but named here because the restaurant's mirrored `modules` carries it, and
   // a bare "tv" on a screen is a word nobody in a sales call can explain.
   tv: "TV ekranlar",
+  // Named here for the same reason `tv` is: the restaurant's mirrored `modules`
+  // carries it, and a bare "ads" on a screen is a word nobody in a sales call
+  // can explain.
+  ads: "Reklama (AI targetolog)",
 };
 
 function money(n: number) {

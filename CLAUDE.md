@@ -825,6 +825,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | TV ekran, Android TV, kontent | TV ekranlar: ulash, uzish va sanash · TV kontent: playlist, muddat va oflayn · TV tablo: qaysi raqam pishmoqda, qaysisi tayyor |
 | AI yordamchi, ertalabki brifing | AI yordamchi: ertalabki brifing |
 | AI maslahatchi, savol-javob, kesh, anonim mijoz | AI maslahatchi: eganing o'z savollari |
+| Reklama, Meta ads, targetolog, kampaniya rejasi | Reklama (AI targetolog): reja, variantlar va Meta |
 | Qo'llab-quvvatlash, chat, ticket | Qo'llab-quvvatlash: chat va operator konsoli |
 | Xatolik hisoboti, crash, konsol reports | Xatolik hisobotlari: konsolga avtomatik tushadi |
 | Hisobot, Excel, grafik, dashboard | Hisobotlar va Excel eksporti · Hisobotlar: savdo/kanallar/jamoa · ABC/XYZ · Dashboard statistikasi · Sozlanadigan KPI dashboard · Grafiklar |
@@ -858,7 +859,8 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 - **`SAAS.md`** — Keel platformasi rejasi; **`CONSTRUCTOR.md`** — sayt
   konstruktori; **`POS_INTEGRATIONS.md`** — kassa provayderlari tafsiloti;
   `docs/` — fiskal agent, markirovka, POS reja, **`reklama-reja.md`** (AI
-  targetolog: Meta verifikatsiyasi, bosqichlar, qo'riqlar — kod yozilmagan).
+  targetolog: Meta verifikatsiyasi, bosqichlar, qo'riqlar — **P0 yozilgan**,
+  Meta ulanishi P1 da).
 - **`scripts/`** — deploy image'iga kirmaydigan ishchi vositalar, **o'z
   `package.json` i bilan**: `help-screens.mjs` (bilim bazasi uchun panel
   suratlari + annotatsiya koordinatalari), `landing-shots.mjs` (keel.uz bosh

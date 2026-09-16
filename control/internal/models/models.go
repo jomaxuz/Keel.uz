@@ -935,3 +935,18 @@ type BriefingLog struct {
 	CachedTokens int64              `bson:"cachedTokens" json:"cachedTokens"`
 	OutputTokens int64              `bson:"outputTokens" json:"outputTokens"`
 }
+
+// AdsLog is one campaign plan we bought for one tenant.
+//
+// ⚠️ **Its own collection, not a kind on BriefingLog.** The advertising add-on
+// is sold with its own daily number on it, and the assistant's usage screen
+// counts rows — one table would make both numbers wrong, the cap in one
+// direction and the cost report in the other.
+type AdsLog struct {
+	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Slug         string             `bson:"slug" json:"slug"`
+	At           time.Time          `bson:"at" json:"at"`
+	InputTokens  int64              `bson:"inputTokens" json:"inputTokens"`
+	CachedTokens int64              `bson:"cachedTokens" json:"cachedTokens"`
+	OutputTokens int64              `bson:"outputTokens" json:"outputTokens"`
+}

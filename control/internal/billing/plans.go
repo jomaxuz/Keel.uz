@@ -344,6 +344,11 @@ func AddonPrice(mod string) int {
 		// declared elsewhere and forgotten here is an add-on the console can
 		// name and cannot sell.
 		return AIMonthly
+	case ModAds:
+		// The advertising section — see ads.go. Same reason it is priced here:
+		// without this line the console offers it, the save drops it, and the
+		// switch comes back off with no error anywhere.
+		return AdsMonthly
 	}
 	return 0
 }

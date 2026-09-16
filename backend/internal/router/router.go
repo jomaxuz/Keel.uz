@@ -1367,6 +1367,16 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ⚠️ Owner and manager only, checked in the handler: this reads the
 			// whole business, and the two limited panel roles must not reach it
 			// even if somebody widens their allow-list one day.
+			// The advertising section. ⚠️ Owner only, checked in the handler:
+			// it connects an account that spends money at Meta. Gated as a
+			// module too (modulegate.go) — it is bought on its own and is in no
+			// plan. See handlers/ads.go.
+			r.Get("/admin/ads/state", h.AdminAdsState)
+			// What to advertise, written from this restaurant's own week.
+			// ⚠️ POST although it reads: it can cost a model call, and a GET
+			// that spends money is one a browser prefetch can spend for you.
+			r.Post("/admin/ads/plan", h.AdminAdsPlan)
+
 			r.Post("/admin/advisor", h.AdminAdvisorAsk)
 			r.Get("/admin/advisor/state", h.AdminAdvisorState)
 			// What is left of today's assistant allowance. ⚠️ Owner only: it is a

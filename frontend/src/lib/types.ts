@@ -5081,6 +5081,89 @@ export interface OnlineOrder {
  *  cap is daily because that is what stops a stuck tab spending a month's
  *  allowance in an afternoon, and it is sold monthly because that is how a
  *  restaurant thinks about a bill. */
+/** What the advertising section knows before it draws anything.
+ *
+ *  ⚠️ **Three facts rather than one.** "Not bought", "no platform behind this
+ *  install" and "bought but no Meta account connected" send the owner to three
+ *  different places — a sales conversation, nowhere, and a connect button. The
+ *  advisor tab collapsed them once and reported "nothing here" for a feature
+ *  that was working. */
+export type AdsState = {
+  /** The add-on is bought. ⚠️ The panel also gates the route on the module, so
+   *  a `false` here normally means the gate was bypassed by address. */
+  entitled: boolean;
+  /** This install is connected to the Keel platform at all. */
+  on: boolean;
+  /** A Meta ad account is connected. False until the connect flow ships. */
+  connected: boolean;
+};
+
+/** One dish's week, as the plan was written from it.
+ *
+ *  ⚠️ **These are the numbers the bars are drawn from, and they are the
+ *  server's arithmetic** — not the model's. A share written by a model would be
+ *  a number an owner budgets against that nobody computed. */
+export type AdsDishFact = {
+  name: string;
+  qty: number;
+  money: number;
+  /** Percent of the week's takings. Whole number, computed on the server. */
+  share: number;
+  /** What the same dish took the week before, for the comparison. */
+  lastWeek: number;
+};
+
+/** What the campaign plan was written from. */
+export type AdsFacts = {
+  currency: string;
+  weekTotal: number;
+  prevWeekTotal: number;
+  dishes: AdsDishFact[];
+  reach?: {
+    address: string;
+    deliveryOn: boolean;
+    /** Only present when the branch actually delivers — see adsplan.go. */
+    maxKm?: number;
+  };
+  menuItems?: number;
+};
+
+/** One proposal. ⚠️ `why` is on every one of them by design: a proposal the
+ *  owner cannot weigh is one they will either take on trust or ignore, and both
+ *  are worse than not offering it. */
+export type AdsPick = { why: string };
+export type AdsDishPick = AdsPick & { name: string };
+export type AdsAreaPick = AdsPick & { label: string; radiusKm?: number };
+export type AdsBudgetPick = AdsPick & { daily: number; days: number };
+export type AdsTextPick = AdsPick & { headline: string; body: string };
+
+/** The answer to "what should I advertise?".
+ *
+ *  ⚠️ **Every field is optional because every one of them is a different
+ *  outcome**: the add-on is not bought, the platform has no key, today's
+ *  allowance is spent, the plan failed, or there is a plan. Collapsing them
+ *  into one nullable plan is how the advisor tab once reported "nothing here"
+ *  for five different reasons. */
+export type AdsPlanAnswer = {
+  plan?: {
+    dishes?: AdsDishPick[];
+    areas?: AdsAreaPick[];
+    budgets?: AdsBudgetPick[];
+    texts?: AdsTextPick[];
+  };
+  facts?: AdsFacts;
+  asOf?: string;
+  /** Answered from this morning's plan rather than paid for again. */
+  cached?: boolean;
+  /** The platform has no model key at all. */
+  off?: boolean;
+  entitled?: boolean;
+  monthly?: number;
+  capped?: boolean;
+  cap?: number;
+  error?: string;
+};
+
 /** What the advisor tab knows before anybody has typed anything.
  *
  *  ⚠️ `on: false` is a restaurant with no platform behind it — a self-hosted

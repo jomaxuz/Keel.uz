@@ -19,6 +19,13 @@ const (
 	// The televisions in the dining room: the content the panel sends them and
 	// the order board. Priced per screen — see Subscription.Screens.
 	ModTV = "tv"
+	// The advertising section: the Meta ad account, the assistant that proposes
+	// campaigns, and what they brought back.
+	//
+	// ⚠️ **Bought on its own and included in no plan** (billing/ads.go in the
+	// console). The restaurant pays Meta for the advertising itself with its own
+	// card; this module is the tool.
+	ModAds = "ads"
 )
 
 // Subscription is what this restaurant bought, as the console resolved it.

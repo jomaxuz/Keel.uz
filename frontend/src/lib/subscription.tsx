@@ -140,6 +140,7 @@ export const MOD = {
   posint: "posint",
   franchise: "franchise",
   tv: "tv",
+  ads: "ads",
 } as const;
 
 /** Panel paths to modules. Longest prefix wins, as on the server — the
@@ -162,6 +163,12 @@ const PANEL_ROUTES: Array<[string, string]> = (
     // dining room keeps playing whatever the subscription does, the same rule the
     // register cap follows (checked at the door, never on a working machine).
     ["/admin/tv", MOD.tv],
+    // Advertising. ⚠️ **The whole section**, unlike the televisions: nothing
+    // under it keeps working on its own after the add-on lapses — every screen
+    // either spends the restaurant's money at Meta or asks a model a question
+    // we pay for. Campaigns already running are untouched; they belong to the
+    // restaurant's own ad account.
+    ["/admin/ads", MOD.ads],
     // ⚠️ Reports, campaigns, the call centre and **the external till** are not
     // here, and must not be added: they are in the price for everybody. Gating
     // them means a restaurant that buys a till loses screens it already had —

@@ -14918,3 +14918,39 @@ qidirish shart emas. Spirt sotmaydigan oshxona baribir ortiqcha qator olmaydi.
 Tekshiruv: `adminNav.test.ts` ga uchta holat qo'shildi (bar → markirovka bor,
 yorliq yo'q; nonvoyxona → teskarisi; bo'sh do'kon → ikkalasi ham bor);
 frontend `tsc` + testlar, backend build + testlar.
+
+## 2026-09-17 — Reklama (AI targetolog): sotiladi, darvozalangan, va birinchi reja ishlaydi
+
+Targetolog xizmati oyiga 500–1000$. U ko'radigan narsa — bosishlar; ko'rmaydigan
+narsasi — oshxona. Shu bo'lim aynan oshxonani ko'radi, va butun g'oya shunda.
+
+**Birinchi bo'lak — sotilishi.** `ModAds` + `AdsMonthly` (1 250 000) +
+`AdsDailyCap` (30). ⚠️ **Hech bir tarifga kirmaydi**: brifing ertalab bitta
+chaqiruv, bu esa kampaniya — pog'onaga qo'shish uni hech qachon reklama
+bermaydigan har bir mijozning narxiga yozardi. Ikkita test buni ushlab turadi
+(sotib bo'ladimi; hech bir tarif bermaydimi). ⚠️ **Kunlik limiti ham alohida** —
+bitta idish bo'lsa, tushgacha to'rtta savol bergan restoran ertaga brifingini
+yo'qotardi va buni hech bir ekran tushuntira olmasdi. Holat endpointi **uchta
+faktni alohida** qaytaradi (sotib olinmagan / platforma yo'q / Meta ulanmagan) —
+maslahatchi tabi bularni bitta bo'sh ekranga yig'ib, qimmatga tushgan edi.
+
+**Ikkinchi bo'lak — reja.** `POST /admin/ads/plan`: raqamlarni tenant serveri
+hisoblaydi (haftalik sotuv taomlar bo'yicha, ulushi butun songa, o'tgan hafta,
+filial manzili va yetkazish radiusi), konsol esa faqat **so'z** yozadi —
+maslahatchidagi bilan bir seam. ⚠️ **Panel barlarni `facts` dan chizadi, rejadan
+emas**: shunda modelning qizib ketgani yomon sabab yozishi mumkin, lekin barni
+qimirlata olmaydi — tekshirib bo'ladigan maslahat bilan ishonish kerak
+bo'ladigan maslahatning farqi shu. ⚠️ **AI variant beradi, ega tanlaydi** —
+uchta taom, hudud, byudjet, matn; har birida **sababi** (sxemada `why` majburiy:
+sababsiz taklif — o'lchab bo'lmaydigani). ⚠️ Kuniga **bitta reja** (day+scope,
+unique indeks, 7 kun TTL): bir haftalik sotuv tugma bosilgani uchun o'zgarmaydi.
+⚠️ `POST`, garchi o'qisa ham — pul sarflaydigan `GET` ni brauzer prefetch'i
+sizning o'rningizga sarflaydi.
+
+Meta ulanmagani **ochiq aytiladi**, va tanlov ostida ham: ega qo'lida reja bilan
+turib «ishga tushirish» tugmasini qidiradigan lahza aynan o'sha yer.
+
+Tekshiruv: control `build` + `vet` + billing testlari; backend `build` + `vet` +
+`go test ./...` (i18n ikkita yangi o'zbekcha xabar bilan yashil); frontend `tsc`,
+273 test, `next lint` (o'z fayllarimda ogohlantirish yo'q).
+⏳ Jonli modelda **hali ishlatilmagan** — reja matni haqiqiy javobda ko'rilmagan.

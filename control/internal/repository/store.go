@@ -17,10 +17,14 @@ type Store struct {
 	// What each tenant has spent on briefings, for the daily cap and for
 	// knowing what the feature costs before an invoice says so.
 	BriefingLog *mongo.Collection
-	Days        *mongo.Collection
-	Blog        *mongo.Collection
-	BlogImages  *mongo.Collection
-	Users       *mongo.Collection
+	// What each tenant has spent on campaign plans. ⚠️ Separate from the
+	// briefing's ledger on purpose — the advertising add-on carries its own
+	// daily cap, and one table would have to serve two numbers.
+	AdsLog     *mongo.Collection
+	Days       *mongo.Collection
+	Blog       *mongo.Collection
+	BlogImages *mongo.Collection
+	Users      *mongo.Collection
 	// Console staff actions, and the visits agents plan. Both owner-facing.
 	ConsoleLogs *mongo.Collection
 	Visits      *mongo.Collection
@@ -63,6 +67,7 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		DB:              db,
 		Tenants:         db.Collection("tenant"),
 		BriefingLog:     db.Collection("briefing_log"),
+		AdsLog:          db.Collection("ads_log"),
 		Days:            db.Collection("tenant_day"),
 		Blog:            db.Collection("blog_post"),
 		BlogImages:      db.Collection("blog_image"),

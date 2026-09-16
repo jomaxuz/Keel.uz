@@ -449,6 +449,15 @@ const NAV_GROUPS = [
       // Owner only: the customer base belongs to the company, and this is the
       // one button that can annoy every guest at once — and spend money.
       { href: "/admin/campaigns", key: "campaigns", ownerOnly: true },
+      // ⚠️ **Beside the campaign button, and owner only for the same two
+      // reasons.** Both reach people outside the restaurant and both spend
+      // money — this one spends it at Meta, from the owner's own card, which is
+      // precisely why a manager must not be able to start it.
+      //
+      // ⚠️ Not called "campaigns": that word is taken by the messages this
+      // restaurant sends its own guests, and one word for two budgets is how
+      // somebody presses the wrong one.
+      { href: "/admin/ads", key: "ads", ownerOnly: true },
       { href: "/admin/vacancies", key: "vacancies" },
     ],
   },

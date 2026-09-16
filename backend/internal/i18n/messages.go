@@ -2301,4 +2301,12 @@ var messages = map[string]pair{
 		"Модуль склада не входит в ваш тариф",
 		"The stockroom is not part of your plan",
 	},
+	"reklama rejasi uchun bir haftalik sotuv kerak": {
+		"Для рекламного плана нужны продажи хотя бы за неделю",
+		"A week of sales is needed before a campaign can be planned",
+	},
+	"reja kelmadi": {
+		"План не пришёл",
+		"No plan came back",
+	},
 }

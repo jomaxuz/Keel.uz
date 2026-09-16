@@ -275,7 +275,7 @@ o'lchanadigan narsalar:
 
 | Bosqich | Nima chiqadi | Meta'dan kerak |
 |---|---|---|
-| **P0** | «Reklama» bo'limi, AI reja va variantlar, ega Ads Manager'da o'zi bosadi | **hech nima** |
+| **P0** ✅ | «Reklama» bo'limi, AI reja va variantlar, ega Ads Manager'da o'zi bosadi | **hech nima** |
 | **P1** | Ulanish (Login for Business), insights o'qish, piksel + CAPI, «qancha buyurtma keltirdi» | `ads_read` |
 | **P2** | Kampaniyani biz yaratamiz, pauza, byudjet | `ads_management` + review |
 | **P3** | Kunlik optimizatsiya qoidalari | o'shaning ustiga |
