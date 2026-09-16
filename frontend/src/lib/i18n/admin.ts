@@ -4616,8 +4616,44 @@ export const adminUz = {
     answered: "Javob berildi",
     closed: "Yopilgan",
     live: "Ulangan",
+    /** ⚠️ **Birinchi urinish — «aloqa yo'q» emas.** Ikkalasi bir xil yozilsa,
+     *  oyna ochilgan har lahzada panel o'zini buzuq deb e'lon qiladi. */
+    connecting: "Ulanmoqda…",
     offline: "Aloqa yo'q — qayta ulanmoqda",
+    today: "Bugun",
+    yesterday: "Kecha",
     failed: "Yuborilmadi. Internetni tekshirib, qayta urining.",
+  },
+  /** AI maslahatchi — yordam oynasining ikkinchi tabi.
+   *
+   *  ⚠️ **Operator navbatiga tushmaydi.** Biznes savoli («nega tushum tushdi?»)
+   *  tirik operatorga borsa, navbat restoranning o'z hisobotlari bilan to'ladi
+   *  va haqiqiy nosozlik o'sha yerda kutib qoladi. */
+  advisor: {
+    tab: "Maslahatchi",
+    helpTab: "Yordam",
+    title: "Biznes maslahatchi",
+    lead: "Restoraningiz raqamlari bo'yicha savol bering. Javob bugungi ertalabki ma'lumotdan.",
+    placeholder: "Masalan: qaysi doimiy mijozlar yo'qoldi va nima qilay?",
+    send: "So'rash",
+    thinking: "O'ylanmoqda…",
+    asOf: (when: string) => "Ma'lumot: " + when + " holatiga",
+    /** ⚠️ Bo'sh chat oynasi — hech kim yozmaydigan oyna: nima so'rash
+     *  mumkinligi ko'rinmaydi, va birinchi savol odatda rad etiladigan savol
+     *  bo'lib chiqadi. */
+    examples: [
+      "Qaysi doimiy mijozlar yo'qoldi?",
+      "Nima sotilmayapti va nima qilish kerak?",
+      "Shu hafta nimaga e'tibor bersam bo'ladi?",
+    ],
+    examplesTitle: "Nima so'rash mumkin",
+    onlyHere: "Faqat shu restoran va Keel haqidagi savollarga javob beradi.",
+    locked:
+      "AI yordamchisi Pro va Enterprise tariflariga kiradi. Qolgan tariflarga qo'shimcha sifatida ulanadi — Keel bilan bog'laning.",
+    capped: (cap: number) =>
+      "Bugungi limit tugadi (" + cap + " ta). Ertaga yangilanadi yoki hisob bo'limidan qo'shimcha oling.",
+    failed: "Javob olinmadi. Biroz kutib, qayta urining.",
+    empty: "Hozircha savol berilmagan.",
   },
   briefing: {
     title: "Bugun nimaga qarash kerak",
@@ -9377,8 +9413,34 @@ export const adminRu: AdminDict = {
     answered: "Отвечено",
     closed: "Закрыт",
     live: "На связи",
+    connecting: "Подключаемся…",
     offline: "Связи нет — переподключаемся",
+    today: "Сегодня",
+    yesterday: "Вчера",
     failed: "Не отправилось. Проверьте интернет и повторите.",
+  },
+  advisor: {
+    tab: "Советник",
+    helpTab: "Помощь",
+    title: "Бизнес-советник",
+    lead: "Спросите о цифрах своего ресторана. Ответ — по данным на сегодняшнее утро.",
+    placeholder: "Например: какие постоянные гости пропали и что делать?",
+    send: "Спросить",
+    thinking: "Думает…",
+    asOf: (when: string) => "Данные на " + when,
+    examples: [
+      "Какие постоянные гости пропали?",
+      "Что не продаётся и что с этим делать?",
+      "На что обратить внимание на этой неделе?",
+    ],
+    examplesTitle: "О чём можно спросить",
+    onlyHere: "Отвечает только о вашем ресторане и о Keel.",
+    locked:
+      "AI-помощник входит в тарифы Pro и Enterprise. К остальным подключается дополнительно — напишите нам.",
+    capped: (cap: number) =>
+      "Дневной лимит исчерпан (" + cap + "). Обновится завтра, либо добавьте пакет в разделе «Счёт».",
+    failed: "Ответ не получен. Подождите немного и повторите.",
+    empty: "Вопросов пока не было.",
   },
   briefing: {
     title: "На что смотреть сегодня",
@@ -14100,8 +14162,34 @@ export const adminEn: AdminDict = {
     answered: "Answered",
     closed: "Closed",
     live: "Connected",
+    connecting: "Connecting…",
     offline: "Offline — reconnecting",
+    today: "Today",
+    yesterday: "Yesterday",
     failed: "Not sent. Check your connection and try again.",
+  },
+  advisor: {
+    tab: "Advisor",
+    helpTab: "Help",
+    title: "Business advisor",
+    lead: "Ask about your own figures. Answers are built from this morning's data.",
+    placeholder: "For example: which regulars have stopped coming, and what now?",
+    send: "Ask",
+    thinking: "Thinking…",
+    asOf: (when: string) => "Figures as of " + when,
+    examples: [
+      "Which regulars have stopped coming?",
+      "What is not selling, and what should I do?",
+      "What is worth my attention this week?",
+    ],
+    examplesTitle: "What you can ask",
+    onlyHere: "It answers about this restaurant and about Keel, nothing else.",
+    locked:
+      "The assistant is included in Pro and Enterprise. On other plans it is an add-on — talk to us.",
+    capped: (cap: number) =>
+      "Today's allowance is used up (" + cap + "). It resets tomorrow, or add a block on the account page.",
+    failed: "No answer came back. Wait a moment and try again.",
+    empty: "No questions yet.",
   },
   briefing: {
     title: "What to look at today",

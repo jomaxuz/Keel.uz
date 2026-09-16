@@ -5072,6 +5072,44 @@ export interface OnlineOrder {
  *  cap is daily because that is what stops a stuck tab spending a month's
  *  allowance in an afternoon, and it is sold monthly because that is how a
  *  restaurant thinks about a bill. */
+/** What the advisor tab knows before anybody has typed anything.
+ *
+ *  ⚠️ `on: false` is a restaurant with no platform behind it — a self-hosted
+ *  install. The tab draws nothing at all rather than a box that always fails. */
+export type AdvisorState = {
+  on: boolean;
+  /** Which areas today's figures cover — the suggestions under the box are
+   *  built from these, so an empty chat box is not the first thing an owner
+   *  meets. */
+  areas?: string[];
+  facts?: string[];
+  asOf?: string;
+};
+
+/** One answer.
+ *
+ *  ⚠️ **Five possible shapes and only one of them is an answer.** Not entitled,
+ *  capped, engine error, refusal, answer — and the screen says which, because
+ *  "nothing happened" is the one response an owner reads as the panel being
+ *  broken. */
+export type AdvisorAnswer = {
+  answer?: string;
+  /** The question was not about this restaurant or about Keel. ⚠️ Sent as its
+   *  own flag rather than inferred from the words: the panel must not cache a
+   *  refusal, and reading the sentence to decide would be a second rule that
+   *  can disagree with the first. */
+  refused?: boolean;
+  /** Answered from this morning's cache — the same question was already asked. */
+  cached?: boolean;
+  /** When the figures behind the answer were taken. */
+  asOf?: string;
+  entitled?: boolean;
+  monthly?: number;
+  capped?: boolean;
+  cap?: number;
+  error?: string;
+};
+
 export interface AIQuota {
   /** Whether the platform has an assistant configured at all. */
   on: boolean;

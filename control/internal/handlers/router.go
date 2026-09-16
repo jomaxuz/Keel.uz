@@ -87,6 +87,11 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		r.Post("/report", h.Report)
 
 		r.Post("/insight", h.Briefing)
+		// The owner's own question, answered from figures their server
+		// computed. ⚠️ Same credential and same daily allowance as the
+		// briefing: a restaurant buys "the assistant", not two of them. See
+		// advisor.go.
+		r.Post("/advise", h.Advise)
 		r.Post("/campaign-text", h.CampaignText)
 		// Reading a menu off a page the owner pasted. ⚠️ The fallback only —
 		// the tenant parses schema.org data itself first, which is exact and

@@ -14795,6 +14795,27 @@ Tekshiruv: backend build + vet + `go test ./internal/handlers ./internal/models
 tur yoziladi-yu yuborilmaydi, yoqilgani yuboriladi, sinov o'chirilganga ham
 boradi; frontend `tsc` + 271 test yashil.
 
+
+## 2026-09-14 (9) — Nazorat xabarlari: yana beshta tur, har biri ishlaydi
+
+Sozlamalardagi ro'yxat 8 tadan 13 taga ko'paydi; har yangi tur haqiqiy
+hodisaga ulandi va o'z chegarasi bor (`handlers/alertsmore.go`):
+
+1. **Yopilgan chekda pul qaytarildi** — `AdminRefundCheck`, chegara 50 000.
+2. **Tayyorlangan buyurtma bekor qilindi** — sayt/telefon buyurtmasi oshxonaga
+   yetganidan keyin bekor qilinganda (tarix bo'yicha), kassa cheki emas.
+3. **Kassadan katta chiqim** — yashikdan chiqim, kassa ham panel ham, 500 000.
+4. **Katta spisaniya** — spisaniya hujjati qiymati, 300 000.
+5. **Qarzga katta summa** — chek qarzga yopilganda, 300 000.
+
+Pul qaytarish, spisaniya va bekor qilish **egasi o'zi** qilgan bo'lsa xabar
+yo'q. Chegaralar sozlamada (uch tilda), ega ilovasi ham turlar nomlarini oldi.
+
+Tekshiruv: backend build + vet + `go test ./internal/handlers ./internal/models
+./internal/i18n` yashil — `alertsmore_test.go` haqiqiy Mongo'da har tur uchun
+chegaradan past/baland va egasi holatini, har tur uch tilda sarlavhasi borligini
+tekshiradi; frontend `tsc` + 271 test; owner-android unit testlari (15) yashil.
+
 ## 2026-09-16 — Team ilovasida texnolog bo'limi: inventarizatsiya telefonda
 
 `mobile/team-android` ga beshinchi tab — **Sanoq** (`stock` ruxsati, ya'ni
@@ -14818,22 +14839,31 @@ Go handlerlaridan ko'chirilgan JSON bilan to'rtta yangi shakl testi
 farqi) va `canCountHere` ruxsat testi qo'shildi.
 ⏳ Telefonda ko'z bilan sinalmagan (ilovaning qolgan qismi ham shu holatda).
 
-## 2026-09-14 (9) — Nazorat xabarlari: yana beshta tur, har biri ishlaydi
+## 2026-09-16 (2) — Yordam oynasi: aloqa tuzatildi, vaqt qo'shildi, AI maslahatchi
 
-Sozlamalardagi ro'yxat 8 tadan 13 taga ko'paydi; har yangi tur haqiqiy
-hodisaga ulandi va o'z chegarasi bor (`handlers/alertsmore.go`):
+**1. «Aloqa yo'q — qayta ulanmoqda» ikkita xato edi.** `nginx/restaurant.conf`
+`/api/` ni `Connection ""` bilan uzatardi va `Upgrade` qo'ymasdi — ya'ni
+DEPLOY.md ning A variantidagi har bir o'rnatmada WebSocket **hech qachon**
+ko'tarilmagan. Endi support socketining o'z `location` i bor (`map
+$http_upgrade`, buferlash o'chiq, o'qish taymauti 40 s'lik long-polldan uzun).
+keel.uz yo'li ta'sirlanmagan — u yerda Caddy `/api/*` ni konteynerga to'g'ridan
+uzatadi. Widget tomonida esa «hali ulanmadim» va «aloqa uzildi» bitta jumla
+edi: endi uchta holat, va «aloqa yo'q» faqat urinish **haqiqatan** yiqilgach.
 
-1. **Yopilgan chekda pul qaytarildi** — `AdminRefundCheck`, chegara 50 000.
-2. **Tayyorlangan buyurtma bekor qilindi** — sayt/telefon buyurtmasi oshxonaga
-   yetganidan keyin bekor qilinganda (tarix bo'yicha), kassa cheki emas.
-3. **Kassadan katta chiqim** — yashikdan chiqim, kassa ham panel ham, 500 000.
-4. **Katta spisaniya** — spisaniya hujjati qiymati, 300 000.
-5. **Qarzga katta summa** — chek qarzga yopilganda, 300 000.
+**2. Chatda vaqt yo'q edi** — bir hafta oldingi javob hozirgidek o'qilardi.
+Telegramdagi shakl: pufak ichida soat, kun o'zgarganda sana ajratkichi, ro'yxatda
+esa har suhbat yonida kun. ⚠️ Sana **mahalliy kun bo'yicha solishtiriladi**,
+timestampdan kesilmaydi (UTC — soat 05:00 dan keyingi hammasi kechaga tushardi).
 
-Pul qaytarish, spisaniya va bekor qilish **egasi o'zi** qilgan bo'lsa xabar
-yo'q. Chegaralar sozlamada (uch tilda), ega ilovasi ham turlar nomlarini oldi.
+**3. AI maslahatchi** — yordam oynasining ikkinchi tabi (`/admin/advisor`).
+Ega o'z raqamlari bo'yicha savol beradi; javob **brifing bilan bitta chokda**:
+faktlarni server hisoblaydi, modeldan faqat so'z keladi. Faqat shu restoran va
+Keel haqida javob beradi, qolganini rad etadi. Mijozlar **anonim ID** bilan
+ketadi (`c3`), ismni restoran serveri javobga qaytarib qo'yadi — konsolda
+mijozlar ro'yxati yo'q. Xarajat: kunlik surat + javob keshi (48 soat TTL) +
+bayt-bayt bir xil tizim prompti; limit — **hisob bo'limidagi o'sha limit**.
 
-Tekshiruv: backend build + vet + `go test ./internal/handlers ./internal/models
-./internal/i18n` yashil — `alertsmore_test.go` haqiqiy Mongo'da har tur uchun
-chegaradan past/baland va egasi holatini, har tur uch tilda sarlavhasi borligini
-tekshiradi; frontend `tsc` + 271 test; owner-android unit testlari (15) yashil.
+Tekshiruv: `go build ./...` + `go vet` ikkala modulda yashil; yangi
+`advisor_test.go` (kesh kaliti normalizatsiyasi, `c1`/`c12` almashtirish
+tartibi); frontend `tsc` + 271 test yashil.
+⏳ Jonli modelga hali ulanib sinalmagan (kalit prod konsolda).

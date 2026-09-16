@@ -1337,6 +1337,23 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// What the restaurant should look at this morning. Beside the CRM
 			// reports because that is what it is made of.
 			r.Get("/admin/insights", h.AdminInsights)
+			// The other half of the same seam: the briefing decides what to
+			// tell the owner, this answers what the owner asks. Same material —
+			// figures this server computed — and the same rule that the model
+			// supplies words and never numbers.
+			//
+			// ⚠️ **Not in the module table** (modulegate.go). The assistant is
+			// an entitlement the platform checks when it is asked — plan,
+			// add-on, daily cap — not a section of the panel sold with a till.
+			// Gating it here as well would mean two answers to "may this
+			// restaurant use it", and the day they disagree the owner is told
+			// they have not bought something they are paying for.
+			//
+			// ⚠️ Owner and manager only, checked in the handler: this reads the
+			// whole business, and the two limited panel roles must not reach it
+			// even if somebody widens their allow-list one day.
+			r.Post("/admin/advisor", h.AdminAdvisorAsk)
+			r.Get("/admin/advisor/state", h.AdminAdvisorState)
 			// What is left of today's assistant allowance. ⚠️ Owner only: it is a
 			// question about the bill.
 			r.Get("/admin/ai-quota", h.AdminAIQuota)
