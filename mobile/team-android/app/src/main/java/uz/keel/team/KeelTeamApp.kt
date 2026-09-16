@@ -22,6 +22,11 @@ class KeelTeamApp : Application() {
     lateinit var prefs: Prefs
         private set
 
+    /** A count in progress. ⚠️ Owned by the process rather than by the screen,
+     *  because half an hour of walking a store must survive a tab being tapped —
+     *  see CountDraft. */
+    val counting = CountDraft()
+
     override fun onCreate() {
         super.onCreate()
         // ⚠️ **All of this before the first screen and before the first

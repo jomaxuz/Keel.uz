@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.ContentPaste
+import androidx.compose.material.icons.automirrored.rounded.FactCheck
 import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingBasket
@@ -55,10 +56,12 @@ import uz.keel.team.ui.screens.BuyScreen
 import uz.keel.team.ui.screens.LoginScreen
 import uz.keel.team.ui.screens.OfflineScreen
 import uz.keel.team.ui.screens.ProfileScreen
+import uz.keel.team.ui.screens.SanoqScreen
 import uz.keel.team.ui.screens.ServerScreen
 import uz.keel.team.ui.screens.SettingsScreen
 import uz.keel.team.ui.screens.ZakupScreen
 import uz.keel.team.ui.screens.SkladScreen
+import uz.keel.team.ui.screens.canCountHere
 import uz.keel.team.ui.screens.canIssueHere
 import uz.keel.team.ui.screens.canWriteHere
 
@@ -182,14 +185,21 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
     // a phone to count the fridge would also hold the button that sends a case
     // of vodka across town.
     val canIssue = ready?.staff?.let { canIssueHere(it) } == true
+    // ⚠️ `stock`, which is the technologist's permission and the panel's own
+    // door for them (handlers/stocklogin.go). Counting writes the baseline every
+    // later shortfall is measured from, so it is not a screen a cook opens by
+    // accident — and asked in permissions rather than in the typed job title,
+    // because a title grants nothing (models/staffrole.go).
+    val canCount = ready?.staff?.let { canCountHere(it) } == true
 
     // ⚠️ A permission taken away while somebody was standing on that tab leaves
     // them on a screen the server will refuse. Sent back to the one screen every
     // account has.
-    LaunchedEffect(canBuy, canOrder, canIssue) {
+    LaunchedEffect(canBuy, canOrder, canIssue, canCount) {
         if (tab == "buy" && !canBuy) tab = "profile"
         if (tab == "zakup" && !canOrder) tab = "profile"
         if (tab == "sklad" && !canIssue) tab = "profile"
+        if (tab == "sanoq" && !canCount) tab = "profile"
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -218,6 +228,11 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
                     "buy" -> BuyScreen(app.api, tabsInset)
                     "zakup" -> ZakupScreen(app.api, tabsInset)
                     "sklad" -> SkladScreen(app.api, tabsInset)
+                    // ⚠️ The draft comes from the application, not from here: a
+                    // count is half an hour of walking a store, and this
+                    // `AnimatedContent` throws the screen away every time
+                    // somebody taps another tab. See CountDraft.
+                    "sanoq" -> SanoqScreen(app.api, app.counting, tabsInset)
                     "settings" -> SettingsScreen(
                         staff = s.staff,
                         address = s.address,
@@ -247,6 +262,12 @@ private fun Root(app: KeelTeamApp, pendingTab: String?, onConsumed: () -> Unit) 
                     if (canBuy) add(TabItem("buy", Icons.Rounded.ShoppingBasket, t.tabs.buy))
                     if (canOrder) add(TabItem("zakup", Icons.Rounded.ContentPaste, t.tabs.zakup))
                     if (canIssue) add(TabItem("sklad", Icons.Rounded.Inventory2, t.tabs.sklad))
+                    // ⚠️ The auto-mirrored one: a clipboard with a tick reads
+                    // right-to-left in Arabic, and the plain icon is deprecated
+                    // for exactly that.
+                    if (canCount) {
+                        add(TabItem("sanoq", Icons.AutoMirrored.Rounded.FactCheck, t.tabs.sanoq))
+                    }
                     add(TabItem("settings", Icons.Rounded.Settings, t.tabs.settings))
                 },
                 selected = tab,

@@ -16,6 +16,10 @@ import uz.keel.team.data.Staff
 import uz.keel.team.data.StaffMe
 import uz.keel.team.data.StaffReport
 import uz.keel.team.data.ShoppingOrder
+import uz.keel.team.data.SavedCount
+import uz.keel.team.data.StocktakeSheet
+import uz.keel.team.data.Warehouses
+import uz.keel.team.ui.screens.canCountHere
 import uz.keel.team.ui.screens.canIssueHere
 import uz.keel.team.ui.screens.canWriteHere
 
@@ -243,6 +247,96 @@ class WireShapeTest {
         // that cannot tell them apart accuses somebody.
         assertEquals(null, orders[0].lines[0].tookQty)
         assertEquals(3.5, orders[1].lines[0].tookQty)
+    }
+
+    // ---- Counting the store ----
+
+    /** `handlers/staffstock.go` → `StaffWarehouses`. */
+    @Test
+    fun `the stores are the rooms this branch counts one at a time`() {
+        val w = json.decodeFromString<Warehouses>(
+            """{"warehouses":[
+                 {"id":"w1","branchId":"b1","name":"Bar","note":"Dilnoza sanaydi",
+                  "sort":0,"isActive":true,"createdAt":"2026-01-01T00:00:00Z",
+                  "updatedAt":"2026-01-01T00:00:00Z"},
+                 {"id":"w2","branchId":"b1","name":"Oshxona","kind":"production",
+                  "sort":1,"isActive":true,"createdAt":"2026-01-01T00:00:00Z",
+                  "updatedAt":"2026-01-01T00:00:00Z"}]}""",
+        )
+        assertEquals(2, w.warehouses.size)
+        assertEquals("Bar", w.warehouses[0].name)
+        assertEquals("production", w.warehouses[1].kind)
+    }
+
+    /** `handlers/stocktake.go` → `stocktakeSheet`.
+     *
+     *  ⚠️ **The sheet carries no expected figure, and this test is what keeps it
+     *  that way.** A field added here would read as zero on today's server and
+     *  be drawn beside an empty box — which is the sheet that gets the expected
+     *  figure written into it. */
+    @Test
+    fun `the sheet says what to count and never what should be there`() {
+        val s = json.decodeFromString<StocktakeSheet>(
+            """{"rows":[{"ingredientId":"i1","name":"Kartoshka","unit":"kg"},
+                        {"ingredientId":"i2","name":"Kola 0.5","unit":"dona"}],
+                "since":"2026-09-13T15:00:00Z"}""",
+        )
+        assertEquals(2, s.rows.size)
+        assertEquals("Kartoshka", s.rows[0].name)
+        assertEquals("dona", s.rows[1].unit)
+        assertEquals("2026-09-13T15:00:00Z", s.since)
+    }
+
+    /** ⚠️ **A store nobody has ever counted sends no date, and the two answers
+     *  are different sentences.** "Measured since the 13th" and "measured from
+     *  everything that ever arrived" are different claims about one number, and
+     *  read as an empty string the screen would print the first over the
+     *  second. */
+    @Test
+    fun `a store that was never counted has no since`() {
+        val s = json.decodeFromString<StocktakeSheet>("""{"rows":[],"since":null}""")
+        assertEquals(null, s.since)
+        assertTrue(s.rows.isEmpty())
+    }
+
+    /** `handlers/stocktake.go` → `saveStocktake`, the 201 it answers with.
+     *
+     *  ⚠️ **The variance comes back with the save and only then.** The count is
+     *  insert-only by the time these numbers arrive, so they are a finding
+     *  rather than a target — and read as zero they would report a clean count
+     *  to somebody standing in front of a shelf that is short. */
+    @Test
+    fun `the saved count carries the variance it was taken to find`() {
+        val res = json.decodeFromString<SavedCount>(
+            """{"id":"st1","branchId":"b1","warehouseId":"w1",
+                "at":"2026-09-16T17:40:00Z",
+                "lines":[{"ingredientId":"i1","counted":7.5,"expected":9.4,
+                          "diff":-1.9,"value":-11400},
+                         {"ingredientId":"i2","counted":24,"expected":24,
+                          "diff":0,"value":0}],
+                "note":"ikki quti sinib ketdi","value":-11400,"by":"Dilnoza",
+                "createdAt":"2026-09-16T17:40:00Z"}""",
+        )
+        assertEquals(-11400, res.value)
+        assertEquals(-1.9, res.lines[0].diff, 0.001)
+        assertEquals(9.4, res.lines[0].expected, 0.001)
+        // A line that matched is still a line: it is proof somebody walked up to
+        // that shelf, which is exactly what a count is for.
+        assertEquals(0.0, res.lines[1].diff, 0.0)
+    }
+
+    /** ⚠️ **Counting is its own permission, and it is the technologist's.** Read
+     *  off `position` instead, the baseline every later shortfall is measured
+     *  from would belong to whoever spells a job title the same way
+     *  (models/staffrole.go). */
+    @Test
+    fun `counting the store is exactly the stock permission`() {
+        assertTrue(canCountHere(Staff(perms = listOf("stock"))))
+        assertTrue(canCountHere(Staff(perms = listOf("stock", "buyorder", "stockissue"))))
+        // ⚠️ The title grants nothing, however it is spelled.
+        assertFalse(canCountHere(Staff(position = "Texnolog")))
+        assertFalse(canCountHere(Staff(perms = listOf("stockissue", "buy"))))
+        assertFalse(canCountHere(Staff()))
     }
 
     // ⚠️ **A list written before the split existed is a whole request, and it is

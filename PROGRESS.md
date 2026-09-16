@@ -14795,6 +14795,29 @@ Tekshiruv: backend build + vet + `go test ./internal/handlers ./internal/models
 tur yoziladi-yu yuborilmaydi, yoqilgani yuboriladi, sinov o'chirilganga ham
 boradi; frontend `tsc` + 271 test yashil.
 
+## 2026-09-16 — Team ilovasida texnolog bo'limi: inventarizatsiya telefonda
+
+`mobile/team-android` ga beshinchi tab — **Sanoq** (`stock` ruxsati, ya'ni
+`Texnolog` roli). Ilgari bu faqat veb sahifada edi (`/staff/stock`): ishlaydi,
+lekin xodimga URL aytish kerak — davomat shu sababdan ilovaga ko'chgan edi,
+sanoq ham endi shu yo'ldan yurdi.
+
+- Yangi: `ui/screens/SanoqScreen.kt`, `CountDraft.kt`, `Dict.Sanoq` (UZ/RU/EN),
+  `KeelApi.warehouses|stocktakeSheet|saveStocktake`, wire modellari.
+- **Backend o'zgarmadi** — ekran panel bilan bitta funksiyadan o'qiydi va
+  saqlaydi (`stocktakeSheet`, `saveStocktake`), ya'ni ikkinchi arifmetika yo'q.
+- «Bo'lishi kerak» ko'rsatilmaydi (server yubormaydi ham); farq **saqlangandan
+  keyin** ro'yxat bo'lib chiqadi — javon hali yonida turganda.
+- Bo'sh katak nol emas: faqat yozilgan qatorlar yuboriladi. Qoralama
+  jarayonniki (tab almashtirish qirq raqamni yo'qotmaydi), diskka yozilmaydi.
+- Tezlik uchun: ombor tanlagich, qidiruv, «sanalmaganlar» filtri, `12 / 48`.
+
+Tekshiruv: `./gradlew :app:testDebugUnitTest` yashil — `WireShapeTest` ga
+Go handlerlaridan ko'chirilgan JSON bilan to'rtta yangi shakl testi
+(`warehouses`, varaq, sanalmagan ombor `since: null`, saqlangan sanoqning
+farqi) va `canCountHere` ruxsat testi qo'shildi.
+⏳ Telefonda ko'z bilan sinalmagan (ilovaning qolgan qismi ham shu holatda).
+
 ## 2026-09-14 (9) — Nazorat xabarlari: yana beshta tur, har biri ishlaydi
 
 Sozlamalardagi ro'yxat 8 tadan 13 taga ko'paydi; har yangi tur haqiqiy

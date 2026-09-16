@@ -26,6 +26,7 @@ data class Dict(
     val buy: Buy,
     val zakup: Zakup,
     val sklad: Sklad,
+    val sanoq: Sanoq,
     val settings: Settings,
     val push: Push,
     val offline: Offline,
@@ -56,6 +57,9 @@ data class Dict(
          *  from the store is one job in a restaurant, and a cook shown a screen
          *  that would refuse them learns to stop reading the app. */
         val sklad: String,
+        /** ⚠️ Counting is its own permission (`stock`), and the tab is drawn
+         *  only for the account that carries it — the shipped Texnolog role. */
+        val sanoq: String,
         val settings: String,
     )
 
@@ -185,6 +189,38 @@ data class Dict(
         val sendFailed: String,
     )
 
+    /** Counting the store.
+     *
+     *  ⚠️ **Nothing here names an expected figure, because the screen never has
+     *  one to name.** The server stopped sending it (handlers/stocktake.go): a
+     *  sheet that says "there should be 9.4 kg" beside an empty box is a sheet
+     *  that gets 9.4 written into it. The words that do speak of it —
+     *  `savedTotal`, `countedVs` — belong to what comes back after the count is
+     *  written, where it is a finding rather than a target. */
+    data class Sanoq(
+        val title: String,
+        val store: String,
+        val mainStore: String,
+        val search: String,
+        val onlyLeft: String,
+        val progress: (Int, Int) -> String,
+        val qtyHint: String,
+        /** ⚠️ What the count is measured from. Without it the variance reads as
+         *  a running balance the system has been keeping, which it is not. */
+        val since: (String) -> String,
+        val neverCounted: String,
+        val empty: String,
+        val allDone: String,
+        val notePlaceholder: String,
+        val save: (Int) -> String,
+        val savedTitle: String,
+        val savedTotal: String,
+        val noDiff: String,
+        val countedVs: (String, String) -> String,
+        val loadFailed: String,
+        val sendFailed: String,
+    )
+
     data class Settings(
         val title: String,
         val language: String,
@@ -246,6 +282,7 @@ val UZ = Dict(
         buy = "Bozor",
         zakup = "Zakup",
         sklad = "Sklad",
+        sanoq = "Sanoq",
         settings = "Sozlamalar",
     ),
     clock = Dict.Clock(
@@ -354,6 +391,27 @@ val UZ = Dict(
         acceptSend = "Qabul qildim",
         accepted = "Qabul qilindi",
     ),
+    sanoq = Dict.Sanoq(
+        title = "Inventarizatsiya",
+        store = "Ombor",
+        mainStore = "Asosiy ombor",
+        search = "Masalliqni qidirish",
+        onlyLeft = "Sanalmaganlar",
+        progress = { n, all -> "sanaldi: " + n + " / " + all },
+        qtyHint = "Miqdor",
+        since = { d -> "Oxirgi sanoq: " + d + " — hisob o'shandan beri" },
+        neverCounted = "Bu ombor hali sanalmagan — hisob kelgan hamma narsadan boshlanadi",
+        empty = "Bu omborda sanaydigan masalliq yo'q",
+        allDone = "Bu filtrda qator qolmadi",
+        notePlaceholder = "Izoh (ixtiyoriy)",
+        save = { n -> "Saqlash — " + n + " qator" },
+        savedTitle = "Sanoq saqlandi",
+        savedTotal = "Farq jami:",
+        noDiff = "Farq yo'q — hammasi joyida",
+        countedVs = { c, e -> "sanaldi " + c + " · bo'lishi kerak edi " + e },
+        loadFailed = "Ro'yxatni ochib bo'lmadi",
+        sendFailed = "Saqlab bo'lmadi",
+    ),
     sklad = Dict.Sklad(
         title = "Skladdan so'rovlar",
         empty = "Hozircha so'rov yo'q",
@@ -430,6 +488,7 @@ val RU = Dict(
         buy = "Закуп",
         zakup = "Заявка",
         sklad = "Склад",
+        sanoq = "Пересчёт",
         settings = "Настройки",
     ),
     clock = Dict.Clock(
@@ -538,6 +597,27 @@ val RU = Dict(
         acceptSend = "Принял",
         accepted = "Принято",
     ),
+    sanoq = Dict.Sanoq(
+        title = "Инвентаризация",
+        store = "Склад",
+        mainStore = "Основной склад",
+        search = "Найти ингредиент",
+        onlyLeft = "Непосчитанные",
+        progress = { n, all -> "посчитано: " + n + " / " + all },
+        qtyHint = "Кол-во",
+        since = { d -> "Последний пересчёт: " + d + " — расчёт с этой даты" },
+        neverCounted = "Этот склад ещё не считали — расчёт от всего, что поступало",
+        empty = "На этом складе нечего считать",
+        allDone = "В этом фильтре строк не осталось",
+        notePlaceholder = "Комментарий (необязательно)",
+        save = { n -> "Сохранить — " + n + " строк" },
+        savedTitle = "Пересчёт сохранён",
+        savedTotal = "Расхождение всего:",
+        noDiff = "Расхождений нет — всё сошлось",
+        countedVs = { c, e -> "посчитано " + c + " · должно было быть " + e },
+        loadFailed = "Не удалось открыть список",
+        sendFailed = "Не удалось сохранить",
+    ),
     sklad = Dict.Sklad(
         title = "Заявки со склада",
         empty = "Заявок пока нет",
@@ -614,6 +694,7 @@ val EN = Dict(
         buy = "Market",
         zakup = "Order",
         sklad = "Store",
+        sanoq = "Count",
         settings = "Settings",
     ),
     clock = Dict.Clock(
@@ -720,6 +801,27 @@ val EN = Dict(
             "as they were sent.",
         acceptSend = "Accepted",
         accepted = "Signed for",
+    ),
+    sanoq = Dict.Sanoq(
+        title = "Stocktake",
+        store = "Store",
+        mainStore = "Main store",
+        search = "Find an ingredient",
+        onlyLeft = "Not counted",
+        progress = { n, all -> "counted: " + n + " / " + all },
+        qtyHint = "Qty",
+        since = { d -> "Last counted " + d + " — measured from then" },
+        neverCounted = "This store has never been counted — measured from everything that arrived",
+        empty = "Nothing to count in this store",
+        allDone = "No rows left in this filter",
+        notePlaceholder = "Note (optional)",
+        save = { n -> "Save — " + n + " rows" },
+        savedTitle = "Count saved",
+        savedTotal = "Variance in total:",
+        noDiff = "No variance — everything matched",
+        countedVs = { c, e -> "counted " + c + " · expected " + e },
+        loadFailed = "Could not open the list",
+        sendFailed = "Could not save",
     ),
     sklad = Dict.Sklad(
         title = "Store requests",

@@ -298,6 +298,86 @@ data class FinishResult(
     val already: Boolean = false,
 )
 
+// ---- Counting the store ----
+
+/** One room that is counted on its own.
+ *
+ *  ⚠️ **A restaurant does not have one store, it has a bar and a kitchen**
+ *  (models/warehouse.go). They are counted by different people on different
+ *  evenings, and one list covering both lets the bar's shortfall cancel against
+ *  the kitchen's surplus — arithmetically fine and impossible to act on. */
+@Serializable
+data class Warehouse(
+    val id: String = "",
+    val name: String = "",
+    val note: String = "",
+    val kind: String = "",
+    val sort: Int = 0,
+    val isActive: Boolean = true,
+)
+
+@Serializable
+data class Warehouses(val warehouses: List<Warehouse> = emptyList())
+
+/** One line of the sheet: what to count, and nothing else.
+ *
+ *  ⚠️ **There is no expected figure here and that is the whole point of the
+ *  sheet** (handlers/stocktake.go). A row saying "there should be 9.4 kg" beside
+ *  an empty box is a row that gets 9.4 written into it, and the error lands in
+ *  the one figure this module exists to produce — the variance — where nothing
+ *  downstream can tell it from a theft. The server stopped sending it; a field
+ *  added here would read as zero and quietly be believed. */
+@Serializable
+data class StocktakeSheetRow(
+    val ingredientId: String = "",
+    val name: String = "",
+    /** The purchase unit — the way it is counted on a shelf, never the recipe's
+     *  grams. */
+    val unit: String = "",
+)
+
+@Serializable
+data class StocktakeSheet(
+    val rows: List<StocktakeSheetRow> = emptyList(),
+    /** When this store was last counted, or absent if it never was.
+     *
+     *  ⚠️ **Nullable, and the two answers read differently.** "Measured since
+     *  the 3rd" and "measured from everything that ever arrived" are different
+     *  claims about the same number, and a screen that showed only the first
+     *  would put a date on a figure that has none. */
+    val since: String? = null,
+)
+
+/** What a saved count was out by, on one ingredient.
+ *
+ *  ⚠️ **Comes back with the save and never before it.** The count is
+ *  insert-only, so by the time these arrive they are a finding rather than a
+ *  target: the numbers can no longer be moved to meet them. */
+@Serializable
+data class SavedCountLine(
+    val ingredientId: String = "",
+    val counted: Double = 0.0,
+    val expected: Double = 0.0,
+    val diff: Double = 0.0,
+    /** What the difference was worth at that day's prices. Negative is a
+     *  shortfall. */
+    val value: Int = 0,
+)
+
+/** The count the server recorded. */
+@Serializable
+data class SavedCount(
+    val id: String = "",
+    val at: String = "",
+    val lines: List<SavedCountLine> = emptyList(),
+    val note: String = "",
+    /** What the whole count was out by, in money — the line an owner reads.
+     *
+     *  ⚠️ **Negative is a shortfall and is shown that way.** A figure clamped at
+     *  zero would be silent about exactly the thing a count is taken for. */
+    val value: Int = 0,
+)
+
 /** Which install this is, for the header the server binds an account to. */
 data class DeviceInfo(val id: String, val app: String, val name: String)
 

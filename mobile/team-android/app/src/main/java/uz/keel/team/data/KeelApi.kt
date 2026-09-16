@@ -321,6 +321,63 @@ class KeelApi(private val tokens: TokenStore) {
         },
     )
 
+    // ---- Counting the store ----
+
+    /** The rooms this employee's branch keeps things in.
+     *
+     *  ⚠️ **Asked before the sheet.** A count is one room, and the phone has to
+     *  know which one before it can ask what is in it. */
+    suspend fun warehouses(): Warehouses = call("/staff/warehouses")
+
+    /** What to count in one room.
+     *
+     *  ⚠️ **The store is a query parameter and an empty one is a real answer** —
+     *  the undivided store, which is every restaurant that never split one.
+     *  Sending an empty `warehouseId` is deliberate: the server reads a blank as
+     *  that store, and leaving the parameter off entirely means the same thing. */
+    suspend fun stocktakeSheet(warehouseId: String): StocktakeSheet =
+        call("/staff/stocktake/sheet" + if (warehouseId.isEmpty()) "" else "?warehouseId=$warehouseId")
+
+    /** Record a count.
+     *
+     *  ⚠️ **Only the rows somebody actually typed into.** A blank box is "not
+     *  reached yet", never zero — sending untouched rows as zero reads the next
+     *  morning as a catastrophic shortfall, and it is the classic way a
+     *  half-finished count gets saved anyway.
+     *
+     *  ⚠️ **The branch is not sent and could not be.** The server takes it off
+     *  the employee (handlers/staffstock.go): a count resets the baseline every
+     *  later shortfall is measured from, so a phone that could name a branch
+     *  could reset somebody else's.
+     *
+     *  ⚠️ **The store is omitted when it is the undivided one**, rather than
+     *  sent as an empty string: Go decodes the body into an ObjectID, and `""`
+     *  is a parse error rather than a zero id — the count would be refused with
+     *  a message about a field nobody chose. */
+    suspend fun saveStocktake(
+        warehouseId: String,
+        counted: Map<String, Double>,
+        note: String,
+    ): SavedCount = call(
+        "/staff/stocktake",
+        HttpMethod.Post,
+        body = buildJsonObject {
+            if (warehouseId.isNotEmpty()) put("warehouseId", JsonPrimitive(warehouseId))
+            put("note", JsonPrimitive(note))
+            put(
+                "lines",
+                JsonArray(
+                    counted.map { (ingredientId, qty) ->
+                        buildJsonObject {
+                            put("ingredientId", JsonPrimitive(ingredientId))
+                            put("counted", JsonPrimitive(qty))
+                        }
+                    },
+                ),
+            )
+        },
+    )
+
     // ---- This phone ----
 
     /** ⚠️ **The language travels with the token.** A notification is written by

@@ -49,8 +49,38 @@ turadi.
   soniyalari esa eshik oldida turgan odamniki.
 - Fon xizmati **yo'q** va kerak emas.
 
+## ⚠️ Sanoq: Expo'da bo'lmagan yagona ekran
+
+Qolgan hamma narsa `mobile/team` dan ko'chirilgan; **Inventarizatsiya** esa
+veb sahifadan (`/staff/stock`) keladi va telefonda birinchi marta paydo bo'ldi.
+Sababi bir xil: sahifa ishlaydi, lekin uni **topib bo'lmaydi** — xodimga URL
+aytish, uni brauzer tabida saqlash va har safar qidirish kerak edi. Davomat
+ham aynan shu sababdan veb sahifadan bu ilovaga ko'chgan.
+
+- **Ruxsat — `stock`**, ya'ni shu ilovadagi **texnolog bo'limi** (`Texnolog`
+  roli aynan shu ruxsat bilan keladi). Tab boshqa hech kimda ko'rinmaydi.
+  ⚠️ Rol **nomi** bilan emas, ruxsat bilan (`canCountHere`, testi bor).
+- ⚠️ **«Bo'lishi kerak» raqami ekranda ham, simda ham yo'q** — server uni
+  umuman yubormaydi (`handlers/stocktake.go`). Bo'sh katak yonidagi «9.4
+  bo'lishi kerak» — katakka 9.4 yoziladigan varaq. Farq **saqlangandan keyin**
+  qaytadi, ya'ni sanoq o'zgartirib bo'lmaydigan holga kelgach: u endi maqsad
+  emas, **topilma**. Shuning uchun u javondan uzoqlashmasdan o'qiladi.
+- ⚠️ **Bo'sh katak — nol emas**, «hali yetib borilmagan». Faqat **yozilgan**
+  qatorlar yuboriladi; nol deb yuborilsa yarim sanoq ertasiga falokatli
+  kamomad bo'lib o'qilardi.
+- ⚠️ **Sanoq — bitta xona.** Ombor tanlagich birinchi turadi, va qoralama
+  **har ombor uchun alohida** saqlanadi.
+- ⚠️ **Qoralama ekranniki emas, jarayonniki** (`CountDraft`): boshqa tabga
+  bir marta tegish qirq raqamni yo'q qilardi. Diskka **yozilmaydi** — uch kun
+  oldingi qoralama hech kim ishonmaydigan raqam, ekranning mahsuloti esa
+  aynan ishonch.
+- Tezligi: qidiruv, «sanalmaganlar» filtri, `12 / 48` hisoblagichi va vergulni
+  nuqtaga aylantiradigan maydon (`"1,5".toDouble()` = null, ya'ni qator
+  jimgina sanoqdan chiqib ketardi).
+
 ## ⚠️ Tab faqat ruxsati bor hisobda ko'rinadi
 
+- **Sanoq** — `stock` ruxsati (texnolog).
 - **Bozor** — `buy` ruxsati.
 - **Zakup** — `buyorder` **va** (`void` yoki `stock`): kassirda `buyorder` bor,
   lekin uning telefoni restoranning bozorligi rejalashtiriladigan joy emas.
