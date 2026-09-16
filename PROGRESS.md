@@ -14899,3 +14899,22 @@ ishidan qolib ketgan edi, qo'shildi); team-android `testDebugUnitTest` yashil
 (yangi wire testlari: kod javobi uch qismli, bo'sh ro'yxatlar null emas, ikki
 ruxsat alohida); frontend `tsc` + testlar.
 ⏳ Kamera **haqiqiy qurilmada sinalmagan** — emulyatorda ham, telefonda ham.
+
+## 2026-09-16 (4) — Yorliq va markirovka qatorlari restoranga ham ko'rinadi
+
+Ikkala qator `needs: "goods"` edi — faqat do'kon turlariga. Bu ikkita haqiqiy
+holatni noto'g'ri o'qir edi: markirovkalangan shisha oladigan **bar** va
+paketlangan non sotadigan **nonvoyxona**, ikkalasi ham turi bo'yicha restoran.
+Sahifalar yopilmagan edi, lekin hech qachon ko'rmagan ekranning manzilini hech
+kim termaydi.
+
+Endi qator **turga emas, tovarga** qaraydi: `needs: "marked"` / `"labelled"` —
+«shu turdagi biznesmi yoki shu brendda shunday tovar bormi». Faktni server
+hisoblaydi (`Brand.HasMarked`/`HasGoods`, `bson:"-"` — saqlanmaydi) va faqat
+panel ro'yxatiga qo'shadi, bitta agregatsiya bilan. Menyuda ichimlikni
+«markirovkalangan» deb belgilash — qatorni yoqadigan yagona amal; sozlama
+qidirish shart emas. Spirt sotmaydigan oshxona baribir ortiqcha qator olmaydi.
+
+Tekshiruv: `adminNav.test.ts` ga uchta holat qo'shildi (bar → markirovka bor,
+yorliq yo'q; nonvoyxona → teskarisi; bo'sh do'kon → ikkalasi ham bor);
+frontend `tsc` + testlar, backend build + testlar.

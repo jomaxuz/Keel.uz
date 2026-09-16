@@ -14,14 +14,23 @@
 import { composes, hasKitchen, hasTables, sellsGoods } from "@/lib/types";
 import type { AdminDict } from "@/lib/i18n/admin";
 
-export type BrandLike = { businessType?: string } | null | undefined;
+export type BrandLike =
+  | { businessType?: string; hasMarked?: boolean; hasGoods?: boolean }
+  | null
+  | undefined;
 
 /** What a section needs the business to be, when it needs anything.
  *
  *  ⚠️ **A brand new to this reads as a restaurant**, so a panel that has not
  *  loaded its brand yet — or one whose brand predates the field, which is every
  *  brand today — shows exactly what it showed before. */
-export type Needs = "tables" | "kitchen" | "composes" | "goods";
+export type Needs =
+  | "tables"
+  | "kitchen"
+  | "composes"
+  | "goods"
+  | "marked"
+  | "labelled";
 
 export function needsMet(need: Needs | undefined, brand: BrandLike): boolean {
   switch (need) {
@@ -33,6 +42,21 @@ export function needsMet(need: Needs | undefined, brand: BrandLike): boolean {
       return composes(brand);
     case "goods":
       return sellsGoods(brand);
+    // ⚠️ **The type, or the goods themselves.** Asking only what kind of
+    // business this is got two real cases wrong, and both are restaurants: a
+    // bar receives marked bottles, and a bakery sells packaged bread off a
+    // shelf. Both were told the screen did not exist — the page was never
+    // gated, but a screen you have never seen is one you do not type the
+    // address of.
+    //
+    // ⚠️ **Still not shown to a kitchen that has neither**, which is the half
+    // worth keeping: a row every cook reads past forever is what the
+    // type-only rule was protecting against. Nobody has to find a setting —
+    // flagging a drink as marked in the menu is what turns the row on.
+    case "marked":
+      return sellsGoods(brand) || brand?.hasMarked === true;
+    case "labelled":
+      return sellsGoods(brand) || brand?.hasGoods === true;
     default:
       return true;
   }

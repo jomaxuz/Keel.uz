@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -96,7 +97,61 @@ func (h *Handler) AdminListBrands(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ **Here and not in `listBrands`**, which also serves the public site:
+	// the visitor's payload is cached for thirty seconds and has no use for
+	// two facts about a sidebar. Same shape as everything else on this
+	// boundary — the panel asks for more because the panel needs more.
+	h.markBrandStock(r.Context(), brands)
 	httpx.JSON(w, http.StatusOK, brands)
+}
+
+// markBrandStock fills in whether each brand holds marked goods or shelf goods.
+//
+// ⚠️ **One aggregation for every brand, not one query per brand.** A chain with
+// four brands would otherwise pay eight round trips to draw a sidebar, on every
+// panel load — and the two questions are asked of the same collection with the
+// same filter.
+func (h *Handler) markBrandStock(ctx context.Context, brands []models.Brand) {
+	if len(brands) == 0 {
+		return
+	}
+	cur, err := h.Store.Menu.Aggregate(ctx, []bson.M{
+		{"$match": bson.M{"$or": []bson.M{
+			{"marked": true}, {"sellsItself": true},
+		}}},
+		{"$group": bson.M{
+			"_id":    "$brandId",
+			"marked": bson.M{"$max": "$marked"},
+			"goods":  bson.M{"$max": "$sellsItself"},
+		}},
+	})
+	if err != nil {
+		// ⚠️ Silent: a sidebar is drawn either way, and the rows this decides
+		// are reachable by address. A failed aggregation must not be the reason
+		// a panel does not load.
+		return
+	}
+	defer cur.Close(ctx)
+	type row struct {
+		ID     primitive.ObjectID `bson:"_id"`
+		Marked bool               `bson:"marked"`
+		Goods  bool               `bson:"goods"`
+	}
+	found := map[primitive.ObjectID]row{}
+	for cur.Next(ctx) {
+		var g row
+		if cur.Decode(&g) == nil {
+			found[g.ID] = g
+		}
+	}
+	for i := range brands {
+		g, ok := found[brands[i].ID]
+		if !ok {
+			continue
+		}
+		brands[i].HasMarked = g.Marked
+		brands[i].HasGoods = g.Goods
+	}
 }
 
 func (h *Handler) AdminCreateBrand(w http.ResponseWriter, r *http.Request) {

@@ -80,9 +80,36 @@ describe("the store section, by business", () => {
         expect.arrayContaining(["labels", "marking", "expiring"]),
       );
     }
-    // ⚠️ And keeps them off a kitchen's sidebar, where they are three rows read
-    // past forever.
+    // ⚠️ And keeps them off the sidebar of a kitchen that holds neither, where
+    // they would be rows read past forever.
     expect(shown(RESTAURANT)).not.toContain("labels");
+    expect(shown(RESTAURANT)).not.toContain("marking");
+  });
+
+  // ⚠️ **The business type was the wrong question for two real cases.** A bar
+  // receives marked bottles and a bakery sells packaged bread off a shelf;
+  // both are restaurants, and both were told the screen did not exist. The page
+  // was never gated — but a screen somebody has never seen is one they do not
+  // type the address of.
+  it("shows a restaurant the rows once it holds the goods for them", () => {
+    const BAR = { businessType: "", hasMarked: true };
+    expect(shown(BAR)).toContain("marking");
+    // ⚠️ Only the row the goods justify: a bar with marked drinks and no shelf
+    // goods still gets no label screen.
+    expect(shown(BAR)).not.toContain("labels");
+
+    const PACKAGED = { businessType: "bakery", hasGoods: true };
+    expect(shown(PACKAGED)).toContain("labels");
+    expect(shown(PACKAGED)).not.toContain("marking");
+  });
+
+  // ⚠️ A shop keeps both rows whether or not it has flagged anything yet: an
+  // empty grocery is a grocery that has not been set up, and hiding the screen
+  // it sets itself up on would be a locked door with the key inside.
+  it("keeps both rows for a shop with nothing flagged", () => {
+    expect(shown(GROCERY)).toEqual(
+      expect.arrayContaining(["labels", "marking"]),
+    );
   });
 
   // ⚠️ **The order is the complaint.** Nothing was missing for a grocery; its

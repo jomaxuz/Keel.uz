@@ -544,10 +544,28 @@ type Brand struct {
 	// visible and changeable in the panel, so a flower shop that sells coffee is
 	// a few taps rather than a refusal.
 	BusinessType BusinessType `bson:"businessType,omitempty" json:"businessType,omitempty"`
-	SortOrder    int          `bson:"sortOrder" json:"sortOrder"`
-	IsActive     bool         `bson:"isActive" json:"isActive"`
-	CreatedAt    time.Time    `bson:"createdAt" json:"createdAt"`
-	UpdatedAt    time.Time    `bson:"updatedAt" json:"updatedAt"`
+
+	// ---- What this brand actually holds, for the sidebar ----
+	//
+	// ⚠️ **Computed, never stored** (`bson:"-"`, so `$set` cannot write them).
+	// They answer one question the business type alone gets wrong: a bar
+	// receives marked bottles and a bakery sells packaged bread, and both are
+	// restaurants. Gating the label and marking rows on the type alone hid two
+	// screens from the businesses that had the goods for them, and the only way
+	// in was to type the address — which nobody does for a screen they have
+	// never seen.
+	//
+	// ⚠️ **A fact, not a setting.** Nobody has to find a switch: flag a drink as
+	// marked in the menu and the row appears. The reverse is what makes it
+	// bearable — a kitchen that sells no marked goods still gets no rows it
+	// would read past forever, which is what the type-only rule was protecting.
+	HasMarked bool `bson:"-" json:"hasMarked,omitempty"`
+	HasGoods  bool `bson:"-" json:"hasGoods,omitempty"`
+
+	SortOrder int       `bson:"sortOrder" json:"sortOrder"`
+	IsActive  bool      `bson:"isActive" json:"isActive"`
+	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
 type Branch struct {

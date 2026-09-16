@@ -1785,6 +1785,15 @@ export interface Brand {
    *  field existed. The console sets it when the brand is created and nothing
    *  overwrites it afterwards — see `models/businesstype.go`. */
   businessType?: BusinessType;
+  /** Whether this brand holds goods that carry a state marking code, and goods
+   *  that sell as themselves off a shelf.
+   *
+   *  ⚠️ **Computed by the server, never stored.** They decide whether the
+   *  marking and label rows appear, and they exist because the business type
+   *  alone got two real cases wrong: a bar receives marked bottles and a bakery
+   *  sells packaged bread, and both are restaurants. */
+  hasMarked?: boolean;
+  hasGoods?: boolean;
   sortOrder: number;
   isActive: boolean;
 }

@@ -4118,6 +4118,28 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
 - ⚠️ **Bu ko'rinish, ruxsat emas.** Qatorni yashirish — xushmuomalalik; kim
   qaysi sahifani ocha olishini server hal qiladi (`handlers/panelgate.go`), va
   manzilni terib kirgan do'kon o'sha ekranni topadi.
+  - ⚠️ **«Manzilni terib kiradi» — rost, lekin foydasiz javob** (2026-09-16 da
+    tuzatildi). Yorliq va markirovka qatorlari `needs: "goods"` edi, ya'ni
+    faqat do'kon turlariga chizilardi — va bu **ikkita haqiqiy holatni**
+    noto'g'ri o'qidi: markirovkalangan shisha qabul qiladigan **bar** va
+    paketlangan nonni javondan sotadigan **nonvoyxona**. Ikkalasi ham turi
+    bo'yicha restoran. Sahifa yopilmagan edi, lekin **hech qachon ko'rmagan
+    ekranning manzilini hech kim termaydi** — ya'ni ular uchun bu xususiyat
+    yo'q edi.
+  - **Endi qator turga emas, tovarga qaraydi**: `needs: "marked"` va
+    `needs: "labelled"` — «bu turdagi biznesmi **yoki** shu brendda shunday
+    tovar bormi». Faktni server hisoblaydi (`Brand.HasMarked` / `HasGoods`,
+    ⚠️ `bson:"-"` — **saqlanmaydi**, `$set` ularni yoza olmaydi) va **faqat
+    panel ro'yxatiga** qo'shadi: saytning javobi 30 soniya keshlanadi va unga
+    yon panel haqidagi ikki bayroq kerak emas. Bitta agregatsiya — brend
+    boshiga ikkita so'rov emas.
+  - ⚠️ **Sozlama emas, fakt**: hech kim tugma qidirmaydi — menyuda ichimlikni
+    «markirovkalangan» deb belgilash qatorni yoqadi. Teskarisi esa saqlanib
+    qoladi va asl qoidaning qimmatli yarmi shu edi: spirt sotmaydigan oshxona
+    baribir umrbod o'qib o'tiladigan qator olmaydi.
+  - ⚠️ **Do'konda ikkala qator ham bayroqsiz ham turadi**: hali hech nima
+    belgilanmagan do'kon — sozlanmagan do'kon, va uni sozlaydigan ekranni
+    yashirish kalitni ichkarida qoldirib eshikni qulflash bo'lardi.
 - ⚠️ **Do'konning ombori — oshxonaniki emas, va buni tartib aytadi.**
   `NAV_GROUPS` oshxona tartibida yozilgan (javonda nima bor → nima olish kerak
   → nima qanchaga → porsiyaga nima ketadi). Do'kon uni yuqoridan pastga o'qib,

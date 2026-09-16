@@ -424,18 +424,21 @@ const NAV_GROUPS = [
       { href: "/admin/expiring", key: "expiring", needs: "goods" },
       // Shelf labels and barcode stickers.
       //
-      // ⚠️ **A shop only.** A restaurant's dishes have no shelf and no
-      // barcode — a row offering to label a portion of osh is a row that
-      // teaches a kitchen to stop reading the sidebar.
-      { href: "/admin/labels", key: "labels", needs: "goods" },
+      // ⚠️ **A shop, or anybody who sells something off a shelf.** It was a
+      // shop only, and the reasoning was sound for a kitchen — a row offering
+      // to label a portion of osh teaches a cook to stop reading the sidebar.
+      // But it was wrong about the bakery that sells packaged bread and the
+      // coffee house that sells beans by the bag: they are restaurants by type
+      // and shops at the counter, and they were told the screen did not exist.
+      { href: "/admin/labels", key: "labels", needs: "labelled" },
       // Marked goods, scanned as they arrive.
       //
-      // ⚠️ **Shown to a shop, though a bar receives marked bottles too.** The
-      // row is presentation and the page is not gated — a restaurant that
-      // stocks marked drinks reaches it by address, exactly as it reaches the
-      // booking screen. What a sidebar row costs is a line every kitchen reads
-      // past forever.
-      { href: "/admin/marking", key: "marking", needs: "goods" },
+      // ⚠️ **A shop, or anybody holding marked stock.** "It is reachable by
+      // address" was true and useless: a bar that receives marked bottles has
+      // no way to learn that a screen it has never seen exists. Flagging a
+      // drink as marked in the menu is what turns this row on, so the sidebar
+      // follows the goods rather than the label on the business.
+      { href: "/admin/marking", key: "marking", needs: "marked" },
     ],
   },
   {
