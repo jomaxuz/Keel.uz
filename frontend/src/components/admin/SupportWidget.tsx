@@ -16,10 +16,11 @@
  * for why a ticket rather than the session token opens the socket.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { LuHeadset, LuSend, LuX, LuChevronLeft } from "react-icons/lu";
 
 import { api, API_URL } from "@/lib/api";
+import { formatDate, formatTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/client";
 import { useAdminT } from "@/lib/i18n/admin";
 import { loadHelp, type HelpArticle } from "@/lib/help/articles";
@@ -60,6 +61,14 @@ export default function SupportWidget() {
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(false);
   const [live, setLive] = useState(false);
+  // ⚠️ **"Not connected yet" and "the connection dropped" are different
+  // sentences, and saying the second one first is how a working panel announces
+  // that it is broken.** Until an attempt has actually failed there is nothing
+  // to reconnect to: the widget has been open for a quarter of a second and the
+  // handshake is in flight. The offline line is worth having — a chat that has
+  // silently lost its socket looks exactly like a chat nobody has answered yet
+  // — but only once it is true.
+  const [tried, setTried] = useState(false);
   // ⚠️ Unread is held here rather than derived from `threads`, because the
   // badge has to survive the list being reloaded — and it is the only thing on
   // screen when the widget is shut.
@@ -161,6 +170,7 @@ export default function SupportWidget() {
         };
         ws.onclose = () => {
           setLive(false);
+          setTried(true);
           socket.current = null;
           if (stopped) return;
           retry = setTimeout(connect, wait);
@@ -171,6 +181,9 @@ export default function SupportWidget() {
         ws.onerror = () => ws.close();
       } catch {
         if (stopped) return;
+        // The ticket call itself failed — no socket was ever opened, and that
+        // is as much an offline as a closed one.
+        setTried(true);
         retry = setTimeout(connect, wait);
         wait = Math.min(wait * 2, 30_000);
       }
@@ -266,7 +279,11 @@ export default function SupportWidget() {
                 {/* ⚠️ The connection state is shown, quietly. A chat that has
                     silently lost its socket looks identical to a chat nobody
                     has answered yet, and the two need different patience. */}
-                {live ? t.support.live : t.support.offline}
+                {live
+                  ? t.support.live
+                  : tried
+                    ? t.support.offline
+                    : t.support.connecting}
               </p>
             </div>
           </header>
@@ -362,12 +379,27 @@ export default function SupportWidget() {
                       <span className="mt-1 block truncate text-xs text-ink-muted">
                         {th.lastText}
                       </span>
-                      <span className="mt-1 block text-[11px] text-ink-muted">
-                        {th.status === "closed"
-                          ? t.support.closed
-                          : th.status === "open"
-                            ? t.support.answered
-                            : t.support.waiting}
+                      <span className="mt-1 flex items-center gap-1.5 text-[11px] text-ink-muted">
+                        <span className="min-w-0 flex-1 truncate">
+                          {th.status === "closed"
+                            ? t.support.closed
+                            : th.status === "open"
+                              ? t.support.answered
+                              : t.support.waiting}
+                        </span>
+                        {/* ⚠️ The day for anything older than yesterday, the
+                            clock for today. A list of threads all reading
+                            "Javob kutilmoqda" says nothing about which one has
+                            been waiting since Tuesday. */}
+                        <span className="shrink-0 tabular-nums">
+                          {sameDay(th.lastAt, new Date())
+                            ? formatTime(th.lastAt)
+                            : dayLabel(
+                                th.lastAt,
+                                t.support.today,
+                                t.support.yesterday,
+                              )}
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -376,29 +408,61 @@ export default function SupportWidget() {
             </div>
           ) : (
             <div className="flex-1 space-y-2 overflow-y-auto p-3">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={m.from === "owner" ? "flex justify-end" : "flex"}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                      m.from === "owner"
-                        ? "bg-brand text-white"
-                        : "border border-line bg-raised text-ink"
-                    }`}
-                  >
-                    {m.from !== "owner" && (
-                      <p className="mb-0.5 text-[11px] font-semibold text-ink-muted">
-                        {m.from === "assistant"
-                          ? t.support.assistant
-                          : m.author || t.support.operator}
+              {/* ⚠️ **When a line was said is part of what it says.** A support
+                  thread is read days apart — "we are looking into it" means one
+                  thing under this morning's date and another under last
+                  Tuesday's — and until now the chat showed no time at all, so
+                  an answer from a week ago read as an answer from just now.
+                  The shape is the one everybody already knows from Telegram:
+                  the clock inside the bubble, the date as a separator that only
+                  appears when the day changes. */}
+              {messages.map((m, i) => {
+                const previous = i > 0 ? messages[i - 1] : undefined;
+                const newDay =
+                  !previous || !sameDay(previous.at, m.at);
+                return (
+                  <Fragment key={m.id}>
+                    {newDay && (
+                      <p className="py-1 text-center text-[11px] text-ink-muted">
+                        {dayLabel(m.at, t.support.today, t.support.yesterday)}
                       </p>
                     )}
-                    <p className="whitespace-pre-wrap break-words">{m.text}</p>
-                  </div>
-                </div>
-              ))}
+                    <div
+                      className={m.from === "owner" ? "flex justify-end" : "flex"}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                          m.from === "owner"
+                            ? "bg-brand text-white"
+                            : "border border-line bg-raised text-ink"
+                        }`}
+                      >
+                        {m.from !== "owner" && (
+                          <p className="mb-0.5 text-[11px] font-semibold text-ink-muted">
+                            {m.from === "assistant"
+                              ? t.support.assistant
+                              : m.author || t.support.operator}
+                          </p>
+                        )}
+                        <p className="whitespace-pre-wrap break-words">
+                          {m.text}
+                        </p>
+                        {/* ⚠️ 24-hour and from the shared formatter, like every
+                            other time in the panel: a chat that invented its own
+                            clock would be the one screen where 14:05 reads
+                            "2:05 PM". */}
+                        <p
+                          className={`mt-0.5 text-right text-[11px] tabular-nums ${
+                            m.from === "owner" ? "text-white/70" : "text-ink-muted"
+                          }`}
+                        >
+                          {formatTime(m.at)}
+                        </p>
+                      </div>
+                    </div>
+                  </Fragment>
+                );
+              })}
               <div ref={bottom} />
             </div>
           )}
@@ -440,6 +504,32 @@ export default function SupportWidget() {
   );
 }
 
+
+/** Whether two moments fall on the same calendar day, in the reader's own zone.
+ *
+ *  ⚠️ **Compared as local dates, never as a sliced timestamp.** Every date the
+ *  API sends is UTC (CLAUDE.md), so `at.slice(0, 10)` puts everything said after
+ *  five in the morning Tashkent time under the previous day's separator — a
+ *  wrong date that looks exactly like a right one. */
+function sameDay(a: string | Date, b: string | Date): boolean {
+  const x = a instanceof Date ? a : new Date(a);
+  const y = b instanceof Date ? b : new Date(b);
+  return (
+    x.getFullYear() === y.getFullYear() &&
+    x.getMonth() === y.getMonth() &&
+    x.getDate() === y.getDate()
+  );
+}
+
+/** "Bugun", "Kecha", or the date itself. */
+function dayLabel(at: string, today: string, yesterday: string): string {
+  const now = new Date();
+  if (sameDay(at, now)) return today;
+  const back = new Date(now);
+  back.setDate(back.getDate() - 1);
+  if (sameDay(at, back)) return yesterday;
+  return formatDate(at);
+}
 
 /** One answer, opened in place.
  *

@@ -4616,7 +4616,12 @@ export const adminUz = {
     answered: "Javob berildi",
     closed: "Yopilgan",
     live: "Ulangan",
+    /** ⚠️ **Birinchi urinish — «aloqa yo'q» emas.** Ikkalasi bir xil yozilsa,
+     *  oyna ochilgan har lahzada panel o'zini buzuq deb e'lon qiladi. */
+    connecting: "Ulanmoqda…",
     offline: "Aloqa yo'q — qayta ulanmoqda",
+    today: "Bugun",
+    yesterday: "Kecha",
     failed: "Yuborilmadi. Internetni tekshirib, qayta urining.",
   },
   briefing: {
@@ -9377,7 +9382,10 @@ export const adminRu: AdminDict = {
     answered: "Отвечено",
     closed: "Закрыт",
     live: "На связи",
+    connecting: "Подключаемся…",
     offline: "Связи нет — переподключаемся",
+    today: "Сегодня",
+    yesterday: "Вчера",
     failed: "Не отправилось. Проверьте интернет и повторите.",
   },
   briefing: {
@@ -14100,7 +14108,10 @@ export const adminEn: AdminDict = {
     answered: "Answered",
     closed: "Closed",
     live: "Connected",
+    connecting: "Connecting…",
     offline: "Offline — reconnecting",
+    today: "Today",
+    yesterday: "Yesterday",
     failed: "Not sent. Check your connection and try again.",
   },
   briefing: {
