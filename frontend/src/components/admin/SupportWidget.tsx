@@ -25,7 +25,7 @@ import {
   LuChevronLeft,
 } from "react-icons/lu";
 
-import { api, API_URL } from "@/lib/api";
+import { api, API_URL, ApiError } from "@/lib/api";
 import { formatDate, formatDateTime, formatTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/client";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -559,6 +559,22 @@ export default function SupportWidget() {
 function AdvisorPane() {
   const t = useAdminT();
   const [state, setState] = useState<AdvisorState | null>(null);
+  /** Why this tab has nothing on it, when it has nothing on it.
+   *
+   *  ⚠️ **Every failure used to collapse into one empty screen.** The status
+   *  call answers four different ways — the platform is not connected, this
+   *  account may not ask, the server has not been updated yet, the network
+   *  failed — and all four were caught into `{ on: false }`, which drew one
+   *  grey sentence and hid the box. So the tab reported "there is nothing
+   *  here" for a feature that was working, and said nothing anybody could act
+   *  on. That is the shape of bug this codebase keeps paying for: it fails
+   *  silently and looks like an empty feature rather than a broken one. */
+  const [why, setWhy] = useState("");
+  /** Whether asking is pointless — not merely unknown. ⚠️ Only two cases:
+   *  there is no platform behind this install, and this account is not allowed.
+   *  Everything else keeps the box, because a box that might work beats a tab
+   *  that explains why it does not. */
+  const [blocked, setBlocked] = useState(false);
   const [turns, setTurns] = useState<{ question: string; answer: string }[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -566,12 +582,41 @@ function AdvisorPane() {
   const [asOf, setAsOf] = useState("");
   const end = useRef<HTMLDivElement>(null);
 
+  const offWord = t.advisor.off;
+  const noAccessWord = t.advisor.noAccess;
+  const oldServerWord = t.advisor.oldServer;
+  const stateFailedWord = t.advisor.stateFailed;
+
   useEffect(() => {
     api
       .advisorState()
-      .then(setState)
-      .catch(() => setState({ on: false }));
-  }, []);
+      .then((s) => {
+        setState(s);
+        // ⚠️ `on: false` is the one honest "nothing to offer": a self-hosted
+        // restaurant with no platform behind it. It is not an error and is not
+        // reported as one.
+        setBlocked(!s.on);
+        setWhy(s.on ? "" : offWord);
+      })
+      .catch((e) => {
+        const status = e instanceof ApiError ? e.status : 0;
+        // ⚠️ **404 is the ordinary case for a few minutes after a release**:
+        // the panel is shared and updates at once, a restaurant's own server is
+        // replaced afterwards, one at a time. A tab that said "there is nothing
+        // here" during that window would be teaching people the feature does
+        // not exist.
+        setWhy(
+          status === 403
+            ? noAccessWord
+            : status === 404
+              ? oldServerWord
+              : e instanceof ApiError && e.message
+                ? e.message
+                : stateFailedWord,
+        );
+        setBlocked(status === 403);
+      });
+  }, [offWord, noAccessWord, oldServerWord, stateFailedWord]);
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
@@ -608,12 +653,14 @@ function AdvisorPane() {
     }
   }
 
-  // A restaurant with no platform behind it has no assistant at all, and a box
-  // that always fails is worse than no box.
-  if (state && !state.on) {
+  // A restaurant with no platform behind it, or an account that may not ask:
+  // a box that always fails is worse than no box — but it says which of the two
+  // it is, and that is the whole difference from what this used to do.
+  if (blocked) {
     return (
-      <div className="flex-1 overflow-y-auto p-4">
-        <p className="text-sm text-ink-muted">{t.advisor.onlyHere}</p>
+      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+        <p className="text-sm text-ink">{why}</p>
+        <p className="text-xs text-ink-muted">{t.advisor.onlyHere}</p>
       </div>
     );
   }
@@ -621,6 +668,14 @@ function AdvisorPane() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        {/* ⚠️ Shown above the box rather than instead of it: the commonest
+            reason to be here is a server that is a few minutes behind the
+            panel, and asking may well work by the time somebody has typed. */}
+        {why && (
+          <p className="rounded-xl border border-line bg-raised px-3 py-2 text-xs text-ink-soft">
+            {why}
+          </p>
+        )}
         {turns.length === 0 && (
           <div className="space-y-3">
             <p className="text-sm text-ink-soft">{t.advisor.lead}</p>

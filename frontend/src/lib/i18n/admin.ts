@@ -4648,6 +4648,14 @@ export const adminUz = {
     ],
     examplesTitle: "Nima so'rash mumkin",
     onlyHere: "Faqat shu restoran va Keel haqidagi savollarga javob beradi.",
+    /** ⚠️ **Nega bo'sh ekanini aytadigan uchta jumla.** Ilgari har qanday
+     *  nosozlik bitta natijaga olib kelardi: bo'sh tab, savol qutisi ham yo'q —
+     *  ya'ni ekran o'zini «yo'q» deb ko'rsatardi, sababini aytmay. */
+    off: "Bu o'rnatma Keel platformasiga ulanmagan — yordamchi ishlamaydi.",
+    noAccess: "Maslahatchi faqat ega va menejer uchun.",
+    oldServer:
+      "Server hali yangilanmagan — bir necha daqiqadan keyin qayta urining.",
+    stateFailed: "Holatni o'qib bo'lmadi. Savol berib ko'rsangiz ham bo'ladi.",
     locked:
       "AI yordamchisi Pro va Enterprise tariflariga kiradi. Qolgan tariflarga qo'shimcha sifatida ulanadi — Keel bilan bog'laning.",
     capped: (cap: number) =>
@@ -9435,6 +9443,10 @@ export const adminRu: AdminDict = {
     ],
     examplesTitle: "О чём можно спросить",
     onlyHere: "Отвечает только о вашем ресторане и о Keel.",
+    off: "Эта установка не подключена к платформе Keel — помощник не работает.",
+    noAccess: "Советник доступен только владельцу и менеджеру.",
+    oldServer: "Сервер ещё не обновился — попробуйте через несколько минут.",
+    stateFailed: "Не удалось прочитать состояние. Вопрос всё равно можно задать.",
     locked:
       "AI-помощник входит в тарифы Pro и Enterprise. К остальным подключается дополнительно — напишите нам.",
     capped: (cap: number) =>
@@ -14184,6 +14196,10 @@ export const adminEn: AdminDict = {
     ],
     examplesTitle: "What you can ask",
     onlyHere: "It answers about this restaurant and about Keel, nothing else.",
+    off: "This installation is not connected to the Keel platform — the assistant is off.",
+    noAccess: "The advisor is for the owner and managers.",
+    oldServer: "The server has not updated yet — try again in a few minutes.",
+    stateFailed: "Could not read the status. You can still ask a question.",
     locked:
       "The assistant is included in Pro and Enterprise. On other plans it is an add-on — talk to us.",
     capped: (cap: number) =>
