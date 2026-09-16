@@ -604,6 +604,29 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// One campaign plan per day per lens, for the reason the advisor's snapshot
+	// carries the same index: it is written with an upsert, two tabs can miss
+	// together, and a second row would leave `FindOne` choosing between two
+	// plans for one morning.
+	if _, err := s.AdsPlans.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "day", Value: 1}, {Key: "scope", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
+	// ⚠️ **Swept after a week, not after two days like an answer.** A plan is
+	// something an owner comes back to while a campaign runs — "what did it say
+	// about the budget?" — so it outlives the morning it was written. But it is
+	// still written from one week's sales, and a month-old plan read as current
+	// would be advice about a menu that has moved on.
+	if _, err := s.AdsPlans.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "madeAt", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(7 * 24 * 3600),
+	}); err != nil {
+		return err
+	}
+
 	// ⚠️ **One row per phone, enforced rather than assumed** — the same lesson
 	// the push endpoint above already taught. The app re-registers on every
 	// launch, because the token is re-read from the operating system and can be

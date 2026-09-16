@@ -1372,6 +1372,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// module too (modulegate.go) — it is bought on its own and is in no
 			// plan. See handlers/ads.go.
 			r.Get("/admin/ads/state", h.AdminAdsState)
+			// What to advertise, written from this restaurant's own week.
+			// ⚠️ POST although it reads: it can cost a model call, and a GET
+			// that spends money is one a browser prefetch can spend for you.
+			r.Post("/admin/ads/plan", h.AdminAdsPlan)
 
 			r.Post("/admin/advisor", h.AdminAdvisorAsk)
 			r.Get("/admin/advisor/state", h.AdminAdvisorState)

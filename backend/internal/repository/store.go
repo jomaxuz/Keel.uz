@@ -186,6 +186,12 @@ type Store struct {
 	AdvisorSnapshots *mongo.Collection
 	AdvisorAnswers   *mongo.Collection
 
+	// One campaign plan per day per lens. ⚠️ Holds the figures it was written
+	// from as well as the words: the panel draws its bars from those figures,
+	// and a plan whose numbers are gone cannot be checked by the owner about to
+	// spend money on it. See handlers/adsplan.go.
+	AdsPlans *mongo.Collection
+
 	Vacancies       *mongo.Collection
 	ImportAssets    *mongo.Collection
 	JobApplications *mongo.Collection
@@ -279,6 +285,7 @@ func New(db *mongo.Database) *Store {
 		Briefings:         db.Collection("briefing"),
 		AdvisorSnapshots:  db.Collection("advisor_snapshot"),
 		AdvisorAnswers:    db.Collection("advisor_answer"),
+		AdsPlans:          db.Collection("ads_plan"),
 		Vacancies:         db.Collection("vacancy"),
 		// Photographs the menu importer downloaded. ⚠️ Its own record because
 		// the sweeper must never be able to consider a file the owner uploaded

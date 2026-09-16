@@ -4,6 +4,7 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  AdsPlanAnswer,
   AdsState,
   AdvisorAnswer,
   AdvisorState,
@@ -2969,6 +2970,23 @@ export const api = {
    *  connected are facts about the company, not about the brand currently on
    *  screen — unlike the advisor, whose figures belong to one lens. */
   adsState: () => request<AdsState>("/admin/ads/state", { auth: true }),
+
+  /** What to advertise, written from this restaurant's own week.
+   *
+   *  ⚠️ **POST although it reads nothing of the caller's.** It can cost a model
+   *  call, and a GET that spends money is one a browser prefetch or a link
+   *  hover can spend for you. The server answers today's plan from cache on the
+   *  second press, so the button is safe to press twice — it is not free to
+   *  press on a schedule.
+   *
+   *  ⚠️ Scoped like the advisor rather than like `adsState`: a plan is written
+   *  from one brand's sales and one branch's delivery radius. */
+  adsPlan: () =>
+    request<AdsPlanAnswer>("/admin/ads/plan", {
+      method: "POST",
+      auth: true,
+      scope: true,
+    }),
 
   /** One question about this restaurant, answered from this morning's figures.
    *
