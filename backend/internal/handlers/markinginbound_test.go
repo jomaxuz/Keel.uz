@@ -67,8 +67,13 @@ func TestASoldBottleKeepsItsRowAndItsReceipt(t *testing.T) {
 // ⚠️ **The unique index is the check, not a lookup before it.** Two people
 // unpacking two boxes at two tills both find nothing and both insert; the index
 // is the only thing that is true at the moment of writing.
+//
+// ⚠️ **Read out of `saveMarks` rather than the handler**, because the rule moved
+// house when the phone got a camera: the panel and the app file codes through
+// one function (handlers/staffmarking.go), and the rule belongs wherever the
+// insert is. The test that keeps them one implementation is below.
 func TestADuplicateCodeIsCaughtByTheIndexRatherThanALookup(t *testing.T) {
-	fn := between(t, markingSource(t), "func (h *Handler) AdminReceiveMarks", "\n}\n")
+	fn := between(t, markingSource(t), "func (h *Handler) saveMarks", "\n}\n")
 	if !strings.Contains(fn, "mongo.IsDuplicateKeyError") {
 		t.Error("a duplicate is not recognised as one")
 	}
@@ -81,12 +86,48 @@ func TestADuplicateCodeIsCaughtByTheIndexRatherThanALookup(t *testing.T) {
 // thirty-nine are in the store room either way, and an all-or-nothing save is
 // one that gets abandoned halfway through unpacking.
 func TestOneBadStickerDoesNotLoseTheBox(t *testing.T) {
-	fn := between(t, markingSource(t), "func (h *Handler) AdminReceiveMarks", "\n}\n")
+	fn := between(t, markingSource(t), "func (h *Handler) saveMarks", "\n}\n")
 	bad := strings.Index(fn, "bad = append(bad, raw)")
 	if bad < 0 {
 		t.Fatal("an unreadable code is not reported")
 	}
 	if !strings.Contains(fn[bad:bad+60], "continue") {
 		t.Error("an unreadable code stops the save instead of being skipped")
+	}
+}
+
+// ⚠️ **Two doors, one implementation.** The panel's receiving screen and the
+// phone's camera both file marking codes, and a second insert written beside
+// either one is how the same box comes to be recorded differently depending on
+// what somebody was holding — a disagreement that surfaces weeks later as a
+// sale the till refuses. The rules above are pinned to `saveMarks`; this is
+// what keeps the handlers going through it.
+func TestBothDoorsFileCodesThroughOneFunction(t *testing.T) {
+	src := markingSource(t)
+	fn := between(t, src, "func (h *Handler) AdminReceiveMarks", "\n}\n")
+	if !strings.Contains(fn, "h.saveMarks(") {
+		t.Error("the panel's screen does not file through saveMarks")
+	}
+	if strings.Contains(fn, "InsertOne") {
+		t.Error("the handler writes its own rows beside the shared function")
+	}
+
+	phone, err := os.ReadFile("staffmarking.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	staff := between(t, string(phone), "func (h *Handler) StaffReceiveMarks", "\n}\n")
+	if !strings.Contains(staff, "h.saveMarks(") {
+		t.Error("the phone does not file through saveMarks")
+	}
+	if strings.Contains(staff, "InsertOne") {
+		t.Error("the phone writes its own rows beside the shared function")
+	}
+	// ⚠️ **The branch comes off the employee, never the request.** A phone that
+	// could name a branch could file somebody else's delivery — and a code is
+	// unique across the platform, so filing it wrongly takes it away from the
+	// branch that actually has the bottle.
+	if !strings.Contains(staff, "s.BranchID") {
+		t.Error("the phone does not take the branch from the employee")
 	}
 }
