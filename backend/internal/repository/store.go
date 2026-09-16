@@ -172,7 +172,20 @@ type Store struct {
 	LossAlerts    *mongo.Collection
 	AlertSettings *mongo.Collection
 	// One morning's briefing per day, per lens, per language.
-	Briefings       *mongo.Collection
+	Briefings *mongo.Collection
+	// The advisor's material and its answers.
+	//
+	// ⚠️ **Two collections rather than one, because they expire differently.**
+	// The snapshot is the day's picture of the business and is rebuilt tomorrow;
+	// an answer is one question already paid for, keyed by that day's snapshot.
+	// Folded together, clearing the cache would throw away the figures too — and
+	// rebuilding those is a dozen aggregations.
+	//
+	// ⚠️ The snapshot holds the alias table (`c3` → a name), which is the half
+	// that never leaves this server. See handlers/advisor.go.
+	AdvisorSnapshots *mongo.Collection
+	AdvisorAnswers   *mongo.Collection
+
 	Vacancies       *mongo.Collection
 	ImportAssets    *mongo.Collection
 	JobApplications *mongo.Collection
@@ -264,6 +277,8 @@ func New(db *mongo.Database) *Store {
 		LossAlerts:        db.Collection("loss_alert"),
 		AlertSettings:     db.Collection("alert_settings"),
 		Briefings:         db.Collection("briefing"),
+		AdvisorSnapshots:  db.Collection("advisor_snapshot"),
+		AdvisorAnswers:    db.Collection("advisor_answer"),
 		Vacancies:         db.Collection("vacancy"),
 		// Photographs the menu importer downloaded. ⚠️ Its own record because
 		// the sweeper must never be able to consider a file the owner uploaded

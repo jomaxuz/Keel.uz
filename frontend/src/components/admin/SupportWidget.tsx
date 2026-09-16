@@ -17,15 +17,26 @@
  */
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { LuHeadset, LuSend, LuX, LuChevronLeft } from "react-icons/lu";
+import {
+  LuHeadset,
+  LuSend,
+  LuSparkles,
+  LuX,
+  LuChevronLeft,
+} from "react-icons/lu";
 
 import { api, API_URL } from "@/lib/api";
-import { formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatDateTime, formatTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/client";
 import { useAdminT } from "@/lib/i18n/admin";
 import { loadHelp, type HelpArticle } from "@/lib/help/articles";
 import { searchHelp } from "@/lib/help/search";
-import type { SupportMessage, SupportThread } from "@/lib/types";
+import type {
+  AdvisorAnswer,
+  AdvisorState,
+  SupportMessage,
+  SupportThread,
+} from "@/lib/types";
 
 export default function SupportWidget() {
   const t = useAdminT();
@@ -73,6 +84,13 @@ export default function SupportWidget() {
   // badge has to survive the list being reloaded — and it is the only thing on
   // screen when the widget is shut.
   const [unread, setUnread] = useState(0);
+  // ⚠️ **Two panes, and the advisor is not a mode of the operator chat.** A
+  // business question ("nega tushum tushdi?") sent into the support queue puts a
+  // person in front of something the restaurant's own figures already answer —
+  // and the queue fills with reports while a real fault waits behind them. The
+  // two also fail differently: an operator is coming either way, the advisor
+  // either answers or refuses.
+  const [pane, setPane] = useState<"help" | "advisor">("help");
 
   const bottom = useRef<HTMLDivElement>(null);
   const socket = useRef<WebSocket | null>(null);
@@ -288,7 +306,27 @@ export default function SupportWidget() {
             </div>
           </header>
 
-          {active === null ? (
+          <div className="flex gap-1 border-b border-line px-2 py-1.5">
+            {(["help", "advisor"] as const).map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setPane(id)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${
+                  pane === id
+                    ? "bg-raised text-ink"
+                    : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                {id === "advisor" && <LuSparkles className="h-3.5 w-3.5" />}
+                {id === "help" ? t.advisor.helpTab : t.advisor.tab}
+              </button>
+            ))}
+          </div>
+
+          {pane === "advisor" ? (
+            <AdvisorPane />
+          ) : active === null ? (
             <div className="flex-1 overflow-y-auto p-3">
               <input
                 value={ask}
@@ -467,6 +505,7 @@ export default function SupportWidget() {
             </div>
           )}
 
+          {pane === "help" && (
           <div className="border-t border-line p-3">
             {failed && (
               <p className="pb-2 text-xs text-rose-600">{t.support.failed}</p>
@@ -498,12 +537,179 @@ export default function SupportWidget() {
               </button>
             </div>
           </div>
+          )}
         </div>
       )}
     </>
   );
 }
 
+
+/** The owner's own questions, answered from the restaurant's own figures.
+ *
+ *  ⚠️ **The conversation lives here and nowhere else.** It is one person's
+ *  screen and it is worth nothing tomorrow; a stored thread would be a second
+ *  copy of the same words, and the server would then have to decide whose it
+ *  was. The last turns travel with each question — the server keeps four,
+ *  because every earlier one is tokens paid for again.
+ *
+ *  ⚠️ **Five outcomes and only one is an answer** (not entitled, capped, engine
+ *  error, refusal, answer). Each says which: "nothing happened" is the one
+ *  response an owner reads as the panel being broken. */
+function AdvisorPane() {
+  const t = useAdminT();
+  const [state, setState] = useState<AdvisorState | null>(null);
+  const [turns, setTurns] = useState<{ question: string; answer: string }[]>([]);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [asOf, setAsOf] = useState("");
+  const end = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api
+      .advisorState()
+      .then(setState)
+      .catch(() => setState({ on: false }));
+  }, []);
+
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" });
+  }, [turns, busy]);
+
+  async function ask(question: string) {
+    const text = question.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    setNote("");
+    setDraft("");
+    try {
+      const res: AdvisorAnswer = await api.advisorAsk({
+        question: text,
+        // ⚠️ Sent as question/answer pairs rather than as a transcript: the
+        // server caps the count, and a flat transcript would make "how many
+        // turns is this" a second thing to agree about.
+        history: turns,
+      });
+      if (res.entitled === false) {
+        setNote(t.advisor.locked);
+      } else if (res.capped) {
+        setNote(t.advisor.capped(res.cap ?? 0));
+      } else if (res.error || !res.answer) {
+        setNote(res.error || t.advisor.failed);
+      } else {
+        setTurns((prev) => [...prev, { question: text, answer: res.answer! }]);
+        if (res.asOf) setAsOf(res.asOf);
+      }
+    } catch {
+      setNote(t.advisor.failed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // A restaurant with no platform behind it has no assistant at all, and a box
+  // that always fails is worse than no box.
+  if (state && !state.on) {
+    return (
+      <div className="flex-1 overflow-y-auto p-4">
+        <p className="text-sm text-ink-muted">{t.advisor.onlyHere}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        {turns.length === 0 && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-soft">{t.advisor.lead}</p>
+            {/* ⚠️ **Suggestions, because an empty chat box is a box nobody
+                types in.** It gives no clue what it can answer, so the first
+                question is usually one it has to refuse — and a refusal on the
+                first try is what teaches somebody the feature does not work. */}
+            <p className="pt-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              {t.advisor.examplesTitle}
+            </p>
+            <ul className="space-y-1.5">
+              {t.advisor.examples.map((q) => (
+                <li key={q}>
+                  <button
+                    type="button"
+                    onClick={() => void ask(q)}
+                    className="w-full rounded-xl border border-line px-3 py-2 text-left text-sm text-ink hover:bg-raised"
+                  >
+                    {q}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-ink-muted">{t.advisor.onlyHere}</p>
+          </div>
+        )}
+
+        {turns.map((turn, i) => (
+          <Fragment key={i}>
+            <div className="flex justify-end">
+              <div className="max-w-[85%] rounded-2xl bg-brand px-3 py-2 text-sm leading-relaxed text-white">
+                {turn.question}
+              </div>
+            </div>
+            <div className="flex">
+              <div className="max-w-[90%] rounded-2xl border border-line bg-raised px-3 py-2 text-sm leading-relaxed text-ink">
+                <p className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold text-ink-muted">
+                  <LuSparkles className="h-3 w-3" />
+                  {t.advisor.title}
+                </p>
+                <p className="whitespace-pre-wrap break-words">{turn.answer}</p>
+              </div>
+            </div>
+          </Fragment>
+        ))}
+
+        {busy && <p className="text-xs text-ink-muted">{t.advisor.thinking}</p>}
+        {note && <p className="text-sm text-rose-600">{note}</p>}
+        {/* ⚠️ When the figures were taken, once and at the bottom. The advice is
+            "as of this morning" — a snapshot built once a day so that the same
+            question does not get two answers before lunch — and an owner who is
+            not told that reads a stale figure as a wrong one. */}
+        {asOf && turns.length > 0 && (
+          <p className="pt-1 text-center text-[11px] text-ink-muted">
+            {t.advisor.asOf(formatDateTime(asOf))}
+          </p>
+        )}
+        <div ref={end} />
+      </div>
+
+      <div className="border-t border-line p-3">
+        <div className="flex items-end gap-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void ask(draft);
+              }
+            }}
+            rows={2}
+            placeholder={t.advisor.placeholder}
+            className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-line bg-page px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand"
+          />
+          <button
+            type="button"
+            onClick={() => void ask(draft)}
+            disabled={busy || !draft.trim()}
+            aria-label={t.advisor.send}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand text-white disabled:opacity-40"
+          >
+            <LuSend className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** Whether two moments fall on the same calendar day, in the reader's own zone.
  *

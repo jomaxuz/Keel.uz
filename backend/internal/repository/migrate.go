@@ -569,6 +569,41 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ⚠️ **One snapshot per day per lens, for the reason above one line down:**
+	// it is written with an upsert, and two managers opening the advisor in the
+	// same second both miss and both build. Without the index `FindOne` would
+	// then pick between two pictures of the same morning, and the owner meets
+	// that as the advice changing between two questions.
+	if _, err := s.AdvisorSnapshots.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "day", Value: 1}, {Key: "scope", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
+	// The answers already paid for. ⚠️ Unique on the key, which already carries
+	// the day, the lens, the language and the normalised question — a second row
+	// for one key is a second call to a paid API that answered the same thing.
+	if _, err := s.AdvisorAnswers.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "key", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
+	// ⚠️ **Swept, because an answer is worth nothing the day after it was
+	// given.** The figures behind it are rebuilt every morning, so a cached
+	// sentence about yesterday's takings would be answered to a question asked
+	// today — right words, wrong day, and nothing on the screen to say so. A TTL
+	// rather than a job: Mongo already runs one, and a sweeper of ours would be
+	// a goroutine to leak.
+	if _, err := s.AdvisorAnswers.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "madeAt", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(48 * 3600),
+	}); err != nil {
+		return err
+	}
+
 	// ⚠️ **One row per phone, enforced rather than assumed** — the same lesson
 	// the push endpoint above already taught. The app re-registers on every
 	// launch, because the token is re-read from the operating system and can be

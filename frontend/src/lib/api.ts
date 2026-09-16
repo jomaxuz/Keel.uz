@@ -4,6 +4,8 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  AdvisorAnswer,
+  AdvisorState,
   AIQuota,
   AlertSettings,
   BriefingCard,
@@ -2934,6 +2936,32 @@ export const api = {
    *  different business. */
   adminInsights: () =>
     request<BriefingResponse>("/admin/insights", { auth: true, scope: true }),
+
+  /** What the advisor tab can talk about, before anybody types anything.
+   *
+   *  ⚠️ **Scoped, like the briefing and for the reason written above it**: the
+   *  figures behind an answer belong to one brand and one branch, and an
+   *  unscoped call would have the assistant discussing a restaurant that is not
+   *  on screen — with true numbers, from another business. */
+  advisorState: () =>
+    request<AdvisorState>("/admin/advisor/state", { auth: true, scope: true }),
+
+  /** One question about this restaurant, answered from this morning's figures.
+   *
+   *  ⚠️ **The conversation travels from here rather than living on the
+   *  server.** It is one person's own screen, it is worth nothing tomorrow, and
+   *  a stored thread would be a second copy of the same words — the server caps
+   *  it at four turns because every earlier turn is tokens paid for again. */
+  advisorAsk: (body: {
+    question: string;
+    history?: { question: string; answer: string }[];
+  }) =>
+    request<AdvisorAnswer>("/admin/advisor", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
 
   /** Three proposed messages for one segment. Proposed only — nothing is sent
    *  until the owner presses send on the campaign screen. */

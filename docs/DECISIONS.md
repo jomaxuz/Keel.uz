@@ -2285,6 +2285,62 @@ bo'lsa raqam bilan ("Tushum o'tgan haftadan 18% past"), va misollar bilan
 ko'rsatilgan. Tana esa uch bo'lakli: nima bo'lyapti → ehtimoliy sabab (faqat
 berilgan raqamlardan, hukm emas) → bugun qilinadigan bitta ish.
 
+### AI maslahatchi: eganing o'z savollari (`advisor`)
+
+Brifing **nimaga qarash kerakligini** o'zi tanlaydi; bu esa eganing **o'z
+savoliga** javob beradi. Ikkalasi bitta chok ustida turadi va sabab ham bitta:
+**raqamlar restoran serverida hisoblanadi, modeldan faqat so'zlar keladi.**
+Modeldan raqam so'rash ularni ba'zan noto'g'ri qiladi, va bitta noto'g'ri raqamni
+tutgan ega qolgan to'rttasiga ham ishonmay qo'yadi.
+
+- **Yordam oynasining ikkinchi tabi** (`/admin` dagi widget). ⚠️ **Operator
+  navbatiga tushmaydi**: «nega tushum tushdi?» tirik operatorga borsa, navbat
+  restoranning o'z hisobotlari bilan to'ladi va haqiqiy nosozlik kutib qoladi.
+  FAQ yordamchisi (`supportai.go`) o'z joyida qoladi — u faqat maqolalardan
+  javob beradi va operatorga uzatadi.
+- ⚠️ **Faqat shu restoran va Keel haqida.** Qolgan hamma narsa rad etiladi va
+  rad etish — **to'liq huquqli javob** (`refused`). Sababi primlik emas:
+  paneldagi umumiy chat qutisi chegarasi yo'q qo'llab-quvvatlash yuki, va u
+  birinchi marta soliq qonunini ishonch bilan tushuntirib bergan kuni oqibat
+  bizniki bo'ladi.
+- ⚠️ **Mijoz konsolga chiqmaydi, lekin javob aniq bo'ladi.** Yo'qolgan doimiy
+  mijoz `c3` bo'lib ketadi (buyurtmalar soni, summa, necha kun); model `c3` deb
+  yozadi, **restoran serveri** esa brauzerga uzatishdan oldin ismni qaytarib
+  qo'yadi (`resolveAliases`). Ya'ni «shu to'rttasiga birinchi qo'ng'iroq
+  qiling» deyish mumkin, platformada esa hech qanday mijozlar ro'yxati yo'q.
+  ⚠️ Almashtirish **uzunidan boshlanadi**: `c1` — `c12` ning prefiksi, va
+  qisqasidan boshlangan almashtirish «c12» ni «Dilnoza2» ga aylantiradi —
+  hech kimga tegishli bo'lmagan ism, mukammal o'qiladigan jumla ichida.
+- **Xarajat uch qavatli keshda ushlanadi:**
+  1. **Surat kuniga bir marta** (`advisor_snapshot`, `(day, scope)` unique) —
+     faktlar + biznes profili (nechta filial, taom, xodim, yetkazib beruvchi,
+     ombor, ish vaqtlari, kartasi yo'q taomlar soni). ⚠️ Narxdan tashqari sabab:
+     tushlikkacha bir savolni ikki marta bergan ega ikki xil javob olsa,
+     ikkalasiga ham ishonmaydi. Maslahat — «bugungi ertalabki holat», va ekran
+     shuni yozadi.
+  2. **Javob keshi** (`advisor_answer`, kalit = kun + linza + til + **normal
+     holatga keltirilgan savol**). Ikki menejerning bir ertalabdagi «nega tushum
+     tushdi?» si — bitta savol. ⚠️ **Davomi bo'lgan savol keshlanmaydi**:
+     «va yetkazib berishda-chi?» o'z kontekstini takrorlamaydi, ya'ni bir xil
+     so'zli ikki davom — ikki xil savol. ⚠️ Rad etish ham keshlanmaydi.
+     TTL 48 soat: kechagi raqamlar haqidagi jumla bugungi savolga javob bo'lib
+     qolardi — so'zlar to'g'ri, kun noto'g'ri.
+  3. **Tizim prompti bayt-bayt bir xil** (1 soatlik prompt-kesh) — brifingdagi
+     bilan bir qoida: ichiga restoran nomi yoki sana kirsa, har chaqiruv keshni
+     o'tkazib yuboradi.
+- **Limit — hisob bo'limidagi o'sha limit** (`BriefingLog`, `AIDailyCapWith`).
+  ⚠️ Ataylab bitta hisoblagich: ega «AI yordamchi» sotib oladi, «brifing va
+  alohida maslahatchi» emas — ikki hisoblagich hisob sahifasida ikki raqam va
+  «qaysi biri tugadi?» degan suhbat bo'lardi.
+- **Ega va menejer**, handler ichida tekshiriladi. ⚠️ Panel gate'iga
+  tayanilmaydi: bu endpoint butun biznesni o'qiydi (tushum, oylik, isrof), va
+  operatorning ruxsat ro'yxatiga bir kun qo'shilgan qator yagona to'siq bo'lib
+  qolmasligi kerak.
+- ⚠️ **Modul jadvalida yo'q** (`modulegate.go`): AI — platforma tekshiradigan
+  huquq (tarif, qo'shimcha, kunlik limit), kassa bilan sotiladigan bo'lim emas.
+  Ikki joyda tekshirilsa, kelishmagan kunda ega to'lab turgan narsasini «sotib
+  olmagansiz» degan javob bilan uchratadi.
+
 ### Sozlanadigan KPI dashboard
 - `admin_user.dashboard {hidden, order}` — **har admin uchun alohida**, kompaniya
   uchun emas: ega tushum va o'rtacha chekka qaraydi, filial menejeri nima qabul

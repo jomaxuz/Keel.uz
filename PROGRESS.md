@@ -14795,6 +14795,35 @@ Tekshiruv: backend build + vet + `go test ./internal/handlers ./internal/models
 tur yoziladi-yu yuborilmaydi, yoqilgani yuboriladi, sinov o'chirilganga ham
 boradi; frontend `tsc` + 271 test yashil.
 
+## 2026-09-16 (2) — Yordam oynasi: aloqa tuzatildi, vaqt qo'shildi, AI maslahatchi
+
+**1. «Aloqa yo'q — qayta ulanmoqda» ikkita xato edi.** `nginx/restaurant.conf`
+`/api/` ni `Connection ""` bilan uzatardi va `Upgrade` qo'ymasdi — ya'ni
+DEPLOY.md ning A variantidagi har bir o'rnatmada WebSocket **hech qachon**
+ko'tarilmagan. Endi support socketining o'z `location` i bor (`map
+$http_upgrade`, buferlash o'chiq, o'qish taymauti 40 s'lik long-polldan uzun).
+keel.uz yo'li ta'sirlanmagan — u yerda Caddy `/api/*` ni konteynerga to'g'ridan
+uzatadi. Widget tomonida esa «hali ulanmadim» va «aloqa uzildi» bitta jumla
+edi: endi uchta holat, va «aloqa yo'q» faqat urinish **haqiqatan** yiqilgach.
+
+**2. Chatda vaqt yo'q edi** — bir hafta oldingi javob hozirgidek o'qilardi.
+Telegramdagi shakl: pufak ichida soat, kun o'zgarganda sana ajratkichi, ro'yxatda
+esa har suhbat yonida kun. ⚠️ Sana **mahalliy kun bo'yicha solishtiriladi**,
+timestampdan kesilmaydi (UTC — soat 05:00 dan keyingi hammasi kechaga tushardi).
+
+**3. AI maslahatchi** — yordam oynasining ikkinchi tabi (`/admin/advisor`).
+Ega o'z raqamlari bo'yicha savol beradi; javob **brifing bilan bitta chokda**:
+faktlarni server hisoblaydi, modeldan faqat so'z keladi. Faqat shu restoran va
+Keel haqida javob beradi, qolganini rad etadi. Mijozlar **anonim ID** bilan
+ketadi (`c3`), ismni restoran serveri javobga qaytarib qo'yadi — konsolda
+mijozlar ro'yxati yo'q. Xarajat: kunlik surat + javob keshi (48 soat TTL) +
+bayt-bayt bir xil tizim prompti; limit — **hisob bo'limidagi o'sha limit**.
+
+Tekshiruv: `go build ./...` + `go vet` ikkala modulda yashil; yangi
+`advisor_test.go` (kesh kaliti normalizatsiyasi, `c1`/`c12` almashtirish
+tartibi); frontend `tsc` + 271 test yashil.
+⏳ Jonli modelga hali ulanib sinalmagan (kalit prod konsolda).
+
 ## 2026-09-14 (9) — Nazorat xabarlari: yana beshta tur, har biri ishlaydi
 
 Sozlamalardagi ro'yxat 8 tadan 13 taga ko'paydi; har yangi tur haqiqiy
