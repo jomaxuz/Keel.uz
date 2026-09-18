@@ -5,7 +5,7 @@ guruhlari, konvensiyalar va butun kodga tegadigan tuzoqlar. Har bir yangi
 sessiyada shu fayl o'qiladi, shuning uchun u **qisqa qoladi**.
 
 - Har bir xususiyatning o'z qarorlari va tuzoqlari → **`docs/DECISIONS.md`**
-  (§11 dagi jadval qaysi bo'lim kerakligini aytadi; **butunlay o'qilmaydi**).
+  (§11 kerakli bo'limni `grep` bilan topishni aytadi; **butunlay o'qilmaydi**).
 - Kunlik ish jurnali → **`PROGRESS.md`**.
 
 ---
@@ -784,75 +784,16 @@ sed -n '/^### Stop list/,/^### /p' docs/DECISIONS.md
 Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 "bir marta bo'lib o'tgan xato" ustiga qurilgan, va koddan ko'rinmaydi.
 
-**Qayerda nima bor:**
+⚠️ **Sarlavhalar ro'yxati shu faylda takrorlanmaydi** — u yuqoridagi `grep`
+bilan olinadi. Ilgari bu yerda "ish → bo'lim" jadvali turardi: `grep` bergan
+ro'yxatning nusxasi, sarlavha nomlari bilan bir xil, va har yangi bo'limda
+qo'lda yangilanishi kerak edi. Nusxa esa ajraydi — va ajragani aynan shu
+faylda, ya'ni har sessiyada o'qiladigan joyda qolardi.
 
-| Ish qayerga tegsa | `docs/DECISIONS.md` dagi bo'lim |
-|---|---|
-| Brend / filial qamrovi, chas pik | Brend va filial · Chas pik |
-| Buyurtma oqimi, holatlar, manzil | Buyurtmalar oqimi · Buyurtma manzilini xaritada tuzatish · Oldindan buyurtma |
-| Menyu, qidiruv, variant, combo, izoh | Menyu qidiruvi va filtrlar · Menyu variantlari · Ulushlab sotish · Combo · Taomga izoh va bekor qilish sababi |
-| Narx, chegirma, ball | Chegirmalar · Loyalty |
-| Stol: QR, bron, zal | QR menyu · Stol bron qilish · Kassa (POS) va zal |
-| Kassa to'lov tugmalari, to'lov oynasi | Kassadagi to'lov tugmalari: nom egasiniki, tur uchta |
-| Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
-| Ombor, tannarx, sanash | Tannarx va ombor |
-| Kamomad, sanoq topilmasi, javob | Kamomad-case: sanoq topgan narsa ish bo'lib qo'yiladi |
-| Xarid qarori, prognoz, kirim ritmi, muddat | Xarid qarori: qancha va qachongacha |
-| Kartasiz sotuv, qamrov, manfiy qoldiq | Ombor qamrovi: sotuvning qancha qismi kartalar bilan qoplangan |
-| Spisaniya, void, chek bekor, backfill | Spisaniya hujjati: chekka urilganda yoziladi |
-| Harakat hisoboti, partiya, kunlik sotuv | Harakat hisoboti nima uchun o'z jamiga yetmasdi |
-| Texkarta: zagotovka, taom kartasi | Texkarta o'z ekranida |
-| Bilim bazasi, yordam, screenshot | Bilim bazasi (keel.uz/help) |
-| Markaziy oshxona, tsex, partiya | Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati |
-| Markaziy sklad, jo'natma, nakladnoy, chop etish | Markaziy sklad va nakladnoy: filialga jo'natish |
-| Stop list (3 ro'yxat) | Stop list · Kassa buyurtmani qabul qildimi |
-| POS: iiko/Syrve/Poster/Clopos/r_keeper | POS integratsiyasi · Kassa buyurtmani qabul qildimi |
-| Onlayn to'lov, callback | Onlayn to'lov: Payme / Click / Uzum / ATMOS |
-| Kassada karta: QR skanerlash, bank terminali | Kassada karta: QR skanerlash (Click Pass / Uzum FastPay) |
-| Tez bosganda qotish, zoom, copy (kassa/zal/KDS/kiosk) | Kassa, zal, oshxona, kiosk: tez bosganda qotib qolish |
-| Kassa ekranlari: limit, qurilma ro'yxati, qaysi mashina | Kassa ekranlari ro'yxati: limit va qaysi mashina |
-| SMS, mijoz auth, admin parol | SMS provayderi · Mijoz auth · Admin parolini tiklash |
-| Telegram bot, mini app, til | Telegram bot va mini app · Bot javob berishi (webhook) · Mini app'da til |
-| Telefon, call-markaz, ATS | Call-markaz · Telefoniya: onlinePBX |
-| CRM, segment, kampaniya, push, upsell | CRM · Segmentlarga xabar yuborish · RFM · Web push · Upsell |
-| Kuryer, tashqi yetkazish | Kuryerlar va rollar · Kuryer PWA · Tashqi yetkazish xizmatlari · Joylashuvga ruxsat |
-| Ishchi, KDS, davomat, kiosk | KDS · Har bir taomning holati · Ishchilar davomati · QR bilan ishga kirish |
-| Bozorchi, zakupshik, podotchet | Bozorlik: bozorchi ilovadan yozadi (+ Bozorlik ro'yxati · Podotchet) |
-| So'rovni yo'naltirish, skladdan chiqarish, qabul qilish | So'rov ikkiga bo'linadi · Uchinchi holat · Skladdan chiqarish · «Bozorlik yoza oladi» |
-| Seyf, pul qayerda, naqd nazorati | Seyf: pul jismonan qayerda |
-| Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
-| Panel roli: operator, omborchi | Panelning cheklangan rollari: ombor va operator |
-| TV ekran, Android TV, kontent | TV ekranlar: ulash, uzish va sanash · TV kontent: playlist, muddat va oflayn · TV tablo: qaysi raqam pishmoqda, qaysisi tayyor |
-| AI yordamchi, ertalabki brifing | AI yordamchi: ertalabki brifing |
-| AI maslahatchi, savol-javob, kesh, anonim mijoz | AI maslahatchi: eganing o'z savollari |
-| Reklama, Meta ads, targetolog, kampaniya rejasi | Reklama (AI targetolog): reja, variantlar va Meta |
-| Qo'llab-quvvatlash, chat, ticket | Qo'llab-quvvatlash: chat va operator konsoli |
-| Xatolik hisoboti, crash, konsol reports | Xatolik hisobotlari: konsolga avtomatik tushadi |
-| Hisobot, Excel, grafik, dashboard | Hisobotlar va Excel eksporti · Hisobotlar: savdo/kanallar/jamoa · ABC/XYZ · Dashboard statistikasi · Sozlanadigan KPI dashboard · Grafiklar |
-| Yangi sahifa / komponent yozish | Dizayn tizimi · Tema (dark/light) · Ko'p tillilik · Til URL'lari · 404 va xatolik sahifalari · Admin ro'yxatlari |
-| Sayt ko'rinishi, matn, SEO, rasm | Sayt dizayni · Sayt matnlari · SEO va favicon · Rasmlar (`?w=`) · Tavsiya etilgan rasm o'lchamlari · Sayt konstruktori |
-| keel.uz landingi: qaysi bo'lim qayerda | Landing tuzilishi: nima bosh sahifada qoladi |
-| Xavfsizlik | Xavfsizlik: filial qamrovi / rate limit / JWT_SECRET · Mijozni o'chirish |
-| Xato xabari, server matni, tarjima | Server xabarlari ham uch tilda |
-| Keel konsoli, tenantlar, VPS | Konsol xodimlari · VPS resurslari · Buyurtma pulini bekor qilish · Mijozni o'chirish |
-| Hamkor, tavsiya, komissiya, varaqa | Hamkorlar: tashqi tavsiya va komissiya · Varaqa · O'sish ekranlari uch tilda |
-| Taklif xabari, sovuq yozish | Taklif matni |
-| SEO, sitemap, IndexNow, Google | Qidiruv tizimlari |
-| Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |
-| Didox (ЭСФ), 1C almashinuvi, buxgalteriya | Buxgalteriyaning ikki eshigi: Didox (ЭСФ) va 1C |
-| Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar · Markirovka: kirimda skanerlash · Markirovka telefonda: kamera bilan qabul |
-| Panel yon paneli: qaysi qator, qanday tartib, qanday nom | Panel navigatsiyasi biznes turiga qarab |
-| Biznes turi qo'shish: predikat, narx pog'onasi, namuna | Biznes turlari: pishiradigan peshtaxta va narx pog'onasi |
-| Yorliq, tsennik, ichki shtrix-kod | Yorliq: do'konning o'z shtrix-kodi va tsennigi |
-| Menyu importi, havoladan | Menyuni havoladan import qilish |
-| Boshqa POS'dan ko'chirish (iiko, Poster…) | Boshqa POS'dan ko'chirish |
-| Kesh, siqish, indeks, yuk | Yuk: nima siqiladi, nima keshlanadi |
-| Yangi install: nomi, namuna menyu | Birinchi profil: yangi install o'zini nima deb ataydi · Namuna menyu |
-| Restoranning o'z ilovasi, brendlash, build | Restoranning o'z ilovasi: bitta kod bazasi, har restoranga bitta build |
-| Uzum Tezkor, marketplace buyurtmasi | Uzum Tezkor: marketplace buyurtmani o'zi yuboradi |
-| Status sahifasi, uptime, rang | Status sahifasi: rang va qisqa uzilishlar |
-| Versiya: kim nimada, ko'tarish tugmasi, reliz | Versiya paneli: kim nima deb turibdi, va uni ko'tarish |
-| Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
+⚠️ **Bitta ish ko'pincha bir nechta bo'limga tegadi.** Yangi sahifa yozish
+dizayn tizimiga ham, temaga ham, uch tilga ham, xatolik sahifalariga ham
+tegishli. Shuning uchun `grep` natijasidan **bittasini** tanlab
+to'xtamang — ishga tegadigan har bir sarlavhani o'qing.
 
 ### Qo'shni hujjatlar
 - **`PROGRESS.md`** — ish jurnali (har katta bosqichdan keyin yangilanadi).
@@ -879,7 +820,8 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 
 ### Yangi qaror qayerga yoziladi
 - **Xususiyat qarori, tuzoq, "nega shunday"** → `docs/DECISIONS.md`, tegishli
-  `###` bo'limiga (yangi bo'lim bo'lsa — yuqoridagi jadvalga bir qator).
+  `###` bo'limiga. Yangi bo'lim qo'shsangiz shu faylga hech nima yozilmaydi —
+  sarlavha `grep` bilan topiladi (§11).
 - **Butun loyihaga tegadigan** (model, API konvensiyasi, umumiy tuzoq,
   branch qoidasi) → shu fayl.
 - ⚠️ **Ikkalasiga ham emas**: takrorlangan qoida birinchi tahrirda ajraydi va
