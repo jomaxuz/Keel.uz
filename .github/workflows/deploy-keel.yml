@@ -19,6 +19,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # ⚠️ **Reliz ishi shu orqali chaqiradi** (`release.yml`). Kerak, chunki
+  # GitHub o'zining `GITHUB_TOKEN` i bilan qilingan push uchun `on: push` ni
+  # **ishga tushirmaydi** — ya'ni versiyani ko'targan commit yuqoridagi
+  # qoidaga tushmaydi va deploy o'z-o'zidan ketmaydi.
+  workflow_call:
 
 # Ketma-ket push'lar bir-birining ustiga chiqmasin: oxirgisi kutib turadi.
 concurrency:

@@ -8333,3 +8333,94 @@ yaxshiroq, chunki u nimani bilishga haqli ekani boshqacha.
 - Bosqichlar, Meta verifikatsiyasi va o'qilgan API shartnomalari —
   `docs/reklama-reja.md` va `docs/vendor/meta-marketing.md`. P0 (reja va
   variantlar) **Meta'siz ishlaydi** va review kutilayotganda sotiladi.
+
+### Versiya paneli: kim nima deb turibdi, va uni ko'tarish
+
+`control/internal/handlers/release.go` · `keel-site/src/components/VersionPanel.tsx`
+· `.github/workflows/release.yml` · Konsol → **Server holati**
+
+Keel'ning har bir qismi **o'z konstantasini** olib yuradi (nega — `version.go`).
+Bu to'g'ri, va ayni paytda qismlar **jimgina ajrab ketishi** mumkin degani: ajragani
+esa hech bir qismning o'z ichidan ko'rinmaydi. Panel shuning uchun bor.
+
+**Har bir qator — o'sha qismning o'zi aytgan gap**, repozitoriyning gapi emas:
+
+| Qator | Qayerdan |
+|---|---|
+| Versiya (yuqorida) | So'rovga javob berayotgan binardagi konstanta |
+| Saytning bundle'i | Brauzerdagi `@/lib/version` — buni **hech bir server ayta olmaydi** |
+| Restoran serverlari | Har ishlab turgan konteynerning o'z `/health` i |
+| Windows kassa | Kassalarga **taklif qilinayotgan** `latest.json` |
+
+- ⚠️ **Mazmuni raqam emas, ajralib qolgan qism.** «Image qurildi, konteyner
+  almashmadi» bu platformada ikki marta bo'lgan: commit to'g'ri, konteynerlar
+  sog'lom, tekshiruvlar yashil, kod eski. Bitta raqam chizadigan panel o'sha
+  butun davr mobaynida yashil turardi. `12 ta v0.2.1 · 3 ta v0.2.0` — bu o'sha
+  nosozlikning o'zi, aytilgan holda.
+- ⚠️ **Sayt bundle'i brauzerda solishtiriladi.** Next konteyneri almashmagan
+  bo'lsa, eskirgan narsa — so'rayotgan sahifaning o'zi, va buni faqat o'zi
+  ayta oladi.
+- ⚠️ **Kassaning raqami «v» siz solishtiriladi.** U Windows xohlagani uchun
+  yalang'och (`set-version.sh`), va ikki shaklni to'g'ridan-to'g'ri
+  solishtirish har kassani **mangu orqada** deb ko'rsatardi — butun vazifasi
+  orqada qolganni ko'rsatish bo'lgan panelda.
+- ⚠️ **Uch holat, ikkita emas**: `orqada` — tuzatiladigan narsa; `noma'lum` —
+  so'rab bo'lmagan narsa (noutbukda Docker soketi yo'q, reliz papkasi
+  sozlanmagan). Ikkinchisini birinchisi kabi bo'yash sog'lom ekranga doimiy
+  sariq qator qo'yadi, undan keyin esa panel o'qilmay qo'yadi.
+- ⚠️ **Manba `latest.json`, `desktop/version.go` emas.** Ahamiyatlisi —
+  peshtaxtadagi monoblokka **nima taklif qilinayotgani**. Manba fayl esa
+  keyingi build nima deyishini aytadi, va ikkisi versiya ko'tarilgandan
+  keyin, o'rnatuvchi chiqarilgunga qadar farq qiladi — ya'ni aynan «nega
+  kassalar yangilanmadi?» so'raladigan oynada.
+- Restoran konteynerlari **HTTP orqali** so'raladi, image tegidan o'qilmaydi:
+  teg konteyner **nimadan yaratilishi kerakligini** aytadi, `/health` esa
+  jarayon **nimani sotayotganini**. Rollout yurmagan paytda ikkisi farq qiladi.
+- So'rov **bir daqiqaga keshlanadi** va har mijozga bitta inspect + bitta
+  HTTP turadi. Panel stol ustida kun bo'yi ochiq turadi; keshsiz ellikta
+  restoran haftada bir marta o'zgaradigan javob uchun daqiqasiga ikki marta
+  so'roqqa tutilardi.
+
+**Ko'tarish — sozlama emas, reliz.** Versiya yettita artefaktga kompilyatsiya
+qilingan konstanta; bu yerdagi hech nima ishlab turgan jarayonning raqamini
+o'zgartira olmaydi. Tugma GitHub'dan `release.yml` ni yuritishni so'raydi: u
+`scripts/set-version.sh` bilan yettita faylni yozadi, testni yuritadi, push
+qiladi va deploy'ni **o'zi chaqiradi**. Raqam bu yerda bir necha daqiqadan
+keyin, javob berayotgan konteyner **boshqa build** bo'lganda o'zgaradi.
+
+- ⚠️ **Konsolda `contents` emas, `actions` tokeni turadi.** U `main` da
+  **turgan** ishni yurita oladi, unga yangi kod qo'ya olmaydi. Konsolga kirgan
+  odam deploy'ni qayta yurita oladi — bu bezovtalik; o'z kodini chiqara olsa —
+  bu platformaning o'zi.
+- ⚠️ **Versiyani konsol yozmaydi.** Konsolga faqat raqam ma'lum; «qaysi yettita
+  fayl va qanday» degani repozitoriyda, testi yonida qoladi. Aks holda qoida
+  ikki joyda bo'lardi va birinchi ko'chgan faylda ajrardi.
+- ⚠️ **Deploy reliz ishining ichidan chaqiriladi** (`workflow_call`), `on:
+  push` orqali emas: GitHub o'zining `GITHUB_TOKEN` i bilan qilingan push uchun
+  workflow **ishga tushirmaydi**. Bu qo'riq bo'lmasa versiya repozitoriyda
+  ko'tarilardi, serverda esa hech nima o'zgarmasdi — hech qanday xato
+  chiqarmay, konsolda esa reliz mangu «ketmoqda» bo'lib turardi.
+- ⚠️ **Holat Mongo'da, xotirada emas.** Reliz uni boshlagan jarayonni
+  **o'ldiradi**; xotiradagi holat aynan ko'rsatishga arziydigan uch-sakkiz
+  daqiqada yo'qolardi.
+- ⚠️ **«Bajarildi» = ishlab turgan konstanta so'ralganiga teng**, CI yashil
+  bo'lgani emas. Yashil workflow + almashmagan konteyner — bu platforma
+  allaqachon chiqargan nosozlik, va CI'ga ishongan panel u bilan
+  **rozi bo'lardi**.
+- ⚠️ **«Yiqildi» emas, «yetib kelmadi».** Yarim soatdan keyin bu jarayon build
+  yiqildimi, deploy yiqildimi yoki kimdir uni sekin muvaffaqiyat bilan tomosha
+  qilyaptimi — ayta olmaydi. «Yiqildi» odamni buzilmagan narsani tuzatishga
+  yuboradi.
+- ⚠️ **Ikkinchi reliz saqlangan qator bilan to'xtatiladi, mutex bilan emas**:
+  mutexni ushlab turadigan jarayon — reliz o'ldirmoqchi bo'lgan jarayon. Ikki
+  daqiqadan keyingi ikkinchi bosish yangi konteynerni bo'sh qulf bilan
+  uchratardi.
+- ⚠️ **Ruxsat `provision` emas, alohida `release` — faqat ega.** Qo'shnisi bitta
+  mijozning konteynerini, ataylab tanlangan holda qayta quradi; bu esa
+  hammasini birdan, push'dan keyin hech kim qaramagan koddan.
+- Tugmalar **raqamni** yozadi («v0.2.1 gacha»), qadam nomini emas: birinchisi
+  qaror, ikkinchisi izlab topiladigan narsa.
+
+Sozlash: `KEEL_RELEASE_TOKEN` (fine-grained PAT, faqat **Actions: read and
+write**) va `KEEL_RELEASE_REPO` (`egasi/repo`) — `.env` da. Bo'sh bo'lsa
+tugmalar chiqmaydi, qolgan hamma versiya baribir o'qiladi.

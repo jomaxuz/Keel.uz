@@ -19,6 +19,11 @@ package handlers
 // own schedule; tying them together would mean redeploying the console to
 // publish a till fix. `TILL_RELEASE_DIR` holds `latest.json` beside the
 // installer it names.
+//
+// ⚠️ The directory is read from the config rather than from the environment at
+// each call, because the console's version panel reads the same manifest to
+// report what the tills are being offered — and a panel and a till disagreeing
+// about where the release lives is the one failure neither screen could show.
 
 import (
 	"encoding/json"
@@ -27,6 +32,12 @@ import (
 	"path/filepath"
 	"strings"
 )
+
+// tillReleaseDir is where a release of the till is published. Empty means no
+// release has been configured on this deployment.
+func (h *Handler) tillReleaseDir() string {
+	return strings.TrimSpace(h.Cfg.TillReleaseDir)
+}
 
 // tillRelease is what a monoblock is told. Deliberately small: anything else it
 // might want, it can ask for after it has decided to update.
@@ -52,7 +63,7 @@ type tillRelease struct {
 
 // TillRelease serves the manifest a paired till polls.
 func (h *Handler) TillRelease(w http.ResponseWriter, r *http.Request) {
-	dir := strings.TrimSpace(os.Getenv("TILL_RELEASE_DIR"))
+	dir := h.tillReleaseDir()
 	if dir == "" {
 		// ⚠️ **404, not an empty manifest.** "No release configured" and "you
 		// are up to date" are different facts, and a till told the second one
@@ -93,7 +104,7 @@ func (h *Handler) TillRelease(w http.ResponseWriter, r *http.Request) {
 // are published at once. A manifest pointing at a file somebody forgot to
 // upload is the failure this shape removes.
 func (h *Handler) TillDownload(w http.ResponseWriter, r *http.Request) {
-	dir := strings.TrimSpace(os.Getenv("TILL_RELEASE_DIR"))
+	dir := h.tillReleaseDir()
 	if dir == "" {
 		http.NotFound(w, r)
 		return

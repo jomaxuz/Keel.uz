@@ -10,7 +10,7 @@ import { consoleHome } from "./consoleHome";
 const none: Me["can"] = {
   allTenants: false, tenants: false, stats: false, overview: false, staff: false,
   log: false, provision: false, billing: false, support: false, partners: false,
-  seo: false, blog: false,
+  seo: false, blog: false, release: false,
 };
 
 // What `/me` answers for each role on the server (models.Permissions).

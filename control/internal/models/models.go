@@ -950,3 +950,54 @@ type AdsLog struct {
 	CachedTokens int64              `bson:"cachedTokens" json:"cachedTokens"`
 	OutputTokens int64              `bson:"outputTokens" json:"outputTokens"`
 }
+
+// ReleaseDocID is the fixed key of the single release document.
+//
+// One document, like the rollout beside it: what an operator needs is "is a
+// release in flight, and did the last one land". A history of releases would be
+// a list nobody reads — git already has it, with the changes attached.
+const ReleaseDocID = "current"
+
+// Release is one press of the console's version button.
+//
+// ⚠️ **Stored, because the thing it describes kills the process that started
+// it.** Raising the version rebuilds and replaces every container on the box,
+// including the control plane answering the request. State held in memory would
+// be lost at exactly the moment it is worth showing — the three to eight
+// minutes where the console is the only place that knows a release is happening
+// and the number on the screen has not moved yet.
+//
+// ⚠️ **It is not a record of what was deployed.** It records what was *asked
+// for*. What is deployed is the constant in the binary, and the two disagreeing
+// is the whole reason this row exists: `Status` is resolved by comparing them,
+// never by believing this row.
+type Release struct {
+	// The version asked for, "v0.2.1".
+	Version string `bson:"version" json:"version"`
+	// What was running when the button was pressed, so a finished release can
+	// say what it moved from — and so a release that landed on a third number
+	// is visible as one.
+	From string `bson:"from" json:"from"`
+	// patch | minor | major. Kept for the log; the number above is the fact.
+	Part string `bson:"part" json:"part"`
+
+	RequestedAt time.Time `bson:"requestedAt" json:"requestedAt"`
+	RequestedBy string    `bson:"requestedBy" json:"requestedBy"`
+
+	// "running" | "done" | "stale"
+	//
+	// ⚠️ **"stale", not "failed".** When the number has not moved after half an
+	// hour this process cannot tell whether the build failed, the deploy failed,
+	// or somebody is watching it succeed slowly — and a row that says "failed"
+	// about a release that is still running sends somebody to fix a thing that
+	// is not broken. It says what is actually known: it was asked for, and it
+	// has not arrived.
+	Status     string    `bson:"status" json:"status"`
+	FinishedAt time.Time `bson:"finishedAt,omitempty" json:"finishedAt,omitempty"`
+
+	// Where to watch it. ⚠️ The workflow's page rather than the run's: the
+	// dispatch call answers 204 with no body, so the run's own id is not
+	// something we are told — and a link built out of a guessed id is a link
+	// that 404s on the one screen somebody opens when they are worried.
+	RunURL string `bson:"runUrl,omitempty" json:"runUrl,omitempty"`
+}

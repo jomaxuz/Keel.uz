@@ -186,6 +186,14 @@ func CanSeePartners(role string) bool { return roleIn(role, RoleOwner) }
 // CanSeo reports whether this role runs search-engine settings. Owner only.
 func CanSeo(role string) bool { return roleIn(role, RoleOwner) }
 
+// CanRelease reports whether this role may raise the platform's version. Owner
+// only, and the narrowest gate in the console: one press rebuilds and replaces
+// every container on the box, including the ones taking every customer's orders.
+// "provision" would have been the obvious neighbour — it already recreates
+// containers — but it recreates *one customer's*, chosen deliberately, and this
+// recreates all of them at once from code nobody has looked at since the push.
+func CanRelease(role string) bool { return roleIn(role, RoleOwner) }
+
 // CanBlog reports whether this role writes the blog. Owner and admin.
 func CanBlog(role string) bool { return roleIn(role, RoleOwner, RoleAdmin) }
 
@@ -205,6 +213,7 @@ var Permissions = map[string]func(role string) bool{
 	"partners":   CanSeePartners,
 	"seo":        CanSeo,
 	"blog":       CanBlog,
+	"release":    CanRelease,
 }
 
 // Visit is a planned or completed call on a business.

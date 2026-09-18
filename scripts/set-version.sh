@@ -58,3 +58,4 @@ grep -hoE 'v[0-9]+\.[0-9]+\.[0-9]+' VERSION \
 
 echo
 echo "keyingi qadam: (cd control && go test ./internal/handlers/ -run SameVersion)"
+echo "yoki: konsol → Server holati → Versiya tugmalari (hammasini o'zi qiladi)"

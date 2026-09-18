@@ -187,6 +187,13 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// Frees what /system reports as reclaimable — orphaned images, stopped
 			// containers, build cache. Never volumes: see PruneDocker.
 			r.Post("/system/prune", h.need("provision", h.PruneDocker))
+			// What every part of Keel says it is running, beside the server's
+			// own figures. ⚠️ Readable by whoever can see the server panel it
+			// sits in — "which version is this?" is a support question, not a
+			// privileged one. Raising it is gated separately, inside the
+			// handler, where the reason fits.
+			r.Get("/version", h.need("provision", h.Version))
+			r.Post("/version/bump", h.BumpVersion)
 			r.Get("/tenants", h.need("tenants", h.ListTenants))
 			// What the assistant has cost, per tenant. Behind the console login
 			// with everything else here — it is our spending, not a customer's.

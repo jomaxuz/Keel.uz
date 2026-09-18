@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
+import VersionPanel from "@/components/VersionPanel";
 import {
   bytes,
   pruneDocker,
@@ -194,6 +195,14 @@ export default function ServerHealth() {
           </>
         )}
       </div>
+
+      {/* ---- what everything is running ----
+           In this card rather than its own, because the two questions arrive
+           together: somebody opens the server panel when something looks wrong,
+           and "which version is this?" is the one asked right after "is it
+           up?". Its own section would be a second place to look, which in
+           practice is a place nobody looks. */}
+      <VersionPanel />
 
       {/* A figure that could not be read is said, not defaulted to zero. */}
       {host.errors?.map((e) => (

@@ -1,0 +1,109 @@
+# Keel'ning versiyasini ko'tarib, jonli serverga chiqaradi.
+#
+# Konsoldagi «Versiya» panelidagi tugma shu ishni chaqiradi (GitHub REST:
+# `actions/workflows/release.yml/dispatches`). Qo'lda ham chaqirса bo'ladi —
+# Actions bo'limidan «Run workflow», versiyani yozib.
+#
+# ⚠️ **Versiyani konsol emas, shu ish yozadi.** Konsolga faqat raqam ma'lum;
+# etti faylni qanday yozish kerakligi `scripts/set-version.sh` da qoladi,
+# testi esa yonida. Aks holda qoida ikki joyda bo'lardi — biri repozitoriyda,
+# biri Go handlerida — va birinchi ko'chgan faylda ular ajrardi. Konsoldagi
+# token ham shu sababdan faqat **Actions** huquqiga ega: u `main` ga turgan
+# ishni yurita oladi, unga yangi kod qo'ya olmaydi.
+#
+# ⚠️ **Deploy shu yerdan chaqiriladi, `on: push` orqali emas.** GitHub o'zining
+# `GITHUB_TOKEN` i bilan qilingan push uchun yangi workflow **ishga
+# tushirmaydi** (cheksiz sikldan himoya). Ya'ni bu ish commit'ni push qilsa-yu
+# deploy'ni o'zi chaqirmasa, versiya repozitoriyda ko'tariladi va serverda
+# **hech nima o'zgarmaydi** — konsolda esa reliz mangu "ketmoqda" bo'lib
+# turadi. Hech qanday xato chiqmaydi: bu jimgina yarim ish.
+
+name: Reliz (versiyani ko'tarish)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Yangi versiya (vX.Y.Z)"
+        required: true
+        type: string
+
+# ⚠️ Ikki reliz bir-birining ustiga chiqmasin, va kutayotgani **bekor
+# qilinmasin**: bekor qilingan reliz push qilib ulgurgan-u deploy qilmagan
+# bo'lishi mumkin, va bu aynan yuqoridagi yarim holat.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    name: Versiyani yozish
+    runs-on: ubuntu-latest
+    permissions:
+      # Etti faylni yozib, `main` ga push qilish uchun. ⚠️ Ishning o'ziga
+      # berilgan, bir yugurish davomida amal qiladi — konsoldagi tokenda bu
+      # huquq yo'q.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          # Teg qo'yish va push uchun to'liq tarix shart emas, lekin sayoz
+          # checkout'da `git push` ba'zan rad etiladi; bir nechta commit
+          # yetarli va arzon.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: control/go.mod
+          cache-dependency-path: control/go.sum
+
+      - name: Versiyani yozish
+        # Skript formatni o'zi tekshiradi ("v.0.2" versiyaga o'xshaydi, to
+        # kimdir uni saralaguncha), shuning uchun bu yerda qayta
+        # tekshirilmaydi — ikki joydagi bir xil regex birinchi tahrirda ajraydi.
+        run: scripts/set-version.sh "${{ inputs.version }}"
+
+      - name: Etti joy ham ko'chdimi
+        # ⚠️ Push'dan **oldin**. Bu test skript tegmay qolgan faylni ushlaydi,
+        # va aynan shu fayl — `backend/desktop/version.go` — bir marta uzoq
+        # vaqt orqada qolgan: har kassa o'zini yangi deb bilib, tuzatish hech
+        # kimga yetib bormagan. Yiqilsa reliz shu yerda to'xtaydi, serverda
+        # emas.
+        working-directory: control
+        run: go test ./internal/handlers/ -run TestEveryPartOfKeelDeclaresTheSameVersion -v
+
+      - name: Commit va push
+        run: |
+          git config user.name "keel-release"
+          git config user.email "release@keel.uz"
+          # ⚠️ Hech nima o'zgarmagan bo'lishi mumkin: bir xil versiya ikkinchi
+          # marta so'ralgan. Bu xato emas — deploy baribir ketadi va o'sha
+          # commit'ni qayta quradi, ya'ni "qayta chiqarish" ishlaydi.
+          if git diff --quiet; then
+            echo "versiya allaqachon ${{ inputs.version }} — fayllar o'zgarmadi"
+          else
+            git add -A
+            git commit -m "release: ${{ inputs.version }}"
+            git push origin main
+          fi
+          # Teg — rollback uchun nomlangan nuqta. ⚠️ Mavjud bo'lsa qayta
+          # qo'yilmaydi: tegni ko'chirish tarixni jimgina qayta yozadi.
+          if git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "teg allaqachon bor"
+          else
+            git tag "${{ inputs.version }}"
+            git push origin "${{ inputs.version }}"
+          fi
+
+  deploy:
+    name: Serverga chiqarish
+    needs: bump
+    # ⚠️ Deploy'ning ta'rifi bitta joyda qoladi. Bu yerga `ssh` qadamini
+    # ko'chirish ikkita deploy bo'lardi, va ikkinchisi birinchisi
+    # o'zgarganda jimgina eskirardi.
+    uses: ./.github/workflows/deploy-keel.yml
+    secrets: inherit

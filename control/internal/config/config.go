@@ -90,8 +90,8 @@ type Config struct {
 	// Empty DockerSocket or CaddyAdmin switches the matching half off: the
 	// control plane still records tenants, it just does not start them. That is
 	// the mode it runs in on a laptop, and the mode it must not crash in.
-	DockerSocket  string
-	TenantImage   string
+	DockerSocket string
+	TenantImage  string
 	// ---- Building restaurants' Android apps ----
 	//
 	// ⚠️ **Empty AppBuildImage switches the whole feature off**, the way an
@@ -113,7 +113,7 @@ type Config struct {
 	AppFirebaseProject string
 	AppFirebaseAPIKey  string
 	AppFirebaseSender  string
-	DockerNetwork string
+	DockerNetwork      string
 	// What a tenant container should use to reach Mongo — a name on the shared
 	// network, not this service's own URI.
 	TenantMongoHost string
@@ -132,6 +132,31 @@ type Config struct {
 	// container renamed — and every one of those leaves the flag untouched
 	// while the copies quietly stop.
 	BackupPath string
+	// Where the Windows till's release manifest and installers sit, so the
+	// console can read what the tills are being offered. The same directory
+	// handlers.TillRelease serves from — read from one place so a panel
+	// reporting "0.2.0" and a till downloading 0.1.9 cannot both be right.
+	TillReleaseDir string
+
+	// ---- Raising the platform's version from the console ----
+	//
+	// ⚠️ **Actions, not contents.** The token this holds needs one permission
+	// on one repository: Actions, read and write. That is enough to start a
+	// workflow that is already on `main`, and not enough to put anything new
+	// there — so a console somebody gets into can re-run a deployment, which is
+	// a nuisance, rather than deploy code of their own, which is the platform.
+	//
+	// Empty switches the buttons off, the same way an absent DOCKER_SOCKET
+	// switches provisioning off: the panel still reports every version it can
+	// read, and says plainly that raising it is not wired up here. A laptop
+	// must not be one misconfigured field away from releasing.
+	GitHubToken string
+	// "owner/repo".
+	GitHubRepo string
+	// The workflow file that performs a release. A name rather than an id
+	// because the id changes when the file is recreated, and the failure that
+	// causes is a 404 from a button that used to work.
+	ReleaseWorkflow string
 	// Move every stale tenant onto the current image shortly after this
 	// process starts. On by default: a deploy recreates this container and
 	// nothing else knows a deploy happened, so left to a human the rollout
@@ -197,22 +222,27 @@ func Load() *Config {
 		WatermarkPrice:       atoi(get("WATERMARK_PRICE", "3000000"), 3_000_000),
 		TrialDays:            atoi(get("TRIAL_DAYS", "14"), 14),
 
-		DockerSocket:    get("DOCKER_SOCKET", ""),
-		AppBuildImage:   get("APP_BUILD_IMAGE", ""),
-		AppBuildRoot:    get("APP_BUILD_ROOT", "/opt/keel"),
-		AppBuildCache:   get("APP_BUILD_CACHE", "keel-gradle-cache"),
+		DockerSocket:  get("DOCKER_SOCKET", ""),
+		AppBuildImage: get("APP_BUILD_IMAGE", ""),
+		AppBuildRoot:  get("APP_BUILD_ROOT", "/opt/keel"),
+		AppBuildCache: get("APP_BUILD_CACHE", "keel-gradle-cache"),
 
 		AppMapsKey:         get("APP_MAPS_KEY", ""),
 		AppFirebaseProject: get("APP_FIREBASE_PROJECT", ""),
 		AppFirebaseAPIKey:  get("APP_FIREBASE_API_KEY", ""),
 		AppFirebaseSender:  get("APP_FIREBASE_SENDER", ""),
-		TenantImage:     get("TENANT_IMAGE", "keel-tenant:latest"),
-		DockerNetwork:   get("DOCKER_NETWORK", "keel"),
-		TenantMongoHost: get("TENANT_MONGO_HOST", "mongodb://mongo:27017"),
-		UploadsRoot:     get("UPLOADS_ROOT", "/srv/keel/tenants"),
-		DiskPath:        get("DISK_PATH", "/"),
-		BackupPath:      get("BACKUP_PATH", "/srv/keel/backups"),
-		RolloutOnBoot:   get("ROLLOUT_ON_BOOT", "1") != "0",
+		TenantImage:        get("TENANT_IMAGE", "keel-tenant:latest"),
+		DockerNetwork:      get("DOCKER_NETWORK", "keel"),
+		TenantMongoHost:    get("TENANT_MONGO_HOST", "mongodb://mongo:27017"),
+		UploadsRoot:        get("UPLOADS_ROOT", "/srv/keel/tenants"),
+		DiskPath:           get("DISK_PATH", "/"),
+		BackupPath:         get("BACKUP_PATH", "/srv/keel/backups"),
+		RolloutOnBoot:      get("ROLLOUT_ON_BOOT", "1") != "0",
+		TillReleaseDir:     get("TILL_RELEASE_DIR", ""),
+
+		GitHubToken:     get("GITHUB_TOKEN", ""),
+		GitHubRepo:      get("GITHUB_REPO", ""),
+		ReleaseWorkflow: get("RELEASE_WORKFLOW", "release.yml"),
 
 		CaddyAdmin:   get("CADDY_ADMIN", ""),
 		CaddyEmail:   get("CADDY_EMAIL", ""),

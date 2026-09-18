@@ -679,6 +679,63 @@ export const updateVisit = (id: string, body: Record<string, unknown>) =>
 export const deleteVisit = (id: string) =>
   req<{ ok: boolean }>(`/visits/${id}`, { method: "DELETE" });
 
+/** One row of the version panel: what a part of Keel says it is running. */
+export interface VersionPart {
+  /** "tenants" | "till" — translated in the panel, never shown raw. */
+  id: string;
+  version?: string;
+  /** Whether it agrees with the console's own version. Decided on the server:
+   *  the till's number is bare and the others carry a "v", and a comparison
+   *  written in two places is right in one of them. */
+  match: boolean;
+  note?: string;
+  /** Could not be asked at all — a different fact from "behind". */
+  unknown?: boolean;
+}
+
+/** A release asked for from the console. `status` is resolved by comparing the
+ *  requested version against the one the answering binary reports — never by
+ *  what CI said, because a green workflow with an unreplaced container is a
+ *  failure this platform has already shipped. */
+export interface ReleaseState {
+  version: string;
+  from: string;
+  part: string;
+  requestedAt: string;
+  requestedBy: string;
+  status: "running" | "done" | "stale";
+  finishedAt?: string;
+  runUrl?: string;
+}
+
+export interface VersionInfo {
+  version: string;
+  stage?: string;
+  /** What each button would raise it to, keyed by "patch" | "minor" | "major". */
+  next: Record<string, string>;
+  /** Whether this account may cut a release. Owner only. */
+  mayRelease: boolean;
+  /** Whether releasing is wired up on this deployment at all. ⚠️ Separate from
+   *  the above: "not configured here" deserves a sentence, "not yours to press"
+   *  deserves silence. */
+  releaseWired: boolean;
+  parts: VersionPart[];
+  release?: ReleaseState;
+}
+
+export const versionInfo = () => req<VersionInfo>("/version");
+
+/** Asks GitHub to run the release workflow.
+ *
+ *  ⚠️ The number does not change when this returns. It changes minutes later,
+ *  when the container answering `/version` is a different build — which is why
+ *  the response carries the release row rather than a new version. */
+export const bumpVersion = (part: "patch" | "minor" | "major") =>
+  req<{ release: ReleaseState }>("/version/bump", {
+    method: "POST",
+    body: JSON.stringify({ part }),
+  });
+
 export const systemStats = () =>
   req<{ host: HostStats; docker?: DockerUsage; backup?: BackupStatus }>(
     "/system",
@@ -948,6 +1005,8 @@ export interface Me {
     partners: boolean;
     seo: boolean;
     blog: boolean;
+    /** Raise the platform's version. Owner only — see models.CanRelease. */
+    release: boolean;
   };
 }
 

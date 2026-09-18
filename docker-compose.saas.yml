@@ -113,6 +113,11 @@ services:
       # are every customer's database in plain BSON — the console needs to know
       # that they exist and how old they are, and nothing more than that.
       - ${BACKUP_ROOT:-/srv/keel/backups}:${BACKUP_ROOT:-/srv/keel/backups}:ro
+      # The Windows till's published release: `latest.json` and the installers
+      # beside it. ⚠️ Read-only — the control plane serves this directory to
+      # every monoblock in the country, and a release is put here by a person
+      # uploading a signed build, never by a request.
+      - ${TILL_RELEASE_ROOT:-/srv/keel/till}:${TILL_RELEASE_ROOT:-/srv/keel/till}:ro
       # ---- Building restaurants' Android apps ----
       #
       # ⚠️ **Writable, and mounted at the path the build container will see it
@@ -216,6 +221,22 @@ services:
       # Where the nightly backup writes. Read live for the console's "when did
       # this last work" line — a stored flag would say "on" for ever.
       BACKUP_PATH: ${BACKUP_ROOT:-/srv/keel/backups}
+      # Where the till's release manifest and installers live. Serves
+      # /internal/till/release to the monoblocks and the version panel's
+      # "Windows kassa" row.
+      TILL_RELEASE_DIR: ${TILL_RELEASE_ROOT:-/srv/keel/till}
+      # ---- Raising the platform's version from the console ----
+      #
+      # ⚠️ **A fine-grained token with Actions: read and write on this one
+      # repository, and nothing else.** That is enough to start the release
+      # workflow that is already on `main`, and not enough to put anything new
+      # there — so a console somebody gets into can re-run a deployment, which
+      # is a nuisance, rather than deploy code of their own, which is the
+      # platform. A `contents: write` token here would be the second thing.
+      #
+      # Empty switches the buttons off and leaves every version still readable.
+      GITHUB_TOKEN: ${KEEL_RELEASE_TOKEN:-}
+      GITHUB_REPO: ${KEEL_RELEASE_REPO:-}
       # Edge
       CADDY_ADMIN: http://keel-caddy:2019
       CADDY_EMAIL: ${CADDY_EMAIL:?CADDY_EMAIL kerak}

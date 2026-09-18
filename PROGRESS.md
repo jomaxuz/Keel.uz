@@ -14954,3 +14954,51 @@ Tekshiruv: control `build` + `vet` + billing testlari; backend `build` + `vet` +
 `go test ./...` (i18n ikkita yangi o'zbekcha xabar bilan yashil); frontend `tsc`,
 273 test, `next lint` (o'z fayllarimda ogohlantirish yo'q).
 ⏳ Jonli modelda **hali ishlatilmagan** — reja matni haqiqiy javobda ko'rilmagan.
+
+---
+
+## Konsol: versiya paneli va undan reliz chiqarish
+
+`control/internal/handlers/release.go` · `keel-site/src/components/VersionPanel.tsx`
+· `.github/workflows/release.yml` · Konsol → **Server holati**
+
+Savol oddiy edi — «hozir qaysi versiya ishlayapti?» — va javob berib
+bo'lmasdi. Keel'ning har bir qismi o'z konstantasini olib yuradi (nega —
+`handlers/version.go`), ya'ni qismlar **jimgina ajrab ketishi** mumkin, va
+ajragani hech bir qismning ichidan ko'rinmaydi.
+
+**Panel har bir qismni o'zi aytgancha ko'rsatadi**, repozitoriy aytgancha emas:
+konsolning konstantasi, saytning bundle'i (**brauzerda** solishtiriladi — buni
+hech bir server ayta olmaydi), har bir ishlab turgan restoran konteynerining
+`/health` i (shu ish uchun tenant `/health` endi versiyasini aytadi), va
+kassalarga taklif qilinayotgan `latest.json`. ⚠️ **Mazmuni raqam emas, ajralib
+qolgan qism**: «image qurildi, konteyner almashmadi» bu platformada ikki marta
+bo'lgan va har safar hamma tekshiruv yashil edi — bitta raqam chizadigan panel
+o'sha davr mobaynida ham yashil turardi. ⚠️ Kassaning raqami **«v» siz**
+solishtiriladi (Windows shunday xohlaydi), aks holda har kassa mangu orqada
+ko'rinardi — butun vazifasi orqada qolganni ko'rsatish bo'lgan ekranda.
+⚠️ Uch holat, ikkita emas: `orqada` (tuzatiladi) va `noma'lum` (so'rab
+bo'lmadi — noutbukda Docker soketi yo'q) boshqa-boshqa, ikkinchisini
+birinchisidek bo'yash sog'lom ekranga doimiy sariq qator qo'yadi.
+
+**Ko'tarish — sozlama emas, reliz.** Tugma GitHub'dan `release.yml` ni
+yuritishni so'raydi: `scripts/set-version.sh` yettita faylni yozadi, versiya
+testi yuriladi, commit push bo'ladi, teg qo'yiladi va deploy **o'sha ishning
+ichidan** chaqiriladi. ⚠️ `workflow_call` bilan, `on: push` orqali emas:
+GitHub o'zining `GITHUB_TOKEN` i bilan qilingan push uchun workflow ishga
+tushirmaydi — bu qo'riq bo'lmasa versiya repozitoriyda ko'tarilib, serverda
+hech nima o'zgarmasdi, hech qanday xato chiqarmay. ⚠️ Konsoldagi token
+**`actions`**, `contents` emas: u `main` da turgan ishni yurita oladi, unga
+yangi kod qo'ya olmaydi. ⚠️ Holat Mongo'da — reliz uni boshlagan jarayonni
+o'ldiradi. ⚠️ «Bajarildi» = **ishlab turgan konstanta so'ralganiga teng**, CI
+yashil bo'lgani emas; yarim soatdan keyin esa «yiqildi» emas, **«yetib
+kelmadi»** — qaysi yarmi to'xtaganini bu jarayon bilmaydi. Ruxsat alohida
+(`release`, faqat ega): `provision` bitta mijozning konteynerini ataylab qayta
+quradi, bu esa hammasini birdan.
+
+Tekshiruv: control `build` + `vet` + `go test ./internal/...`, oltita yangi test
+(versiya arifmetikasi, o'qilmaydigan versiya tugmasiz qoladi, manifest «v» siz
+solishtiriladi, sozlanmagani `noma'lum`, hujjatda `_id` yo'q, ruxsat faqat ega);
+backend `build` + `vet` + testlar; keel-site `tsc` + vitest + `next build`.
+⏳ Tugma **jonli GitHub'da hali bosilmagan** — token qo'yilishi va birinchi
+reliz kuzatilishi kerak.

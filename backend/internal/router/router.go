@@ -7,6 +7,7 @@ import (
 	"restaurant-backend/internal/config"
 	"restaurant-backend/internal/handlers"
 	appmw "restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/version"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -84,9 +85,21 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 	r.Use(appmw.Lang)
 
 	// Healthcheck.
+	//
+	// ⚠️ **It says which build is answering**, and that is not decoration. The
+	// control plane's version panel asks every running container this question,
+	// because a deploy that builds an image and leaves the containers running
+	// reports itself as entirely healthy — same commit, green checks, old code
+	// serving. This endpoint is the only place from outside a container where
+	// the difference is visible.
+	//
+	// Kept to two fields: it is polled by Docker every few seconds and by the
+	// console every minute, and anything else added here is something a
+	// healthcheck can start failing on.
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok","version":"` + version.Version + `"}`))
 	})
 
 	// Uploaded photographs, at the size the page shows them (`?w=600`) and with

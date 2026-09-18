@@ -1238,6 +1238,37 @@ export const uz = {
       "Eski image'lar to'planib qolgan. Serverda `docker system prune -f` bilan bo'shatiladi — mijoz fayllariga tegmaydi.",
     serverDays: "kun",
     serverHours: "soat",
+
+    // ---- Versiya ----
+    // ⚠️ Qatorlar "qism → nima deydi" ko'rinishida: bu panelning mazmuni
+    // raqam emas, **ajralib qolgan qism**.
+    verTitle: "Versiya",
+    verParts: {
+      tenants: "Restoran serverlari",
+      till: "Windows kassa",
+    } as Record<string, string>,
+    verConsole: "Konsol va sayt",
+    verSite: "Saytning bundle'i",
+    verUnknown: "noma'lum",
+    verBehind: "ajralib qolgan",
+    verBump: (v: string) => `${v} gacha`,
+    verBumping: "So'ralmoqda...",
+    verPart: {
+      patch: "tuzatish",
+      minor: "yangilik",
+      major: "katta",
+    } as Record<string, string>,
+    verOff: "Bu serverdan reliz chiqarib bo'lmaydi (GITHUB_TOKEN sozlanmagan).",
+    verRunning: (v: string) =>
+      `${v} so'raldi — qurilmoqda va chiqarilmoqda. Raqam shu yerda o'zi o'zgaradi.`,
+    verDone: (v: string) => `${v} chiqarildi.`,
+    // ⚠️ "Yiqildi" emas: bu yerdan qaysi yarmi to'xtaganini bilib bo'lmaydi,
+    // va "yiqildi" odamni buzilmagan narsani tuzatishga yuboradi.
+    verStale: (v: string) =>
+      `${v} so'ralgan, lekin yarim soatda yetib kelmadi. GitHub'dagi ishni ko'ring.`,
+    verWatch: "GitHub'da ko'rish",
+    verConfirm: (v: string) =>
+      `${v} chiqarilsinmi? Bu barcha konteynerlarni qayta quradi va almashtiradi.`,
     exportTitle: "Ma'lumotlarni yuklab olish",
     exportHint:
       'Mijozning paneliga "hammasini yuklab olish" tugmasini vaqtincha chiqaradi. Arxivda uning barcha mijozlari, buyurtmalari va menyusi bo\'ladi — shuning uchun doimiy tugma emas, muddatli ruxsat.',
@@ -2476,6 +2507,32 @@ export const ru: Dict = {
       "Накопились старые образы. На сервере освобождается командой `docker system prune -f` — файлов клиентов это не трогает.",
     serverDays: "дн.",
     serverHours: "ч.",
+
+    verTitle: "Версия",
+    verParts: {
+      tenants: "Серверы ресторанов",
+      till: "Windows-касса",
+    } as Record<string, string>,
+    verConsole: "Консоль и сайт",
+    verSite: "Бандл сайта",
+    verUnknown: "неизвестно",
+    verBehind: "отстаёт",
+    verBump: (v: string) => `до ${v}`,
+    verBumping: "Запрашиваем...",
+    verPart: {
+      patch: "исправление",
+      minor: "новое",
+      major: "крупное",
+    } as Record<string, string>,
+    verOff: "С этого сервера релиз не выпускается (GITHUB_TOKEN не настроен).",
+    verRunning: (v: string) =>
+      `${v} запрошена — собирается и выкатывается. Номер здесь обновится сам.`,
+    verDone: (v: string) => `${v} выпущена.`,
+    verStale: (v: string) =>
+      `${v} запрошена, но за полчаса не доехала. Посмотрите задачу в GitHub.`,
+    verWatch: "Смотреть в GitHub",
+    verConfirm: (v: string) =>
+      `Выпустить ${v}? Это пересоберёт и заменит все контейнеры.`,
     exportTitle: "Выгрузка данных",
     exportHint:
       "Временно показывает в панели клиента кнопку «скачать всё». В архиве — все его клиенты, заказы и меню, поэтому это не постоянная кнопка, а разрешение со сроком.",
@@ -3717,6 +3774,32 @@ export const en: Dict = {
       "Old images have piled up. `docker system prune -f` on the server frees them — it does not touch customer files.",
     serverDays: "d",
     serverHours: "h",
+
+    verTitle: "Version",
+    verParts: {
+      tenants: "Restaurant servers",
+      till: "Windows till",
+    } as Record<string, string>,
+    verConsole: "Console and site",
+    verSite: "Site bundle",
+    verUnknown: "unknown",
+    verBehind: "behind",
+    verBump: (v: string) => `to ${v}`,
+    verBumping: "Requesting…",
+    verPart: {
+      patch: "fix",
+      minor: "feature",
+      major: "major",
+    } as Record<string, string>,
+    verOff: "Releases cannot be cut from this server (GITHUB_TOKEN is not set).",
+    verRunning: (v: string) =>
+      `${v} requested — building and deploying. The number here updates itself.`,
+    verDone: (v: string) => `${v} released.`,
+    verStale: (v: string) =>
+      `${v} was requested but has not arrived in half an hour. Check the run on GitHub.`,
+    verWatch: "Watch on GitHub",
+    verConfirm: (v: string) =>
+      `Release ${v}? This rebuilds and replaces every container.`,
     exportTitle: "Data export",
     exportHint:
       'Temporarily shows a "download everything" button in the customer\'s own panel. The archive holds all of their customers, orders and menu — so it is a dated permission, not a permanent button.',

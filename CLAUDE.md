@@ -851,6 +851,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Restoranning o'z ilovasi, brendlash, build | Restoranning o'z ilovasi: bitta kod bazasi, har restoranga bitta build |
 | Uzum Tezkor, marketplace buyurtmasi | Uzum Tezkor: marketplace buyurtmani o'zi yuboradi |
 | Status sahifasi, uptime, rang | Status sahifasi: rang va qisqa uzilishlar |
+| Versiya: kim nimada, ko'tarish tugmasi, reliz | Versiya paneli: kim nima deb turibdi, va uni ko'tarish |
 | Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
 
 ### Qo'shni hujjatlar
