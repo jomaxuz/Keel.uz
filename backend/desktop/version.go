@@ -24,7 +24,7 @@ import (
 // updater, which compares exactly this, decided each new release was one it
 // already had. The note above says this is the one line a release has to touch,
 // and the note went unread by the person who wrote it.
-const Version = "0.2.0"
+const Version = "0.2.1"
 
 // newerVersion reports whether `have` should be replaced by `want`.
 //

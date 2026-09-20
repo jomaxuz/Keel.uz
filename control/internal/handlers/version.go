@@ -31,7 +31,7 @@ import (
 // `Stage` is separate from the number and says what the number *means*. Empty means the
 // number stands on its own.
 const (
-	Version = "v0.2.0"
+	Version = "v0.2.1"
 	Stage   = ""
 )
 
