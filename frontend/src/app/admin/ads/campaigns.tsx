@@ -18,7 +18,7 @@
 
 import { useEffect, useState } from "react";
 
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, uploadAdsMedia, UPLOADS_URL } from "@/lib/api";
 import type { AdminDict } from "@/lib/i18n/admin";
 import type {
   AdsIGPost,
@@ -117,7 +117,16 @@ export function AdsCreate({
     setBody(text.body);
   }, [text]);
 
-  const [mode, setMode] = useState<"plan" | "post">("plan");
+  // ---- The restaurant's own advert ----
+  //
+  // ⚠️ **Not every restaurant wants a plan.** A place with somebody doing its
+  // social media already shot the video and knows what to say; what it does
+  // not want is Ads Manager. Tying every campaign to a dish from our plan put
+  // a different obstacle in exactly the same place.
+  const [media, setMedia] = useState<{ url: string; kind: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const [mode, setMode] = useState<"plan" | "post" | "own">("plan");
   const [posts, setPosts] = useState<AdsIGPost[] | null>(null);
   const [igConnected, setIgConnected] = useState(true);
   const [post, setPost] = useState<AdsIGPost | null>(null);
@@ -140,7 +149,9 @@ export function AdsCreate({
     Number(daily) > 0 &&
     (mode === "post"
       ? Boolean(post)
-      : Boolean(dish && headline.trim() && body.trim()));
+      : mode === "own"
+        ? Boolean(media && headline.trim() && body.trim())
+        : Boolean(dish && headline.trim() && body.trim()));
 
   // ---- What Meta thinks this buys ----
   //
@@ -176,7 +187,20 @@ export function AdsCreate({
     setError("");
     try {
       const row = await api.adsCreateCampaign(
-        mode === "post"
+        mode === "own"
+          ? {
+              mediaUrl: media?.url,
+              dishName: dish?.name ?? "",
+              areaLabel: area?.label,
+              radiusKm: area?.radiusKm,
+              daily: Number(daily),
+              cap: cap ? Number(cap) : undefined,
+              days: days ? Number(days) : budget?.days,
+              headline: headline.trim(),
+              body: body.trim(),
+              start,
+            }
+          : mode === "post"
           ? {
               sourcePostId: post?.id,
               dishId,
@@ -227,7 +251,72 @@ export function AdsCreate({
           onClick={() => setMode("post")}
           label={t.ads.campaign.modePost}
         />
+        <ModeTab
+          on={mode === "own"}
+          onClick={() => setMode("own")}
+          label={t.ads.campaign.modeOwn}
+        />
       </div>
+
+      {mode === "own" && (
+        <div className="space-y-2">
+          <p className="max-w-2xl text-sm text-ink-soft">
+            {t.ads.campaign.ownLead}
+          </p>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-ink/25 px-3 py-2 text-sm hover:border-brand/40">
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.mp4,.mov"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploading(true);
+                setError("");
+                try {
+                  setMedia(await uploadAdsMedia(file));
+                } catch (err) {
+                  setError(
+                    err instanceof ApiError
+                      ? err.message
+                      : t.ads.campaign.uploadFailed,
+                  );
+                } finally {
+                  setUploading(false);
+                  e.target.value = "";
+                }
+              }}
+            />
+            <span>
+              {uploading
+                ? t.ads.campaign.uploading
+                : media
+                  ? t.ads.campaign.replaceFile
+                  : t.ads.campaign.chooseFile}
+            </span>
+          </label>
+          {media && (
+            <div className="max-w-xs overflow-hidden rounded-xl border border-ink/10">
+              {media.kind === "video" ? (
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                <video
+                  src={`${UPLOADS_URL}${media.url.replace("/uploads", "")}`}
+                  className="w-full"
+                  controls
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`${UPLOADS_URL}${media.url.replace("/uploads", "")}`}
+                  alt=""
+                  className="w-full"
+                />
+              )}
+            </div>
+          )}
+          <p className="text-xs text-ink-muted">{t.ads.campaign.ownFormats}</p>
+        </div>
+      )}
 
       {mode === "post" && (
         <IGPicker
@@ -273,7 +362,7 @@ export function AdsCreate({
         )}
       </dl>
       )}
-      {mode === "plan" && dish && (
+      {(mode === "own" ? media : mode === "plan" && dish) && (
         <div className="grid gap-3">
           <label className="block text-sm">
             <span className="text-ink-soft">{t.ads.campaign.headline}</span>
@@ -297,7 +386,7 @@ export function AdsCreate({
         </div>
       )}
 
-      {(mode === "post" ? post : dish) && (
+      {(mode === "post" ? post : mode === "own" ? media : dish) && (
       <>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field

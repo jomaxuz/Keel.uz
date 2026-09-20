@@ -4722,7 +4722,7 @@ export const adminUz = {
     },
     campaign: {
       title: "Kampaniya ochish",
-      lead: "Yuqoridagi tanlovdan kampaniya quriladi: taom, hudud, matn va sizning byudjetingiz.",
+      lead: "Uch yo'l: rejadagi tanlovdan, tayyor postdan, yoki o'zingizning rasm-videongizdan.",
       needPicks: "Avval taom va reklama matnini tanlang.",
       proposed: "Reja taklifi",
       daily: "Kunlik byudjet",
@@ -4778,6 +4778,14 @@ export const adminUz = {
       bodyText: "Reklama matni",
       textNote:
         "Rejadagi matn shu yerga qo'yilgan — istagancha tahrirlang yoki o'zingiz yozing. Meta kreativni yaratilgandan keyin o'zgartirishga ruxsat bermaydi, ya'ni matnni o'zgartirishning oxirgi joyi shu.",
+      modeOwn: "O'z rasmim yoki videom",
+      ownLead:
+        "Tayyor poster yoki videongizni yuklang — reja ham, taom ham shart emas. Matnni o'zingiz yozasiz, hudud va byudjetni tanlaysiz, tamom.",
+      ownFormats: "JPG yoki PNG rasm, MP4 yoki MOV video · 200 MB gacha",
+      chooseFile: "Fayl tanlash",
+      replaceFile: "Boshqa fayl",
+      uploading: "Yuklanmoqda…",
+      uploadFailed: "Fayl yuklanmadi.",
     },
     report: {
       title: "Reklama nima keltirdi",
@@ -9698,7 +9706,7 @@ export const adminRu: AdminDict = {
     },
     campaign: {
       title: "Создать кампанию",
-      lead: "Кампания собирается из выбранного выше: блюдо, район, текст и ваш бюджет.",
+      lead: "Три пути: из выбранного в плане, из готового поста или из вашего собственного фото или видео.",
       needPicks: "Сначала выберите блюдо и текст рекламы.",
       proposed: "Предложение плана",
       daily: "Дневной бюджет",
@@ -9754,6 +9762,14 @@ export const adminRu: AdminDict = {
       bodyText: "Текст рекламы",
       textNote:
         "Текст из плана подставлен сюда — правьте как хотите или напишите свой. Meta не позволяет менять креатив после создания, так что это последнее место, где текст можно изменить.",
+      modeOwn: "Своё фото или видео",
+      ownLead:
+        "Загрузите готовый постер или видео — ни план, ни блюдо не нужны. Текст пишете сами, выбираете район и бюджет — и всё.",
+      ownFormats: "Изображение JPG или PNG, видео MP4 или MOV · до 200 МБ",
+      chooseFile: "Выбрать файл",
+      replaceFile: "Другой файл",
+      uploading: "Загружается…",
+      uploadFailed: "Файл не загрузился.",
     },
     report: {
       title: "Что принесла реклама",
@@ -14631,7 +14647,7 @@ export const adminEn: AdminDict = {
     },
     campaign: {
       title: "Create a campaign",
-      lead: "The campaign is built from what you chose above: the dish, the area, the wording and your budget.",
+      lead: "Three ways: from what you chose in the plan, from a post you already published, or from your own picture or video.",
       needPicks: "Choose a dish and the advert wording first.",
       proposed: "The plan proposed",
       daily: "Daily budget",
@@ -14687,6 +14703,14 @@ export const adminEn: AdminDict = {
       bodyText: "Advert wording",
       textNote:
         "The plan's wording is filled in here — edit it freely or write your own. Meta does not allow a creative to be changed once it is made, so this is the last place the words can move.",
+      modeOwn: "My own picture or video",
+      ownLead:
+        "Upload the poster or video you already made — no plan and no dish needed. You write the wording, choose the area and the budget, and that is it.",
+      ownFormats: "JPG or PNG picture, MP4 or MOV video · up to 200 MB",
+      chooseFile: "Choose a file",
+      replaceFile: "Different file",
+      uploading: "Uploading…",
+      uploadFailed: "The file did not upload.",
     },
     report: {
       title: "What the advertising brought",

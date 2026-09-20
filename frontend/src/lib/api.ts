@@ -3083,6 +3083,9 @@ export const api = {
      *  advert. ⚠️ When set, nothing of ours goes into the creative — the post
      *  is the advert, with the likes and comments it has already collected. */
     sourcePostId?: string;
+    /** A picture or a video the restaurant made itself, as `/uploads/ads/…`.
+     *  ⚠️ Needs no dish and no plan — the wording travels with it. */
+    mediaUrl?: string;
   }) =>
     request<AdsCampaign>("/admin/ads/campaigns", {
       method: "POST",
@@ -5519,6 +5522,40 @@ export async function uploadImage(file: File): Promise<string> {
   }
   const data = (await res.json()) as { url: string };
   return data.url;
+}
+
+/** Upload a picture or a video for an advert.
+ *
+ *  ⚠️ **Its own endpoint, not `uploadImage`.** The ordinary image upload fits
+ *  and re-encodes what it can decode, often to WebP — right for a menu
+ *  photograph and wrong here: Meta's advert images are JPG and PNG, and a WebP
+ *  under a confident name is refused at the creative, long after the owner
+ *  chose the file. This one changes no bytes. */
+export async function uploadAdsMedia(
+  file: File,
+): Promise<{ url: string; kind: string }> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${await apiBase()}/admin/ads/media`, {
+    method: "POST",
+    headers,
+    body: fd,
+  });
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const data = (await res.json()) as { error?: string };
+      message = data.error ?? message;
+    } catch {
+      /* keep statusText */
+    }
+    throw new ApiError(res.status, message);
+  }
+  return (await res.json()) as { url: string; kind: string };
 }
 
 /** Upload a video for the televisions.

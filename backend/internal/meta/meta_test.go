@@ -139,3 +139,35 @@ func TestACampaignSaysWhetherItsAdSetsShareBudget(t *testing.T) {
 			"the owner has never heard of")
 	}
 }
+
+// ⚠️ **An ad set says how it bids, because an unstated strategy is whatever
+// the account was last set to.** An account defaulting to a bid cap refuses
+// the create — "For bid cap you must provide bid amount field" — at the button
+// that spends money, about a setting nobody on that screen has seen.
+//
+// ⚠️ **And it bids without a cap.** A cap is a promise about what one result
+// may cost, and a restaurant advertising for the first time has no number to
+// make it with; set too low it spends nothing while looking like it is
+// running. The ceiling this product enforces is the daily budget.
+func TestAnAdSetSaysHowItBids(t *testing.T) {
+	src, err := os.ReadFile("campaign.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn := string(src)
+	at := strings.Index(fn, "func (c *Client) CreateAdSet")
+	if at < 0 {
+		t.Fatal("CreateAdSet is gone")
+	}
+	body := fn[at:]
+	if end := strings.Index(body, "\n}\n"); end > 0 {
+		body = body[:end]
+	}
+	if !strings.Contains(body, `"bid_strategy": {"LOWEST_COST_WITHOUT_CAP"}`) {
+		t.Fatal("the ad set no longer states its bid strategy; an account " +
+			"defaulting to a bid cap will refuse every campaign")
+	}
+	if strings.Contains(body, "bid_amount") {
+		t.Fatal("a bid cap crept in — this product has no number to set one with")
+	}
+}

@@ -376,6 +376,18 @@ var messages = map[string]pair{
 		"предел превышает общий предел в настройках",
 		"the cap is above the overall cap in the settings",
 	},
+	"faqat JPG, PNG rasm yoki MP4, MOV video": {
+		"только изображение JPG, PNG или видео MP4, MOV",
+		"only a JPG or PNG picture, or an MP4 or MOV video",
+	},
+	"fayl juda katta — 200 MB gacha": {
+		"файл слишком большой — до 200 МБ",
+		"the file is too large — up to 200 MB",
+	},
+	"fayl topilmadi": {
+		"файл не найден",
+		"the file was not found",
+	},
 	"filial xaritada belgilanmagan — reklama hududi shundan o'lchanadi": {
 		"филиал не отмечен на карте — от неё считается зона рекламы",
 		"the branch is not marked on the map — the advertising area is measured from it",
@@ -471,6 +483,14 @@ var messages = map[string]pair{
 	"markirovka skanerlashga ruxsat berilmagan — administratorga murojaat qiling": {
 		"нет доступа к сканированию маркировки — обратитесь к администратору",
 		"you may not scan marking codes — ask an administrator",
+	},
+	"video Meta tomonida hali tayyorlanmoqda — bir daqiqadan keyin qayta urinib ko'ring": {
+		"видео ещё обрабатывается на стороне Meta — попробуйте через минуту",
+		"Meta is still processing the video — try again in a minute",
+	},
+	"video tayyorlanmadi — birozdan keyin qayta urinib ko'ring": {
+		"видео не подготовилось — попробуйте чуть позже",
+		"the video was not made ready — try again shortly",
 	},
 	"yorliq bosishga ruxsat berilmagan — administratorga murojaat qiling": {
 		"нет доступа к печати этикеток — обратитесь к администратору",

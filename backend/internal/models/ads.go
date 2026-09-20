@@ -144,8 +144,14 @@ type AdCampaign struct {
 	// would be adding likes to dinners.
 	Kind         string `bson:"kind,omitempty" json:"kind,omitempty"`
 	SourcePostID string `bson:"sourcePostId,omitempty" json:"sourcePostId,omitempty"`
-	Objective    string `bson:"objective,omitempty" json:"objective,omitempty"`
-	Goal         string `bson:"goal,omitempty" json:"goal,omitempty"`
+	// The restaurant's own picture or video, as `/uploads/ads/…`.
+	//
+	// ⚠️ Kept so the campaign list can show what was actually advertised. Meta
+	// holds the creative, but it holds it as an id — and "which video was
+	// that?" is the first question asked about a campaign that did well.
+	MediaURL  string `bson:"mediaUrl,omitempty" json:"mediaUrl,omitempty"`
+	Objective string `bson:"objective,omitempty" json:"objective,omitempty"`
+	Goal      string `bson:"goal,omitempty" json:"goal,omitempty"`
 
 	// What is being advertised, and the reason the plan gave for it.
 	DishID   primitive.ObjectID `bson:"dishId,omitempty" json:"dishId,omitempty"`

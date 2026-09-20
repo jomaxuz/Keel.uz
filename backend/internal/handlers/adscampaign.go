@@ -28,6 +28,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -58,6 +59,17 @@ const (
 )
 
 var errAdsNoBranch = errors.New("reklama uchun filialni tanlang")
+
+// How long a campaign waits for Meta to finish with a video.
+//
+// ⚠️ **Short, and it gives up with an answer rather than hanging.** Most
+// videos are ready in seconds; a long one is not worth holding a browser
+// request open for, and "come back in a minute" is a sentence an owner can act
+// on where a timed-out request is not.
+const (
+	adsVideoTries = 6
+	adsVideoWait  = 3 * time.Second
+)
 
 // adsBranch resolves the one branch a campaign is for.
 //
@@ -116,6 +128,14 @@ type adsCreateRequest struct {
 	// keeps the likes and comments the post has already collected.
 	SourcePostID string `json:"sourcePostId"`
 
+	// A picture or a video the restaurant made itself, as `/uploads/ads/…`.
+	//
+	// ⚠️ **The third way of making an advert, and for many restaurants the
+	// only one they want.** A place with an SMM person already has the video;
+	// what it does not want is Ads Manager. Set together with the wording
+	// below, this needs no dish and no plan.
+	MediaURL string `json:"mediaUrl"`
+
 	// Whether to switch it on straight away. Default is to leave it paused.
 	Start bool `json:"start"`
 }
@@ -164,13 +184,35 @@ func (h *Handler) AdminAdsCreateCampaign(w http.ResponseWriter, r *http.Request)
 	}
 
 	boost := strings.TrimSpace(req.SourcePostID)
+	own := strings.TrimSpace(req.MediaURL)
 	headline := strings.TrimSpace(req.Headline)
 	body := strings.TrimSpace(req.Body)
 	var dishID primitive.ObjectID
 	var imgName string
 	var imgData []byte
+	var ownKind string
 
-	if boost == "" {
+	if boost == "" && own != "" {
+		// The owner's own file. ⚠️ Read through the same confined reader as a
+		// dish photograph: the path came out of a request, and a request is
+		// something somebody could have written `../../etc` into.
+		if headline == "" || body == "" {
+			httpx.Error(w, http.StatusBadRequest, "reklama matni tanlanmagan")
+			return
+		}
+		imgName, imgData, err = h.adsFile(own)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		ownKind = "image"
+		switch strings.ToLower(path.Ext(imgName)) {
+		case ".mp4", ".mov":
+			ownKind = "video"
+		}
+	}
+
+	if boost == "" && own == "" {
 		if headline == "" || body == "" {
 			httpx.Error(w, http.StatusBadRequest, "reklama matni tanlanmagan")
 			return
@@ -286,8 +328,11 @@ func (h *Handler) AdminAdsCreateCampaign(w http.ResponseWriter, r *http.Request)
 
 	name := adsCampaignName(branch.Name, req.DishName)
 	kind := "built"
-	if boost != "" {
+	switch {
+	case boost != "":
 		kind = "boost"
+	case own != "":
+		kind = "own"
 	}
 	row := models.AdCampaign{
 		BrandID:      branch.BrandID,
@@ -295,6 +340,7 @@ func (h *Handler) AdminAdsCreateCampaign(w http.ResponseWriter, r *http.Request)
 		Name:         name,
 		Kind:         kind,
 		SourcePostID: boost,
+		MediaURL:     own,
 		Objective:    objective,
 		Goal:         goal,
 		DishID:       dishID,
@@ -391,6 +437,57 @@ func (h *Handler) AdminAdsCreateCampaign(w http.ResponseWriter, r *http.Request)
 					ctx, acc.ID, s.PageID, ig, boost, name)
 			}
 		}
+		if err != nil {
+			fail(err)
+			return
+		}
+	} else if ownKind == "video" {
+		// ⚠️ **Meta processes a video after it is uploaded, and the creative
+		// cannot be built until it has.** Waited for here rather than left to
+		// fail: an owner who has just uploaded a video and pressed the button
+		// would otherwise be told the video id is invalid, about a file that
+		// is perfectly fine and simply not finished.
+		videoID, err := client.UploadVideo(ctx, acc.ID, imgName, imgData)
+		if err != nil {
+			fail(err)
+			return
+		}
+		thumb := ""
+		for i := 0; i < adsVideoTries; i++ {
+			ready, t, err := client.VideoReady(ctx, videoID)
+			if err != nil {
+				fail(err)
+				return
+			}
+			if ready && t != "" {
+				thumb = t
+				break
+			}
+			select {
+			case <-ctx.Done():
+				fail(errors.New("video tayyorlanmadi — birozdan keyin qayta urinib ko'ring"))
+				return
+			case <-time.After(adsVideoWait):
+			}
+		}
+		if thumb == "" {
+			// ⚠️ Not a failure of the campaign: the video is uploaded and will
+			// be ready shortly. The owner is told to come back rather than
+			// shown a Meta error about an id.
+			fail(errors.New("video Meta tomonida hali tayyorlanmoqda — bir daqiqadan keyin qayta urinib ko'ring"))
+			return
+		}
+		creativeID, err = client.CreateVideoCreative(ctx, acc.ID, meta.VideoCreativeSpec{
+			Name:         name,
+			PageID:       s.PageID,
+			InstagramID:  s.InstagramID,
+			VideoID:      videoID,
+			ThumbnailURL: thumb,
+			Link:         link,
+			Message:      body,
+			Headline:     headline,
+			CallToAction: "ORDER_NOW",
+		})
 		if err != nil {
 			fail(err)
 			return
@@ -562,6 +659,43 @@ func (h *Handler) adsLink(given string) (string, string, error) {
 		return "", "", errors.New("reklama havolasi noto'g'ri")
 	}
 	return u.String(), u.Hostname(), nil
+}
+
+// adsFile reads something under `uploads/`, and nothing else.
+//
+// ⚠️ **`OpenRoot`, because the path came out of a request.** It is the same
+// confinement the dish photograph uses and for the same reason: a stored
+// document and a posted field are both things somebody could have written
+// `../../etc` into.
+func (h *Handler) adsFile(src string) (string, []byte, error) {
+	file := strings.TrimSpace(src)
+	if q := strings.IndexByte(file, '?'); q >= 0 {
+		file = file[:q]
+	}
+	if i := strings.Index(file, "/uploads/"); i >= 0 {
+		file = file[i+len("/uploads/"):]
+	}
+	file = strings.TrimPrefix(strings.TrimPrefix(file, "uploads/"), "/")
+	if file == "" || file == "." || strings.HasSuffix(file, "/") {
+		return "", nil, errors.New("fayl topilmadi")
+	}
+	root, err := os.OpenRoot(h.Cfg.UploadDir)
+	if err != nil {
+		return "", nil, errors.New("fayl topilmadi")
+	}
+	defer func() { _ = root.Close() }()
+	f, err := root.Open(file)
+	if err != nil {
+		return "", nil, errors.New("fayl topilmadi")
+	}
+	defer func() { _ = f.Close() }()
+	data, err := io.ReadAll(io.LimitReader(f, adsMediaMaxBytes))
+	if err != nil || len(data) == 0 {
+		return "", nil, errors.New("fayl topilmadi")
+	}
+	// ⚠️ Meta keys its answer by the name it was handed, so it gets a plain
+	// file name — a `/` in it comes back as a key we then fail to find.
+	return path.Base(file), data, nil
 }
 
 // adsDishPhoto finds the photograph of the dish being advertised.

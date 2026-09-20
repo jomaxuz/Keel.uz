@@ -436,6 +436,45 @@ aytadi va matnni o'zi yozish yo'lini ko'rsatadi.
      ro'yxat yonida jumla bo'lib turadi**, va piksel ID sini **qo'lda kiritish**
      mumkin — u Events Manager'da yozilgan, ya'ni ega baribir yo'lda qolmaydi.
 
+### Uchta yo'l, bittasi emas (2026-09-20)
+
+⚠️ **Har bir kampaniyani bitta taomga bog'lab qo'yish xato edi.** SMM'chisi bor
+restoran videoni o'zi oladi, posterini o'zi chizadi va nima deyishni biladi —
+unga kerak bo'lmagan narsa **Ads Manager**: maqsadlar, auditoriyalar, bid
+strategiyalari, tayyor videodan ishlaydigan reklamagacha bo'lgan olti ekran.
+Bo'lim aynan shuni olib tashlash uchun bor; rejadagi taomni majburiy qilish esa
+o'sha joyga **boshqa to'siq** qo'yardi.
+
+Kampaniya qadamida endi uchta rejim:
+
+1. **Rejadan** — taom fotosi va tanlangan (tahrirlanadigan) matn.
+2. **Tayyor postni ko'tarish** — sahifa yoki Instagram posti, laykи bilan.
+3. **O'z rasmim yoki videom** — ⚠️ **reja ham, taom ham shart emas**. Poster
+   yoki video yuklanadi, matn yoziladi, hudud va byudjet tanlanadi.
+
+⚠️ **Yuklash o'z endpointida** (`/admin/ads/media`), panelning oddiy rasm
+yuklovchisi emas: u dekod qila oladigan hamma narsani **WebP** ga o'giradi —
+menyu fotosi uchun to'g'ri, bu yerda xato, chunki Meta reklama rasmi sifatida
+JPG va PNG oladi. WebP ishonchli nom ostida turib, kreativda rad etilardi —
+ega faylni tanlaganidan ancha keyin.
+
+⚠️ **Video Meta tomonida qayta ishlanadi** va tayyor bo'lmaguncha kreativ
+qurilmaydi. Kutiladi (6×3 soniya), bo'lmasa **«bir daqiqadan keyin qayta
+urinib ko'ring»** deyiladi — Meta'ning «video id noto'g'ri» degan xabari
+o'rniga, chunki video mutlaqo joyida, shunchaki hali tugamagan. Kreativ uchun
+**Meta o'zi afzal ko'rgan kadr** olinadi: bizning taxminimiz emas.
+
+### Bid strategiyasi aytiladi
+
+⚠️ Ad set endi `bid_strategy: LOWEST_COST_WITHOUT_CAP` ni **ochiq aytadi**.
+Aytilmagani — akkaunt oxirgi marta nimaga sozlangan bo'lsa, o'sha: bid cap'ga
+sozlangan akkaunt kampaniyani butunlay rad etardi («For bid cap you must
+provide bid amount field»), va bu xabar pul sarflaydigan tugmada, hech kim
+ko'rmagan sozlama haqida chiqardi. ⚠️ **Cap'siz, ataylab**: cap — bitta natija
+qancha turishi haqidagi va'da, va birinchi marta reklama berayotgan restoranda
+uni qo'yadigan raqam yo'q; past qo'yilgani esa hech nima sarflamay turib,
+ishlayotgan kampaniyaga o'xshab ko'rinadi.
+
 ### Tayyor postni ko'tarish (bajarildi, 2026-09-20)
 
 Ega tayyor postga pul qo'yishni so'radi — targetolog ishining ikkinchi yarmi:

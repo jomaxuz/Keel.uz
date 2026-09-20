@@ -1423,6 +1423,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// half of what a targetolog does: "that one did well, put money
 			// behind it". See handlers/adsinstagram.go.
 			r.Get("/admin/ads/instagram", h.AdminAdsInstagram)
+			// A picture or a video the restaurant made itself. ⚠️ Its own
+			// upload, because the panel's ordinary one re-encodes to WebP —
+			// which Meta refuses for an advert. See handlers/adsmedia.go.
+			r.Post("/admin/ads/media", h.AdminAdsMedia)
 
 			r.Post("/admin/advisor", h.AdminAdvisorAsk)
 			r.Get("/admin/advisor/state", h.AdminAdvisorState)

@@ -145,6 +145,20 @@ func (c *Client) CreateAdSet(ctx context.Context, act string, s AdSetSpec) (stri
 		"optimization_goal": {s.OptimizationGoal},
 		"targeting":         {JSONField(s.Targeting.spec())},
 		"status":            {"PAUSED"},
+		// ⚠️ **Stated, because an unstated one is whatever the account was
+		// last set to.** An ad account whose default is a bid cap refuses the
+		// create outright — "For bid cap you must provide bid amount field" —
+		// and the message arrives at the button that spends money, about a
+		// setting nobody on this screen has ever seen.
+		//
+		// ⚠️ **Without a cap, deliberately.** A cap is a promise about what one
+		// result may cost, and nobody here has the numbers to make it: a
+		// restaurant advertising osh for the first time has no idea what an
+		// order should cost at auction, and a cap set too low spends nothing
+		// at all while looking like a campaign that is running. The ceiling
+		// this product does enforce is the daily budget, which is a number the
+		// owner genuinely knows.
+		"bid_strategy": {"LOWEST_COST_WITHOUT_CAP"},
 	}
 	if s.EndTime != "" {
 		form.Set("end_time", s.EndTime)
@@ -510,5 +524,101 @@ func (c *Client) CreateCreativeFromPagePost(
 	}
 	var out Created
 	err := c.Post(ctx, act+"/adcreatives", form, &out)
+	return out.ID, err
+}
+
+// ---- Video ----
+
+// UploadVideo puts a video on the ad account.
+//
+// ⚠️ **Meta processes it afterwards, and the creative cannot be built until it
+// has.** The upload returns an id immediately; the video is unusable for
+// seconds or minutes after that. See VideoReady.
+func (c *Client) UploadVideo(ctx context.Context, act, filename string, data []byte) (string, error) {
+	var out Created
+	if err := c.PostFile(ctx, act+"/advideos", "source", filename, data, nil, &out); err != nil {
+		return "", err
+	}
+	return out.ID, nil
+}
+
+// VideoReady says whether Meta has finished with a video, and hands back the
+// thumbnail it prefers.
+//
+// ⚠️ **A video creative needs a still as well as the video.** Meta generates
+// candidates and marks one preferred; taking that one is how the advert looks
+// like the video it is, rather than like whichever frame we guessed at.
+func (c *Client) VideoReady(ctx context.Context, videoID string) (bool, string, error) {
+	var out struct {
+		Status struct {
+			VideoStatus string `json:"video_status"`
+		} `json:"status"`
+		Thumbnails struct {
+			Data []struct {
+				URI       string `json:"uri"`
+				Preferred bool   `json:"is_preferred"`
+			} `json:"data"`
+		} `json:"thumbnails"`
+	}
+	err := c.Get(ctx, videoID, url.Values{
+		"fields": {"status,thumbnails{uri,is_preferred}"},
+	}, &out)
+	if err != nil {
+		return false, "", err
+	}
+	thumb := ""
+	for _, t := range out.Thumbnails.Data {
+		if thumb == "" {
+			thumb = t.URI
+		}
+		if t.Preferred {
+			thumb = t.URI
+			break
+		}
+	}
+	return out.Status.VideoStatus == "ready", thumb, nil
+}
+
+// VideoCreativeSpec is an advert whose body is a video.
+type VideoCreativeSpec struct {
+	Name        string
+	PageID      string
+	InstagramID string
+	VideoID     string
+	// Meta's own preferred still. Required: a video creative without one is
+	// refused, and the message names the image rather than the video.
+	ThumbnailURL string
+	Link         string
+	Message      string
+	Headline     string
+	CallToAction string
+}
+
+// CreateVideoCreative makes the advert Meta plays.
+func (c *Client) CreateVideoCreative(ctx context.Context, act string, s VideoCreativeSpec) (string, error) {
+	video := map[string]any{
+		"video_id":  s.VideoID,
+		"image_url": s.ThumbnailURL,
+		"message":   s.Message,
+		"title":     s.Headline,
+	}
+	if s.CallToAction != "" && s.Link != "" {
+		video["call_to_action"] = map[string]any{
+			"type":  s.CallToAction,
+			"value": map[string]any{"link": s.Link},
+		}
+	}
+	story := map[string]any{
+		"page_id":    s.PageID,
+		"video_data": video,
+	}
+	if s.InstagramID != "" {
+		story["instagram_user_id"] = s.InstagramID
+	}
+	var out Created
+	err := c.Post(ctx, act+"/adcreatives", url.Values{
+		"name":              {s.Name},
+		"object_story_spec": {JSONField(story)},
+	}, &out)
 	return out.ID, err
 }
