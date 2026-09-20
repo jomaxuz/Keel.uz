@@ -229,7 +229,7 @@ func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
 		// one being spent is the ordinary case — the answer to it is the next
 		// model, not a wait of several hours.
 		httpx.JSON(w, http.StatusOK, map[string]any{
-			"cards": []any{}, "error": err.Error(),
+			"cards": []any{}, "error": ai.Explain(err, req.Lang),
 			"exhausted": ai.AllExhausted(err),
 		})
 		return

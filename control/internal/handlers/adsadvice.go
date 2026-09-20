@@ -28,6 +28,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -231,7 +232,12 @@ func (h *Handler) AdsAdvice(w http.ResponseWriter, r *http.Request) {
 	text, usage, err := h.engine().JSON(
 		r.Context(), adsPlanSystem, string(blob), adsPlanSchema, "low")
 	if err != nil {
-		httpx.JSON(w, http.StatusOK, map[string]any{"error": err.Error()})
+		// ⚠️ The engines' own words are for our log; the owner gets one
+		// sentence they can act on. See ai/explain.go.
+		log.Printf("ads plan %s: %v", t.Slug, err)
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"error": ai.Explain(err, req.Lang),
+		})
 		return
 	}
 	h.recordAds(r.Context(), t.Slug, usage)

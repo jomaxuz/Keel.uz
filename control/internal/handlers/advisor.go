@@ -29,8 +29,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
+	"keel-control/internal/ai"
 	"keel-control/internal/billing"
 	"keel-control/internal/httpx"
 )
@@ -170,7 +172,13 @@ func (h *Handler) Advise(w http.ResponseWriter, r *http.Request) {
 	text, usage, err := h.engine().JSON(
 		r.Context(), adviseSystem, string(blob), adviseSchema, "low")
 	if err != nil {
-		httpx.JSON(w, http.StatusOK, map[string]any{"error": err.Error()})
+		// ⚠️ **The engines' own words stay in our log and never reach the
+		// restaurant.** What they produce names models, HTTP statuses, request
+		// ids and — worst of it — our own billing. See ai/explain.go.
+		log.Printf("advisor %s: %v", t.Slug, err)
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"error": ai.Explain(err, req.Lang),
+		})
 		return
 	}
 	h.recordBriefing(r.Context(), t.Slug, usage)

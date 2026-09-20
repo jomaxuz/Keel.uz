@@ -8,6 +8,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"keel-control/internal/ai"
@@ -116,7 +117,11 @@ func (h *Handler) CampaignText(w http.ResponseWriter, r *http.Request) {
 	}
 	variants, usage, err := h.askForCampaign(r.Context(), req)
 	if err != nil {
-		httpx.Error(w, http.StatusBadGateway, err.Error())
+		log.Printf("campaign text: %v", err)
+		// The panel's language travels in the body like everything else here;
+		// an absent one falls back to Uzbek inside Explain.
+		lang, _ := req["lang"].(string)
+		httpx.Error(w, http.StatusBadGateway, ai.Explain(err, lang))
 		return
 	}
 	h.recordBriefing(r.Context(), t.Slug, usage)

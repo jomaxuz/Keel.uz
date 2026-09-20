@@ -18,6 +18,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"keel-control/internal/ai"
@@ -125,7 +126,8 @@ func (h *Handler) MenuExtract(w http.ResponseWriter, r *http.Request) {
 
 	dishes, usage, err := h.askForMenu(r.Context(), req.Text)
 	if err != nil {
-		httpx.Error(w, http.StatusBadGateway, err.Error())
+		log.Printf("menu extract: %v", err)
+		httpx.Error(w, http.StatusBadGateway, ai.Explain(err, ""))
 		return
 	}
 	h.recordBriefing(r.Context(), t.Slug, usage)

@@ -337,7 +337,7 @@ func (h *Handler) runAppBuild(ctx context.Context, id primitive.ObjectID) {
 		Binds: []string{
 			h.Cfg.AppBuildRoot + ":/opt/keel",
 		},
-		Volumes:  []string{h.Cfg.AppBuildCache + ":/root/.gradle"},
+		Volumes: []string{h.Cfg.AppBuildCache + ":/root/.gradle"},
 		// ⚠️ **3.5 GB, and the figure is not arbitrary.** Gradle is given a 2 GB
 		// heap and the Kotlin compiler runs inside it (build.sh); the rest is
 		// the JVM itself, R8 and the tooling. At 3 GB the kernel killed the

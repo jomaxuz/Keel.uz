@@ -2285,6 +2285,42 @@ bo'lsa raqam bilan ("Tushum o'tgan haftadan 18% past"), va misollar bilan
 ko'rsatilgan. Tana esa uch bo'lakli: nima bo'lyapti → ehtimoliy sabab (faqat
 berilgan raqamlardan, hukm emas) → bugun qilinadigan bitta ish.
 
+### AI xatolari: egaga nima deyiladi
+
+Jonli holatda ekranga shu chiqqan edi:
+
+```
+gemini:gemini-3.7-flash: Rate limit exceeded (limit: 5 requests per minute on
+Free Tier)… | claude:claude-opus-5: POST ".../v1/messages": 400 Bad Request
+(Request-ID: req_011…) "Your credit balance is too low…"
+```
+
+- ⚠️ **Provayderning xatosi — mijoz uchun jumla emas.** Unda ega hech qachon
+  eshitmagan model nomlari, HTTP statusi, ikkita request id va **o'ziniki
+  bo'lmagan** billing sahifasi bor. O'qib tushunsa bo'ladigan yagona qismi —
+  «credit balance too low» — uni **o'z kartasini** to'ldirishga yuboradi.
+- ⚠️ **AI uchun pulni Keel to'laydi, ya'ni bizning hisobimiz hech qachon
+  mijozning muammosi emas.** Ega Keel'ga oylik to'laydi; bizning kartamiz shu
+  oy ishladimi — bu biz haqimizdagi fakt. To'layotgan mijozga «balans yetarli
+  emas» deyish uni tuzata olmaydigan narsani tuzatishga chorlaydi va
+  platformani **puli tugayotgandek** ko'rsatadi — bu nosozlikning o'zidan ancha
+  qimmat jumla.
+- Shuning uchun `ai.Explain(err, lang)`: xato **turi**ga qarab bitta jumla, uch
+  tilda. Ega uchun foydali yagona ma'lumot — **qachon qayta urinish kerak**:
+  bir daqiqadan keyin (rate limit), bir necha soatdan keyin (kvota tugadi), yoki
+  «nosozlik Keel tomonida va biz xabardormiz».
+- ⚠️ **Tasniflash substring bo'yicha, chunki provayder boshqa hech nimani
+  kafolatlamaydi**: status kodlari matn ichida («400 Bad Request»), xabarlar
+  esa o'zgarib turadigan inglizcha jumlalar. Shuning uchun **standart javob eng
+  xavfsizi**: tanilmagan xato «javob bera olmadi» bo'ladi, hech qachon «bizda
+  billing muammosi» emas.
+- ⚠️ **Haqiqiy xato yo'qolmaydi** — u `log` ga yoziladi. Odam o'qiydigan jumla
+  bilan biz debug qiladigan matnni bitta qilish — nosozlikni tushuntirib
+  bo'lmaydigan qilish demak.
+- Testi bor (`explain_test.go`) va u **aynan o'sha kungi matn** ustida ishlaydi:
+  javobda "credit", "balans", "anthropic", "gemini", "429", "req_" kabi
+  so'zlarning birortasi chiqsa — yiqiladi.
+
 ### AI maslahatchi: eganing o'z savollari (`advisor`)
 
 Brifing **nimaga qarash kerakligini** o'zi tanlaydi; bu esa eganing **o'z
