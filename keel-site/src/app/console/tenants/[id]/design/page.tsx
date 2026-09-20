@@ -95,6 +95,16 @@ const WIDTHS = ["", "wide", "full"] as const;
  *  reference is built from and the editor could not draw: a panel rounded on
  *  the edge that faces the page, and a rail of words turned a quarter turn.
  *  Mirror `elementCorners` / `elementRotations` / `elementRadii`. */
+/** Which elements have words a double-click can open.
+ *
+ *  ⚠️ **A list, not "has a text field".** Every element type carries `text` in
+ *  the model; only these render it. A caret blinking inside a photograph or a
+ *  coloured panel is an editor claiming something it cannot do, and the
+ *  operator finds out by typing into it and watching nothing change. */
+const TEXTUAL = new Set([
+  "text", "button", "badge", "quote", "stat", "list",
+]);
+
 const CORNERS = ["", "left", "right", "top", "bottom"] as const;
 const ROTATIONS = ["", "-90", "90"] as const;
 const RADII = ["", "sm", "md", "lg", "xl", "2xl", "full"] as const;
@@ -159,7 +169,18 @@ export default function DesignEditorPage() {
   // different things depending on a toggle somewhere else on screen.
   const [editing, setEditing] = useState<"desktop" | "mobile">("desktop");
   const [previewUrl, setPreviewUrl] = useState("");
-  const [pane, setPane] = useState<"canvas" | "site">("canvas");
+  // ⚠️ **The real page, not the schematic, and it opens on it.**
+  //
+  // The schematic canvas was the default for as long as the constructor
+  // existed, and it is the wrong first screen: it shows grey rectangles where
+  // the customer's photographs, prices and menu are, so the one question the
+  // operator actually has — "does this look like the picture they sent us" —
+  // cannot be asked without finding a tab. The live pane could not answer it
+  // either, because the tenant's `frame-ancestors` refused to be framed by the
+  // console (see control/internal/caddy) and the pane was a grey box with a
+  // broken-image icon. With that fixed, the real page is the default and the
+  // schematic is the thing you switch to.
+  const [pane, setPane] = useState<"canvas" | "site">("site");
   const [presets, setPresets] = useState<StylePreset[]>([]);
   // Which section of the left column the rail is showing. A single scrolling
   // column worked with five bands and stops working at fifteen: the inspector
@@ -229,6 +250,10 @@ export default function DesignEditorPage() {
           // they already have.
         }
         setSlug(t.tenant.slug);
+        // The editor opens on the live page, so the token is minted with the
+        // design rather than on the first click of a tab nobody has to press
+        // any more.
+        void refreshPreview();
       } catch (e) {
         setNote(e instanceof Error ? e.message : "yuklanmadi");
       }
@@ -813,6 +838,25 @@ export default function DesignEditorPage() {
                       if (!el) return null;
                       return editing === "mobile" ? (el.mobile ?? el.box) : el.box;
                     }}
+                    // ⚠️ **Null for anything without words, and that is what
+                    // decides whether a double-click opens a typing box.** A
+                    // photograph, a coloured panel and a rule have nothing to
+                    // type into, and a caret blinking on a rectangle is an
+                    // editor lying about what it can do.
+                    textOf={(i) => {
+                      const el = band?.canvas?.elements?.[i];
+                      if (!el || !TEXTUAL.has(el.type)) return null;
+                      return el.text?.uz ?? "";
+                    }}
+                    onText={(i, value) =>
+                      updateElement(pick.band, i, {
+                        text: {
+                          uz: value,
+                          ru: band?.canvas?.elements?.[i]?.text?.ru ?? "",
+                          en: band?.canvas?.elements?.[i]?.text?.en ?? "",
+                        },
+                      })
+                    }
                   />
                 )}
               </div>

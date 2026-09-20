@@ -106,23 +106,51 @@ const encodeDirective = "\tencode zstd gzip\n"
 //   - HSTS pins HTTPS for a year. No `includeSubDomains` and no `preload`:
 //     tenants bring their own domains, and claiming their subdomains — or
 //     locking a domain onto us after they leave — is not ours to do.
+//
 //   - `nosniff` stops a browser guessing an uploaded file is a script.
+//
 //   - `frame-ancestors`, not `X-Frame-Options: DENY`, because **the Telegram
 //     mini app is this very site rendered inside Telegram** (channelreport.go),
 //     which frames it on web.telegram.org. DENY would break every mini app; a
 //     frame-ancestors CSP blocks clickjacking while letting Telegram embed us.
 //     This directive touches only embedding — it does not restrict scripts or
 //     styles, so it cannot blank the page the way a full CSP can.
+//
+//     ⚠️ **The console is on the list too, and leaving it off broke the
+//     constructor's best feature in complete silence.** The design editor's
+//     "live site" pane is the customer's real page in an iframe, which is the
+//     only thing that can answer "does this look like the picture they sent
+//     us" — and `'self'` on a tenant's site means *that tenant*, not keel.uz.
+//     So every operator who opened that pane got an empty grey rectangle with
+//     a broken-image icon: no error on the page, nothing in the server logs,
+//     and the refusal printed only in a browser console nobody had open. It
+//     read as "the preview is slow" or "the tenant is down" for as long as the
+//     feature existed.
+//
 //   - `Referrer-Policy` keeps a full URL (order numbers, ids) from leaking to
 //     a third party a guest clicks through to.
+//
 //   - `-Server` drops the "Caddy" version banner; a smaller target, no cost.
-const securityHeaders = "\theader {\n" +
-	"\t\tStrict-Transport-Security \"max-age=31536000\"\n" +
-	"\t\tX-Content-Type-Options nosniff\n" +
-	"\t\tReferrer-Policy strict-origin-when-cross-origin\n" +
-	"\t\tContent-Security-Policy \"frame-ancestors 'self' https://web.telegram.org https://*.telegram.org\"\n" +
-	"\t\t-Server\n" +
-	"\t}\n"
+func securityHeaders(o Options) string {
+	// Who may put this page in a frame: itself, Telegram, and the console.
+	//
+	// ⚠️ Built from `MainDomains` rather than written out, so a platform served
+	// on another domain does not quietly lose its own design editor — the
+	// failure being silent is the whole reason this is a function now.
+	ancestors := []string{"'self'", "https://web.telegram.org", "https://*.telegram.org"}
+	for _, d := range o.MainDomains {
+		if d = strings.TrimSpace(d); d != "" {
+			ancestors = append(ancestors, "https://"+d)
+		}
+	}
+	return "\theader {\n" +
+		"\t\tStrict-Transport-Security \"max-age=31536000\"\n" +
+		"\t\tX-Content-Type-Options nosniff\n" +
+		"\t\tReferrer-Policy strict-origin-when-cross-origin\n" +
+		"\t\tContent-Security-Policy \"frame-ancestors " + strings.Join(ancestors, " ") + "\"\n" +
+		"\t\t-Server\n" +
+		"\t}\n"
+}
 
 // Options are the fixed parts of the edge.
 type Options struct {
@@ -174,7 +202,7 @@ func Render(sites []Site, o Options) string {
 	if len(o.MainDomains) > 0 && o.MainUpstream != "" {
 		fmt.Fprintf(&b, "%s {\n", strings.Join(o.MainDomains, ", "))
 		b.WriteString(encodeDirective)
-		b.WriteString(securityHeaders)
+		b.WriteString(securityHeaders(o))
 		fmt.Fprintf(&b, "\thandle /api/* {\n\t\treverse_proxy %s\n\t}\n", o.Control)
 		fmt.Fprintf(&b, "\thandle {\n\t\treverse_proxy %s\n\t}\n", o.MainUpstream)
 		b.WriteString("}\n\n")
@@ -193,7 +221,7 @@ func Render(sites []Site, o Options) string {
 		fmt.Fprintf(&b, "# %s\n%s {\n", s.Slug, strings.Join(domains, ", "))
 		b.WriteString("\ttls {\n\t\ton_demand\n\t}\n")
 		b.WriteString(encodeDirective)
-		b.WriteString(securityHeaders)
+		b.WriteString(securityHeaders(o))
 		if s.Suspended {
 			// The container is stopped; there is nothing to proxy to.
 			fmt.Fprintf(&b, "\treverse_proxy %s {\n\t\theader_up X-Keel-Tenant %s\n\t}\n",

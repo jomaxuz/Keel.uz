@@ -8752,3 +8752,51 @@ qanday atalishi, ya'ni mehmon ko'radigan narsaning hammasi.
 onlayn do'kon ham do'kon — bitta to'plam uchalasini qoplaydi. Qaysi biri
 ishlatilishini `sellsGoods` hal qiladi (`lib/siteWords.ts`), va u sarlavha,
 futer, katalog sahifasi va «orqaga» havolasida bir xil javob beradi.
+
+### Konstruktor: jonli sayt ustida tahrirlash
+
+⚠️ **Jonli sayt paneli hech qachon ishlamagan, va buni hech nima aytmagan.**
+Tenant sayti chekkadan
+`Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org …`
+sarlavhasini oladi — `'self'` esa **o'sha tenantning o'zi**, keel.uz emas.
+Ya'ni konsoldagi iframe brauzer tomonidan rad etilardi: sahifada xato yo'q,
+server loglarida yo'q, rad etish faqat hech kim ochmagan brauzer konsolida
+chiqadi. Operator bo'sh kulrang to'rtburchak va singan rasm belgisini ko'rardi,
+va bu "ko'rinish sekin" yoki "tenant o'chiq" deb o'qilardi.
+
+Endi `frame-ancestors` ga platformaning **o'z domenlari** qo'shiladi
+(`Options.MainDomains` dan quriladi — boshqa domenda turgan o'rnatma o'z
+konstruktorini jimgina yo'qotmasin). Telegram va `'self'` joyida qoladi.
+
+**Nega bu eng muhim tuzatma:** brif — Pinterest'dan olingan skrinshot, va
+"mijoz yuborgan rasmga o'xshadimi?" degan savolga **faqat haqiqiy sahifa**
+javob bera oladi. Sxematik chizma o'sha joylarda kulrang to'rtburchak
+ko'rsatadi.
+
+⚠️ **Shu sababli konstruktor endi jonli sahifada ochiladi**, chizmada emas.
+Chizma — o'tib boriladigan ikkinchi ko'rinish.
+
+**Joyida yozish.** Elementga ikki marta bosilsa, uning ustida — aynan
+so'zlar turgan joyda, o'sha o'lchamda — yozish oynasi ochiladi. Enter yozadi,
+Shift+Enter yangi qator, Escape bekor qiladi.
+⚠️ **Bir bosish tanlaydi, ikki bosish yozadi**: tanlash element sozlamalariga
+yo'l, va elementlarning ko'pchiligida umuman so'z yo'q.
+⚠️ **So'zi bo'lmagan elementda oyna ochilmaydi** (`TEXTUAL`): fotosurat yoki
+rangli panel ustida chaqnab turgan kursor — muharrirning qila olmaydigan
+narsani va'da qilishi.
+⚠️ **Har bosishda yozilmaydi**: har o'zgarish qoralamani "iflos" qiladi va
+saqlash rejalashtiriladi, ya'ni har harf jonli saytda bir render bo'lardi.
+⚠️ Iframe boshqa origin, demak sahifaning shriftini o'qib bo'lmaydi — oyna
+so'zlar turgan joyda va o'lchamda turadi, haqiqiy tipografika esa saqlangandan
+keyin qaytadi. Tashqaridan "joyida tahrirlash" shundan boshqa narsa bo'la
+olmaydi.
+
+**Sakkizta tutqich, to'rttasi emas.** Burchaklar en va bo'yni **birga**
+o'zgartiradi — bu esa tugmada va matn bandida deyarli hech qachon kerak emas:
+tugmani kengaytirish uni balandlashtirmasligi kerak. Chetlardagi tutqichlar
+har bir muharrirda bor (Figma, Canva, Shopify), va ularning yo'qligi
+"bu muharrir buni qila olmaydi" bo'lib o'qiladi.
+
+**Sudrash paytida raqam ko'rsatiladi** (`x · y %` yoki `w × h %`) — ⚠️ foizda,
+chunki hujjatda foiz saqlanadi; pikseldagi raqamni operator muharrirning hech
+bir joyidan qayta topa olmaydi.

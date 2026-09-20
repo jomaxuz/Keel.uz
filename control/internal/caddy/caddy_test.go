@@ -229,3 +229,49 @@ func TestFramingDoesNotBlockTheTelegramMiniApp(t *testing.T) {
 		t.Error("Telegram is not allowed to frame the mini app")
 	}
 }
+
+// ⚠️ **The console has to be able to frame a tenant's site, and for years it
+// could not.** The design editor's "live site" pane is the customer's real page
+// in an iframe — the only thing that can answer "does this look like the picture
+// they sent us", which is the whole job when the brief is a screenshot.
+//
+// `'self'` on a tenant's site means *that tenant*, so keel.uz was refused. The
+// operator saw an empty grey rectangle with a broken-image icon: no error on the
+// page, nothing in the server logs, and the refusal printed only in a browser
+// console nobody had open. It read as "the preview is slow" for as long as the
+// feature existed.
+func TestTheConsoleMayFrameATenantForThePreview(t *testing.T) {
+	out := Render([]Site{{Slug: "osh", Domains: []string{"osh.uz"}}}, opts())
+	i := strings.Index(out, "osh.uz {")
+	if i < 0 {
+		t.Fatal("no site block for the tenant")
+	}
+	body := out[i:]
+	if end := strings.Index(body, "\n}\n"); end > 0 {
+		body = body[:end]
+	}
+	for _, d := range opts().MainDomains {
+		if !strings.Contains(body, "https://"+d) {
+			t.Errorf("the console origin %q may not frame a tenant — the live preview is a grey box:\n%s", d, body)
+		}
+	}
+	// And the two that were already there stay: Telegram frames the mini app,
+	// and a site frames itself.
+	for _, want := range []string{"'self'", "https://web.telegram.org"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("%q was dropped from frame-ancestors", want)
+		}
+	}
+}
+
+// A platform served on some other domain must not quietly lose its own design
+// editor. ⚠️ The list is built from the options rather than written out, and
+// this is what says so.
+func TestFrameAncestorsFollowsThePlatformDomain(t *testing.T) {
+	o := opts()
+	o.MainDomains = []string{"example.test"}
+	out := Render([]Site{{Slug: "osh", Domains: []string{"osh.uz"}}}, o)
+	if !strings.Contains(out, "https://example.test") {
+		t.Error("frame-ancestors ignored the platform's own domain")
+	}
+}
