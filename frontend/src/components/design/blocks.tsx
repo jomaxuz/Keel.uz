@@ -22,6 +22,7 @@ import HomeSearch from "@/components/menu/HomeSearch";
 import { formatPrice, weekdayName } from "@/lib/format";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import { localized } from "@/lib/i18n/site-content";
+import { siteWords } from "@/lib/siteWords";
 import CallLink from "@/components/site/CallLink";
 import { contentName } from "@/lib/i18n/content";
 import { TONE } from "./tokens";
@@ -429,10 +430,27 @@ export function MenuGridBlock({
         : "") || t.home.popTitle;
   const tone = typeof s.tone === "string" ? TONE[s.tone] : undefined;
 
+  // ⚠️ **"Mijozlar tanlovi" over the whole catalogue is a lie the band told
+  // itself.** The eyebrow was hardcoded to the popular-dishes wording, so a
+  // grid bound to every product — which is what a shop's catalogue band is —
+  // announced a selection nobody made. Explicit wins; otherwise it follows the
+  // binding, and a business that sells goods says "our products" rather than
+  // "our dishes" (lib/siteWords.ts).
+  const popular = section.binding?.popularOnly !== false;
+  const eyebrow =
+    (typeof s.eyebrow === "string"
+      ? s.eyebrow
+      : s.eyebrow
+        ? localized(s.eyebrow as never, lang)
+        : "") ||
+    (popular
+      ? t.home.popEyebrow
+      : siteWords(t, d.data?.brand?.businessType).eyebrow);
+
   return (
     <section className={`border-y border-line ${tone ?? "bg-surface"}`}>
       <div className="container-page py-16 sm:py-20">
-        <p className="eyebrow">{t.home.popEyebrow}</p>
+        <p className="eyebrow">{eyebrow}</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <h2 className="section-title">{heading}</h2>
           <Link

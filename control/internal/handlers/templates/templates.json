@@ -242,17 +242,17 @@
        "type": "text",
        "box": {
         "x": 70,
-        "y": 18,
+        "y": 22,
         "w": 26,
-        "h": 7,
+        "h": 8,
         "z": 4
        },
        "text": {
-        "uz": "Ayollar",
-        "ru": "Женское",
-        "en": "Women"
+        "uz": "Kiyim",
+        "ru": "Одежда",
+        "en": "Clothing"
        },
-       "link": "/menu",
+       "link": "/menu#cat-kiyim",
        "style": {
         "size": 3,
         "align": "center"
@@ -262,37 +262,17 @@
        "type": "text",
        "box": {
         "x": 70,
-        "y": 31,
+        "y": 38,
         "w": 26,
-        "h": 7,
+        "h": 8,
         "z": 4
        },
        "text": {
-        "uz": "Erkaklar",
-        "ru": "Мужское",
-        "en": "Men"
-       },
-       "link": "/menu",
-       "style": {
-        "size": 3,
-        "align": "center"
-       }
-      },
-      {
-       "type": "text",
-       "box": {
-        "x": 70,
-        "y": 44,
-        "w": 26,
-        "h": 7,
-        "z": 4
-       },
-       "text": {
-        "uz": "Aksessuar",
+        "uz": "Aksessuarlar",
         "ru": "Аксессуары",
         "en": "Accessories"
        },
-       "link": "/menu",
+       "link": "/menu#cat-aksessuarlar",
        "style": {
         "size": 3,
         "align": "center"
@@ -302,9 +282,9 @@
        "type": "text",
        "box": {
         "x": 70,
-        "y": 57,
+        "y": 54,
         "w": 26,
-        "h": 7,
+        "h": 8,
         "z": 4
        },
        "text": {
@@ -312,7 +292,7 @@
         "ru": "Косметика",
         "en": "Cosmetics"
        },
-       "link": "/menu",
+       "link": "/menu#cat-kosmetika",
        "style": {
         "size": 3,
         "align": "center"
@@ -438,27 +418,27 @@
    },
    {
     "label": {
-     "uz": "Ayollar",
-     "ru": "Женское",
-     "en": "Women"
+     "uz": "Kiyim",
+     "ru": "Одежда",
+     "en": "Clothing"
     },
-    "href": "/menu"
+    "href": "/menu#cat-kiyim"
    },
    {
     "label": {
-     "uz": "Erkaklar",
-     "ru": "Мужское",
-     "en": "Men"
-    },
-    "href": "/menu"
-   },
-   {
-    "label": {
-     "uz": "Aksessuar",
+     "uz": "Aksessuarlar",
      "ru": "Аксессуары",
      "en": "Accessories"
     },
-    "href": "/menu"
+    "href": "/menu#cat-aksessuarlar"
+   },
+   {
+    "label": {
+     "uz": "Kosmetika",
+     "ru": "Косметика",
+     "en": "Cosmetics"
+    },
+    "href": "/menu#cat-kosmetika"
    },
    {
     "label": {

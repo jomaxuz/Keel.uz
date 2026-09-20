@@ -309,6 +309,16 @@
    },
    "settings": [
     {
+     "key": "eyebrow",
+     "type": "text",
+     "localized": true,
+     "label": {
+      "uz": "Kichik yozuv",
+      "ru": "Надзаголовок",
+      "en": "Eyebrow"
+     }
+    },
+    {
      "key": "heading",
      "type": "text",
      "localized": true,
