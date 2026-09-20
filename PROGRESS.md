@@ -15220,3 +15220,42 @@ Tekshiruv: backend `go test ./...`, control `go test ./...`, frontend `tsc` +
 
 ⏳ Keyingi qadam: shablonni ecom.keel.uz ga qo'llash (konsol → Dizayn →
 Shablonlar) va so'zlarni do'konning o'zinikiga almashtirish.
+
+---
+
+## Konstruktor: jonli sayt ustida tahrirlash (Shopify uslubi, 1-bosqich)
+
+⚠️ **Jonli sayt paneli hech qachon ishlamagan.** Sabab tenant chekkasidagi
+`frame-ancestors 'self' https://web.telegram.org …` — `'self'` o'sha
+tenantning o'zi, keel.uz emas. Brauzer konsolning iframe'ini rad etardi:
+sahifada xato yo'q, loglarda yo'q, faqat hech kim ochmagan brauzer konsolida.
+Operator kulrang quti ko'rardi. Endi platformaning o'z domenlari ro'yxatda
+(`Options.MainDomains` dan quriladi), testi bilan.
+
+Shundan keyin:
+- **Konstruktor jonli sahifada ochiladi**, sxematik chizmada emas. Brif —
+  skrinshot, va "rasmga o'xshadimi?" degan savolga faqat haqiqiy sahifa javob
+  beradi.
+- **Ikki marta bosilsa — joyida yoziladi**: so'zlar turgan joyda, o'sha
+  o'lchamda oyna ochiladi. Enter yozadi, Shift+Enter qator, Escape bekor.
+  Bir bosish tanlaydi (sozlamalarga yo'l), so'zi yo'q elementda oyna
+  ochilmaydi.
+- **Sakkizta tutqich**: burchaklar en va bo'yni birga o'zgartiradi, chetlar —
+  alohida. Tugmani kengaytirish uni balandlashtirmasligi kerak.
+- **Sudrash paytida raqam**: `x · y %` / `w × h %`, foizda — hujjat foiz
+  saqlaydi.
+
+Oldin, shu ish yo'lida topilgan va tuzatilgan ikki jim xato:
+- **Konsol o'zi saqlagan dizaynni o'qiy olmasdi**: `any` bo'lib o'tadigan har
+  bir maydon (`canvas`, `settings`, `nav`, `theme`, `stylePresets`) bazadan
+  `bson.D` — ya'ni JSON'da `[{"Key":..,"Value":..}]` — bo'lib qaytardi.
+  Saqlash ishlaydi, baza to'g'ri, jonli sayt to'g'ri (u tipli structga dekod
+  qiladi) — faqat muharrir qayta ochilganda bo'sh. Drayver registrida
+  tuzatildi (`documentsAsMaps`), hermetik testi bilan.
+- **`NavEditor` `label` yo'q havolada butun konstruktorni yiqitardi** —
+  React butun daraxtni yechadi, ya'ni operator saqlanmagan ishi bilan
+  platformaning xato sahifasiga tushardi.
+
+⏳ Qolgani: rasm tanlash/yuklash konsoldan (hozir yo'l qo'lda yoziladi —
+tenantning `uploads` iga konsol yoza olmaydi, bu alohida qaror), va
+konstruktor chrome'ini soddalashtirish.
