@@ -8668,3 +8668,87 @@ olmaydigan sozlama.
 base URL, token qaysi sarlavhada, buyurtma yaratishning majburiy maydonlari,
 va holat kodlari. **COD (yetkazishda to'lov) alohida** — agar BTS pulni o'zi
 yig'ib keyin o'tkazsa, u tushum emas, `payout`.
+
+### Konstruktor: navbar, kenglik, burchak va burish
+
+Onlayn do'kon uchun dizayn chizishga urinish konstruktordagi **beshta teshikni**
+ochdi. Hammasi tuzatildi; har biri nega kerakligi bilan.
+
+**1. `navbar` bandi hech nima chizmasdi — jimgina.** Beshala tayyor shablon
+`navbar` bilan boshlanadi, `DesignRenderer` da esa u uchun yozuv yo'q edi, ya'ni
+`if (!Block) return null` har birini o'tkazib yuborardi. Operator konsolda
+«Markazda» yoki «Shaffof» ni tanlaydi, saqlaydi, chop etadi — va sayt
+o'zgarmaydi, hech qayerda sababi yozilmasdan.
+
+⚠️ **Yechim: bu band — sozlama, band emas.** Sarlavha sayt qobig'ida,
+`<main>` dan yuqorida, **har bir sahifada** chiziladi; dizayn esa faqat bosh
+sahifani tasvirlaydi. Uni oqim ichida chizish bosh sahifada haqiqiy
+sarlavhaning tagiga ikkinchisini qo'yardi va qolgan sahifalarni o'zgarishsiz
+qoldirardi. Shuning uchun band sozlamalarni olib yuradi, `lib/siteChrome.ts`
+ularni qobiqning proplariga aylantiradi: ko'rinish, fon, kenglik, yopishqoqlik,
+qaysi belgilar (qidiruv / savat / hisob / til / tema), telefonda menyu
+(`panel` yoki `drawer`), kichik harf.
+
+⚠️ **Har bir standart — bugungi sarlavha, maydonma-maydon.** Platformadagi har
+bir saytda bu band yo'q yoki tegilmagan; boshqacha o'qilishi **hamma
+mijozning** sarlavhasini bir kunda kambag'allashtirardi. Testi bor
+(`siteChrome.test.ts`), va u schema kalitlarini shu fayl o'qiydiganlar bilan
+solishtiradi — ikkalasini compiler bog'lamaydi.
+
+**2. Kenglik (`style.width`).** `""` sahifa ustuni, `wide`, `full`.
+⚠️ **CSS o'zgaruvchisi orqali**, band ustidagi klass orqali emas: konteyner bu
+yerda emas — har bir band o'zining ichida `container-page` chizadi, va o'ram
+ustidagi `max-w-*` undan tashqarida qolib hech nima qilmaydi.
+`.container-page` endi `var(--band-max)` va `var(--band-pad)` ni o'qiydi,
+standartlari esa aynan bugungi `max-w-7xl px-4 sm:px-6 lg:px-8`.
+
+⚠️ `control` dagi `designSection.Style` **maydonma-maydon** ko'chirilgan, ya'ni
+u ma'lumotni **tushirib qoldirish** mumkin bo'lgan yagona struct: `width` ni
+u yerga qo'shmaslik `settings` xatosining aynan takrori bo'lardi — saqlash
+muvaffaqiyatli, muharrir qayta yuklangunicha qiymatni ko'rsatib turadi, jonli
+sayt esa e'tiborsiz qoldiradi.
+
+**3. Bir tomoni yumaloq panel (`style.corner`) va chorak burilish
+(`style.rotate`).** Har bir kiyim/kosmetika referensi shu ikki shakl ustiga
+qurilgan — sahifaga qaragan qirrasi yumaloq rangli panel va chetdan pastga
+tushgan so'zlar reyki — va ikkalasi ham chizib bo'lmas edi. Birinchisini
+taqlid qilishning yagona yo'li quttini band chetidan tashqariga surib yuborish
+edi.
+
+**4. Havolalar oq ro'yxatdan chiqdi.** Tugma, band sozlamasi va navbar — hammasi
+`sanitizeHref` orqali: **sxema tekshiriladi, manzil emas**. Oq ro'yxat har bir
+restoranda bor sahifalarga boradigan tugma uchun to'g'ri edi; do'kon uchun
+noto'g'ri — uning tugmalari o'z bo'limlariga (`/menu?cat=ayollar`), Telegram
+kanaliga va lookbook'ka boradi. Hujjatni **faqat konsol** yozadi (`customCss`
+bilan bir qo'l) — erkin manzilni dizayner vositasi qiladigan narsa shu.
+⚠️ Matn elementi ham havola bo'la oladi: lookbook hero'sidagi kategoriya reyki
+oddiy matn, va yagona «boradigan» element `button` edi — to'rtta to'ldirilgan
+to'rtburchak esa o'sha dizayn emas.
+
+**5. Ikkinchi rang (`theme.accent`).** Har bir do'kon referensida **sotadigan**
+birlamchi rang (savat tugmasi) va **tartibga soladigan** ikkilamchi rang
+(kategoriya ro'yxati turgan panel) bor. Bitta token bilan ikkinchisini
+chizishning yagona yo'li hex edi — u esa qorong'i rejimda o'sha rangligicha
+qoladi va do'kon tanlagan aksentni e'tiborsiz qoldiradi.
+⚠️ **Uning siyohi hisoblanadi, tanlanmaydi**: sariq panelga qora so'z,
+to'q yashiliga oq kerak, va ikkalasini qo'lda tanlagan dizayner o'zi qarab
+turgan rangda to'g'ri, keyingi mijozda noto'g'ri qiladi. Luminance hal qiladi
+(`theme-css.ts`). Bo'sh bo'lsa brendga qaytadi.
+
+### Do'konda «Menyu» emas, «Katalog»
+
+Kiyim do'koni, kosmetika do'koni va onlayn do'konda menyu yo'q va ular taom
+sotmaydi; ikkinchi bandi «Menyu» deb yozilgan navigatsiya paneli — bu sayt
+boshqa birov uchun qurilgani haqidagi eng aniq bayonot. Bu — paneldagi
+«Masalliqlar» shikoyatining aynan o'zi, bir qavat pastda.
+
+⚠️ **So'z, ikkinchi manzil emas.** `/menu` — `/menu` bo'lib qoladi. Dunyodagi
+har bir saqlangan havola, QR kod, sitemap yozuvi, Telegram tugmasi va bosilgan
+kartochka shunga ishora qiladi, va do'kon boshqa manzildan **sinadigan
+havolalar** bahosidan ikki barobar kam narsa yutadi. O'zgaradigani — sahifa
+qanday atalishi, ya'ni mehmon ko'radigan narsaning hammasi.
+
+⚠️ **Ikki o'qilish, o'n ikkita emas**: dorixona ham do'kon, butik ham do'kon,
+onlayn do'kon ham do'kon — bitta to'plam uchalasini qoplaydi. Qaysi biri
+ishlatilishini `sellsGoods` hal qiladi (`lib/siteWords.ts`), va u sarlavha,
+futer, katalog sahifasi va «orqaga» havolasida bir xil javob beradi.

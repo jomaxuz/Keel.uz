@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import MenuBrowser from "@/components/menu/MenuBrowser";
 import { getTranslations } from "@/lib/i18n/server";
+import { siteWords } from "@/lib/siteWords";
 import type { MenuGroup, RestaurantResponse } from "@/lib/types";
 
 export async function generateMetadata() {
@@ -39,14 +40,17 @@ export default async function MenuPage({
   }
 
   const currency = rest?.restaurant.currency ?? "UZS";
+  // ⚠️ "Katalog" in a shop, "Menyu" in a restaurant. The route is unchanged —
+  // see lib/siteWords.ts for why the address stays `/menu`.
+  const w = siteWords(t, rest?.brand?.businessType);
   const nonEmpty = menu.filter((g) => g.items.length > 0);
   const total = nonEmpty.reduce((n, g) => n + g.items.length, 0);
 
   if (nonEmpty.length === 0) {
     return (
       <main className="container-page py-28 text-center">
-        <h1 className="section-title">{t.menu.title}</h1>
-        <p className="mx-auto mt-4 max-w-md text-ink-muted">{t.menu.empty}</p>
+        <h1 className="section-title">{w.title}</h1>
+        <p className="mx-auto mt-4 max-w-md text-ink-muted">{w.empty}</p>
         <Link href="/" className="btn-ghost mt-8 px-6 py-3">
           {t.menu.home}
         </Link>
@@ -59,10 +63,10 @@ export default async function MenuPage({
       {/* Page header */}
       <section className="border-b border-line bg-surface">
         <div className="container-page py-12 sm:py-16">
-          <p className="eyebrow">{t.menu.eyebrow}</p>
-          <h1 className="mt-2 section-title">{t.menu.title}</h1>
+          <p className="eyebrow">{w.eyebrow}</p>
+          <h1 className="mt-2 section-title">{w.title}</h1>
           <p className="mt-3 max-w-xl text-ink-muted">
-            {t.menu.subtitle(nonEmpty.length, total)}
+            {w.subtitle(nonEmpty.length, total)}
           </p>
         </div>
       </section>

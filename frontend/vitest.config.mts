@@ -125,6 +125,12 @@ export default defineConfig({
       // other shows up is not an error: it is the emptiest sidebar the panel
       // can draw, on the newest customer we have.
       "src/lib/businessType.test.ts",
+      // How the site's header looks, read out of the drawn design. Here because
+      // every default in it is a promise about customers who never touched it —
+      // and because the console writes those keys and nothing the compiler can
+      // see joins the two halves. The band drew nothing at all, silently, for
+      // as long as it existed.
+      "src/lib/siteChrome.test.ts",
       // Which answers a shortfall may be given in this business. Here for the
       // same reason as the row above: from a restaurant every one of these is
       // correct, and the wrong answer is wrong for every chemist on the

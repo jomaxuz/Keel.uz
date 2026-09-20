@@ -15176,3 +15176,47 @@ solishtiriladi); keel-site `tsc` + testlar.
 ⏳ **BTS'dan so'raladigan to'rt narsa**: base URL, token sarlavhasi, buyurtma
 maydonlari, holat kodlari — va COD alohida (agar pulni BTS yig'sa, u tushum
 emas, `payout`).
+
+---
+
+## Konstruktor: onlayn do'kon dizaynini chizish uchun ochilgan beshta teshik
+
+ecom.keel.uz ni referens bo'yicha chizishga urinish konstruktordagi beshta
+teshikni ochdi — hammasi tuzatildi (sabablari `docs/DECISIONS.md` →
+«Konstruktor: navbar, kenglik, burchak va burish»).
+
+1. **`navbar` bandi hech nima chizmasdi, jimgina** — beshala tayyor shablon
+   u bilan boshlanadi, renderer'da yozuv yo'q edi. Endi u **sozlama**: sayt
+   qobig'idagi sarlavhani boshqaradi (`lib/siteChrome.ts`) — ko'rinish, fon,
+   kenglik, yopishqoqlik, belgilar (qidiruv/savat/hisob/til/tema), telefonda
+   **panel yoki yon parda (drawer)**, kichik harf. Har bir standart — bugungi
+   sarlavha; testi buni va schema kalitlarining o'qilishini ushlaydi.
+2. **Kenglik** (`style.width`: ustun / kengroq / chetdan chetga) — har bir
+   bandda va navbar'da. CSS o'zgaruvchisi orqali, chunki konteyner bandning
+   **ichida**. ⚠️ `control` dagi `Style` struct'iga ham qo'shildi — u
+   maydonma-maydon ko'chiriladi, ya'ni unutilsa qiymat jimgina yo'qolardi.
+3. **Bir tomoni yumaloq panel** (`style.corner`) va **chorak burilish**
+   (`style.rotate`) + kattaroq radiuslar (`xl`, `2xl`).
+4. **Havolalar erkin**: tugma, band sozlamasi va navbar — `sanitizeHref`
+   (sxema tekshiriladi, manzil emas). **Matn elementi ham havola bo'la oladi.**
+   Yangi ikonkalar: play, search, user, bag, o'qlar, plus/minus.
+5. **Ikkinchi rang** `theme.accent` + `accent`/`ink` tonlari. Siyohi
+   luminance'dan **hisoblanadi**, tanlanmaydi.
+
+**«Katalog», «Menyu» emas** (`lib/siteWords.ts`): do'kon turlarida navbar,
+futer, katalog sahifasi va «orqaga» havolasi boshqa so'zni oladi. ⚠️ Manzil
+`/menu` bo'lib qoladi — har bir saqlangan havola, QR va sitemap shunga ishora
+qiladi.
+
+**Shablon:** konsol galereyasiga «Onlayn do'kon — Lookbook» qo'shildi va u
+**birinchi** turadi (qolgan beshtasi restoran). Chetdan chetga navbar, rangli
+panel (chap qirrasi yumaloq) + kategoriya reyki, chetda burilgan so'zlar,
+katta display so'z va orqasida xira raqam, katalog panjarasi, qora CTA bandi.
+⚠️ **Rasmsiz ham to'liq ko'rinadi** — yangi tenantning `uploads` papkasi bo'sh
+bo'ladi (ecom.keel.uz da `coverUrl` seed rasmga ishora qiladi va u 404).
+
+Tekshiruv: backend `go test ./...`, control `go test ./...`, frontend `tsc` +
+**290 test** (yangi `siteChrome.test.ts`), ikkala Next ilova `next build`.
+
+⏳ Keyingi qadam: shablonni ecom.keel.uz ga qo'llash (konsol → Dizayn →
+Shablonlar) va so'zlarni do'konning o'zinikiga almashtirish.

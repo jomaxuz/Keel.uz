@@ -21,6 +21,10 @@
   --brand-dark: 178 63 5;
   --brand-light: 251 146 60;
   --brand-tint: 255 243 234;
+  /* The second colour. Defaults to the brand, so a site that never sets one
+     looks exactly as it did — theme-css.ts overrides both when it is set. */
+  --accent: 226 89 13;
+  --accent-ink: 255 255 255;
   /* Refusals and destructive actions. Not a brand colour: the owner may not
      restyle "this failed". */
   --danger: 200 30 30;
@@ -64,6 +68,8 @@
   --brand-dark: 234 111 22;
   --brand-light: 253 186 116;
   --brand-tint: 58 34 22;
+  --accent: 251 146 60;
+  --accent-ink: 28 25 23;
   /* Lighter on a dark surface — the same rule as the hairlines above. */
   --danger: 248 113 113;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 28px -14px rgb(0 0 0 / 0.6);
@@ -170,8 +176,31 @@ body {
     @apply btn bg-charcoal text-white hover:bg-charcoal-soft active:scale-[0.98];
   }
 
+  /* The page column.
+   *
+   * ⚠️ **The two numbers are variables so one band can step out of the
+   * column**, which is what the constructor's `style.width` sets (see
+   * DesignRenderer). The defaults are exactly what `max-w-7xl px-4 sm:px-6
+   * lg:px-8` produced before, so every screen in the app — site, panel, till —
+   * is unchanged; only a band that opts out differs.
+   *
+   * ⚠️ The gutter is overridden per breakpoint rather than once, because it
+   * was three values and collapsing it to one would narrow every desktop page
+   * in the product by a centimetre nobody asked for. */
   .container-page {
-    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full;
+    max-width: var(--band-max, 80rem);
+    padding-inline: var(--band-pad, 1rem);
+  }
+  @media (min-width: 640px) {
+    .container-page {
+      padding-inline: var(--band-pad, 1.5rem);
+    }
+  }
+  @media (min-width: 1024px) {
+    .container-page {
+      padding-inline: var(--band-pad, 2rem);
+    }
   }
 
   /* Elevated surface used for menu items, forms and info blocks. */

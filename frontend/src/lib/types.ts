@@ -325,6 +325,9 @@ export interface SeoSettings {
 export interface SiteTheme {
   brand: string;
   brandDark: string;
+  /** The second colour: the panel a category list sits on, beside the brand
+   *  that sells. Empty falls back to the brand. */
+  accent?: string;
   radius: number | null;
   buttonShape: "pill" | "match" | "";
   font: "classic" | "modern" | "soft" | "";
@@ -510,7 +513,11 @@ export interface DesignElement {
   image?: string;
   /** `carousel`: the photographs, in order. */
   images?: string[];
+  /** A path on this site, or a full https:// address. Cleaned by the server —
+   *  the scheme is checked, not the destination (see models/design.go). */
   link?: string;
+  /** Opens in a new tab. Only meaningful on an address that leaves the site. */
+  linkExternal?: boolean;
   /** `icon`: which one, from a fixed set. */
   icon?: string;
   /** `rating`: how many stars are filled. */
@@ -525,8 +532,14 @@ export interface DesignElement {
     opacity?: number;
     rounded?: boolean;
     shadow?: boolean;
-    /** "" theme radius · md · lg · full (a circle). */
+    /** "" theme radius · sm · md · lg · xl · 2xl · full (a circle). */
     radius?: string;
+    /** Which corners `radius` rounds: "" all four, or left/right/top/bottom.
+     *  ⚠️ The shape every shop reference is built from — a coloured panel
+     *  rounded on the edge that faces the page. */
+    corner?: string;
+    /** A quarter turn: "" · "90" · "-90". For a rail of words down the edge. */
+    rotate?: string;
   };
   binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
 }
@@ -548,9 +561,15 @@ export interface DesignSection {
   span: number;
   hidden?: boolean;
   style?: {
-    tone?: "" | "surface" | "raised" | "charcoal" | "brand";
+    tone?: "" | "surface" | "raised" | "charcoal" | "brand" | "accent" | "ink";
     padding?: "" | "sm" | "md" | "lg";
     align?: "" | "left" | "center";
+    /** How wide the band's contents may run: "" the page column, "wide" a
+     *  roomier one, "full" edge to edge.
+     *
+     *  ⚠️ Empty is the page column, which is what every band of every existing
+     *  design means — including the five built-in templates. */
+    width?: "" | "wide" | "full";
     rounded?: boolean;
   };
   /** Only on `canvas` and `popup`: what was drawn inside. */

@@ -134,6 +134,28 @@ const uz = {
     gallery: { eyebrow: "Galereya", title: "Bizning taomlarimiz" },
     addressBtn: "Manzilni ko'rish",
   },
+  // ⚠️ **A shop's words for the pages a restaurant calls a menu.**
+  //
+  // A clothes shop, a cosmetics shop and an online store do not have a menu and
+  // do not sell dishes; a navigation bar whose second item reads "Menyu" over a
+  // rail of dresses is the clearest possible statement that this site was built
+  // for somebody else. It is the same complaint the admin sidebar already
+  // answered for "Masalliqlar" over a shelf of paracetamol.
+  //
+  // ⚠️ **Words, not a second page.** The route stays `/menu` — every saved
+  // link, QR code, sitemap entry and Telegram button in existence points at it,
+  // and a shop gains nothing from a different address that it does not lose
+  // twice over in broken links. Which set of words a site uses is decided by
+  // `sellsGoods` in lib/siteWords.ts.
+  shop: {
+    nav: "Katalog",
+    title: "Katalog",
+    eyebrow: "Bizning mahsulotlar",
+    subtitle: (cats: number, items: number) =>
+      `${cats} ta bo'lim, ${items} ta mahsulot.`,
+    empty: "Hozircha mahsulotlar yo'q. Admin panel orqali qo'shing.",
+    back: "Katalogga qaytish",
+  },
   menu: {
     eyebrow: "Bizning taomlar",
     title: "Menyu",
@@ -670,6 +692,15 @@ const ru: Dict = {
     gallery: { eyebrow: "Галерея", title: "Наши блюда" },
     addressBtn: "Посмотреть адрес",
   },
+  shop: {
+    nav: "Каталог",
+    title: "Каталог",
+    eyebrow: "Наши товары",
+    subtitle: (cats: number, items: number) =>
+      `${cats} разделов, ${items} товаров.`,
+    empty: "Товаров пока нет. Добавьте их через админ-панель.",
+    back: "Вернуться в каталог",
+  },
   menu: {
     eyebrow: "Наши блюда",
     title: "Меню",
@@ -1175,6 +1206,15 @@ const en: Dict = {
     orderBtn: "Order now",
     gallery: { eyebrow: "Gallery", title: "Our dishes" },
     addressBtn: "See the address",
+  },
+  shop: {
+    nav: "Catalogue",
+    title: "Catalogue",
+    eyebrow: "Our products",
+    subtitle: (cats: number, items: number) =>
+      `${cats} sections, ${items} products.`,
+    empty: "No products yet. Add them from the admin panel.",
+    back: "Back to the catalogue",
   },
   menu: {
     eyebrow: "Our dishes",

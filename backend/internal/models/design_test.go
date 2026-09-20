@@ -269,8 +269,15 @@ func TestSanitizeCanvasClampsAndDrops(t *testing.T) {
 	if c.Elements[1].Image != "" {
 		t.Fatalf("kept a foreign image: %q", c.Elements[1].Image)
 	}
-	if c.Elements[2].Link != "" {
-		t.Fatalf("kept a foreign link: %q", c.Elements[2].Link)
+	// ⚠️ **An outside address is now kept on purpose**, and this assertion used
+	// to say the opposite. The allowlist was right while a button could only go
+	// to a page every restaurant has; it is wrong for a shop, whose buttons go
+	// to its own sections, its Telegram channel and its lookbook — none of
+	// which any list of ours can anticipate. What is checked instead is the
+	// scheme, and that half is pinned by TestCanvasButtonsRefuseAddressesThatExecute
+	// below.
+	if c.Elements[2].Link != "https://evil.example" {
+		t.Fatalf("dropped an ordinary outside address: %q", c.Elements[2].Link)
 	}
 
 	// A canvas on a block that has no canvas is a hand-edited document.
@@ -334,7 +341,8 @@ func TestSanitizeSettingsKeepsShapeAndAllowlists(t *testing.T) {
 			"image":        "/uploads/a.jpg",
 			"bgImage":      "https://evil.example/x.png",
 			"primaryLink":  "/menu",
-			"badLink":      "https://evil.example",
+			"badLink":      "javascript:alert(1)",
+			"outsideLink":  "https://t.me/shop",
 			"tone":         "charcoal",
 			"headingColor": "neon",
 			// Not a kind a section can be asked for.
@@ -364,8 +372,16 @@ func TestSanitizeSettingsKeepsShapeAndAllowlists(t *testing.T) {
 	if s["bgImage"] != "" {
 		t.Fatalf("a foreign image survived: %#v", s["bgImage"])
 	}
+	// ⚠️ **An outside address is kept and an executing one is not**, and this
+	// assertion used to refuse both. The allowlist was right while a band's
+	// button could only go to a page every restaurant has; it is wrong for a
+	// shop, whose buttons go to its own sections and its Telegram channel. What
+	// is checked now is the scheme — see sanitizeHref.
 	if s["primaryLink"] != "/menu" || s["badLink"] != "" {
-		t.Fatalf("link allowlist not applied: %#v / %#v", s["primaryLink"], s["badLink"])
+		t.Fatalf("link scheme check not applied: %#v / %#v", s["primaryLink"], s["badLink"])
+	}
+	if s["outsideLink"] != "https://t.me/shop" {
+		t.Fatalf("an ordinary outside address was dropped: %#v", s["outsideLink"])
 	}
 	if s["tone"] != "charcoal" || s["headingColor"] != "" {
 		t.Fatalf("token allowlists not applied: %#v / %#v", s["tone"], s["headingColor"])
@@ -476,5 +492,104 @@ func TestARelativeNavLinkNeverOpensInANewTab(t *testing.T) {
 	}
 	if !d.Nav[1].External {
 		t.Error("an outside address lost its new tab")
+	}
+}
+
+// The half of the old allowlist worth keeping: a button's address becomes an
+// `href` on every visitor's page, so what must never survive is a scheme that
+// executes. Same rule and same function as the navigation bar.
+func TestCanvasButtonsRefuseAddressesThatExecute(t *testing.T) {
+	canvas := func(link string) *PageDesign {
+		return &PageDesign{Sections: []DesignSection{{
+			Type: BlockCanvas, Variant: "free", Span: 12,
+			Canvas: &DesignCanvas{Height: 60, Elements: []DesignElement{
+				{Type: ElButton, Link: link, Text: LocalizedText{Uz: "Bosing"}},
+			}},
+		}}}
+	}
+	for _, bad := range []string{
+		"javascript:alert(1)", "data:text/html,<script>",
+		"//evil.example", "vbscript:msgbox", "menu",
+	} {
+		d := canvas(bad)
+		d.Sanitize()
+		if got := d.Sections[0].Canvas.Elements[0].Link; got != "" {
+			t.Errorf("%q survived as %q", bad, got)
+		}
+	}
+	for _, ok := range []string{"/menu", "/menu?cat=ayollar", "https://t.me/shop"} {
+		d := canvas(ok)
+		d.Sanitize()
+		if got := d.Sections[0].Canvas.Elements[0].Link; got != ok {
+			t.Errorf("%q was dropped", ok)
+		}
+	}
+	// And a new tab on a path of ours is cleared: it lands the guest in a
+	// second copy of the shop with an empty basket.
+	d := &PageDesign{Sections: []DesignSection{{
+		Type: BlockCanvas, Variant: "free", Span: 12,
+		Canvas: &DesignCanvas{Height: 60, Elements: []DesignElement{
+			{Type: ElButton, Link: "/menu", LinkExternal: true, Text: LocalizedText{Uz: "A"}},
+			{Type: ElButton, Link: "https://t.me/s", LinkExternal: true, Text: LocalizedText{Uz: "B"}},
+		}},
+	}}}
+	d.Sanitize()
+	els := d.Sections[0].Canvas.Elements
+	if els[0].LinkExternal {
+		t.Error("a path on this site was marked as leaving it")
+	}
+	if !els[1].LinkExternal {
+		t.Error("an outside address lost its new tab")
+	}
+}
+
+// ⚠️ **The shapes a shop reference is built from.** A panel rounded on one side
+// and a rail of words turned a quarter turn are the two devices every fashion
+// and cosmetics layout uses, and both were unreachable: the editor could round
+// all four corners or none, and could not turn anything at all. Pinned because
+// an unknown enum here does not fail — it silently falls back to a square,
+// upright box, which looks like the design was ignored.
+func TestPanelsRoundOnOneSideAndRailsTurn(t *testing.T) {
+	el := func(corner, rotate, radius string) DesignElement {
+		return DesignElement{
+			Type:  ElBox,
+			Style: ElementStyle{Corner: corner, Rotate: rotate, Radius: radius},
+		}
+	}
+	d := &PageDesign{Sections: []DesignSection{{
+		Type: BlockCanvas, Variant: "free", Span: 12,
+		Canvas: &DesignCanvas{Height: 60, Elements: []DesignElement{
+			el("left", "-90", "2xl"),
+			el("sideways", "45", "enormous"), // none of these exist
+		}},
+	}}}
+	d.Sanitize()
+	els := d.Sections[0].Canvas.Elements
+	if els[0].Style.Corner != "left" || els[0].Style.Rotate != "-90" || els[0].Style.Radius != "2xl" {
+		t.Errorf("a valid panel was cleaned away: %+v", els[0].Style)
+	}
+	if els[1].Style.Corner != "" || els[1].Style.Rotate != "" || els[1].Style.Radius != "" {
+		t.Errorf("an unknown value survived: %+v", els[1].Style)
+	}
+}
+
+// A band may now run wider than the page column, or edge to edge. ⚠️ Empty has
+// to stay the page container: it is what every band of every existing design
+// means, including the five built-in templates.
+func TestBandWidthIsAStepAndEmptyIsTheColumn(t *testing.T) {
+	d := &PageDesign{Sections: []DesignSection{
+		{Type: BlockHero, Variant: "full", Span: 12, Style: DesignStyle{Width: "full"}},
+		{Type: BlockAbout, Variant: "text", Span: 12, Style: DesignStyle{Width: "1400px"}},
+		{Type: BlockGallery, Variant: "grid", Span: 12},
+	}}
+	d.Sanitize()
+	if d.Sections[0].Style.Width != "full" {
+		t.Error("a full-bleed band lost its width")
+	}
+	if d.Sections[1].Style.Width != "" {
+		t.Errorf("a pixel width survived: %q", d.Sections[1].Style.Width)
+	}
+	if d.Sections[2].Style.Width != "" {
+		t.Error("an unset width stopped meaning the page column")
 	}
 }

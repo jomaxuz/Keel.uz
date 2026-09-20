@@ -21,6 +21,18 @@ const config: Config = {
           light: v("--brand-light"),
           tint: v("--brand-tint"),
         },
+        // ⚠️ **The second colour, and it is a surface rather than an accent.**
+        // Every shop reference has a primary that sells (the cart button) and a
+        // secondary that organises — the panel a category list sits on. `ink`
+        // is what stays readable on it, computed from its luminance in
+        // theme-css.ts rather than chosen: a yellow panel needs black words and
+        // a deep green one needs white, and a designer picking both by hand
+        // gets it right for the colour in front of them and wrong for the next
+        // customer's.
+        accent: {
+          DEFAULT: v("--accent"),
+          ink: v("--accent-ink"),
+        },
         // Foreground scale (also used for hairline borders via /10 alpha).
         ink: {
           DEFAULT: v("--fg"),

@@ -30,6 +30,7 @@ export type BackgroundPreset = keyof typeof BACKGROUNDS;
 export const EMPTY_THEME: SiteTheme = {
   brand: "",
   brandDark: "",
+  accent: "",
   radius: null,
   buttonShape: "",
   font: "",
@@ -122,6 +123,31 @@ export function themeCss(theme?: SiteTheme | null): string {
     dark.push(`--brand-dark: ${triple(mix(darkBrand, -0.15))}`);
     dark.push(`--brand-light: ${triple(mix(darkBrand, 0.3))}`);
     dark.push(`--brand-tint: ${triple(mix(brand, -0.72))}`);
+  }
+
+  // The second colour: the panel a category list sits on, beside the brand that
+  // sells.
+  //
+  // ⚠️ **Its ink is computed, never chosen.** A yellow panel needs black words
+  // and a deep green one needs white, and a designer picking both by hand gets
+  // it right on the colour they were looking at and wrong on the next
+  // customer's. Luminance decides, once, here — the same measure that already
+  // keeps the dark-mode accent readable ten lines up.
+  //
+  // ⚠️ Empty falls back to the brand rather than to a colour of ours: a site
+  // that never sets a second colour must look exactly as it does today, and a
+  // band asking for `accent` on such a site should still be *a* brand colour
+  // rather than a grey rectangle.
+  const accent = parseHex(theme.accent ?? "") ?? brand;
+  if (accent) {
+    light.push(`--accent: ${triple(accent)}`);
+    light.push(`--accent-ink: ${luminance(accent) > 0.6 ? "17 17 17" : "255 255 255"}`);
+    // ⚠️ Darkened rather than lightened for dark mode, unlike the brand: this
+    // token is a **surface**, not text on one, and a yellow panel made brighter
+    // on a near-black page is the one thing on the screen nobody can look at.
+    const darkAccent = luminance(accent) > 0.6 ? mix(accent, -0.35) : accent;
+    dark.push(`--accent: ${triple(darkAccent)}`);
+    dark.push(`--accent-ink: ${luminance(darkAccent) > 0.6 ? "17 17 17" : "255 255 255"}`);
   }
 
   if (typeof theme.radius === "number" && theme.radius >= 0) {

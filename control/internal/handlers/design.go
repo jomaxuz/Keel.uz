@@ -73,10 +73,19 @@ type designSection struct {
 	Variant string `bson:"variant,omitempty" json:"variant,omitempty"`
 	Span    int    `bson:"span" json:"span"`
 	Hidden  bool   `bson:"hidden,omitempty" json:"hidden,omitempty"`
-	Style   struct {
+	// ⚠️ **Mirrored field by field, which makes it the one struct here that can
+	// lose data by omission** — and it very nearly did again. Go's decoder drops
+	// an unknown JSON field without a word, so a `style.width` written by the
+	// console and missing from this struct would arrive at the database as
+	// nothing: the save returns a count, the editor keeps showing the value
+	// until it is reloaded, and the live site quietly ignores it. That is the
+	// `settings` bug, and this comment is here so the next field added to a
+	// band's style is added here too.
+	Style struct {
 		Tone    string `bson:"tone,omitempty" json:"tone,omitempty"`
 		Padding string `bson:"padding,omitempty" json:"padding,omitempty"`
 		Align   string `bson:"align,omitempty" json:"align,omitempty"`
+		Width   string `bson:"width,omitempty" json:"width,omitempty"`
 		Rounded bool   `bson:"rounded,omitempty" json:"rounded,omitempty"`
 	} `bson:"style,omitempty" json:"style,omitempty"`
 	// ⚠️ Passed through as-is, not mirrored field by field.

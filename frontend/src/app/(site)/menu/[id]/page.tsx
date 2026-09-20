@@ -8,6 +8,7 @@ import { hasId } from "@/lib/id";
 import AddToCartControl from "@/components/menu/AddToCartControl";
 import Recommendations from "@/components/menu/Recommendations";
 import { getTranslations } from "@/lib/i18n/server";
+import { siteWords } from "@/lib/siteWords";
 import { contentDescription, contentName } from "@/lib/i18n/content";
 import type { MenuGroup, MenuItem, RestaurantResponse } from "@/lib/types";
 
@@ -87,7 +88,7 @@ export default async function MenuItemPage({
   return (
     <main className="container-page py-10">
       <Link href="/menu" className="text-sm text-ink-muted hover:text-brand">
-        ← {t.common.backToMenu}
+        ← {siteWords(t, rest?.brand?.businessType).back}
       </Link>
 
       <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">

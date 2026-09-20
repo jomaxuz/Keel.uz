@@ -15,6 +15,7 @@ import StructuredData from "@/components/site/StructuredData";
 import TrackVisit from "@/components/site/TrackVisit";
 import BackToTop from "@/components/site/BackToTop";
 import { siteOrigin } from "@/lib/seo";
+import { DEFAULT_CHROME, siteChrome } from "@/lib/siteChrome";
 import type { BrandsResponse, NavLink, Restaurant } from "@/lib/types";
 
 // Public site shell: cart state + header/footer around every public page.
@@ -37,12 +38,22 @@ export default async function SiteLayout({
   // page view on every site on the platform, to decide five links.
   let navLinks: NavLink[] = [];
   let businessType = "";
+  // How the bar itself looks, read out of the design's `navbar` band.
+  //
+  // ⚠️ **That band draws nothing in the page flow, and this is why.** The header
+  // is rendered here, above `<main>`, on every page — the design only describes
+  // the home page. Rendered inline it would put a second bar under the real one
+  // on the home page and leave every other page with the built-in bar. It used
+  // to draw nothing *silently*: all five built-in templates open with a navbar
+  // band, and the renderer skipped every one of them with nothing saying why.
+  let chrome = DEFAULT_CHROME;
   try {
     const data = await api.getRestaurant(scope);
     restaurant = data.restaurant;
     brandId = data.brand?.id ?? "";
     navLinks = data.design?.nav ?? [];
     businessType = data.brand?.businessType ?? "";
+    chrome = siteChrome(data.design);
   } catch {
     restaurant = null;
   }
@@ -110,6 +121,7 @@ export default async function SiteLayout({
                     // it is — see models/design.go, NavLink.
                     navLinks={navLinks}
                     businessType={businessType}
+                    chrome={chrome}
                   />
                   <TableBanner />
                   {/* ⚠️ Below the fold and never blocking: it is a notice, not a gate. Hidden
@@ -117,7 +129,11 @@ export default async function SiteLayout({
                   to ask about storage the guest cannot see. */}
                   <CookieNotice />
                   <div className="flex-1">{children}</div>
-                  <Footer restaurant={restaurant} watermark={watermark} />
+                  <Footer
+                    restaurant={restaurant}
+                    watermark={watermark}
+                    businessType={businessType}
+                  />
                   {/* In the shell rather than on the long pages: which page is long
                   depends on how many dishes this restaurant sells, and a
                   per-page decision would be wrong for somebody. It costs

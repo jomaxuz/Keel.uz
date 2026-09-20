@@ -1424,6 +1424,10 @@ export interface DesignSection {
     tone?: string;
     padding?: string;
     align?: string;
+    /** How wide the band's contents run: "" the page column, "wide", "full".
+     *  ⚠️ The navbar band reads it too — that is how a shop's bar runs edge to
+     *  edge while the bands under it stay in the column. */
+    width?: string;
     rounded?: boolean;
   };
   binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
@@ -1450,7 +1454,13 @@ export interface DesignElement {
   subtext?: { uz: string; ru: string; en: string };
   image?: string;
   images?: string[];
+  /** A path on this site ("/menu?cat=ayollar") or a full https:// address.
+   *  ⚠️ No longer an allowlist — the tenant checks the scheme, not the
+   *  destination, because the sections a shop divides itself into are the one
+   *  thing no list of ours can anticipate. */
   link?: string;
+  /** Opens in a new tab. Only meaningful on an address that leaves the site. */
+  linkExternal?: boolean;
   icon?: string;
   value?: number;
   style?: {
@@ -1463,6 +1473,14 @@ export interface DesignElement {
     opacity?: number;
     rounded?: boolean;
     shadow?: boolean;
+    /** "" theme radius · sm · md · lg · xl · 2xl · full (a circle). */
+    radius?: string;
+    /** Which corners `radius` rounds: "" all four, or left/right/top/bottom.
+     *  ⚠️ The shape every shop reference is built from — a coloured panel
+     *  rounded on the edge that faces the page. */
+    corner?: string;
+    /** A quarter turn: "" · "90" · "-90". For a rail of words down the edge. */
+    rotate?: string;
   };
   binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
 }

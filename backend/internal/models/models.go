@@ -194,6 +194,15 @@ type SiteTheme struct {
 	Brand string `bson:"brand" json:"brand"` // "#e2590d"
 	// Accent used in dark mode; empty = derived from Brand.
 	BrandDark string `bson:"brandDark" json:"brandDark"`
+	// The second colour. ⚠️ **One accent is not how a brand works**: every shop
+	// reference has a primary that sells — the cart button — and a secondary
+	// that organises, the panel a category list sits on. With one token the only
+	// way to draw the second was a hex typed into the design, which keeps that
+	// colour in dark mode and ignores the accent the shop chose.
+	//
+	// ⚠️ Empty falls back to the brand, so a site that never sets one looks
+	// exactly as it does today. Same zero-value rule as the rest of this struct.
+	Accent string `bson:"accent" json:"accent"`
 	// Card corner radius in px (0–32). Controls derive from it.
 	Radius *int `bson:"radius" json:"radius"`
 	// "pill" (default) or "match" — square-ish buttons that follow Radius.

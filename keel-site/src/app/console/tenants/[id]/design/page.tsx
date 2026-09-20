@@ -83,7 +83,29 @@ const VARIANTS: Record<string, string[]> = {
   popup: ["center", "bottom"],
 };
 
-const TONES = ["", "surface", "raised", "charcoal", "brand"];
+const TONES = ["", "surface", "raised", "charcoal", "brand", "accent", "ink"];
+
+/** How wide a band's contents may run. ⚠️ Empty is the page column, which is
+ *  what every band of every existing design means — including the five built-in
+ *  templates. Mirrors `designWidths` on the tenant. */
+const WIDTHS = ["", "wide", "full"] as const;
+
+/** Which corners the radius rounds, and how far. ⚠️ The two shapes every shop
+ *  reference is built from and the editor could not draw: a panel rounded on
+ *  the edge that faces the page, and a rail of words turned a quarter turn.
+ *  Mirror `elementCorners` / `elementRotations` / `elementRadii`. */
+const CORNERS = ["", "left", "right", "top", "bottom"] as const;
+const ROTATIONS = ["", "-90", "90"] as const;
+const RADII = ["", "sm", "md", "lg", "xl", "2xl", "full"] as const;
+
+/** The icons an `icon` element may be. Mirrors `elementIcons`; the second row
+ *  is the shop set — the first twelve were drawn for a restaurant. */
+const ICONS = [
+  "", "star", "clock", "phone", "pin", "fire", "leaf", "truck", "check",
+  "heart", "cart", "chef",
+  "play", "search", "user", "bag", "arrow-up", "arrow-down", "arrow-right",
+  "arrow-left", "plus", "minus",
+] as const;
 const COLORS = ["", "ink", "soft", "muted", "white", "brand", "surface", "charcoal"];
 const LINKS = ["", "/", "/menu", "/cart", "/checkout", "/bron", "/about", "/profile"];
 
@@ -986,6 +1008,25 @@ function BandSettings({
         </select>
       </Row>
 
+      {/* ⚠️ **On every band, including the navbar.** The bar reads its width
+          from here too (lib/siteChrome.ts), which is what lets a shop's header
+          run edge to edge while the bands under it stay in the column. */}
+      <Row label={d.width}>
+        <select
+          value={band.style?.width ?? ""}
+          onChange={(e) =>
+            update(index, { style: { ...(band.style ?? {}), width: e.target.value } })
+          }
+          className="select"
+        >
+          {WIDTHS.map((v) => (
+            <option key={v} value={v}>
+              {v === "" ? d.widthColumn : v === "wide" ? d.widthWide : d.widthFull}
+            </option>
+          ))}
+        </select>
+      </Row>
+
       {canvas && (
         <>
           <Row label={d.height}>
@@ -1290,15 +1331,45 @@ function ElementSettings({
       )}
 
       {el.type === "button" && (
-        <Row label={d.link}>
-          <select
-            value={el.link ?? ""}
-            onChange={(e) => onElement({ link: e.target.value })}
-            className="select"
-          >
-            {LINKS.map((l) => <option key={l} value={l}>{l || "menyu"}</option>)}
-          </select>
-        </Row>
+        <>
+          {/* ⚠️ **A box, with the site's own pages as one-tap chips beside it.**
+              It was a `<select>` of nine paths, which is right while a button
+              can only go where every restaurant goes — and wrong for a shop,
+              whose buttons go to the section it is divided into
+              ("/menu?cat=ayollar"), to its Telegram channel, to the lookbook on
+              YouTube. The server checks the scheme, not the destination. */}
+          <Row label={d.link}>
+            <input
+              value={el.link ?? ""}
+              onChange={(e) => onElement({ link: e.target.value })}
+              placeholder="/menu?cat=ayollar"
+              spellCheck={false}
+              className="input font-mono text-[11px]"
+            />
+          </Row>
+          <div className="flex flex-wrap gap-1">
+            {LINKS.filter(Boolean).map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => onElement({ link: l })}
+                className="rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-ink-muted hover:border-signal-500 hover:text-ink"
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          {/* Only on an address that actually leaves the site: a new tab on a
+              path of ours lands the guest in a second copy of the shop with an
+              empty basket, and the server clears it anyway. */}
+          {(el.link ?? "").startsWith("http") && (
+            <Toggle
+              value={!!el.linkExternal}
+              label={d.linkExternal}
+              onChange={(v) => onElement({ linkExternal: v })}
+            />
+          )}
+        </>
       )}
 
       {(el.type === "quote" || el.type === "stat") && (
@@ -1322,7 +1393,7 @@ function ElementSettings({
             onChange={(e) => onElement({ icon: e.target.value })}
             className="select"
           >
-            {["star", "clock", "phone", "pin", "fire", "leaf", "truck", "check", "heart", "cart", "chef"].map((i) => (
+            {ICONS.filter(Boolean).map((i) => (
               <option key={i} value={i}>{i}</option>
             ))}
           </select>
@@ -1393,6 +1464,48 @@ function ElementSettings({
       <p className="pt-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
         {d.look}
       </p>
+
+      {/* ⚠️ **The two shapes a shop reference is actually built from.** A panel
+          rounded on the edge that faces the page, with a category list on it,
+          and a rail of words turned a quarter turn down the side. Neither was
+          reachable: the editor could round all four corners or none, and could
+          not turn anything at all — so the way to approximate the first was to
+          push the box off the edge of the band and hope. */}
+      <Row label={d.radius}>
+        <select
+          value={el.style?.radius ?? ""}
+          onChange={(e) => onStyle({ radius: e.target.value })}
+          className="select"
+        >
+          {RADII.map((v) => (
+            <option key={v} value={v}>{v || d.radiusNone}</option>
+          ))}
+        </select>
+      </Row>
+      {el.style?.radius && (
+        <Row label={d.corner}>
+          <select
+            value={el.style?.corner ?? ""}
+            onChange={(e) => onStyle({ corner: e.target.value })}
+            className="select"
+          >
+            {CORNERS.map((v) => (
+              <option key={v} value={v}>{v || d.cornerAll}</option>
+            ))}
+          </select>
+        </Row>
+      )}
+      <Row label={d.rotate}>
+        <Seg
+          value={el.style?.rotate ?? ""}
+          options={ROTATIONS.map((v) => ({
+            v,
+            label: v === "" ? d.rotateNone : v === "-90" ? "↑" : "↓",
+          }))}
+          onChange={(v) => onStyle({ rotate: v })}
+        />
+      </Row>
+
       <Toggle
         value={!!el.style?.rounded}
         label={d.rounded}
@@ -1552,6 +1665,11 @@ const TONE_PREVIEW: Record<string, string> = {
   raised: "#f4f1ea",
   charcoal: "#20201e",
   brand: "#e2483d",
+  // ⚠️ The second colour. Shown as a neutral chip rather than a guess at the
+  // customer's own accent: this swatch is a legend, and a swatch that claimed a
+  // colour the site does not use would be worse than one that claims none.
+  accent: "#f5c542",
+  ink: "#111111",
 };
 
 const COLOR_PREVIEW: Record<string, string> = {

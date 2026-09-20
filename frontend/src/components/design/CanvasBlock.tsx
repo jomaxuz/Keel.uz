@@ -61,6 +61,12 @@ const TONE_CLASS: Record<string, string> = {
   raised: "bg-raised",
   charcoal: "bg-charcoal text-white",
   brand: "bg-brand text-white",
+  // ⚠️ The ink comes with the surface and is computed from its luminance
+  // (theme-css.ts), never chosen: a yellow panel needs black words and a deep
+  // green one needs white. A designer who picked both by hand would get it
+  // right for the colour in front of them and wrong for the next customer.
+  accent: "bg-accent text-accent-ink",
+  ink: "bg-ink text-cream",
 };
 
 const COLOR_CLASS: Record<string, string> = {
@@ -72,6 +78,7 @@ const COLOR_CLASS: Record<string, string> = {
   brand: "text-brand",
   surface: "text-surface",
   charcoal: "text-charcoal",
+  accent: "text-accent",
 };
 
 // Font size as a step on the type scale rather than a pixel value: a headline
@@ -81,9 +88,62 @@ const COLOR_CLASS: Record<string, string> = {
  *  three of the starting templates are built around. */
 const RADIUS_CLASS: Record<string, string> = {
   "": "",
+  sm: "rounded-lg",
   md: "rounded-xl",
   lg: "rounded-3xl",
+  xl: "rounded-[2.5rem]",
+  "2xl": "rounded-[4rem]",
   full: "rounded-full",
+};
+
+/** The same steps, applied to one side only.
+ *
+ *  ⚠️ **Written out per corner rather than composed**, because Tailwind can
+ *  only see class names that appear literally in the source: a template string
+ *  like `rounded-${side}-${step}` compiles to nothing at all, and the page
+ *  silently loses every rounded panel while the document looks correct.
+ *
+ *  ⚠️ **This is the shape a shop reference is actually built from** — a
+ *  coloured panel rounded on the edge that faces the page, with a category list
+ *  on it. With all-four-corners only, the way to approximate it was to push the
+ *  box off the side of the band and hope. */
+const CORNER_CLASS: Record<string, Record<string, string>> = {
+  left: {
+    sm: "rounded-l-lg", md: "rounded-l-xl", lg: "rounded-l-3xl",
+    xl: "rounded-l-[2.5rem]", "2xl": "rounded-l-[4rem]", full: "rounded-l-full",
+  },
+  right: {
+    sm: "rounded-r-lg", md: "rounded-r-xl", lg: "rounded-r-3xl",
+    xl: "rounded-r-[2.5rem]", "2xl": "rounded-r-[4rem]", full: "rounded-r-full",
+  },
+  top: {
+    sm: "rounded-t-lg", md: "rounded-t-xl", lg: "rounded-t-3xl",
+    xl: "rounded-t-[2.5rem]", "2xl": "rounded-t-[4rem]", full: "rounded-t-full",
+  },
+  bottom: {
+    sm: "rounded-b-lg", md: "rounded-b-xl", lg: "rounded-b-3xl",
+    xl: "rounded-b-[2.5rem]", "2xl": "rounded-b-[4rem]", full: "rounded-b-full",
+  },
+};
+
+/** Which class rounds this element, given the step and the side. */
+function radiusClass(radius?: string, corner?: string): string {
+  if (!radius) return "";
+  const step = corner ? CORNER_CLASS[corner]?.[radius] : RADIUS_CLASS[radius];
+  return step ? `overflow-hidden ${step}` : "";
+}
+
+/** A quarter turn, for a rail of words down the edge of the page.
+ *
+ *  ⚠️ **`origin-center` and nothing else.** A rotated box keeps the width and
+ *  height it was drawn with — the turn is painted, not laid out — so the
+ *  designer sizes the box for the text lying down and the page turns it in
+ *  place. Rotating about a corner instead would move the element somewhere
+ *  nobody placed it, which is the failure that makes rotation feel broken. */
+const ROTATE_CLASS: Record<string, string> = {
+  "": "",
+  "90": "rotate-90 origin-center",
+  "-90": "-rotate-90 origin-center",
 };
 
 const SIZE_CLASS: Record<number, string> = {
@@ -251,7 +311,8 @@ function Element({
     style.weight === "bold" ? "font-bold" : style.weight === "black" ? "font-black" : "",
     style.align === "center" ? "text-center" : "",
     style.rounded ? "overflow-hidden rounded-2xl" : "",
-    style.radius ? `overflow-hidden ${RADIUS_CLASS[style.radius] ?? ""}` : "",
+    radiusClass(style.radius, style.corner),
+    ROTATE_CLASS[style.rotate ?? ""] ?? "",
     style.shadow ? "shadow-card" : "",
   ]
     .filter(Boolean)
@@ -396,11 +457,30 @@ function Element({
 
   if (el.type === "button") {
     if (!text) return null;
+    const href = el.link || "/menu";
+    // ⚠️ **Two elements, because a button may now leave the site.**
+    // `LocaleLink` prefixes `/ru` or `/en` onto an href — right for a page of
+    // ours and nonsense on `https://t.me/...` — and Next's client router
+    // cannot navigate to another origin at all. `noreferrer` goes with
+    // `target="_blank"`: a tab opened without it can reach back through
+    // `window.opener`.
+    const outside = el.linkExternal || !href.startsWith("/");
     return (
       <div style={position} {...mark} className={classes}>
-        <LocaleLink href={el.link || "/menu"} className="btn btn-primary w-full">
-          {text}
-        </LocaleLink>
+        {outside ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="btn btn-primary w-full"
+          >
+            {text}
+          </a>
+        ) : (
+          <LocaleLink href={href} className="btn btn-primary w-full">
+            {text}
+          </LocaleLink>
+        )}
       </div>
     );
   }
@@ -408,11 +488,47 @@ function Element({
   // Text. `whitespace-pre-line` because a designer types line breaks where they
   // want them and a headline reflowed by the browser is a different headline.
   if (!text) return null;
+  // ⚠️ **A line of text may be a link, and a shop's category rail is why.**
+  // The list down the side of a lookbook hero — Office Wear, Party, Casual — is
+  // plain text that goes somewhere, and the only element that could go
+  // somewhere was `button`, which draws a filled accent rectangle. Four of
+  // those stacked is not that design; it is four buttons. Drawing them as text
+  // and leaving them dead is worse — it is a menu the guest cannot use.
+  const linked = sanitizedHref(el.link);
+  const body = (
+    <span className="whitespace-pre-line leading-tight">{text}</span>
+  );
   return (
     <div style={position} {...mark} className={`${classes} whitespace-pre-line leading-tight`}>
-      {text}
+      {linked ? (
+        el.linkExternal || !linked.startsWith("/") ? (
+          <a href={linked} target="_blank" rel="noreferrer noopener" className="hover:opacity-70">
+            {body}
+          </a>
+        ) : (
+          <LocaleLink href={linked} className="hover:opacity-70">
+            {body}
+          </LocaleLink>
+        )
+      ) : (
+        text
+      )}
     </div>
   );
+}
+
+/** The address, if there is one a browser can follow.
+ *
+ *  ⚠️ A second check on the client although the server already cleaned it. The
+ *  document is sanitised on every read, so this is belt and braces rather than
+ *  the boundary — but this value becomes an `href` on a public page, and the
+ *  one place a check like that is worth repeating is the place it is used. */
+function sanitizedHref(raw?: string): string {
+  const h = (raw ?? "").trim();
+  if (!h) return "";
+  if (h.startsWith("//")) return "";
+  if (h.startsWith("/") || h.startsWith("https://") || h.startsWith("http://")) return h;
+  return "";
 }
 
 /** The photograph behind a whole band.
@@ -461,13 +577,33 @@ function Icon({ name }: { name: string }) {
     heart: "M12 21s-8-4.8-8-10a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 11c0 5.2-8 10-8 10Z",
     cart: "M3 4h2l2.4 11h10.2L20 7H6M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z",
     chef: "M7 21h10M6 17h12v-2a6 6 0 0 0-12 0v2Z",
+    // ⚠️ The shop set. The twelve above were drawn for a restaurant — a chef's
+    // hat, a chilli, a leaf — and a clothes shop composing a lookbook hero
+    // needs none of them and four that were missing. Without these a designer
+    // draws a rectangle and types a character into it, which is how a page ends
+    // up with a lookbook button nobody recognises as one.
+    play: "M8 5.5v13l11-6.5-11-6.5Z",
+    search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3",
+    user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0",
+    bag: "M6 7h12l1 13H5L6 7ZM9 7V5a3 3 0 0 1 6 0v2",
+    "arrow-up": "M12 19V5M6 11l6-6 6 6",
+    "arrow-down": "M12 5v14M6 13l6 6 6-6",
+    "arrow-right": "M5 12h14M13 6l6 6-6 6",
+    "arrow-left": "M19 12H5M11 18l-6-6 6-6",
+    plus: "M12 5v14M5 12h14",
+    minus: "M5 12h14",
   };
+  // ⚠️ Two of them are solid shapes rather than outlines. A play triangle drawn
+  // as a 1.6px stroke reads as a chevron at the size this element is used at,
+  // and a star with no fill is an empty star — which on a rating means
+  // something else entirely.
+  const solid = name === "play" || name === "star";
   return (
     <svg
       viewBox="0 0 24 24"
-      fill="none"
+      fill={solid ? "currentColor" : "none"}
       stroke="currentColor"
-      strokeWidth="1.6"
+      strokeWidth={solid ? "0" : "1.6"}
       strokeLinecap="round"
       strokeLinejoin="round"
       className="h-full w-auto"

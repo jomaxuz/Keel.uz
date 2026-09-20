@@ -3,6 +3,7 @@
 // Locale-aware: hrefs stay unprefixed here and gain /ru or /en at render.
 import Link from "@/components/site/LocaleLink";
 import { useI18n } from "@/lib/i18n/client";
+import { siteWords } from "@/lib/siteWords";
 import CallLink from "@/components/site/CallLink";
 import SocialLinks from "@/components/site/SocialLinks";
 import BrandMark from "@/components/site/BrandMark";
@@ -15,14 +16,18 @@ export default function Footer({
    *  layout rather than read here: it belongs to the control plane, and a
    *  client component has no way to ask. */
   watermark = false,
+  businessType,
 }: {
   restaurant: Restaurant | null;
   watermark?: boolean;
+  /** What this brand sells — read only to decide whether this site's second
+   *  page is called a menu or a catalogue. See lib/siteWords.ts. */
+  businessType?: string;
 }) {
   const { lang, t } = useI18n();
   const year = new Date().getFullYear();
   const pages = [
-    { href: "/menu", label: t.nav.menu },
+    { href: "/menu", label: siteWords(t, businessType).nav },
     { href: "/about", label: t.nav.about },
     // ⚠️ In the footer, not the navbar. Nobody arrives at a restaurant's site looking for
     // a job, and a nav item spends the one slot a guest scans on the least likely

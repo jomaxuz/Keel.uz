@@ -130,6 +130,15 @@ var elementIcons = map[string]bool{
 	"": true, "star": true, "clock": true, "phone": true, "pin": true,
 	"fire": true, "leaf": true, "truck": true, "check": true, "heart": true,
 	"cart": true, "chef": true,
+	// ⚠️ **The shop set.** The first twelve were drawn for a restaurant — a
+	// chef's hat, a chilli, a leaf — and a clothes shop composing a lookbook
+	// hero needs none of them and four that were missing: the play button on a
+	// video link, the magnifier, the account figure and the bag. Without them a
+	// designer draws a rectangle and types a character into it, which is how a
+	// page ends up with a lookbook button nobody recognises as one.
+	"play": true, "search": true, "user": true, "bag": true,
+	"arrow-up": true, "arrow-down": true, "arrow-right": true, "arrow-left": true,
+	"plus": true, "minus": true,
 }
 
 var elementTypes = map[string]bool{
@@ -140,9 +149,20 @@ var elementTypes = map[string]bool{
 	ElSocial: true,
 }
 
-// Where a button may point. ⚠️ An allowlist, not a URL field: this value becomes
-// an `href` on every visitor's page, and "any string" there is an open redirect
-// with a nice name — plus a way to send a restaurant's own guests elsewhere.
+// Where a button may point, offered as one-tap choices in the console.
+//
+// ⚠️ **No longer the only thing allowed, and the reason is the same one the
+// navigation bar gave.** These are the pages every restaurant has, so they are
+// what the picker offers — but a shop's buttons go to the sections *it* is
+// divided into ("/menu?cat=ayollar"), to its Telegram channel, to the lookbook
+// on YouTube, and no list we write can anticipate those. A button that cannot
+// reach them is a button somebody works around by drawing a rectangle over a
+// link, which is worse in every way.
+//
+// What replaced the allowlist is `sanitizeHref`: the **scheme** is checked, not
+// the destination. The design document is written by the console and never by a
+// tenant owner — the same hand that writes `customCss` — which is what makes a
+// free address a designer's tool here rather than an open redirect.
 var elementLinks = map[string]bool{
 	"": true, "/": true, "/menu": true, "/cart": true, "/checkout": true,
 	"/bron": true, "/about": true, "/profile": true, "/login": true,
@@ -154,11 +174,37 @@ var elementFonts = map[string]bool{"": true, "sans": true, "display": true}
 // is a circle. ⚠️ `full` earns its place — three of the five starting templates
 // are built around a circular photograph or a coloured disc, and there is no way
 // to fake one with a radius that follows the theme.
-var elementRadii = map[string]bool{"": true, "md": true, "lg": true, "full": true}
+var elementRadii = map[string]bool{
+	"": true, "sm": true, "md": true, "lg": true, "xl": true, "2xl": true,
+	"full": true,
+}
+
+// Which corners the radius applies to.
+//
+// ⚠️ **The one shape every shop reference has and the editor could not draw.**
+// A coloured panel rounded on the side that faces the page — the yellow block
+// holding a category list, the dark strip curving away from a photograph — is
+// the commonest device in fashion and cosmetics layouts, and with an all-corner
+// radius the only way to approximate it was to push the box off the edge of the
+// band and hope. Empty is every corner, which is what every existing design
+// means.
+var elementCorners = map[string]bool{
+	"": true, "left": true, "right": true, "top": true, "bottom": true,
+}
+
+// How far an element is turned.
+//
+// ⚠️ **Three values, not an angle.** A vertical rail of words down the edge of
+// the page is the thing this exists for, and it is always a quarter turn; a
+// free angle would be a number that has to agree with a box whose height was
+// drawn for horizontal text, which is how an editor produces text clipped by
+// its own container. 180 is deliberately absent: upside-down text is not a
+// design, it is a mistake nobody would choose.
+var elementRotations = map[string]bool{"": true, "-90": true, "90": true}
 var elementWeights = map[string]bool{"": true, "normal": true, "bold": true, "black": true}
 var elementColors = map[string]bool{
 	"": true, "ink": true, "soft": true, "muted": true, "white": true,
-	"brand": true, "surface": true, "charcoal": true,
+	"brand": true, "surface": true, "charcoal": true, "accent": true,
 }
 
 // Background tones a block may use. Deliberately the design system's own tokens
@@ -170,9 +216,25 @@ var designTones = map[string]bool{
 	"raised":   true,
 	"charcoal": true, // always-dark band, like today's hero
 	"brand":    true,
+	// ⚠️ **A second colour, because one is not how a brand works.** Every
+	// reference a shop sends has a primary that sells (the cart button) and a
+	// secondary that organises (the panel the categories sit on) — and with one
+	// token the only way to draw the second was a hex, which stays that colour
+	// in dark mode and ignores the accent the shop chose. `theme.accent` is
+	// where its value lives; empty falls back to the brand, so a design that
+	// never sets one is unchanged.
+	"accent": true,
+	// The page's own ink, as a band: a black strip under a white page. It was
+	// reachable only by `charcoal`, which is a *tone* rather than the text
+	// colour and drifts when the background preset changes.
+	"ink": true,
 }
 
 var designPads = map[string]bool{"": true, "sm": true, "md": true, "lg": true}
+
+// How wide a band's contents may run. ⚠️ Empty is the page container, which is
+// what every band does today — see DesignStyle.Width.
+var designWidths = map[string]bool{"": true, "wide": true, "full": true}
 var designAligns = map[string]bool{"": true, "left": true, "center": true}
 
 // DesignStyle is how one band looks. Enums and booleans only.
@@ -180,6 +242,19 @@ type DesignStyle struct {
 	Tone    string `bson:"tone,omitempty" json:"tone,omitempty"`
 	Padding string `bson:"padding,omitempty" json:"padding,omitempty"`
 	Align   string `bson:"align,omitempty" json:"align,omitempty"`
+	// How wide the band's contents may run: "" the page container (max-w-7xl,
+	// what every band does today), "wide" a roomier one, "full" edge to edge.
+	//
+	// ⚠️ **A step, never a pixel, and never a per-band number.** The container
+	// is what makes a page look like one page; a band with its own width in
+	// pixels is a band that stops lining up with the one above it at some
+	// screen size nobody tested. Three steps keep every band either in the
+	// column or deliberately out of it.
+	//
+	// ⚠️ Empty is the page container, which is what every design written before
+	// this field means — the usual zero-value rule, and here also the only one
+	// that leaves the five built-in templates looking as they do.
+	Width string `bson:"width,omitempty" json:"width,omitempty"`
 	// Corners follow the theme's radius when set; a band with square corners is
 	// the exception, not a pixel value.
 	Rounded bool `bson:"rounded,omitempty" json:"rounded,omitempty"`
@@ -241,7 +316,14 @@ type DesignElement struct {
 	// same rule `content` follows.
 	Text  LocalizedText `bson:"text,omitempty" json:"text,omitempty"`
 	Image string        `bson:"image,omitempty" json:"image,omitempty"`
-	Link  string        `bson:"link,omitempty" json:"link,omitempty"`
+	// Where it goes: a path on this site or a full https:// address. Cleaned by
+	// `sanitizeHref`, the same function the navigation bar uses — see
+	// elementLinks for why this stopped being an allowlist.
+	Link string `bson:"link,omitempty" json:"link,omitempty"`
+	// Opens in a new tab. ⚠️ Only meaningful on an address that leaves the site;
+	// on a path of ours it is cleared, because a new tab there lands the guest
+	// in a second copy of the shop with an empty basket.
+	LinkExternal bool `bson:"linkExternal,omitempty" json:"linkExternal,omitempty"`
 	// A second line, for the elements that genuinely have two: a stat's label
 	// under its number, a quote's attribution. Its own field rather than split out
 	// of `text` on a newline — a hidden convention like that is one somebody
@@ -264,6 +346,11 @@ type ElementStyle struct {
 	Font   string `bson:"font,omitempty" json:"font,omitempty"`
 	Weight string `bson:"weight,omitempty" json:"weight,omitempty"`
 	Align  string `bson:"align,omitempty" json:"align,omitempty"`
+	// Which corners `Radius` rounds. Empty is all four — see elementCorners.
+	Corner string `bson:"corner,omitempty" json:"corner,omitempty"`
+	// A quarter turn, for a rail of words down the edge of the page. "", "90",
+	// "-90" — see elementRotations.
+	Rotate string `bson:"rotate,omitempty" json:"rotate,omitempty"`
 	Color  string `bson:"color,omitempty" json:"color,omitempty"`
 	// Background of the element itself (a box, or a panel behind text).
 	Tone string `bson:"tone,omitempty" json:"tone,omitempty"`
@@ -541,6 +628,9 @@ func (d *PageDesign) Sanitize() {
 		if !designAligns[s.Style.Align] {
 			s.Style.Align = ""
 		}
+		if !designWidths[s.Style.Width] {
+			s.Style.Width = ""
+		}
 		if s.Binding.Limit < 0 || s.Binding.Limit > 48 {
 			// 48 is the seeded menu's size: a "limit" larger than any real menu
 			// is a number somebody typed, not a decision.
@@ -700,11 +790,12 @@ func sanitizeCanvas(c *DesignCanvas) {
 			box := sanitizeBox(*e.Mobile)
 			e.Mobile = &box
 		}
-		if !elementLinks[e.Link] {
-			// ⚠️ Silently cleared rather than kept: this value becomes an `href` on
-			// a public page, and an unrecognised one is either a typo or somebody
-			// sending a restaurant's guests to their own site.
-			e.Link = ""
+		// ⚠️ The scheme, not the destination — see elementLinks. What must never
+		// get through is an address that executes (`javascript:`, `data:`) or a
+		// protocol-relative `//host` wearing a path's clothes.
+		e.Link = sanitizeHref(e.Link)
+		if !strings.HasPrefix(e.Link, "http") {
+			e.LinkExternal = false
 		}
 		e.Style = sanitizeElementStyle(e.Style)
 		e.Image = sanitizeImagePath(e.Image)
@@ -759,6 +850,12 @@ func sanitizeElementStyle(st ElementStyle) ElementStyle {
 	}
 	if !elementRadii[st.Radius] {
 		st.Radius = ""
+	}
+	if !elementCorners[st.Corner] {
+		st.Corner = ""
+	}
+	if !elementRotations[st.Rotate] {
+		st.Rotate = ""
 	}
 	st.Size = clampInt(st.Size, -2, 8, 0)
 	st.Opacity = clampInt(st.Opacity, 0, 100, 100)

@@ -115,10 +115,13 @@ func sanitizeSettingString(key, v string) string {
 	case strings.HasSuffix(key, "Image"), key == "image":
 		return sanitizeImagePath(v)
 	case strings.HasSuffix(key, "Link"), key == "link":
-		if elementLinks[v] {
-			return v
-		}
-		return ""
+		// ⚠️ **The scheme, not the destination** — the same change the canvas
+		// buttons and the navigation bar made, for the same reason. A hero's
+		// button on a shop's site goes to the section that shop is divided into
+		// ("/menu?cat=ayollar") or to its Telegram channel, and no list we write
+		// can anticipate those. `elementLinks` is still the console's picker;
+		// it stopped being the wall.
+		return sanitizeHref(v)
 	case strings.HasSuffix(key, "Tone"), key == "tone", key == "background":
 		if designTones[v] {
 			return v
