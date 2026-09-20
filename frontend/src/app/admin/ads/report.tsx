@@ -32,14 +32,7 @@ export default function AdsReportCard({
   const max = Math.max(...report.days.map((d) => d.spend), 0.0001);
 
   return (
-    <div className="card space-y-3 p-4">
-      <div>
-        <p className="font-semibold">{t.ads.report.title}</p>
-        <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-          {t.ads.report.lead}
-        </p>
-      </div>
-
+    <div className="space-y-3">
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
         <div>
           <dt className="text-xs text-ink-muted">{t.ads.report.spend}</dt>

@@ -24,6 +24,8 @@ import { api, ApiError } from "@/lib/api";
 import type { AdminDict } from "@/lib/i18n/admin";
 import type { AdsAssets, AdsState } from "@/lib/types";
 
+import Step, { Summary, type StepState } from "./step";
+
 /** Where this panel wants the owner to land once Meta is done with them.
  *
  *  ⚠️ **Not the address Meta redirects to.** Meta returns to the platform's
@@ -38,15 +40,23 @@ export default function AdsConnect({
   t,
   state,
   reload,
+  step,
 }: {
   t: AdminDict;
   state: AdsState;
   reload: () => void;
+  step: StepState;
 }) {
   const [assets, setAssets] = useState<AdsAssets | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // ⚠️ **Folded away once it works.** Connecting is a once-ever chore; leaving
+  // four dropdowns and a five-line checklist open on every later visit makes
+  // the page read as a settings screen rather than as the four steps it is.
+  // Open it again and every control is where it was.
+  const [open, setOpen] = useState(false);
   const s = state.settings;
+  const shut = step === "done" && !open;
 
   const loadAssets = useCallback(async () => {
     if (!state.connected) return;
@@ -157,145 +167,193 @@ export default function AdsConnect({
   const stepLabels = t.ads.connect.steps as Record<string, string>;
 
   return (
-    <div className="card space-y-4 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-semibold">{t.ads.connect.title}</p>
-          <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-            {t.ads.connect.lead}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={start}
-          disabled={busy}
-          className="btn btn-primary disabled:opacity-40"
-        >
-          {state.connected ? t.ads.connect.again : t.ads.connect.button}
-        </button>
-      </div>
-
-      {error && <p className="text-sm text-danger">{error}</p>}
-
-      {/* ⚠️ A revoked token is the one state that must never be quiet: Meta
-          does not stop the campaigns when access is removed, so the money
-          keeps moving while we go blind. */}
+    <Step
+      n={2}
+      title={t.ads.connect.title}
+      lead={shut ? undefined : t.ads.connect.lead}
+      state={step}
+      aside={
+        shut ? (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="btn btn-ghost text-sm"
+          >
+            {t.ads.connect.change}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={start}
+            disabled={busy}
+            className="btn btn-primary disabled:opacity-40"
+          >
+            {state.connected ? t.ads.connect.again : t.ads.connect.button}
+          </button>
+        )
+      }
+    >
+      {/* ⚠️ A revoked token is the one state that is never folded away: Meta
+          does not stop the campaigns when access is removed, so the money keeps
+          moving while we go blind. */}
       {s.status === "revoked" && (
-        <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">
+        <p className="mb-3 rounded-xl bg-danger/10 p-3 text-sm text-danger">
           {t.ads.connect.revoked}
         </p>
       )}
 
-      <ul className="space-y-1.5">
-        {state.steps.map((step) => (
-          <li key={step.key} className="flex items-baseline gap-2 text-sm">
-            <span
-              aria-hidden
-              className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-                step.done ? "bg-brand" : "bg-ink/20"
-              }`}
-            />
-            <span className={step.done ? "" : "text-ink-muted"}>
-              {stepLabels[step.key] ?? step.key}
-            </span>
-            {step.name && (
-              <span className="text-xs text-ink-muted">· {step.name}</span>
-            )}
-          </li>
-        ))}
-      </ul>
+      {shut ? (
+        <Summary
+          items={[
+            s.adAccountName
+              ? `${s.adAccountName}${s.currency ? ` · ${s.currency}` : ""}`
+              : undefined,
+            s.pageName,
+            s.pixelName ?? t.ads.connect.noPixel,
+          ]}
+        />
+      ) : (
+        <div className="space-y-4">
+          {error && <p className="text-sm text-danger">{error}</p>}
 
-      {assets && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Picker
-            label={t.ads.connect.business}
-            value={s.businessId ?? ""}
-            disabled={busy}
-            options={assets.businesses.map((b) => ({
-              id: b.id,
-              label: b.name,
-            }))}
-            none={t.ads.connect.none}
-            onPick={(id) => choose({ businessId: id })}
-          />
-          <Picker
-            label={t.ads.connect.account}
-            value={s.adAccountId ?? ""}
-            disabled={busy}
-            options={assets.accounts.map((a) => ({
-              id: a.id,
-              // ⚠️ The currency is in the label because it is the one fact that
-              // decides what every budget on the next screen means.
-              label: `${a.name} · ${a.currency}${
-                a.account_status === 1 ? "" : ` · ${t.ads.connect.inactive}`
-              }`,
-            }))}
-            none={t.ads.connect.none}
-            onPick={(id) => choose({ adAccountId: id })}
-          />
-          <Picker
-            label={t.ads.connect.page}
-            value={s.pageId ?? ""}
-            disabled={busy}
-            options={assets.pages.map((p) => ({ id: p.id, label: p.name }))}
-            none={t.ads.connect.none}
-            onPick={(id) => choose({ pageId: id })}
-          />
-          <Picker
-            label={t.ads.connect.pixel}
-            value={s.pixelId ?? ""}
-            disabled={busy}
-            options={assets.pixels.map((p) => ({ id: p.id, label: p.name }))}
-            none={t.ads.connect.none}
-            onPick={(id) => choose({ pixelId: id })}
-          />
-        </div>
-      )}
+          <ul className="space-y-1.5">
+            {state.steps.map((row) => (
+              <li key={row.key} className="flex items-baseline gap-2 text-sm">
+                {/* ⚠️ A tick or an empty circle, never two shades of dot: the
+                    first version drew both states as coloured dots and an owner
+                    could not tell which rows were finished. */}
+                <span
+                  aria-hidden
+                  className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] leading-none ${
+                    row.done
+                      ? "border-brand bg-brand text-white"
+                      : "border-ink/25 text-transparent"
+                  }`}
+                >
+                  ✓
+                </span>
+                <span className={row.done ? "" : "text-ink-muted"}>
+                  {stepLabels[row.key] ?? row.key}
+                </span>
+                {row.name && (
+                  <span className="truncate text-xs text-ink-muted">
+                    · {row.name}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
 
-      {/* Said where the pixel is chosen, because this is the sentence that
-          explains why it is worth the extra step. */}
-      {state.connected && !s.pixelId && (
-        <p className="max-w-2xl text-xs text-ink-muted">
-          {t.ads.connect.pixelNote}
-        </p>
-      )}
-      {s.currency && s.currency !== "UZS" && (
-        <p className="max-w-2xl text-xs text-ink-muted">
-          {t.ads.connect.currencyNote.replace("{currency}", s.currency)}
-        </p>
-      )}
+          {assets && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Picker
+                label={t.ads.connect.business}
+                value={s.businessId ?? ""}
+                disabled={busy}
+                options={assets.businesses.map((b) => ({
+                  id: b.id,
+                  label: b.name,
+                }))}
+                none={t.ads.connect.none}
+                onPick={(id) => choose({ businessId: id })}
+              />
+              <Picker
+                label={t.ads.connect.account}
+                value={s.adAccountId ?? ""}
+                disabled={busy}
+                hint={
+                  s.currency && s.currency !== "UZS"
+                    ? t.ads.connect.currencyNote.replace(
+                        "{currency}",
+                        s.currency,
+                      )
+                    : undefined
+                }
+                options={assets.accounts.map((a) => ({
+                  id: a.id,
+                  // ⚠️ The currency is in the label because it is the one fact
+                  // that decides what every budget on the next step means.
+                  label: `${a.name} · ${a.currency}${
+                    a.account_status === 1 ? "" : ` · ${t.ads.connect.inactive}`
+                  }`,
+                }))}
+                none={t.ads.connect.none}
+                onPick={(id) => choose({ adAccountId: id })}
+              />
+              <Picker
+                label={t.ads.connect.page}
+                value={s.pageId ?? ""}
+                disabled={busy}
+                options={assets.pages.map((p) => ({
+                  id: p.id,
+                  label: p.name,
+                }))}
+                none={t.ads.connect.none}
+                onPick={(id) => choose({ pageId: id })}
+              />
+              <Picker
+                label={t.ads.connect.pixel}
+                value={s.pixelId ?? ""}
+                disabled={busy}
+                // Said where the pixel is chosen, because this is the sentence
+                // that explains why the extra step is worth taking.
+                hint={s.pixelId ? undefined : t.ads.connect.pixelNote}
+                options={assets.pixels.map((p) => ({
+                  id: p.id,
+                  label: p.name,
+                }))}
+                none={t.ads.connect.none}
+                onPick={(id) => choose({ pixelId: id })}
+              />
+            </div>
+          )}
 
-      {state.connected && (
-        <div className="border-t border-ink/10 pt-3">
-          <button
-            type="button"
-            onClick={disconnect}
-            disabled={busy}
-            className="btn btn-ghost text-danger disabled:opacity-40"
-          >
-            {t.ads.connect.disconnect}
-          </button>
-          <p className="mt-1 max-w-2xl text-xs text-ink-muted">
-            {t.ads.connect.disconnectNote}
-          </p>
-          {s.lastCheckAt && (
-            <p className="mt-1 text-xs text-ink-muted">
-              {t.ads.connect.checked}:{" "}
-              {new Date(s.lastCheckAt).toLocaleString()}
-            </p>
+          {state.connected && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-ink/5 pt-3">
+              <button
+                type="button"
+                onClick={disconnect}
+                disabled={busy}
+                className="text-sm text-danger underline-offset-2 hover:underline disabled:opacity-40"
+              >
+                {t.ads.connect.disconnect}
+              </button>
+              {s.lastCheckAt && (
+                <span className="text-xs text-ink-muted">
+                  {t.ads.connect.checked}:{" "}
+                  {new Date(s.lastCheckAt).toLocaleString()}
+                </span>
+              )}
+              {step === "done" && (
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="ml-auto text-sm text-ink-soft underline-offset-2 hover:underline"
+                >
+                  {t.ads.connect.collapse}
+                </button>
+              )}
+              <p className="w-full text-xs text-ink-muted">
+                {t.ads.connect.disconnectNote}
+              </p>
+            </div>
           )}
         </div>
       )}
-    </div>
+    </Step>
   );
 }
 
+// ⚠️ **The explanation belongs under the control it explains.** Both notes used
+// to sit together in a grey paragraph below all four pickers, where the one
+// about the account's currency read as being about the pixel.
 function Picker({
   label,
   value,
   options,
   none,
   disabled,
+  hint,
   onPick,
 }: {
   label: string;
@@ -303,6 +361,7 @@ function Picker({
   options: { id: string; label: string }[];
   none: string;
   disabled: boolean;
+  hint?: string;
   onPick: (id: string) => void;
 }) {
   return (
@@ -321,6 +380,7 @@ function Picker({
           </option>
         ))}
       </select>
+      {hint && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
     </label>
   );
 }

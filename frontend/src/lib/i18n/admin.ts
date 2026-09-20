@@ -4714,6 +4714,9 @@ export const adminUz = {
         "Bu akkaunt {currency} da hisob-kitob qilinadi — byudjet shu valyutada kiritiladi. Kursni biz o'ylab topmaymiz.",
       pixelNote:
         "Piksel ulanmagan — reklama baribir ishlaydi, lekin «qancha buyurtma keltirdi» degan savolga javob bo'lmaydi. Bu bo'lim aynan shu javob uchun sotiladi.",
+      change: "O'zgartirish",
+      collapse: "Yig'ish",
+      noPixel: "Piksel yo'q",
     },
     campaign: {
       title: "Kampaniya ochish",
@@ -4749,6 +4752,9 @@ export const adminUz = {
       spend: "Sarf",
       orders: "Buyurtma",
       revenue: "Tushum",
+      areaDefault: "Filialning yetkazish hududi",
+      waitingConnect: "Meta akkaunti ulangach, tanlagan rejangiz shu yerda kampaniyaga aylanadi.",
+      waitingPicks: "Rejadan taom va reklama matnini tanlang — kampaniya shu yerda yig'iladi.",
     },
     report: {
       title: "Reklama nima keltirdi",
@@ -4761,6 +4767,7 @@ export const adminUz = {
       noPixel: "Piksel ulanmagan — buyurtmalarni o'lchab bo'lmaydi.",
       attribution:
         "Buyurtmalar Meta'ning atributsiyasi bo'yicha. Sarf Meta valyutasida, tushum so'mda — ikkalasi bir-biridan ayirilmaydi.",
+      waiting: "Birinchi kampaniya ishga tushgach, sarf va u keltirgan buyurtmalar shu yerda ko'rinadi.",
     },
     rules: {
       title: "Avtomatik qoidalar",
@@ -4799,6 +4806,9 @@ export const adminUz = {
       picked: "Sizning tanlovingiz",
       copy: "Matnni nusxalash",
       copied: "Nusxa olindi",
+      building: "Tayyorlanmoqda…",
+      notChosen: "Tanlanmagan",
+      empty: "Reja shu filialning oxirgi yetti kunlik sotuvidan tuziladi: qaysi taom qancha pul keltirgani, o'tgan haftaga nisbatan qanday o'zgargani va oshxona qayergacha yetkazib berishi. Natijada uchta taom, hudud, byudjet va reklama matni — har biri sababi bilan.",
       handNote:
         "Meta akkaunti ulanmagani uchun hozircha kompaniyani Meta'da qo'lda ochasiz — bu reja aynan shuning uchun tayyor.",
     },
@@ -9650,6 +9660,9 @@ export const adminRu: AdminDict = {
         "Этот аккаунт считается в {currency} — бюджет вводится в этой валюте. Курс мы не выдумываем.",
       pixelNote:
         "Пиксель не подключён — реклама будет работать, но ответа на вопрос «сколько заказов она принесла» не будет. Именно за этот ответ и продаётся раздел.",
+      change: "Изменить",
+      collapse: "Свернуть",
+      noPixel: "Пикселя нет",
     },
     campaign: {
       title: "Создать кампанию",
@@ -9685,6 +9698,9 @@ export const adminRu: AdminDict = {
       spend: "Расход",
       orders: "Заказы",
       revenue: "Выручка",
+      areaDefault: "Зона доставки филиала",
+      waitingConnect: "Когда аккаунт Meta будет подключён, выбранный план превратится здесь в кампанию.",
+      waitingPicks: "Выберите в плане блюдо и текст рекламы — кампания соберётся здесь.",
     },
     report: {
       title: "Что принесла реклама",
@@ -9697,6 +9713,7 @@ export const adminRu: AdminDict = {
       noPixel: "Пиксель не подключён — заказы измерить нельзя.",
       attribution:
         "Заказы — по атрибуции Meta. Расход в валюте Meta, выручка в сумах: одно из другого не вычитается.",
+      waiting: "Когда заработает первая кампания, здесь появятся расход и принесённые ею заказы.",
     },
     rules: {
       title: "Автоматические правила",
@@ -9735,6 +9752,9 @@ export const adminRu: AdminDict = {
       picked: "Ваш выбор",
       copy: "Скопировать текст",
       copied: "Скопировано",
+      building: "Готовится…",
+      notChosen: "Не выбрано",
+      empty: "План строится из продаж этого филиала за последние семь дней: какое блюдо сколько принесло, как изменилось к прошлой неделе и докуда доезжает кухня. На выходе — три блюда, районы, бюджеты и тексты, каждый со своей причиной.",
       handNote:
         "Аккаунт Meta пока не подключён, поэтому кампанию вы создаёте в Meta вручную — план собран именно для этого.",
     },
@@ -14543,6 +14563,9 @@ export const adminEn: AdminDict = {
         "This account is billed in {currency} — budgets are typed in that currency. We do not invent an exchange rate.",
       pixelNote:
         "No pixel is connected — the adverts still run, but \"how many orders did it bring\" has no answer. That answer is what this section is sold for.",
+      change: "Change",
+      collapse: "Collapse",
+      noPixel: "No pixel",
     },
     campaign: {
       title: "Create a campaign",
@@ -14578,6 +14601,9 @@ export const adminEn: AdminDict = {
       spend: "Spend",
       orders: "Orders",
       revenue: "Revenue",
+      areaDefault: "The branch's delivery area",
+      waitingConnect: "Once the Meta account is connected, the plan you chose becomes a campaign here.",
+      waitingPicks: "Pick a dish and the advert wording from the plan — the campaign is assembled here.",
     },
     report: {
       title: "What the advertising brought",
@@ -14590,6 +14616,7 @@ export const adminEn: AdminDict = {
       noPixel: "No pixel is connected — orders cannot be measured.",
       attribution:
         "The orders are Meta's attribution. The spend is in Meta's currency and the revenue in so'm — one is never subtracted from the other.",
+      waiting: "Once the first campaign runs, what it cost and what it brought back appear here.",
     },
     rules: {
       title: "Automatic rules",
@@ -14628,6 +14655,9 @@ export const adminEn: AdminDict = {
       picked: "Your choice",
       copy: "Copy the wording",
       copied: "Copied",
+      building: "Working…",
+      notChosen: "Not chosen",
+      empty: "The plan is built from this branch's last seven days of sales: which dish brought what, how it moved against the week before, and how far the kitchen delivers. Out of it come three dishes, some areas, budgets and wordings — each with its reason.",
       handNote:
         "No Meta account is connected yet, so the campaign is created in Meta by hand — which is exactly what this plan is for.",
     },

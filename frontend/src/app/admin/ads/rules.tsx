@@ -63,14 +63,17 @@ export default function AdsRules({
   }
 
   const cur = settings.currency ?? "";
+  // ⚠️ **Closed, and below the figures.** These are ceilings for campaigns that
+  // are already running; asked of somebody who has never run one they read as
+  // required setup — three money fields in a foreign currency, in front of a
+  // feature they have not used yet.
   return (
-    <div className="card space-y-3 p-4">
-      <div>
-        <p className="font-semibold">{t.ads.rules.title}</p>
-        <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-          {t.ads.rules.lead}
-        </p>
-      </div>
+    <details className="rounded-xl border border-ink/10 p-3 open:pb-4">
+      <summary className="cursor-pointer select-none text-sm font-semibold">
+        {t.ads.rules.title}
+      </summary>
+      <div className="mt-2 space-y-3">
+      <p className="max-w-2xl text-sm text-ink-soft">{t.ads.rules.lead}</p>
 
       <label className="flex items-center gap-2 text-sm">
         <input
@@ -119,7 +122,8 @@ export default function AdsRules({
       >
         {saved ? t.ads.rules.saved : t.ads.rules.save}
       </button>
-    </div>
+      </div>
+    </details>
   );
 }
 

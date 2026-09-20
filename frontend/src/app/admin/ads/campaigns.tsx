@@ -96,29 +96,40 @@ export function AdsCreate({
     }
   }
 
-  return (
-    <div className="card space-y-3 p-4">
-      <div>
-        <p className="font-semibold">{t.ads.campaign.title}</p>
-        <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-          {t.ads.campaign.lead}
-        </p>
-      </div>
+  if (!dish || !text) return null;
 
-      {!dish || !text ? (
-        <p className="text-sm text-ink-muted">{t.ads.campaign.needPicks}</p>
-      ) : (
-        <>
-          {/* The proposal in so'm, beside a field in the account's currency.
-              ⚠️ Shown rather than converted: we do not know the rate the
-              owner's bank used, and a made-up one would read as a fact. */}
-          {budget && (
-            <p className="text-xs text-ink-muted">
-              {t.ads.campaign.proposed}: {som(budget.daily)} {t.ads.plan.perDay}
-              {" · "}
-              {budget.days} {t.ads.plan.days}
-            </p>
-          )}
+  return (
+    <div className="space-y-3">
+      {/* ⚠️ **What is about to be created, in one block.** The four choices were
+          made a screen and a half further up; an owner typing a budget here
+          cannot see them, and the one thing they must not do is spend money on
+          a campaign they have misremembered. */}
+      <dl className="grid gap-x-4 gap-y-1 rounded-xl bg-ink/5 p-3 text-sm sm:grid-cols-2">
+        <Line k={t.ads.plan.dishes} v={dish.name} />
+        <Line
+          k={t.ads.plan.areas}
+          v={
+            area
+              ? area.radiusKm
+                ? `${area.label} · ${area.radiusKm} km`
+                : area.label
+              : t.ads.campaign.areaDefault
+          }
+        />
+        <Line k={t.ads.plan.texts} v={text.headline} />
+        {/* The proposal in so'm, beside a field in the account's currency.
+            ⚠️ Shown rather than converted: we do not know the rate the owner's
+            bank used, and a made-up one would read as a fact. */}
+        {budget && (
+          <Line
+            k={t.ads.campaign.proposed}
+            v={`${som(budget.daily)} ${t.ads.plan.perDay} · ${budget.days} ${
+              t.ads.plan.days
+            }`}
+          />
+        )}
+      </dl>
+      <>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field
               label={`${t.ads.campaign.daily} (${settings.currency ?? ""})`}
@@ -168,8 +179,16 @@ export function AdsCreate({
           >
             {busy ? t.ads.campaign.creating : t.ads.campaign.create}
           </button>
-        </>
-      )}
+      </>
+    </div>
+  );
+}
+
+function Line({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="shrink-0 text-ink-muted">{k}:</dt>
+      <dd className="min-w-0 font-medium">{v}</dd>
     </div>
   );
 }
@@ -205,8 +224,8 @@ export function AdsCampaigns({
   if (rows.length === 0) return null;
 
   return (
-    <div className="card space-y-3 p-4">
-      <p className="font-semibold">{t.ads.campaign.listTitle}</p>
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold">{t.ads.campaign.listTitle}</h3>
       {error && <p className="text-sm text-danger">{error}</p>}
       <div className="space-y-3">
         {rows.map((c) => (
