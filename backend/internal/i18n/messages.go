@@ -100,6 +100,18 @@ var messages = map[string]pair{
 		"для %s не введён API-токен",
 		"no API token was entered for %s",
 	},
+	"%s uchun API manzili (base URL) kiritilmagan — BTS shartnomasidan olinadi": {
+		"для %s не указан адрес API (base URL) — он выдаётся по договору с BTS",
+		"no API address (base URL) was entered for %s — it comes with the BTS agreement",
+	},
+	"BTS uchun API manzili (base URL) kiritilmagan": {
+		"для BTS не указан адрес API (base URL)",
+		"no API address (base URL) was entered for BTS",
+	},
+	"BTS javobida buyurtma raqami yo'q — kabinetdan tekshiring": {
+		"в ответе BTS нет номера заказа — проверьте в кабинете",
+		"the BTS reply carried no order number — check it in their cabinet",
+	},
 	"%s-stol: %s tayyor bo'ldi": {
 		"Стол %s: %s готово",
 		"Table %s: %s is ready",

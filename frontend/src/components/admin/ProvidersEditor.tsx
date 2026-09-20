@@ -11,6 +11,8 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useAsk } from "@/components/ui/Ask";
 import { ListScroll } from "@/components/admin/PagedList";
 import { PLACEHOLDERS } from "@/lib/providerLink";
+import { useAdminScope } from "@/lib/adminScope";
+import { shipsByPost } from "@/lib/types";
 import type { DeliveryProvider } from "@/lib/types";
 
 // Ordering a Yandex courier without a business account happens in the Yandex Go
@@ -41,6 +43,8 @@ const SAMPLES: {
   url?: string;
   phone?: string;
   apiProvider?: string;
+  /** Offered only to a business whose goods leave in a parcel. */
+  needsPost?: boolean;
   // ⚠️ The note is a dictionary key, not a sentence. It is saved into the
   // provider record when the owner taps the sample, so an Uzbek default would
   // be written into a Russian panel's data and stay there.
@@ -54,6 +58,12 @@ const SAMPLES: {
   },
   { name: "Millennium taxi", kind: "phone", phone: "+998712000000" },
   { name: "Yandex Delivery API", kind: "api", apiProvider: "yandex" },
+  // ⚠️ **Only where the parcel actually travels by post** — an online store, a
+  // clothes shop, a cosmetics shop (`shipsByPost`). A butcher and a florist
+  // sell what they bought exactly as a boutique does, and a parcel of mince or
+  // of tulips is a parcel nobody collects: offering them a carrier is offering
+  // a setting that can only ever produce one.
+  { name: "BTS Express", kind: "api", apiProvider: "bts", needsPost: true },
 ];
 
 const inputCls =
@@ -62,6 +72,7 @@ const inputCls =
 export default function ProvidersEditor() {
   const t = useAdminT();
   const { ask } = useAsk();
+  const scope = useAdminScope();
   const [items, setItems] = useState<DeliveryProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -187,6 +198,44 @@ export default function ProvidersEditor() {
                   <p className="rounded-xl bg-ink/[0.03] px-3 py-2 text-xs text-ink-muted">
                     {t.settings.providerApiHint}
                   </p>
+                  {/* ⚠️ **Which carrier, asked out loud.** It used to be set
+                      only by tapping a sample, so a provider added with the
+                      plain button was silently Yandex — and the way that shows
+                      up is a BTS token posted at Yandex's host, which answers
+                      with somebody else's error message.
+
+                      ⚠️ An empty value stays Yandex, which is every provider
+                      record written before there was a second carrier (the
+                      server reads it the same way). */}
+                  <div className="text-sm">
+                    <span className="font-medium">
+                      {t.settings.providerApiWhich}
+                    </span>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {(
+                        [
+                          ["yandex", "Yandex Delivery"],
+                          ["bts", "BTS Express"],
+                        ] as const
+                      ).map(([id, label]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => {
+                            patch(p.id, { apiProvider: id });
+                            save({ ...p, apiProvider: id });
+                          }}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            (p.apiProvider || "yandex") === id
+                              ? "border-brand bg-brand-tint/50 text-brand-dark"
+                              : "border-line-strong text-ink-soft hover:border-brand"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <label className="block text-sm">
                     <span className="font-medium">
                       {t.settings.providerApiToken}
@@ -229,12 +278,27 @@ export default function ProvidersEditor() {
                       <input
                         className={`${inputCls} font-mono text-xs`}
                         value={p.apiBaseUrl ?? ""}
-                        placeholder="https://b2b.taxi.yandex.net"
+                        placeholder={
+                          p.apiProvider === "bts"
+                            ? "https://…"
+                            : "https://b2b.taxi.yandex.net"
+                        }
                         onChange={(e) =>
                           patch(p.id, { apiBaseUrl: e.target.value })
                         }
                         onBlur={() => save(p)}
                       />
+                      {/* ⚠️ **Said on the form, not only refused at the first
+                          order.** Yandex publishes its host so the field is
+                          optional there; BTS publishes none, and an empty one
+                          is the most silent mistake on this screen — the form
+                          looks filled in, the save succeeds, and the first
+                          parcel goes nowhere. */}
+                      {p.apiProvider === "bts" && (
+                        <span className="mt-1 block text-xs text-amber-600">
+                          {t.settings.providerApiBaseBts}
+                        </span>
+                      )}
                     </label>
                   </div>
                 </div>
@@ -340,7 +404,9 @@ export default function ProvidersEditor() {
         <span className="text-xs text-ink-muted">
           {t.settings.providerSamples}
         </span>
-        {SAMPLES.map((s) => (
+        {SAMPLES.filter(
+          (s) => !s.needsPost || shipsByPost(scope.brand),
+        ).map((s) => (
           <button
             key={s.name}
             type="button"

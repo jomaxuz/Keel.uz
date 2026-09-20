@@ -344,6 +344,54 @@ type DesignSection struct {
 	Blocks []DesignBlock `bson:"blocks,omitempty" json:"blocks,omitempty"`
 }
 
+// NavLink is one item in the site's navigation bar.
+//
+// ⚠️ **The navigation bar is the one part of the page an online store cannot
+// live with as a template.** Every other business has the same five
+// destinations — home, menu, branches, booking, about — because every other
+// business *is* the same shape: a room with food in it. An online store's
+// shape is whatever it sells. A phone case shop wants brands, a boutique wants
+// women / men / sale, a book seller wants genres, and all three of them want a
+// link to the Telegram channel that brings them their customers. Left as a
+// template, the first thing a guest sees on every one of those sites is a
+// button marked "Bron" leading to a table-booking form.
+//
+// ⚠️ **Empty means today's bar, and that is the precondition rather than a
+// nicety.** Every restaurant on the platform has no nav written, and a
+// document read as "no links at all" would empty the header of every site at
+// once. Same rule as `DefaultSections`, an empty `mapProvider` and a zero
+// `businessType`.
+//
+// ⚠️ **Written by the console, never by the owner** — the same hand that
+// writes `customCss`. A tenant's panel cannot reach this field, which is what
+// keeps a free-form `href` a designer's tool rather than an open redirect with
+// a nice name. It is still sanitised: a document can arrive from an older
+// console, a restored backup, or a hand edit.
+type NavLink struct {
+	Label LocalizedText `bson:"label" json:"label"`
+	// Where it goes: a path on this site ("/menu", "/menu?cat=ayollar") or a
+	// full https:// address.
+	//
+	// ⚠️ **Not the element whitelist** (`elementLinks`), and the difference is
+	// the whole feature. A drawn button picks from the pages every restaurant
+	// has; this is somebody typing the sections *their* shop is divided into,
+	// which we do not know and cannot list. What is checked is the scheme, not
+	// the destination — see sanitizeHref.
+	Href string `bson:"href" json:"href"`
+	// Opens in a new tab. For the Telegram channel and the Instagram shop —
+	// a link that leaves the site mid-purchase and takes the cart with it is
+	// the one way a nav item can cost money.
+	External bool `bson:"external,omitempty" json:"external,omitempty"`
+	// Kept in the document but not drawn, so trying a bar and putting a link
+	// back does not mean retyping it in three languages.
+	Hidden bool `bson:"hidden,omitempty" json:"hidden,omitempty"`
+}
+
+// maxNavLinks is what fits on a desktop bar beside a logo, a cart and a
+// language switch. More than this is not a navigation bar, it is a menu that
+// wraps onto a second line and pushes the cart off a phone.
+const maxNavLinks = 8
+
 // Design statuses. Stored, so never renamed.
 const (
 	DesignDraft     = "draft"
@@ -379,6 +427,13 @@ type PageDesign struct {
 	// guests.
 	Status   string          `bson:"status" json:"status"`
 	Sections []DesignSection `bson:"sections" json:"sections"`
+	// The navigation bar, when this site's is not the built-in one.
+	//
+	// ⚠️ **Nil and empty mean the same thing here — "leave the header alone"**
+	// — which is why there is no `hideNav` beside it. An operator who deletes
+	// every link is an operator mid-edit, not one asking for a site with no
+	// way to reach the menu.
+	Nav []NavLink `bson:"nav,omitempty" json:"nav,omitempty"`
 	// Whether the one-off reviews-band backfill has looked at this document.
 	//
 	// ⚠️ It marks the *visit*, not the outcome, and that is the whole point:
@@ -509,6 +564,7 @@ func (d *PageDesign) Sanitize() {
 		out = append(out, s)
 	}
 	d.Sections = out
+	d.Nav = sanitizeNav(d.Nav)
 	d.CustomCSS = sanitizeCSS(d.CustomCSS)
 
 	// Presets are cleaned by the element rule, and the name is trimmed to
@@ -529,6 +585,91 @@ func (d *PageDesign) Sanitize() {
 		}
 	}
 	d.StylePresets = presets
+}
+
+// sanitizeNav cleans the navigation bar.
+//
+// ⚠️ **A link with no href or no label in any language is dropped**, not kept
+// and hidden: both of those render as a blank gap in the bar that an operator
+// cannot click to find, and a bar with a hole in it reads as a broken site
+// rather than as an unfinished one.
+func sanitizeNav(in []NavLink) []NavLink {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]NavLink, 0, len(in))
+	for _, l := range in {
+		l.Href = sanitizeHref(l.Href)
+		l.Label = trimLocalized(l.Label, 40)
+		if l.Href == "" || l.Label == (LocalizedText{}) {
+			continue
+		}
+		// A relative path never leaves the site, so "open in a new tab" on one
+		// is an operator's slip rather than a decision — and it costs the cart.
+		if !strings.HasPrefix(l.Href, "http") {
+			l.External = false
+		}
+		out = append(out, l)
+		if len(out) >= maxNavLinks {
+			break
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// sanitizeHref keeps an address that a browser can follow from this site.
+//
+// ⚠️ **The scheme is what is checked, not the destination.** A whitelist of
+// paths is right for a drawn button (see `elementLinks`) because every
+// restaurant has the same pages; it is wrong here, because the sections an
+// online store divides itself into are the one thing we cannot know in
+// advance. What must never get through is a scheme that executes —
+// `javascript:`, `data:`, `vbscript:` — or a protocol-relative `//host` that
+// looks like a path and is not.
+func sanitizeHref(raw string) string {
+	h := strings.TrimSpace(raw)
+	if h == "" || len(h) > 300 {
+		return ""
+	}
+	// Control characters are how `java\nscript:` gets past a prefix check.
+	for _, r := range h {
+		if r < 0x20 || r == 0x7f {
+			return ""
+		}
+	}
+	switch {
+	case strings.HasPrefix(h, "https://"), strings.HasPrefix(h, "http://"):
+		return h
+	case strings.HasPrefix(h, "//"):
+		// `//evil.example` is a full address wearing a path's clothes.
+		return ""
+	case strings.HasPrefix(h, "/"):
+		return h
+	}
+	return ""
+}
+
+// trimLocalized trims each language and caps its length.
+//
+// ⚠️ **Per language, because the three are typed separately** and a bar that
+// is right in Uzbek and blank in Russian is the failure this whole file's
+// language rules exist to avoid — it is invisible to whoever typed it.
+func trimLocalized(t LocalizedText, max int) LocalizedText {
+	// ⚠️ **Runes, not bytes.** Every label on this bar is Uzbek, Russian or
+	// English, and two of those three are two bytes per letter — a byte cut
+	// halves the allowance for exactly the languages it matters for and can
+	// land inside a letter, which reaches the page as a replacement character.
+	cut := func(s string) string {
+		s = strings.TrimSpace(s)
+		if r := []rune(s); len(r) > max {
+			s = strings.TrimSpace(string(r[:max]))
+		}
+		return s
+	}
+	return LocalizedText{Uz: cut(t.Uz), Ru: cut(t.Ru), En: cut(t.En)}
 }
 
 // sanitizeCanvas clamps a freely drawn band into values that can be rendered.

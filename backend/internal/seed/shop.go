@@ -167,6 +167,46 @@ var shopCatalogues = map[models.BusinessType][]shopCategory{
 			},
 		},
 	},
+	// ⚠️ **An online store sells what it likes, and that is the problem this
+	// sample answers badly on purpose.** Every other entry here can be plausible
+	// because the type says what is on the shelf; "ecommerce" says only that
+	// there is no shelf. So the catalogue is deliberately generic — the three
+	// things almost every Uzbek online shop actually opens with — and its job is
+	// to prove the grid, the cart, the checkout and the shelf label draw at all,
+	// not to be kept. The first thing an owner does is delete it.
+	//
+	// ⚠️ **A colour in two of the names, no variants in the data.** Sizes and
+	// colours are generated from the product's own axes on the menu screen, and
+	// a sample arriving with twelve rows would be twelve to delete before the
+	// shop has typed anything of its own — the same trade the clothes shop
+	// makes above.
+	models.BizEcommerce: {
+		{
+			Name: "Kiyim", NameRu: "Одежда", NameEn: "Clothing",
+			Slug: "kiyim",
+			Items: []shopItem{
+				{Name: "Futbolka, qora", NameRu: "Футболка, чёрная", NameEn: "T-shirt, black", Price: 95000},
+				{Name: "Xudi", NameRu: "Худи", NameEn: "Hoodie", Price: 280000},
+				{Name: "Ko'ylak", NameRu: "Платье", NameEn: "Dress", Price: 320000},
+			},
+		},
+		{
+			Name: "Aksessuarlar", NameRu: "Аксессуары", NameEn: "Accessories",
+			Slug: "aksessuarlar",
+			Items: []shopItem{
+				{Name: "Telefon g'ilofi", NameRu: "Чехол для телефона", NameEn: "Phone case", Price: 65000},
+				{Name: "Sumka", NameRu: "Сумка", NameEn: "Bag", Price: 240000},
+			},
+		},
+		{
+			Name: "Kosmetika", NameRu: "Косметика", NameEn: "Cosmetics",
+			Slug: "kosmetika",
+			Items: []shopItem{
+				{Name: "Yuz kremi", NameRu: "Крем для лица", NameEn: "Face cream", Price: 120000},
+				{Name: "Parfyum, 50 ml", NameRu: "Парфюм, 50 мл", NameEn: "Perfume, 50 ml", Price: 390000},
+			},
+		},
+	},
 	models.BizFlowers: {
 		// ⚠️ **Stems and wrapping, not finished bouquets.** A florist composes,
 		// and a bouquet is a technical card over these rows — written by the shop

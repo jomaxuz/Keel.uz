@@ -872,6 +872,7 @@ export const uz = {
       flowers: "Gul do'koni",
       pharmacy: "Dorixona",
       hardware: "Xo'jalik mollari",
+      ecommerce: "Onlayn do'kon",
     },
     /** ⚠️ Bo'sh blokning matni: "0 mijoz" degan qator ham javob — biz bu turni
      *  sotamiz-u, hali hech kim yo'q. Blokni umuman chizmaslik esa savolni
@@ -2162,6 +2163,7 @@ export const ru: Dict = {
       flowers: "Цветы",
       pharmacy: "Аптека",
       hardware: "Хозтовары",
+      ecommerce: "Интернет-магазин",
     },
     none: "Клиентов этого вида пока нет.",
     tenants: "Клиенты",
@@ -3426,6 +3428,7 @@ export const en: Dict = {
       flowers: "Flowers",
       pharmacy: "Pharmacy",
       hardware: "Hardware",
+      ecommerce: "Online store",
     },
     none: "No customers of this kind yet.",
     tenants: "Customers",

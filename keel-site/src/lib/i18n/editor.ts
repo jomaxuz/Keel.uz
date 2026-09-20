@@ -39,6 +39,7 @@ const uz = {
   tabElement: "Element sozlamalari",
   tabStyles: "Saqlangan uslublar",
   tabCss: "Umumiy CSS",
+  tabNav: "Navigatsiya paneli",
   tabTemplates: "Shablonlar",
   templatesHint: "Tayyor maket tanlansa, bandlar shu yerga NUSXA bo'lib ko'chadi — keyin xohlagancha o'zgartirasiz. Shablonning o'zi o'zgarmaydi.",
   templateApplied: (name: string) => `«${name}» qo'llandi — endi tahrirlashingiz mumkin`,
@@ -90,6 +91,21 @@ const uz = {
   showMobile: "Telefonda ko'rsatish",
   clearMobile: "Telefon joylashuvini tozalash",
 
+  navTitle: "Navigatsiya paneli",
+  navHint:
+    "Bo'sh qoldirilsa sayt o'zining odatdagi panelini ko'rsatadi (Bosh sahifa, Menyu, Bron, Biz haqimizda). Bitta havola qo'shilsa, panel butunlay shu ro'yxatdan quriladi — onlayn do'kon uchun aynan shu kerak: «Ayollar», «Erkaklar», «Chegirma», «Telegram».",
+  navEmpty: "Havola yo'q — sayt odatdagi panelini ko'rsatadi.",
+  navAdd: "Havola qo'shish",
+  navLabel: "Nomi",
+  navHref: "Manzil",
+  navHrefHint:
+    "Shu saytdagi yo'l (/menu, /menu?cat=ayollar) yoki to'liq https:// manzil. Boshqa narsa serverda o'chiriladi.",
+  navExternal: "Yangi oynada",
+  navHidden: "Yashirilgan",
+  navRemove: "O'chirish",
+  navUp: "Yuqoriga",
+  navDown: "Pastga",
+
   cssTitle: "Umumiy CSS",
   cssHint:
     "Faqat shu mijoz sahifasiga qo'llanadi. url(...) faqat /uploads/... ga ruxsat etiladi; <, @import va javascript: bo'lsa butun matn rad etiladi.",
@@ -136,6 +152,7 @@ const ru: EditorDict = {
   tabElement: "Настройки элемента",
   tabStyles: "Сохранённые стили",
   tabCss: "Общий CSS",
+  tabNav: "Панель навигации",
   tabTemplates: "Шаблоны",
   templatesHint: "Выбранный макет КОПИРУЕТСЯ сюда — дальше меняйте как угодно. Сам шаблон не меняется.",
   templateApplied: (name: string) => `«${name}» применён — теперь можно править`,
@@ -187,6 +204,21 @@ const ru: EditorDict = {
   showMobile: "Показать на телефоне",
   clearMobile: "Очистить раскладку телефона",
 
+  navTitle: "Панель навигации",
+  navHint:
+    "Если оставить пустой, сайт покажет свою обычную панель (Главная, Меню, Бронь, О нас). Как только добавлена хотя бы одна ссылка, панель строится целиком из этого списка — именно это и нужно интернет-магазину: «Женское», «Мужское», «Скидки», «Telegram».",
+  navEmpty: "Ссылок нет — сайт показывает обычную панель.",
+  navAdd: "Добавить ссылку",
+  navLabel: "Название",
+  navHref: "Адрес",
+  navHrefHint:
+    "Путь на этом сайте (/menu, /menu?cat=ayollar) или полный адрес https://. Всё остальное сервер удалит.",
+  navExternal: "В новой вкладке",
+  navHidden: "Скрыта",
+  navRemove: "Удалить",
+  navUp: "Выше",
+  navDown: "Ниже",
+
   cssTitle: "Общий CSS",
   cssHint:
     "Применяется только к страницам этого клиента. url(...) разрешён только для /uploads/...; при <, @import или javascript: весь текст отклоняется.",
@@ -231,6 +263,7 @@ const en: EditorDict = {
   tabElement: "Element settings",
   tabStyles: "Saved styles",
   tabCss: "Custom CSS",
+  tabNav: "Navigation bar",
   tabTemplates: "Templates",
   templatesHint: "Choosing a layout COPIES its bands here — edit them freely afterwards. The template itself never changes.",
   templateApplied: (name: string) => `“${name}” applied — yours to edit now`,
@@ -281,6 +314,21 @@ const en: EditorDict = {
   hideMobile: "Hide on a phone",
   showMobile: "Show on a phone",
   clearMobile: "Clear the phone layout",
+
+  navTitle: "Navigation bar",
+  navHint:
+    "Left empty, the site shows its built-in bar (Home, Menu, Booking, About). Add one link and the bar is built entirely from this list — which is what an online store needs: Women, Men, Sale, Telegram.",
+  navEmpty: "No links — the site shows its built-in bar.",
+  navAdd: "Add a link",
+  navLabel: "Label",
+  navHref: "Address",
+  navHrefHint:
+    "A path on this site (/menu, /menu?cat=ayollar) or a full https:// address. Anything else is dropped on the server.",
+  navExternal: "New tab",
+  navHidden: "Hidden",
+  navRemove: "Remove",
+  navUp: "Up",
+  navDown: "Down",
 
   cssTitle: "Custom CSS",
   cssHint:

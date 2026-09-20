@@ -8562,3 +8562,109 @@ keyin, javob berayotgan konteyner **boshqa build** bo'lganda o'zgaradi.
 Sozlash: `KEEL_RELEASE_TOKEN` (fine-grained PAT, faqat **Actions: read and
 write**) va `KEEL_RELEASE_REPO` (`egasi/repo`) — `.env` da. Bo'sh bo'lsa
 tugmalar chiqmaydi, qolgan hamma versiya baribir o'qiladi.
+
+---
+
+### Onlayn do'kon (`ecommerce`): xonasi yo'q do'kon
+
+**Nima qo'shildi.** O'n ikkinchi biznes turi — `ecommerce`. Konsolda mijoz
+yaratishda tanlanadi, «Biznes turlari bo'yicha» statistikasida o'z qatori
+bo'ladi, do'kon narx zinapoyasida sotiladi.
+
+⚠️ **`clothing` ning bir turi emas.** Birinchi mijozlari kiyim sotadi, lekin
+nima sotishini **biz bilmaymiz** — butik, telefon g'ilofi do'koni, kitob
+do'koni. Ularning hammasiga umumiy bo'lgan yagona narsa: xarid **pochta orqali**
+ketadi va **kirib boriladigan xona yo'q**.
+
+**Uchta predikat, va ular bir-biriga tushib ketmasligi kerak:**
+
+| Predikat | Savol | Nega alohida |
+|---|---|---|
+| `SellsGoods` | sotgani sotib olgani mi? | onlayn do'kon ham — oziq-ovqat do'koni kabi |
+| `SellsOnlineOnly` | kirib boriladigan xona bormi? | **faqat** `ecommerce` yo'q deydi; oziq-ovqat do'konining kassasi, tarozisi va javon yorlig'i — haqiqiy narsalar |
+| `ShipsByPost` | xarid **posilka** bo'lib ketadimi? | `ecommerce`, `clothing`, `cosmetics`. Bu — **tovar haqidagi fakt, do'kon haqidagi emas**: qassob ham, gulchi ham sotib olganini sotadi, lekin bir kilo qiyma yoki bir dasta lola posilka bo'lib **hech qayerga ketmaydi** |
+
+⚠️ **`Defaults()` da yetkazish YOQIQ, va bu gulchining xatosining takrori.**
+Do'kon qoidasi (`Delivery: false`) bu yerda **teskari**: prilavka yo'q, ya'ni
+yetkazishsiz onlayn do'kon — sotib bo'lmaydigan katalog. Va xato jim: ega buni
+hech bir ekrandan emas, **kelmagan birinchi buyurtmadan** biladi.
+
+⚠️ **Namuna katalogi ataylab umumiy** (`seed/shop.go`): kiyim, aksessuar,
+kosmetika. Qolgan turlar uchun namuna ishonarli bo'la oladi, chunki tur javonda
+nima turganini aytadi; `ecommerce` esa faqat "javon yo'q" deydi. Uning vazifasi
+— panjara, savat, checkout va javon yorlig'i **chizilishini** ko'rsatish, saqlab
+qolinish emas.
+
+### Navigatsiya paneli konstruktordan (`page_design.nav`)
+
+**Muammo.** Saytning har bir bandi restoranning **o'z ma'lumotidan** chiziladi —
+bandda o'z matni yo'q, va aynan shu maketni mijozdan mijozga ko'chirsa bo'ladigan
+qiladi. Navigatsiya paneli — yagona istisno, va sababi onlayn do'kon: har bir
+restoranda bir xil beshta manzil bor, chunki har bir restoran **bir xil
+shakl** — ichida ovqati bor xona. Onlayn do'konning shakli esa u nima sotishiga
+teng. Shablon holida qolsa, mehmon ko'radigan birinchi narsa — **«Bron»** tugmasi
+va uning ortidagi stol band qilish formasi.
+
+**Qaror.** `page_design` hujjatiga `nav: []NavLink` qo'shildi (`label` — uch til,
+`href`, `external`, `hidden`). Konstruktorda o'z yorlig'i bor (☰), va konsol
+yozadi — **ega emas**, `customCss` bilan bir qo'l.
+
+⚠️ **Bo'sh = "sarlavhaga tegmang", "havolasiz panel" emas.** Platformadagi har
+bir brendda bu maydon yo'q; ikkinchi o'qilishi **hamma saytning** navigatsiyasini
+bir kunda o'chirardi. `DefaultSections`, bo'sh `mapProvider` va nol
+`businessType` bilan bir qoida.
+
+⚠️ **Chizilgani butunlay g'olib, aralashtirilmaydi.** Birovning yarmi + bizning
+yarmimiz — hech kim ko'zlamagan panel; onlayn do'kon buni umuman olishining
+sababi esa **bizning yarmimiz unga to'g'ri kelmasligi**.
+
+⚠️ **`elementLinks` oq ro'yxati emas.** Chizilgan tugma har restoranda bor
+sahifalardan tanlaydi; bu yerda esa odam **o'z do'koni bo'linadigan bo'limlarni**
+yozadi, va biz ularni bilmaymiz. Shuning uchun **sxema** tekshiriladi, manzil
+emas (`sanitizeHref`): `javascript:`, `data:`, boshqaruv belgilari va
+`//host` rad etiladi; `/yo'l` va `http(s)://` o'tadi.
+
+⚠️ **Nashr qilishda `nav` ham ko'chiriladi.** Bu CSS bilan bir xil xato: qoralamada
+tahrirlangan, ko'rinishda (u qoralamani o'qiydi) ko'rinadigan va **jonli saytda
+yo'q** o'zgarish — mijoz qaragunicha to'g'ri ko'rinadi.
+
+⚠️ **Sayt panelidagi «Bron» endi faqat stoli borlarda.** `hasTables` — ya'ni
+do'konlar ham (nafaqat onlayn do'kon) uni yo'qotadi. Bron sahifasining o'zi
+o'zgarmadi: uni brendning `features.booking` i boshqaradi, bu — panel.
+
+### BTS Express: hujjati yo'q integratsiya
+
+⚠️ **Oldin `docs/vendor/bts-express.md` ni o'qing.** BTS API hujjatini **e'lon
+qilmagan**: `api.bts.uz` bor va har bir yo'lga bir xil bo'sh `noindex` sahifa
+qaytaradi, kabinet (`new.bts.uz`) — server-rendered Yii2, ochiq internetda,
+GitHub'da va paket reestrlarida hech nima yo'q. Shartnoma mijozning o'zinikidan
+keladi.
+
+**Joylashuvi:** `delivery_provider` ning `kind: "api"` i ichida, Yandex Delivery
+bilan bir tokchada — savol bir xil («buyurtmani tashqi xizmatga topshir, keyin
+holatini so'ra»). Yangi kolleksiya ham, yangi ekran ham yo'q.
+
+⚠️ **Prod manzil kodda yo'q va ataylab yo'q.** Yandex'niki e'lon qilingan,
+BTS'niki emas — va **taxmin qilingan manzil eng jim xato** bo'lardi: forma
+to'ldirilgandek, saqlash muvaffaqiyatli, hech nima xato bermaydi, birinchi
+posilka esa hech qayerga ketmaydi. `apiBaseUrl` majburiy: bo'sh bo'lsa
+`clientFor` nomi bilan rad etadi va forma sariq izoh ko'rsatadi.
+
+⚠️ **`delivery.Service` interfeysi shu sababdan tug'ildi.** Endi ikkita tashuvchi
+bor va ikkinchisining shakli tasdiqlanmagan — haqiqiy hujjat kelganda
+tuzatiladigan joy **bitta fayl** (`delivery/bts.go`) bo'lishi kerak, buyurtma
+ekranlari bo'ylab qidiruv emas.
+
+⚠️ **`Accept` hech nimani chaqirmaydi.** Qoralama qadami — Yandex'niki (`accept`
+gacha kuryer yuborilmaydi); pochtaga topshirilgan posilka **bir marta**
+topshiriladi, va `/orders` ni ikkinchi marta chaqirish bitta buyurtmani ikkita
+nakladnoyga aylantiradi.
+
+⚠️ **Panel namunasi faqat `ShipsByPost` bo'lganlarga ko'rinadi.** Qassobga
+tashuvchi taklif qilish — hech kim olmaydigan posilkadan boshqa natija bera
+olmaydigan sozlama.
+
+⏳ **Yoqishdan oldin BTS'dan so'raladigan to'rt narsa** (vendor faylida):
+base URL, token qaysi sarlavhada, buyurtma yaratishning majburiy maydonlari,
+va holat kodlari. **COD (yetkazishda to'lov) alohida** — agar BTS pulni o'zi
+yig'ib keyin o'tkazsa, u tushum emas, `payout`.

@@ -386,3 +386,95 @@ func TestSanitizeSettingsKeepsShapeAndAllowlists(t *testing.T) {
 		t.Fatalf("got %d blocks, want 1 (the untyped one dropped)", len(d.Sections[0].Blocks))
 	}
 }
+
+// ⚠️ **The navigation bar reaches the page as `href` attributes**, so the one
+// thing this must never pass is a scheme that executes. The console is the only
+// writer, which is what makes a free-form address acceptable at all — it is not
+// what makes it safe, because a document also arrives from a restored backup
+// and from an older console.
+func TestNavLinksOnlyKeepAddressesABrowserCanFollow(t *testing.T) {
+	label := LocalizedText{Uz: "Ayollar"}
+	bad := []string{
+		"javascript:alert(1)",
+		"JavaScript:alert(1)",
+		"java\nscript:alert(1)",
+		"data:text/html,<script>",
+		"//evil.example/menu",
+		"vbscript:msgbox",
+		"menu",
+		"",
+	}
+	for _, h := range bad {
+		d := &PageDesign{Nav: []NavLink{{Label: label, Href: h}}}
+		d.Sanitize()
+		if len(d.Nav) != 0 {
+			t.Errorf("%q survived as %q", h, d.Nav[0].Href)
+		}
+	}
+	good := []string{"/menu", "/menu?cat=ayollar", "https://t.me/shop", "http://shop.uz"}
+	for _, h := range good {
+		d := &PageDesign{Nav: []NavLink{{Label: label, Href: h}}}
+		d.Sanitize()
+		if len(d.Nav) != 1 || d.Nav[0].Href != h {
+			t.Errorf("%q was dropped", h)
+		}
+	}
+}
+
+// ⚠️ **No nav means the header every site has today.** Every brand on the
+// platform has this field empty, so a nil read as "a bar with no links" would
+// take the navigation off every site on the day it shipped — the same
+// precondition `DefaultSections` exists for.
+func TestAnEmptyNavStaysEmptyRatherThanBecomingABarWithNoLinks(t *testing.T) {
+	d := &PageDesign{Sections: DefaultSections()}
+	d.Sanitize()
+	if d.Nav != nil {
+		t.Errorf("an unset nav became %#v", d.Nav)
+	}
+	// And a bar the operator emptied mid-edit reads the same way, rather than
+	// publishing a header with a hole in it.
+	d = &PageDesign{Nav: []NavLink{{Href: "/menu"}}} // no label in any language
+	d.Sanitize()
+	if d.Nav != nil {
+		t.Errorf("a link with no label in any language survived: %#v", d.Nav)
+	}
+}
+
+// A label is cut by letters, not by bytes: Russian and Uzbek are two bytes per
+// letter, and a byte cut can land inside one and reach the page as a
+// replacement character.
+func TestNavLabelsAreCutByLetters(t *testing.T) {
+	long := strings.Repeat("ё", 60)
+	d := &PageDesign{Nav: []NavLink{{Href: "/menu", Label: LocalizedText{Ru: long}}}}
+	d.Sanitize()
+	if len(d.Nav) != 1 {
+		t.Fatal("the link was dropped")
+	}
+	got := []rune(d.Nav[0].Label.Ru)
+	if len(got) != 40 {
+		t.Errorf("cut to %d letters, want 40", len(got))
+	}
+	if strings.ContainsRune(d.Nav[0].Label.Ru, '�') {
+		t.Error("the cut landed inside a letter")
+	}
+}
+
+// "Open in a new tab" on a path that never leaves the site is an operator's
+// slip, and it costs the cart: the guest lands on a second copy of the shop
+// with an empty basket.
+func TestARelativeNavLinkNeverOpensInANewTab(t *testing.T) {
+	d := &PageDesign{Nav: []NavLink{
+		{Href: "/menu", Label: LocalizedText{Uz: "Menyu"}, External: true},
+		{Href: "https://t.me/shop", Label: LocalizedText{Uz: "Telegram"}, External: true},
+	}}
+	d.Sanitize()
+	if len(d.Nav) != 2 {
+		t.Fatalf("got %d links", len(d.Nav))
+	}
+	if d.Nav[0].External {
+		t.Error("a path on this site was marked as leaving it")
+	}
+	if !d.Nav[1].External {
+		t.Error("an outside address lost its new tab")
+	}
+}

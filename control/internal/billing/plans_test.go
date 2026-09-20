@@ -294,6 +294,9 @@ func TestTheBusinessTypesMatchTheTenants(t *testing.T) {
 		"flowers", "pharmacy", "hardware",
 		// Makers: they compose everything they sell and are still counters.
 		"bakery", "coffee", "pastry",
+		// A shop with no room: it buys the catalogue half of the product and
+		// none of the dining room half the full ladder is priced for.
+		"ecommerce",
 	}
 	full := []string{"", "fastfood"}
 	for _, b := range cheap {

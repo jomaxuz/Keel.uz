@@ -14,7 +14,9 @@ import LangSwitch from "@/components/site/LangSwitch";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import BrandMark from "@/components/site/BrandMark";
 import BrandSwitch from "@/components/site/BrandSwitch";
-import type { Brand } from "@/lib/types";
+import { localized } from "@/lib/i18n/site-content";
+import { hasTables } from "@/lib/types";
+import type { Brand, NavLink } from "@/lib/types";
 
 export default function Header({
   name,
@@ -22,6 +24,8 @@ export default function Header({
   brands = [],
   activeBrand = "",
   branchCount = 0,
+  navLinks = [],
+  businessType,
 }: {
   name: string;
   logoUrl?: string;
@@ -30,6 +34,15 @@ export default function Header({
   activeBrand?: string;
   /** How many branches this brand has. See the note where the nav is built. */
   branchCount?: number;
+  /** The bar drawn in the console's constructor, when this site has one.
+   *
+   *  ⚠️ **Empty means the built-in bar, never an empty bar.** Every brand on
+   *  the platform has none of these, so reading absence as "no destinations"
+   *  would take the navigation off every site at once. */
+  navLinks?: NavLink[];
+  /** What this brand sells — read only to decide whether a table-booking link
+   *  belongs in the built-in bar. */
+  businessType?: string;
 }) {
   const { count } = useCart();
   // The badge waits for this component's *own* mount before it appears.
@@ -46,10 +59,11 @@ export default function Header({
   // page it just navigated to reads as a link that did not work.
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useUser();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const pathname = usePathname();
 
-  const nav = [
+  /** The bar this site would have with nothing drawn for it. */
+  const builtIn: NavItem[] = [
     { href: "/", label: t.nav.home },
     { href: "/menu", label: t.nav.menu },
     // ⚠️ Only with more than one. A single-branch restaurant already shows its address,
@@ -57,9 +71,29 @@ export default function Header({
     // a click that answers nothing — and this product's rule is that a one-branch
     // customer never sees the multi-branch machinery.
     ...(branchCount > 1 ? [{ href: "/filiallar", label: t.branches.title }] : []),
-    { href: "/bron", label: t.nav.booking },
+    // ⚠️ **Only where somebody can sit down.** A shop and an online store have
+    // no tables, and a bar whose third item is "Bron" leading to a
+    // table-booking form is the clearest possible statement that this site was
+    // built for somebody else. The booking page itself is unchanged — the
+    // brand's own `features.booking` still governs it; this is the bar.
+    ...(hasTables({ businessType }) ? [{ href: "/bron", label: t.nav.booking }] : []),
     { href: "/about", label: t.nav.about },
   ];
+
+  // ⚠️ **Drawn wins whole, rather than merging with the built-in bar.** Half of
+  // somebody's design plus half of ours is a bar neither of them meant — and
+  // the reason an online store gets this at all is that our half is wrong for
+  // it. `hidden` links stay in the document so trying a bar and putting a link
+  // back does not mean retyping it in three languages.
+  const drawn = navLinks.filter((l) => !l.hidden && l.href);
+  const nav: NavItem[] =
+    drawn.length > 0
+      ? drawn.map((l) => ({
+          href: l.href,
+          label: localized(l.label, lang),
+          external: l.external,
+        }))
+      : builtIn;
 
   // ⚠️ Compared against the path with the language prefix removed. `usePathname`
   // returns what the browser shows — `/ru/menu`, not the rewritten `/menu` — so
@@ -67,8 +101,15 @@ export default function Header({
   // the whole navbar silently loses its highlight for two of three languages.
   const here = splitLangPath(pathname).path;
   useEffect(() => setMenuOpen(false), [pathname]);
-  const isActive = (href: string) =>
-    href === "/" ? here === "/" : here.startsWith(href);
+  const isActive = (n: NavItem) => {
+    // ⚠️ An outside address is never "here", and `startsWith` on one would be
+    // comparing a path to `https://…` — always false, but by accident.
+    if (n.external || !n.href.startsWith("/")) return false;
+    // A drawn link may carry a query ("/menu?cat=ayollar"); the highlight is
+    // about which page the guest is on, not which filter.
+    const path = n.href.split(/[?#]/)[0] || "/";
+    return path === "/" ? here === "/" : here.startsWith(path);
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream/85 backdrop-blur-md">
@@ -89,17 +130,15 @@ export default function Header({
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 lg:flex">
           {nav.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
+            <NavItemLink
+              key={n.href + n.label}
+              item={n}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                isActive(n.href)
+                isActive(n)
                   ? "bg-brand-tint text-brand-dark"
                   : "text-ink-soft hover:bg-ink/5 hover:text-ink"
               }`}
-            >
-              {n.label}
-            </Link>
+            />
           ))}
         </nav>
 
@@ -201,24 +240,22 @@ export default function Header({
         <div className="border-t border-line bg-cream lg:hidden">
           <nav className="container-page flex flex-col py-2">
             {nav.map((n) => (
-              <Link
-                key={n.href}
-                href={n.href}
+              <NavItemLink
+                key={n.href + n.label}
+                item={n}
                 // Full-width rows, comfortably tall: this is a one-handed thumb
                 // target, not a desktop pointer.
                 className={`rounded-xl px-3 py-3 text-base font-semibold ${
-                  isActive(n.href)
+                  isActive(n)
                     ? "bg-brand-tint text-brand-dark"
                     : "text-ink-soft"
                 }`}
-              >
-                {n.label}
-              </Link>
+              />
             ))}
             <Link
               href={user ? "/profile" : "/login"}
               className={`rounded-xl px-3 py-3 text-base font-semibold ${
-                isActive("/profile")
+                isActive({ href: "/profile", label: "" })
                   ? "bg-brand-tint text-brand-dark"
                   : "text-ink-soft"
               }`}
@@ -246,5 +283,34 @@ export default function Header({
         </div>
       )}
     </header>
+  );
+}
+
+/** One destination in the bar, whichever of the two bars it came from. */
+type NavItem = { href: string; label: string; external?: boolean };
+
+/** ⚠️ **Two elements, because a drawn link may leave the site.** `LocaleLink`
+ *  prefixes `/ru` or `/en` onto an href, which is right for a page of ours and
+ *  nonsense on `https://t.me/...` — and Next's client router cannot navigate to
+ *  another origin at all. `rel="noreferrer"` goes with `target="_blank"`: a new
+ *  tab opened without it can reach back into this one through `window.opener`.
+ */
+function NavItemLink({ item, className }: { item: NavItem; className: string }) {
+  if (item.external || !item.href.startsWith("/")) {
+    return (
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noreferrer noopener"
+        className={className}
+      >
+        {item.label}
+      </a>
+    );
+  }
+  return (
+    <Link href={item.href} className={className}>
+      {item.label}
+    </Link>
   );
 }

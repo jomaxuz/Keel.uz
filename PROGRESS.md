@@ -15125,3 +15125,54 @@ saqlaydigan tahrir bilan — `sed -i` uni root'niki qilib qo'yardi va keyingi
 deploy'ning `git reset` i jimgina yarim yiqilardi).
 ⏳ Meta ilovasi hamon **development** rejimida va biznes-portfel
 tasdiqlanmagan — jonli ulanish shundan keyin.
+
+---
+
+## Onlayn do'kon (`ecommerce`): tur, navbar konstruktori, BTS
+
+**Biznes turi.** `ecommerce` — o'n ikkinchi tur. Konsolda mijoz yaratishda
+tanlanadi (`BIZ_TYPES` + uch tilda nom), «Biznes turlari bo'yicha» statistikasida
+o'z qatori bo'ladi (ro'yxat o'sha `BIZ_TYPES` dan quriladi — ikkinchi ro'yxat
+yo'q), do'kon zinapoyasida sotiladi (`shopLadder`).
+
+Uchta yangi predikat, va ular bir-biriga tushmaydi: `SellsOnlineOnly` (kirib
+boriladigan xona yo'qmi), `ShipsByPost` (`ecommerce`/`clothing`/`cosmetics` —
+**tovar haqidagi fakt**, qassob ham sotib olganini sotadi), `HasVariants`
+(`clothing` + `ecommerce`). `Defaults()` da yetkazish **yoqiq**: do'kon qoidasi
+bu yerda teskari bo'lardi va xato jim — ega buni kelmagan birinchi buyurtmadan
+bilardi. Namuna katalogi qo'shildi (`seed/shop.go`), ataylab umumiy.
+
+**O'lchamlar va ranglar.** Variant mexanizmi allaqachon bor edi
+(`menu_item.variantAxes`/`variantOf`/`variant`, `VariantsEditor`, sayt
+kartochkasi modelga yig'iladi, sahifa esa barcha o'lcham/ranglarni ko'rsatadi) —
+u `clothing` bilan cheklangan edi. Endi `ecommerce` ham ochiq;
+dorixona va oziq-ovqat do'koni ataylab tashqarida.
+
+**Navbar konstruktordan.** `page_design.nav` — uch tilli yorliq, erkin `href`,
+«yangi oynada», «yashirilgan». Konstruktorda o'z yorlig'i (☰), konsol yozadi.
+Bo'sh = sayt o'zining odatdagi panelini ko'rsatadi (platformadagi har bir brend
+shunday). Chizilgani butunlay g'olib bo'ladi. Manzil sxema bo'yicha tozalanadi
+(`sanitizeHref`), oq ro'yxat bo'yicha emas — do'kon o'z bo'limlarini o'zi
+nomlaydi. Nashr qilishda `nav` ham ko'chiriladi (CSS bilan bir xil xato).
+Yon ta'sir: sayt panelidagi «Bron» endi faqat stoli bor biznesda.
+
+**BTS Express.** ⚠️ **API hujjati ochiq emas** — `api.bts.uz`, `new.bts.uz`,
+robots/sitemap, swagger yo'llari va veb qidiruv tekshirildi, hammasi bo'sh
+(batafsil: `docs/vendor/bts-express.md`). Shuning uchun:
+`delivery_provider.kind: "api"` ichiga `apiProvider: "bts"` sifatida qo'yildi,
+`delivery.Service` interfeysi ajratildi (tuzatiladigan joy bitta fayl bo'lsin),
+prod manzil **kodda yo'q** va `apiBaseUrl` majburiy — bo'sh bo'lsa nomi bilan
+rad etiladi, panelda sariq izoh turadi. `Accept` hech nimani chaqirmaydi.
+Panelda namuna faqat `shipsByPost` bo'lgan biznesga ko'rinadi, va API formasiga
+«qaysi xizmat» tanlagichi qo'shildi (ilgari u faqat namunani bosish orqali
+qo'yilar edi, ya'ni oddiy tugma bilan qo'shilgan xizmat jimgina Yandex bo'lardi).
+
+Tekshiruv: backend `build` + `go test ./...` (yangi: ecommerce predikатlari,
+`sanitizeNav` — sxema, bo'sh nav, harf bo'yicha kesish, tashqi havola);
+control `build` + testlar (narx zinapoyasi ro'yxati); frontend `tsc` + 282 test
+(yangi `businessType.test.ts` — panel ro'yxati **server faylidan** o'qib
+solishtiriladi); keel-site `tsc` + testlar.
+
+⏳ **BTS'dan so'raladigan to'rt narsa**: base URL, token sarlavhasi, buyurtma
+maydonlari, holat kodlari — va COD alohida (agar pulni BTS yig'sa, u tushum
+emas, `payout`).

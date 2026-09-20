@@ -1485,6 +1485,23 @@ export interface StylePreset {
   style: DesignElement["style"];
 }
 
+/** One item in the site's navigation bar. Mirrors `models.NavLink` in the
+ *  tenant's repository, which is where it is sanitised — the control plane
+ *  passes it through untouched, like the theme and the saved styles.
+ *
+ *  ⚠️ **The one part of the page an online store cannot live with as a
+ *  template.** Every restaurant has the same five destinations because every
+ *  restaurant is the same shape; an online store's shape is whatever it sells,
+ *  and left as a template the first thing its guests see is a button marked
+ *  "Bron" leading to a table-booking form. */
+export interface NavLink {
+  label: { uz: string; ru: string; en: string };
+  /** A path on this site ("/menu?cat=ayollar") or a full https:// address. */
+  href: string;
+  external?: boolean;
+  hidden?: boolean;
+}
+
 export interface DesignState {
   blocks: string[];
   /** The restaurant's own menu categories, for the bands that draw from some of
@@ -1493,6 +1510,9 @@ export interface DesignState {
   categories?: { id: string; name: string }[];
   draft: {
     sections: DesignSection[] | null;
+    /** ⚠️ Absent and empty mean the same thing — "the site keeps its built-in
+     *  bar". Every tenant on the platform has this unset. */
+    nav?: NavLink[] | null;
     customCss?: string;
     stylePresets?: StylePreset[] | null;
     updatedAt?: string;
@@ -1500,6 +1520,7 @@ export interface DesignState {
   };
   live: {
     sections: DesignSection[] | null;
+    nav?: NavLink[] | null;
     publishedAt?: string;
     drawnBy?: string;
   };
@@ -1527,10 +1548,11 @@ export const saveTenantDesign = (
   sections: DesignSection[],
   customCss = "",
   stylePresets: StylePreset[] = [],
+  nav: NavLink[] = [],
 ) =>
   req<{ saved: number }>(`/tenants/${tenantId}/design`, {
     method: "PUT",
-    body: JSON.stringify({ sections, customCss, stylePresets }),
+    body: JSON.stringify({ sections, customCss, stylePresets, nav }),
   });
 
 /** A short-lived link that shows the **unpublished** draft on the real site.

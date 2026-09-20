@@ -16,16 +16,36 @@ import (
 )
 
 // clientFor builds the API client for a provider, or explains why it cannot.
-func clientFor(p *models.DeliveryProvider) (*delivery.Client, error) {
+//
+// ⚠️ **Returns the interface, not a carrier.** There are two of them now, and
+// the second one (BTS Express) has no published contract — see
+// docs/vendor/bts-express.md. Everything above this line stays carrier-agnostic
+// so that correcting BTS's wire format against their real document is one file.
+//
+// ⚠️ **An empty `apiProvider` is Yandex**, which is every provider record
+// written before there was a second carrier. The usual zero-value rule, and
+// here it is also the only safe reading: the alternative would take the API
+// button away from every restaurant already using one.
+func clientFor(p *models.DeliveryProvider) (delivery.Service, error) {
 	if p.Kind != "api" {
 		return nil, fmt.Errorf("%s API orqali ishlamaydi", p.Name)
 	}
+	if strings.TrimSpace(p.APIToken) == "" {
+		return nil, fmt.Errorf("%s uchun API token kiritilmagan", p.Name)
+	}
 	switch p.APIProvider {
-	case "yandex", "":
-		if strings.TrimSpace(p.APIToken) == "" {
-			return nil, fmt.Errorf("%s uchun API token kiritilmagan", p.Name)
-		}
+	case delivery.ProviderYandex, "":
 		return delivery.NewYandex(p.APIBaseURL, p.APIToken, p.APITariff), nil
+	case delivery.ProviderBTS:
+		// ⚠️ **Refused here rather than at the request**, because the address
+		// is the one thing about BTS nobody can guess and its absence is
+		// otherwise completely silent: the form looks filled in, the save
+		// succeeds, and the first parcel goes nowhere. No production host is
+		// compiled in — BTS publishes none.
+		if strings.TrimSpace(p.APIBaseURL) == "" {
+			return nil, fmt.Errorf("%s uchun API manzili (base URL) kiritilmagan — BTS shartnomasidan olinadi", p.Name)
+		}
+		return delivery.NewBTS(p.APIBaseURL, p.APIToken, p.APITariff), nil
 	default:
 		return nil, fmt.Errorf("noma'lum integratsiya: %s", p.APIProvider)
 	}

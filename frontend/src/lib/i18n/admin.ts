@@ -2182,11 +2182,14 @@ export const adminUz = {
     providerPhone: "Telefon orqali",
     providerApi: "API orqali (avtomatik)",
     providerApiHint:
-      "Xizmatning o'z API'si orqali zayavka avtomatik yuboriladi. Buning uchun xizmatda biznes-akkaunt va token kerak (Yandex Delivery qo'llab-quvvatlanadi). Biznes-akkaunt bo'lmasa — \"Sayt / havola orqali\" usulini ishlating.",
+      "Xizmatning o'z API'si orqali zayavka avtomatik yuboriladi. Buning uchun xizmatda biznes-akkaunt va token kerak (Yandex Delivery va BTS Express qo'llab-quvvatlanadi). Biznes-akkaunt bo'lmasa — \"Sayt / havola orqali\" usulini ishlating.",
+    providerApiWhich: "Qaysi xizmat",
     providerApiToken: "API token",
     providerApiTokenSet:
       "Token saqlangan — o'zgartirish uchun yangisini kiriting",
     providerApiBase: "API manzili (bo'sh = ishlab chiqarish serveri)",
+    providerApiBaseBts:
+      "BTS uchun majburiy: manzil shartnoma bilan beriladi va uni taxmin qilib bo'lmaydi. Bo'sh qolsa buyurtma yuborilmaydi.",
     providerApiTariff: "Tarif (masalan express)",
     apiCall: "Avtomatik chaqirish",
     apiCalling: "Chaqirilmoqda...",
@@ -7415,10 +7418,13 @@ export const adminRu: AdminDict = {
     providerPhone: "По телефону",
     providerApi: "Через API (автоматически)",
     providerApiHint:
-      "Заявка отправляется через API самой службы. Для этого нужен бизнес-аккаунт службы и токен (поддерживается Яндекс Доставка). Если бизнес-аккаунта нет — используйте способ «Через сайт / ссылку».",
+      "Заявка отправляется через API самой службы. Для этого нужен бизнес-аккаунт службы и токен (поддерживаются Яндекс Доставка и BTS Express). Если бизнес-аккаунта нет — используйте способ «Через сайт / ссылку».",
+    providerApiWhich: "Какая служба",
     providerApiToken: "API-токен",
     providerApiTokenSet: "Токен сохранён — введите новый, чтобы заменить",
     providerApiBase: "Адрес API (пусто = продакшн)",
+    providerApiBaseBts:
+      "Для BTS обязателен: адрес выдаётся по договору, угадать его нельзя. Пока поле пусто, заказ не отправляется.",
     providerApiTariff: "Тариф (например express)",
     apiCall: "Вызвать автоматически",
     apiCalling: "Вызываем...",
@@ -12357,10 +12363,13 @@ export const adminEn: AdminDict = {
     providerPhone: "By phone",
     providerApi: "Through the API (automatic)",
     providerApiHint:
-      'The request is filed through the service\'s own API. This needs a business account with the service and a token (Yandex Delivery is supported). Without a business account, use "Through their site / link".',
+      'The request is filed through the service\'s own API. This needs a business account with the service and a token (Yandex Delivery and BTS Express are supported). Without a business account, use "Through their site / link".',
+    providerApiWhich: "Which service",
     providerApiToken: "API token",
     providerApiTokenSet: "A token is stored — enter a new one to replace it",
     providerApiBase: "API base URL (empty = production)",
+    providerApiBaseBts:
+      "Required for BTS: the address comes with the agreement and cannot be guessed. While it is empty no order is filed.",
     providerApiTariff: "Tariff (e.g. express)",
     apiCall: "Call automatically",
     apiCalling: "Calling...",

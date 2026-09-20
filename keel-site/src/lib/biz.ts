@@ -32,6 +32,11 @@ export const BIZ_TYPES = [
   "flowers",
   "pharmacy",
   "hardware",
+  // ⚠️ **Last, and not among the shops.** Somebody creating a customer knows
+  // first whether the place cooks and second whether it has a room to walk
+  // into; an online store answers no to both, so it belongs after every
+  // business that has an address rather than interleaved with them.
+  "ecommerce",
 ] as const;
 
 export type BizType = (typeof BIZ_TYPES)[number];

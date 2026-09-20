@@ -169,3 +169,71 @@ func TestTheNewerShopsStillSellWhatTheyBought(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **An online store must start with delivery on**, and this is the florist's
+// mistake waiting to happen a second time with worse odds. A florist with
+// delivery off still sells over its counter; an online store has no counter at
+// all, so the same wrong default turns the whole business into a catalogue
+// nobody can buy from — and the owner finds out from the first order that never
+// arrives rather than from any screen.
+func TestAnOnlineStoreStartsAbleToSell(t *testing.T) {
+	d := BizEcommerce.Defaults()
+	if !d.Delivery {
+		t.Error("an online store was created unable to deliver anything")
+	}
+	if d.DineIn || d.Booking {
+		t.Error("an online store was given a dining room")
+	}
+}
+
+// It sells the packet it bought, like every other shop — and it does it without
+// a room, which is the half no other type answers yes to.
+func TestAnOnlineStoreIsAShopWithoutARoom(t *testing.T) {
+	if !BizEcommerce.SellsGoods() {
+		t.Error("an online store does not sell goods")
+	}
+	if BizEcommerce.Composes() || BizEcommerce.HasKitchen() || BizEcommerce.HasTables() {
+		t.Error("an online store was given a kitchen or a floor plan")
+	}
+	for _, b := range BusinessTypes {
+		if b == BizEcommerce {
+			continue
+		}
+		if b.SellsOnlineOnly() {
+			t.Errorf("%q was read as having no room", b)
+		}
+	}
+}
+
+// ⚠️ **The carrier list is a fact about the goods, not about the shop.** A
+// butcher and a florist sell what they bought exactly as a boutique does, and a
+// parcel of mince or of tulips is a parcel nobody collects — so the one
+// predicate that must never collapse into `SellsGoods` is this one.
+func TestOnlyParcelGoodsAreOfferedACarrier(t *testing.T) {
+	for _, b := range []BusinessType{BizEcommerce, BizClothing, BizCosmetics} {
+		if !b.ShipsByPost() {
+			t.Errorf("%q sells parcels and was offered no carrier", b)
+		}
+	}
+	for _, b := range []BusinessType{BizButcher, BizFlowers, BizGrocery, BizRestaurant} {
+		if b.ShipsByPost() {
+			t.Errorf("%q was offered a carrier for goods that never travel by post", b)
+		}
+	}
+}
+
+// Sizes and colours are a boutique's and an online store's shape, and nobody
+// else's by default. A pharmacy offered a matrix generator is a pharmacy whose
+// catalogue can be doubled by accident.
+func TestSizesAndColoursAreOfferedWhereTheyMeanSomething(t *testing.T) {
+	for _, b := range []BusinessType{BizClothing, BizEcommerce} {
+		if !b.HasVariants() {
+			t.Errorf("%q sells one model in sizes and was given no variants", b)
+		}
+	}
+	for _, b := range []BusinessType{BizPharmacy, BizGrocery, BizRestaurant, BizFlowers} {
+		if b.HasVariants() {
+			t.Errorf("%q was offered a matrix generator it can only misuse", b)
+		}
+	}
+}

@@ -15,7 +15,7 @@ import StructuredData from "@/components/site/StructuredData";
 import TrackVisit from "@/components/site/TrackVisit";
 import BackToTop from "@/components/site/BackToTop";
 import { siteOrigin } from "@/lib/seo";
-import type { BrandsResponse, Restaurant } from "@/lib/types";
+import type { BrandsResponse, NavLink, Restaurant } from "@/lib/types";
 
 // Public site shell: cart state + header/footer around every public page.
 export default async function SiteLayout({
@@ -32,10 +32,17 @@ export default async function SiteLayout({
   let restaurant: Restaurant | null = null;
   let brands: BrandsResponse = { brands: [], branches: [] };
   let brandId = "";
+  // The navigation bar and what this brand sells. ⚠️ Both come from the call
+  // the shell already makes: a second request for the header would be one per
+  // page view on every site on the platform, to decide five links.
+  let navLinks: NavLink[] = [];
+  let businessType = "";
   try {
     const data = await api.getRestaurant(scope);
     restaurant = data.restaurant;
     brandId = data.brand?.id ?? "";
+    navLinks = data.design?.nav ?? [];
+    businessType = data.brand?.businessType ?? "";
   } catch {
     restaurant = null;
   }
@@ -97,6 +104,12 @@ export default async function SiteLayout({
                     // list of one is the kind of complexity this product deliberately
                     // hides from single-branch customers.
                     branchCount={(brands.branches ?? []).length}
+                    // ⚠️ **The bar an online store's sections are typed into**,
+                    // drawn in the console's constructor. Empty on every
+                    // restaurant, which is what keeps today's header exactly as
+                    // it is — see models/design.go, NavLink.
+                    navLinks={navLinks}
+                    businessType={businessType}
                   />
                   <TableBanner />
                   {/* ⚠️ Below the fold and never blocking: it is a notice, not a gate. Hidden

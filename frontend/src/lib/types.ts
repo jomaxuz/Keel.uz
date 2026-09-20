@@ -572,11 +572,34 @@ export interface DesignSection {
   };
 }
 
+/** One item in the site's navigation bar. Mirrors `models.NavLink`.
+ *
+ *  ⚠️ **The one part of the page an online store cannot live with as a
+ *  template.** Every restaurant has the same five destinations because every
+ *  restaurant is the same shape — a room with food in it. An online store's
+ *  shape is whatever it sells, and left as a template the first thing its
+ *  guests see is a button marked "Bron" leading to a table-booking form. */
+export interface NavLink {
+  label: { uz: string; ru: string; en: string };
+  /** A path on this site ("/menu?cat=ayollar") or a full https:// address.
+   *  The scheme is checked on the server; the destination is not, because the
+   *  sections a shop divides itself into are the one thing we cannot list. */
+  href: string;
+  external?: boolean;
+  hidden?: boolean;
+}
+
 export interface PageDesign {
   id: string;
   brandId: string;
   status: "draft" | "published";
   sections: DesignSection[];
+  /** The navigation bar, when this site's is not the built-in one.
+   *
+   *  ⚠️ **Absent and empty mean the same thing — "leave the header alone".**
+   *  Every brand on the platform has this unset, so reading it as "a bar with
+   *  no links" would empty the header of every site at once. */
+  nav?: NavLink[];
   /** The designer's own corrections. Refused outright by the backend if it
    *  contains anything that could close a `<style>` element — see sanitizeCSS. */
   customCss?: string;
@@ -1815,7 +1838,9 @@ export type BusinessType =
   | "cosmetics"
   | "flowers"
   | "pharmacy"
-  | "hardware";
+  | "hardware"
+  // Online only: the shelf is a web page and there is no room to walk into.
+  | "ecommerce";
 
 /** Everything this build knows how to tailor for. ⚠️ The empty string is a
  *  restaurant, deliberately: it is what every brand written before the field
@@ -1833,6 +1858,7 @@ const BUSINESS_TYPES: readonly string[] = [
   "flowers",
   "pharmacy",
   "hardware",
+  "ecommerce",
 ];
 
 /** Collapses anything this build does not recognise to a restaurant.
@@ -1924,7 +1950,51 @@ export function composes(brand?: { businessType?: string } | null): boolean {
  *  product that already has variants keeps its editor whatever kind of business
  *  this is. */
 export function hasVariants(brand?: { businessType?: string } | null): boolean {
-  return known(brand) === "clothing";
+  const t = known(brand);
+  // ⚠️ **An online store is in because its catalogue is all it has.** Whatever
+  // it sells — a case, a dress, a kettle — the guest chooses from a page rather
+  // than from a shelf, and a page that cannot say "this one in blue" sends them
+  // to somebody else's page to find out. Mirrors `BusinessType.HasVariants`.
+  return t === "clothing" || t === "ecommerce";
+}
+
+/** Is there no room a customer can walk into?
+ *
+ *  ⚠️ **Not the same question as `sellsGoods`, and a grocery is why.** A
+ *  grocery sells what it bought *and* has a counter, so its till, its shelf
+ *  labels and its scale are all real objects. An online store has the first
+ *  half and none of the second: its whole shop is the site, which is what makes
+ *  its navigation bar worth drawing rather than assuming. Mirrors
+ *  `BusinessType.SellsOnlineOnly`. */
+export function sellsOnlineOnly(
+  brand?: { businessType?: string } | null,
+): boolean {
+  return known(brand) === "ecommerce";
+}
+
+/** Does what this brand sells leave in a parcel?
+ *
+ *  ⚠️ **A fact about the goods, not about the shop**, which is why it is not
+ *  `sellsGoods`. A dress and a lipstick are small, light, unbreakable and
+ *  bought by somebody in another city; a kilo of mince and a bunch of tulips
+ *  are none of those things and never travel by post however much the shop
+ *  would like them to. A carrier integration offered to a butcher is a setting
+ *  that can only ever produce a parcel nobody collects.
+ *
+ *  ⚠️ A default, not a rule — data wins here as everywhere on these screens: a
+ *  carrier already added by hand keeps working whatever kind of business this
+ *  is. Mirrors `BusinessType.ShipsByPost`. */
+export function shipsByPost(
+  brand?: { businessType?: string } | null,
+): boolean {
+  switch (known(brand)) {
+    case "ecommerce":
+    case "clothing":
+    case "cosmetics":
+      return true;
+    default:
+      return false;
+  }
 }
 
 export function sellsGoods(brand?: { businessType?: string } | null): boolean {
@@ -1936,6 +2006,7 @@ export function sellsGoods(brand?: { businessType?: string } | null): boolean {
     case "flowers":
     case "pharmacy":
     case "hardware":
+    case "ecommerce":
       return true;
     default:
       return false;

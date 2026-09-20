@@ -119,6 +119,16 @@ type designDoc struct {
 	BrandID  primitive.ObjectID `bson:"brandId,omitempty" json:"brandId,omitempty"`
 	Status   string             `bson:"status" json:"status"`
 	Sections []designSection    `bson:"sections" json:"sections"`
+	// The navigation bar, when this site's is not the built-in one.
+	//
+	// ⚠️ **`any`, like the theme and the saved styles**, and for the same
+	// reason: the shape belongs to `models.NavLink` in the tenant's repository,
+	// which sanitises it on every read. A second copy of the struct here would
+	// be a schema the control plane has to keep in step with a codebase it does
+	// not import — and the way that failure shows up is Go's decoder dropping
+	// the fields it does not know, silently, which is exactly how `settings`
+	// was lost on this very pipe.
+	Nav any `bson:"nav,omitempty" json:"nav,omitempty"`
 	// Read back so the editor can reopen with what was saved — the CSS field and
 	// the saved styles are as much part of a draft as the bands are.
 	CustomCSS    string     `bson:"customCss,omitempty" json:"customCss,omitempty"`
@@ -241,11 +251,13 @@ func (h *Handler) GetTenantDesign(w http.ResponseWriter, r *http.Request) {
 		"categories": h.tenantCategories(r, t.DBName()),
 		"draft": map[string]any{
 			"sections":  draft.Sections,
+			"nav":       draft.Nav,
 			"updatedAt": draft.UpdatedAt,
 			"drawnBy":   draft.DrawnBy,
 		},
 		"live": map[string]any{
 			"sections":    live.Sections,
+			"nav":         live.Nav,
 			"publishedAt": live.PublishedAt,
 			"drawnBy":     live.DrawnBy,
 		},
@@ -264,6 +276,9 @@ type designSaveRequest struct {
 	// Named styles the designer saved while drawing. Passed through and cleaned by
 	// the tenant's Sanitize, like the canvas — see designSection.Canvas.
 	StylePresets any `json:"stylePresets"`
+	// The navigation bar. Passed through and cleaned by the tenant, which is
+	// where the address is checked — see models.sanitizeNav.
+	Nav any `json:"nav"`
 }
 
 // PutTenantDesign saves the draft. The live site does not change.
@@ -284,6 +299,7 @@ func (h *Handler) PutTenantDesign(w http.ResponseWriter, r *http.Request) {
 		"brandId":      h.primaryBrandID(r, t.DBName()),
 		"status":       "draft",
 		"sections":     sections,
+		"nav":          req.Nav,
 		"customCss":    req.CustomCSS,
 		"theme":        req.Theme,
 		"stylePresets": req.StylePresets,
@@ -336,6 +352,11 @@ func (h *Handler) PublishTenantDesign(w http.ResponseWriter, r *http.Request) {
 			// particular bug — the preview is exactly where somebody checks their
 			// work, so it would look correct right up until the customer looked.
 			"customCss": draft.CustomCSS,
+			// ⚠️ **Copied for the reason the CSS is**, which is the bug this line
+			// exists to not repeat: a bar edited in the draft, visible in the
+			// preview (which reads the draft) and absent from the live site is a
+			// change that looks right up until the customer looks.
+			"nav": draft.Nav,
 			// The saved styles travel with the design. The renderer never reads them
 			// (applying a preset copies it into the element), but a published design
 			// reopened later should still offer the styles it was drawn with.

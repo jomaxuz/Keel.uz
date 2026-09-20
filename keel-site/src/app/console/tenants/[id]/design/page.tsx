@@ -35,6 +35,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import EditorCanvas from "@/components/design/EditorCanvas";
 import PreviewOverlay from "@/components/design/PreviewOverlay";
+import NavEditor from "@/components/design/NavEditor";
 import { useT } from "@/lib/i18n/client";
 import {
   BAND_LABELS,
@@ -54,6 +55,7 @@ import {
   type DesignSection,
   type DesignState,
   type DesignTemplate,
+  type NavLink,
   type StylePreset,
   designSchema,
   designTemplates,
@@ -139,7 +141,13 @@ export default function DesignEditorPage() {
   // Which section of the left column the rail is showing. A single scrolling
   // column worked with five bands and stops working at fifteen: the inspector
   // ends up below the fold exactly when an element is selected.
-  const [tab, setTab] = useState<"layers" | "element" | "styles" | "css" | "templates">("layers");
+  const [tab, setTab] = useState<
+    "layers" | "element" | "styles" | "css" | "nav" | "templates"
+  >("layers");
+  // The site's navigation bar. ⚠️ Empty is "leave the header alone", never "a
+  // bar with no links" — every tenant on the platform has this unset, and the
+  // other reading would empty the header of every site at once.
+  const [nav, setNav] = useState<NavLink[]>([]);
   const [templates, setTemplates] = useState<DesignTemplate[]>([]);
   const [schema, setSchema] = useState<SectionDef[]>([]);
   // Which repeatable item inside the band is being edited. Separate from the
@@ -178,6 +186,7 @@ export default function DesignEditorPage() {
         setSections(d.draft.sections ?? d.live.sections ?? []);
         setCss(d.draft.customCss ?? "");
         setPresets(d.draft.stylePresets ?? []);
+        setNav(d.draft.nav ?? d.live.nav ?? []);
         try {
           const [g, sc] = await Promise.all([designTemplates(), designSchema()]);
           setTemplates(g.items);
@@ -274,7 +283,7 @@ export default function DesignEditorPage() {
     setBusy("save");
     setNote("");
     try {
-      await saveTenantDesign(tenantId, sections, css, presets);
+      await saveTenantDesign(tenantId, sections, css, presets, nav);
       setNote(d.savedDraft);
       await refreshPreview();
     } catch (e) {
@@ -289,7 +298,7 @@ export default function DesignEditorPage() {
    *  pixel on somebody's live site. */
   async function commitLive() {
     try {
-      await saveTenantDesign(tenantId, sectionsRef.current, css, presets);
+      await saveTenantDesign(tenantId, sectionsRef.current, css, presets, nav);
       // ⚠️ The token is reused rather than minted again. A new token per drag would
       // leave a trail of live preview links, each valid for two hours.
       if (previewUrl) {
@@ -316,7 +325,7 @@ export default function DesignEditorPage() {
   async function publish() {
     setBusy("publish");
     try {
-      await saveTenantDesign(tenantId, sections, css, presets);
+      await saveTenantDesign(tenantId, sections, css, presets, nav);
       const res = await publishTenantDesign(tenantId);
       setNote(res.note);
       setState(await tenantDesign(tenantId));
@@ -454,6 +463,11 @@ export default function DesignEditorPage() {
               { id: "element", icon: "◫", title: d.tabElement },
               { id: "styles", icon: "◐", title: d.tabStyles },
               { id: "css", icon: "{ }", title: d.tabCss },
+              // ⚠️ Its own tab rather than a band, because it is not one: the
+              // bar sits above every page of the site, not inside the home
+              // page's list of bands. Put among the bands it would be a band
+              // an operator could drag into the middle of the page.
+              { id: "nav", icon: "☰", title: d.tabNav },
               { id: "templates", icon: "▢", title: d.tabTemplates },
             ] as const
           ).map((s) => (
@@ -594,6 +608,8 @@ export default function DesignEditorPage() {
               canApply={pick.el != null}
             />
           )}
+
+          {tab === "nav" && <NavEditor nav={nav} setNav={setNav} d={d} />}
 
           {tab === "css" && (
           <>

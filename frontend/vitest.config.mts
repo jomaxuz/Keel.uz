@@ -119,6 +119,12 @@ export default defineConfig({
       // somebody else's work — which is what a chemist reading "Masalliqlar"
       // over a shelf of paracetamol was looking at.
       "src/lib/adminNav.test.ts",
+      // What each kind of business *is*. Here because these five predicates are
+      // a copy of `models/businesstype.go` joined to it by nothing the compiler
+      // can see, and the way a type added on one side and forgotten on the
+      // other shows up is not an error: it is the emptiest sidebar the panel
+      // can draw, on the newest customer we have.
+      "src/lib/businessType.test.ts",
       // Which answers a shortfall may be given in this business. Here for the
       // same reason as the row above: from a restaurant every one of these is
       // correct, and the wrong answer is wrong for every chemist on the

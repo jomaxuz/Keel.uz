@@ -286,6 +286,14 @@ func shopLadder(businessType string) bool {
 	case "grocery", "butcher", "clothing", "cosmetics",
 		"flowers", "pharmacy", "hardware":
 		return true // shops: what was delivered is what is sold
+	case "ecommerce":
+		// ⚠️ **A shop's price although it has no shop.** It sells the packet it
+		// bought exactly as a grocery does, and it buys the same half of the
+		// product — a catalogue, a stockroom, orders. What it does not buy is
+		// the dining room half the restaurant ladder is priced for, so billing
+		// it there would charge three times the agreed figure on an invoice
+		// perfectly consistent with itself.
+		return true
 	case "bakery", "coffee", "pastry":
 		return true // makers: a counter that cooks, at a counter's price
 	}

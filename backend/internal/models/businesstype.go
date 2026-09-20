@@ -56,6 +56,19 @@ const (
 	BizFlowers   BusinessType = "flowers"
 	BizPharmacy  BusinessType = "pharmacy"
 	BizHardware  BusinessType = "hardware"
+	// ---- Online only: the shelf is a web page ----
+	//
+	// ⚠️ **A shop with no room anybody walks into**, and that is the whole
+	// difference. A grocery's site is a second way to reach a counter that
+	// exists; an online store's site *is* the store, so the switches a shop
+	// starts with are exactly backwards for it: delivery off, pickup on, and a
+	// catalogue laid out for somebody standing in front of the shelf.
+	//
+	// ⚠️ **Not a variety of `clothing`**, though its first customers will sell
+	// clothes. What it sells is unknown to us — a boutique, a phone case shop,
+	// a book seller — and the one thing every one of them shares is that the
+	// parcel leaves by post rather than on our own courier's motorbike.
+	BizEcommerce BusinessType = "ecommerce"
 )
 
 // BusinessTypes is what the console offers, in the order it offers them.
@@ -72,6 +85,11 @@ var BusinessTypes = []BusinessType{
 	BizRestaurant, BizFastFood, BizCoffee, BizBakery, BizPastry,
 	BizGrocery, BizButcher, BizClothing, BizCosmetics, BizFlowers,
 	BizPharmacy, BizHardware,
+	// ⚠️ **Last, and not among the shops.** Somebody creating a customer knows
+	// first whether the place cooks and second whether it has a room — an
+	// online store answers no to both, so it belongs after every business that
+	// has an address a guest can walk to rather than interleaved with them.
+	BizEcommerce,
 }
 
 // Valid reports whether a stored value is one this build knows.
@@ -112,7 +130,62 @@ func (b BusinessType) known() BusinessType {
 func (b BusinessType) SellsGoods() bool {
 	switch b.known() {
 	case BizGrocery, BizButcher, BizClothing, BizCosmetics,
-		BizFlowers, BizPharmacy, BizHardware:
+		BizFlowers, BizPharmacy, BizHardware, BizEcommerce:
+		return true
+	}
+	return false
+}
+
+// SellsOnlineOnly reports whether there is no room a customer can walk into.
+//
+// ⚠️ **Separate from SellsGoods, because a grocery answers the two
+// differently.** A grocery sells what it bought *and* has a counter, so its
+// till, its shelf labels and its scale are all real. An online store has the
+// first half and none of the second: its whole shop is the site, which is why
+// it is the one business whose navigation bar is worth letting somebody edit.
+func (b BusinessType) SellsOnlineOnly() bool { return b.known() == BizEcommerce }
+
+// ShipsByPost reports whether what is sold leaves in a parcel rather than in a
+// bag handed across a counter or on our own courier's motorbike.
+//
+// ⚠️ **Three types, and the list is a fact about the goods rather than about
+// the shop.** A dress and a lipstick are small, light, unbreakable and bought
+// by somebody in another city; a kilo of mince and a bunch of tulips are none
+// of those things and never travel by post whatever the shop would like. A
+// carrier integration offered to a butcher is a setting that can only ever
+// produce a parcel nobody collects.
+//
+// ⚠️ A default, not a rule — the same trade every predicate in this file
+// makes. A hardware shop that starts posting screwdrivers adds the carrier by
+// hand in the panel, and nothing here stops it.
+func (b BusinessType) ShipsByPost() bool {
+	switch b.known() {
+	case BizEcommerce, BizClothing, BizCosmetics:
+		return true
+	}
+	return false
+}
+
+// HasVariants reports whether one product is sold in sizes and colours.
+//
+// ⚠️ **A clothes shop and an online store, and only those two by default.**
+// Sizes are the whole shape of a boutique's catalogue and are meaningless in a
+// pharmacy — a box of paracetamol has no colour. A grocery does have pack
+// sizes, but they are separate products with separate barcodes and separate
+// prices, which is what it already enters them as; a matrix generator there
+// would double its catalogue by accident.
+//
+// ⚠️ **An online store is in because its catalogue is the only thing it has.**
+// Whatever it sells — a case, a dress, a kettle — the guest chooses from a
+// page rather than from a shelf, and a page that cannot say "this one in blue"
+// sends them to somebody else's page to find out.
+//
+// ⚠️ A default, not a rule: a product that already has variants keeps its
+// editor whatever kind of business this is. Mirrored by `hasVariants` in
+// frontend/src/lib/types.ts.
+func (b BusinessType) HasVariants() bool {
+	switch b.known() {
+	case BizClothing, BizEcommerce:
 		return true
 	}
 	return false
@@ -189,6 +262,14 @@ func (b BusinessType) Defaults() BrandFeatures {
 		// sells is carried to somebody else's address — on the eighth of March
 		// it is nearly all of it — and a shop set up the week before that with
 		// delivery off would find out on the busiest morning of its year.
+		return BrandFeatures{Delivery: true, Pickup: true, DineIn: false, Booking: false}
+	case b.known() == BizEcommerce:
+		// ⚠️ **The shop rule below would be exactly backwards here**, and
+		// silently: an online store created with delivery off is a catalogue
+		// that cannot be bought from, and the owner's first order is the one
+		// that does not arrive. There is no counter to hand anything over at —
+		// pickup stays on only because a pickup point is a real thing an online
+		// store may offer, and it is one tap to switch off.
 		return BrandFeatures{Delivery: true, Pickup: true, DineIn: false, Booking: false}
 	case b.SellsGoods():
 		// A shop hands the goods over at the counter. Delivery is off rather
