@@ -1520,6 +1520,27 @@ export interface NavLink {
   hidden?: boolean;
 }
 
+/** The colours, corners and type a design was drawn with.
+ *
+ *  ⚠️ **Every field optional and an empty one means "leave it alone".** A
+ *  layout that only rearranges bands must not repaint a restaurant that spent
+ *  an afternoon choosing its accent — the tenant merges this field by field
+ *  (handlers/public.go, mergeTheme). */
+export interface SiteThemePatch {
+  brand?: string;
+  brandDark?: string;
+  /** The second colour: the panel a category list sits on, beside the brand
+   *  that sells. Its readable ink is computed, never chosen. */
+  accent?: string;
+  radius?: number | null;
+  buttonShape?: string;
+  font?: string;
+  background?: string;
+  shadow?: string;
+  buttonStyle?: string;
+  scale?: number | null;
+}
+
 export interface DesignState {
   blocks: string[];
   /** The restaurant's own menu categories, for the bands that draw from some of
@@ -1531,6 +1552,9 @@ export interface DesignState {
     /** ⚠️ Absent and empty mean the same thing — "the site keeps its built-in
      *  bar". Every tenant on the platform has this unset. */
     nav?: NavLink[] | null;
+    /** The palette this design was drawn with. Laid over the brand's own theme
+     *  field by field on the tenant, so an empty one changes nothing. */
+    theme?: SiteThemePatch | null;
     customCss?: string;
     stylePresets?: StylePreset[] | null;
     updatedAt?: string;
@@ -1539,6 +1563,7 @@ export interface DesignState {
   live: {
     sections: DesignSection[] | null;
     nav?: NavLink[] | null;
+    theme?: SiteThemePatch | null;
     publishedAt?: string;
     drawnBy?: string;
   };
@@ -1548,6 +1573,12 @@ export interface DesignState {
 export interface DesignTemplate {
   id: string;
   name: string;
+  /** ⚠️ A template is a design, and a design has a palette and a bar. Applying
+   *  one used to copy the bands alone, so a layout drawn around a yellow panel
+   *  and a lowercase catalogue bar arrived as grey rectangles under the
+   *  restaurant's own header. Both optional. */
+  theme?: SiteThemePatch | null;
+  nav?: NavLink[] | null;
   /** One line on what the layout is for. Built-ins carry it; a five-name list is
    *  a list nobody can choose from. */
   note?: string;
@@ -1567,10 +1598,11 @@ export const saveTenantDesign = (
   customCss = "",
   stylePresets: StylePreset[] = [],
   nav: NavLink[] = [],
+  theme: SiteThemePatch | null = null,
 ) =>
   req<{ saved: number }>(`/tenants/${tenantId}/design`, {
     method: "PUT",
-    body: JSON.stringify({ sections, customCss, stylePresets, nav }),
+    body: JSON.stringify({ sections, customCss, stylePresets, nav, theme }),
   });
 
 /** A short-lived link that shows the **unpublished** draft on the real site.

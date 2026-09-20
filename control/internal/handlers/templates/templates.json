@@ -52,9 +52,9 @@
       {
        "type": "text",
        "box": {
-        "x": -6,
+        "x": 0,
         "y": 30,
-        "w": 18,
+        "w": 14,
         "h": 6,
         "z": 3
        },
@@ -76,9 +76,9 @@
       {
        "type": "text",
        "box": {
-        "x": -6,
+        "x": 0,
         "y": 48,
-        "w": 18,
+        "w": 14,
         "h": 6,
         "z": 3
        },
@@ -120,10 +120,10 @@
       {
        "type": "text",
        "box": {
-        "x": 30,
-        "y": 14,
-        "w": 26,
-        "h": 34,
+        "x": 34,
+        "y": 24,
+        "w": 24,
+        "h": 26,
         "z": 0
        },
        "text": {
@@ -136,7 +136,7 @@
         "weight": "black",
         "size": 8,
         "color": "muted",
-        "opacity": 18
+        "opacity": 14
        }
       },
       {
@@ -416,6 +416,57 @@
     "style": {
      "width": "wide"
     }
+   }
+  ],
+  "theme": {
+   "brand": "#f04e23",
+   "accent": "#ffd400",
+   "font": "classic",
+   "background": "white",
+   "shadow": "none",
+   "buttonShape": "match",
+   "radius": 0
+  },
+  "nav": [
+   {
+    "label": {
+     "uz": "Katalog",
+     "ru": "Каталог",
+     "en": "Catalogue"
+    },
+    "href": "/menu"
+   },
+   {
+    "label": {
+     "uz": "Ayollar",
+     "ru": "Женское",
+     "en": "Women"
+    },
+    "href": "/menu"
+   },
+   {
+    "label": {
+     "uz": "Erkaklar",
+     "ru": "Мужское",
+     "en": "Men"
+    },
+    "href": "/menu"
+   },
+   {
+    "label": {
+     "uz": "Aksessuar",
+     "ru": "Аксессуары",
+     "en": "Accessories"
+    },
+    "href": "/menu"
+   },
+   {
+    "label": {
+     "uz": "Biz haqimizda",
+     "ru": "О нас",
+     "en": "About"
+    },
+    "href": "/about"
    }
   ]
  },

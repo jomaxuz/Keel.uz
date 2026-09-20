@@ -140,7 +140,11 @@ type designDoc struct {
 	Nav any `bson:"nav,omitempty" json:"nav,omitempty"`
 	// Read back so the editor can reopen with what was saved — the CSS field and
 	// the saved styles are as much part of a draft as the bands are.
-	CustomCSS    string     `bson:"customCss,omitempty" json:"customCss,omitempty"`
+	CustomCSS string `bson:"customCss,omitempty" json:"customCss,omitempty"`
+	// The palette the design was drawn with. ⚠️ Read back so the editor
+	// reopens with it, and copied on publish — the tenant lays it over the
+	// brand's own theme field by field (handlers/public.go, mergeTheme).
+	Theme        any        `bson:"theme,omitempty" json:"theme,omitempty"`
 	StylePresets any        `bson:"stylePresets,omitempty" json:"stylePresets,omitempty"`
 	DrawnBy      string     `bson:"drawnBy,omitempty" json:"drawnBy,omitempty"`
 	PublishedAt  *time.Time `bson:"publishedAt,omitempty" json:"publishedAt,omitempty"`
@@ -261,12 +265,14 @@ func (h *Handler) GetTenantDesign(w http.ResponseWriter, r *http.Request) {
 		"draft": map[string]any{
 			"sections":  draft.Sections,
 			"nav":       draft.Nav,
+			"theme":     draft.Theme,
 			"updatedAt": draft.UpdatedAt,
 			"drawnBy":   draft.DrawnBy,
 		},
 		"live": map[string]any{
 			"sections":    live.Sections,
 			"nav":         live.Nav,
+			"theme":       live.Theme,
 			"publishedAt": live.PublishedAt,
 			"drawnBy":     live.DrawnBy,
 		},
@@ -361,6 +367,12 @@ func (h *Handler) PublishTenantDesign(w http.ResponseWriter, r *http.Request) {
 			// particular bug — the preview is exactly where somebody checks their
 			// work, so it would look correct right up until the customer looked.
 			"customCss": draft.CustomCSS,
+			// ⚠️ **Copied for the reason the CSS is.** A palette edited in the
+			// draft, visible in the preview (which reads the draft) and absent
+			// from the live site is a change that looks right up until the
+			// customer looks. The tenant merges it field by field over the
+			// brand's own — see handlers/public.go, mergeTheme.
+			"theme": draft.Theme,
 			// ⚠️ **Copied for the reason the CSS is**, which is the bug this line
 			// exists to not repeat: a bar edited in the draft, visible in the
 			// preview (which reads the draft) and absent from the live site is a

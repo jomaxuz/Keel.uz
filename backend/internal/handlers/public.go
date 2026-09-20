@@ -87,6 +87,29 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		}
 		if d != nil && !raw {
 			resp["design"] = d
+			// ⚠️ **The palette the design was drawn with, applied.**
+			//
+			// It was stored and read by nobody. The console has written
+			// `page_design.theme` since the constructor shipped; the site took
+			// its colours from the brand, so a design drawn around a yellow
+			// panel arrived on an orange site and looked like the drawing was
+			// ignored.
+			//
+			// The half that made it worse: publishing a design sets
+			// `designLocked`, which switches the owner's own theme editor off —
+			// so a tenant with a drawn design had **nobody** who could change
+			// its palette. The console could not, because nothing read what it
+			// wrote; the owner could not, because the lock is the whole point.
+			//
+			// ⚠️ **Field by field, not the whole struct.** A design that only
+			// rearranges bands carries an empty theme, and overwriting with it
+			// would repaint a restaurant that spent an afternoon choosing its
+			// accent — the same rule `applyBrand` follows one function down,
+			// and the reason it is written out rather than assigned.
+			if d.Theme != nil && !raw {
+				rest.Theme = mergeTheme(rest.Theme, *d.Theme)
+				resp["restaurant"] = rest
+			}
 		}
 		// ⚠️ Answered even on `?raw=1`, which is what the settings page asks for.
 		// The page has to know whether to lock its theme editor, and locking is
@@ -174,6 +197,39 @@ func applyBrand(rest *models.Restaurant, b *models.Brand) {
 	if b.Theme != (models.SiteTheme{}) {
 		rest.Theme = b.Theme
 	}
+}
+
+// mergeTheme lays a drawn design's palette over the one the site already has.
+//
+// ⚠️ **Only the fields the design actually set.** A layout that rearranges
+// bands and chooses no colours carries an empty theme, and assigning that
+// wholesale would strip the accent, the corner radius and the font pairing a
+// restaurant picked by hand — a change nobody asked for, made by a document
+// about something else. Same rule, same reason, as `applyBrand` above.
+func mergeTheme(base, over models.SiteTheme) models.SiteTheme {
+	str := func(dst *string, v string) {
+		if v != "" {
+			*dst = v
+		}
+	}
+	str(&base.Brand, over.Brand)
+	str(&base.BrandDark, over.BrandDark)
+	str(&base.Accent, over.Accent)
+	str(&base.ButtonShape, over.ButtonShape)
+	str(&base.Font, over.Font)
+	str(&base.Background, over.Background)
+	str(&base.Shadow, over.Shadow)
+	str(&base.ButtonStyle, over.ButtonStyle)
+	// ⚠️ Pointers, because 0 is a real answer for both: a radius of 0 is square
+	// corners and a scale of 0 would be nonsense, so "unset" has to be
+	// distinguishable from "zero" — which is why they are pointers in the model.
+	if over.Radius != nil {
+		base.Radius = over.Radius
+	}
+	if over.Scale != nil {
+		base.Scale = over.Scale
+	}
+	return base
 }
 
 // GetCategories returns active categories of one brand, sorted by sortOrder.

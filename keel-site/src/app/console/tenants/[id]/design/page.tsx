@@ -56,6 +56,7 @@ import {
   type DesignState,
   type DesignTemplate,
   type NavLink,
+  type SiteThemePatch,
   type StylePreset,
   designSchema,
   designTemplates,
@@ -170,6 +171,15 @@ export default function DesignEditorPage() {
   // bar with no links" — every tenant on the platform has this unset, and the
   // other reading would empty the header of every site at once.
   const [nav, setNav] = useState<NavLink[]>([]);
+  // The palette this design is drawn with.
+  //
+  // ⚠️ **Nobody could set it, and that was two bugs meeting.** The console has
+  // written `page_design.theme` since the constructor shipped and the site read
+  // it from nowhere; publishing a design also sets `designLocked`, which
+  // switches the owner's own theme editor off. So a customer with a drawn
+  // design had no one at all who could change its colours. The site reads it
+  // now (handlers/public.go, mergeTheme) and this is where it is chosen.
+  const [theme, setTheme] = useState<SiteThemePatch>({});
   const [templates, setTemplates] = useState<DesignTemplate[]>([]);
   const [schema, setSchema] = useState<SectionDef[]>([]);
   // Which repeatable item inside the band is being edited. Separate from the
@@ -209,6 +219,7 @@ export default function DesignEditorPage() {
         setCss(d.draft.customCss ?? "");
         setPresets(d.draft.stylePresets ?? []);
         setNav(d.draft.nav ?? d.live.nav ?? []);
+        setTheme(d.draft.theme ?? d.live.theme ?? {});
         try {
           const [g, sc] = await Promise.all([designTemplates(), designSchema()]);
           setTemplates(g.items);
@@ -305,7 +316,7 @@ export default function DesignEditorPage() {
     setBusy("save");
     setNote("");
     try {
-      await saveTenantDesign(tenantId, sections, css, presets, nav);
+      await saveTenantDesign(tenantId, sections, css, presets, nav, theme);
       setNote(d.savedDraft);
       await refreshPreview();
     } catch (e) {
@@ -320,7 +331,7 @@ export default function DesignEditorPage() {
    *  pixel on somebody's live site. */
   async function commitLive() {
     try {
-      await saveTenantDesign(tenantId, sectionsRef.current, css, presets, nav);
+      await saveTenantDesign(tenantId, sectionsRef.current, css, presets, nav, theme);
       // ⚠️ The token is reused rather than minted again. A new token per drag would
       // leave a trail of live preview links, each valid for two hours.
       if (previewUrl) {
@@ -347,7 +358,7 @@ export default function DesignEditorPage() {
   async function publish() {
     setBusy("publish");
     try {
-      await saveTenantDesign(tenantId, sections, css, presets, nav);
+      await saveTenantDesign(tenantId, sections, css, presets, nav, theme);
       const res = await publishTenantDesign(tenantId);
       setNote(res.note);
       setState(await tenantDesign(tenantId));
@@ -592,6 +603,21 @@ export default function DesignEditorPage() {
                         // otherwise redraw sites that were already approved.
                         remember();
                         setSections(JSON.parse(JSON.stringify(tpl.sections)));
+                        // ⚠️ **The palette and the bar come with it.** A
+                        // template is a design; copying only the bands landed a
+                        // layout drawn around a yellow panel and a lowercase
+                        // catalogue bar as grey rectangles under the
+                        // restaurant's own header, and left the operator
+                        // retyping per customer what the gallery already knew.
+                        // ⚠️ Only when the template carries them: one that
+                        // chooses no colours must not wipe the ones this
+                        // customer already has.
+                        if (tpl.theme && Object.keys(tpl.theme).length > 0) {
+                          setTheme(JSON.parse(JSON.stringify(tpl.theme)));
+                        }
+                        if (tpl.nav && tpl.nav.length > 0) {
+                          setNav(JSON.parse(JSON.stringify(tpl.nav)));
+                        }
                         setPick({ band: 0, el: null });
                         setTab("layers");
                         setNote(d.templateApplied(tpl.name));
@@ -613,6 +639,10 @@ export default function DesignEditorPage() {
                 ))}
               </ul>
             </div>
+          )}
+
+          {tab === "styles" && (
+            <ThemePanel theme={theme} setTheme={setTheme} d={d} />
           )}
 
           {tab === "styles" && (
@@ -1955,4 +1985,72 @@ function blockLabel(
   const img = bag.image;
   if (typeof img === "string" && img) return img.split("/").pop() ?? img;
   return `${i + 1}`;
+}
+
+/** The palette a design is drawn with.
+ *
+ *  ⚠️ **Colours here are hex and everywhere else they are tokens, and that is
+ *  not an inconsistency.** This panel sets what the tokens *mean* — it is the
+ *  one place a real colour belongs, and it is why every band and element can
+ *  stay an enum. A band painted `#f5c542` would keep that colour in dark mode
+ *  and ignore whatever the shop chose; a band painted `accent` follows this.
+ *
+ *  ⚠️ **Empty means "leave it alone", per field.** A design that only
+ *  rearranges bands must not repaint a restaurant that spent an afternoon
+ *  choosing its accent — the tenant merges this field by field (mergeTheme). */
+function ThemePanel({
+  theme,
+  setTheme,
+  d,
+}: {
+  theme: SiteThemePatch;
+  setTheme: (t: SiteThemePatch) => void;
+  d: EditorDict;
+}) {
+  const set = (k: keyof SiteThemePatch, v: string) =>
+    setTheme({ ...theme, [k]: v });
+
+  const Colour = ({
+    k,
+    label,
+    hint,
+  }: {
+    k: "brand" | "accent";
+    label: string;
+    hint: string;
+  }) => (
+    <div>
+      <span className="text-[11px] font-semibold text-ink-muted">{label}</span>
+      <div className="mt-0.5 flex items-center gap-2">
+        {/* ⚠️ A colour well **and** a text box. The well cannot express "not
+            set" — it always shows something — so the box beside it is what
+            makes clearing a colour possible, and clearing is how a customer
+            goes back to the palette they had. */}
+        <input
+          type="color"
+          value={theme[k] || "#e2590d"}
+          onChange={(e) => set(k, e.target.value)}
+          className="h-8 w-10 shrink-0 cursor-pointer rounded-lg border border-line bg-surface"
+          aria-label={label}
+        />
+        <input
+          value={theme[k] ?? ""}
+          onChange={(e) => set(k, e.target.value.trim())}
+          placeholder={d.themeUnset}
+          spellCheck={false}
+          className="input font-mono text-[11px]"
+        />
+      </div>
+      <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">{hint}</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-line p-3">
+      <p className="text-xs font-bold text-ink">{d.themeTitle}</p>
+      <p className="text-[11px] leading-relaxed text-ink-muted">{d.themeHint}</p>
+      <Colour k="brand" label={d.themeBrand} hint={d.themeBrandHint} />
+      <Colour k="accent" label={d.themeAccent} hint={d.themeAccentHint} />
+    </div>
+  );
 }

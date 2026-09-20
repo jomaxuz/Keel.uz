@@ -44,6 +44,15 @@ type builtinTemplate struct {
 	// five names is a list nobody can choose from.
 	Note     string          `json:"note"`
 	Sections []designSection `json:"sections"`
+	// ⚠️ **A template is a design, and a design has a palette and a bar.**
+	// Applying one used to copy the bands and nothing else, so a layout drawn
+	// around a yellow panel and a lowercase catalogue bar arrived as grey
+	// rectangles under the restaurant's own orange header — and the operator's
+	// next twenty minutes were spent retyping, per customer, values the gallery
+	// already knew. Both are optional: a template that chooses no colours
+	// carries an empty theme and changes none.
+	Theme any `json:"theme,omitempty"`
+	Nav   any `json:"nav,omitempty"`
 }
 
 var (

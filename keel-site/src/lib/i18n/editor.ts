@@ -91,6 +91,15 @@ const uz = {
   showMobile: "Telefonda ko'rsatish",
   clearMobile: "Telefon joylashuvini tozalash",
 
+  themeTitle: "Ranglar",
+  themeHint:
+    "Shu yerda tokenlarning ma'nosi belgilanadi. Bandlar va elementlar hech qachon hex rang olmaydi — ular «brend» yoki «accent» deydi, va qorong'i rejimda ham to'g'ri qoladi.",
+  themeBrand: "Asosiy rang (sotadigan)",
+  themeBrandHint: "Savat tugmasi, faol havola, narx belgisi.",
+  themeAccent: "Ikkinchi rang (tartibga soladigan)",
+  themeAccentHint:
+    "Kategoriya ro'yxati turadigan panel. Ustidagi yozuv rangi avtomatik hisoblanadi — sariqqa qora, to'qqa oq.",
+  themeUnset: "belgilanmagan",
   width: "Kenglik",
   widthColumn: "Sahifa ustuni",
   widthWide: "Kengroq",
@@ -215,6 +224,15 @@ const ru: EditorDict = {
   showMobile: "Показать на телефоне",
   clearMobile: "Очистить раскладку телефона",
 
+  themeTitle: "Цвета",
+  themeHint:
+    "Здесь задаётся, что означают токены. Банды и элементы никогда не получают hex — они говорят «бренд» или «accent», и остаются верными в тёмной теме.",
+  themeBrand: "Основной цвет (который продаёт)",
+  themeBrandHint: "Кнопка корзины, активная ссылка, цена.",
+  themeAccent: "Второй цвет (который упорядочивает)",
+  themeAccentHint:
+    "Панель, на которой лежит список категорий. Цвет текста на ней считается автоматически — на жёлтом чёрный, на тёмном белый.",
+  themeUnset: "не задан",
   width: "Ширина",
   widthColumn: "Колонка страницы",
   widthWide: "Шире",
@@ -337,6 +355,15 @@ const en: EditorDict = {
   showMobile: "Show on a phone",
   clearMobile: "Clear the phone layout",
 
+  themeTitle: "Colours",
+  themeHint:
+    "This is where the tokens get their meaning. Bands and elements never carry a hex — they say \"brand\" or \"accent\", which is what keeps them right in dark mode.",
+  themeBrand: "Primary (the one that sells)",
+  themeBrandHint: "The cart button, the active link, the price.",
+  themeAccent: "Second colour (the one that organises)",
+  themeAccentHint:
+    "The panel a category list sits on. Its readable ink is computed — black on yellow, white on a deep colour.",
+  themeUnset: "not set",
   width: "Width",
   widthColumn: "Page column",
   widthWide: "Wider",
