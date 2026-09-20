@@ -382,23 +382,12 @@ export default function PreviewOverlay({
         </div>
       )}
 
-      {/* ⚠️ Said out loud when there is nothing to edit. An overlay that is simply
-          absent looks identical to an overlay that is broken, and the commonest
-          reason is real: the selected band is not a freely drawn one, or the site
-          has not reported its geometry yet. */}
-      {!band && (
-        <div
-          style={{
-            position: "fixed",
-            left: frameRect.left + 12,
-            top: frameRect.top + 12,
-            zIndex: 60,
-          }}
-          className="rounded-lg bg-ink/85 px-2.5 py-1.5 text-[11px] font-semibold text-surface"
-        >
-          …
-        </div>
-      )}
+      {/* ⚠️ **Nothing is drawn when the selected band is a fixed one**, and that
+          is correct rather than broken: a hero or a menu grid has no freely
+          placed elements to drag. The page is still live — clicking anything on
+          it selects that band, because the listener above is mounted whether or
+          not this band happens to be drawable. An "…" badge used to sit here
+          announcing the absence, which said nothing anybody could act on. */}
     </>
   );
 }

@@ -817,7 +817,21 @@ export default function DesignEditorPage() {
                   style={frameStyle}
                   className="block border-0"
                 />
-                {liveEdit && band?.canvas && (
+                {/* ⚠️ **Mounted whenever live editing is on, not only when the
+                    band that happens to be selected is a freely drawn one.**
+                    The click-on-the-page listener lives inside this component,
+                    and so does the message that puts the site into edit mode —
+                    so gating it on `band?.canvas` meant the page was inert
+                    until the operator had already found the right band in the
+                    left-hand list. That is exactly backwards: clicking the
+                    thing you want to change is *how* you find it, and the
+                    comment inside PreviewOverlay has claimed "the page itself
+                    becomes the navigation" the whole time it could not.
+
+                    Handles still appear only where there is something to drag:
+                    a fixed band reports no elements, so there is nothing to
+                    draw over it. */}
+                {liveEdit && (
                   <PreviewOverlay
                     frame={frame}
                     zoom={device === "phone" ? 1 : 0.62}
