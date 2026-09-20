@@ -79,6 +79,23 @@ export function AdsCreate({
   // and comments, which is the only reason anybody asks for it. They are
   // different objects at Meta and they chase different outcomes, so the choice
   // is made here rather than folded into one form with optional halves.
+  // ⚠️ **The wording is editable here, not fixed by the plan.** What the model
+  // wrote is a starting point; the owner knows the shop's own voice, and a
+  // screen that will only run a sentence a machine produced has turned a
+  // suggestion into a rule. It is also the only way to advertise a dish the
+  // plan wrote no wording for.
+  //
+  // ⚠️ **Meta cannot edit a creative after it is made**, so this is the last
+  // moment the words can change — which is exactly why the field is here and
+  // not on a screen that comes after.
+  const [headline, setHeadline] = useState("");
+  const [body, setBody] = useState("");
+  useEffect(() => {
+    if (!text) return;
+    setHeadline(text.headline);
+    setBody(text.body);
+  }, [text]);
+
   const [mode, setMode] = useState<"plan" | "post">("plan");
   const [posts, setPosts] = useState<AdsIGPost[] | null>(null);
   const [igConnected, setIgConnected] = useState(true);
@@ -99,7 +116,10 @@ export function AdsCreate({
   }, [mode, posts]);
 
   const ready =
-    Number(daily) > 0 && (mode === "post" ? Boolean(post) : Boolean(dish && text));
+    Number(daily) > 0 &&
+    (mode === "post"
+      ? Boolean(post)
+      : Boolean(dish && headline.trim() && body.trim()));
 
   // ---- What Meta thinks this buys ----
   //
@@ -154,8 +174,8 @@ export function AdsCreate({
               daily: Number(daily),
               cap: cap ? Number(cap) : undefined,
               days: days ? Number(days) : budget?.days,
-              headline: text?.headline,
-              body: text?.body,
+              headline: headline.trim(),
+              body: body.trim(),
               start,
             },
       );
@@ -196,14 +216,14 @@ export function AdsCreate({
         />
       )}
 
-      {mode === "plan" && (!dish || !text) && (
+      {mode === "plan" && !dish && (
         <p className="text-sm text-ink-muted">{t.ads.campaign.needPicks}</p>
       )}
       {/* ⚠️ **What is about to be created, in one block.** The four choices were
           made a screen and a half further up; an owner typing a budget here
           cannot see them, and the one thing they must not do is spend money on
           a campaign they have misremembered. */}
-      {mode === "plan" && dish && text && (
+      {mode === "plan" && dish && (
       <dl className="grid gap-x-4 gap-y-1 rounded-xl bg-ink/5 p-3 text-sm sm:grid-cols-2">
         <Line k={t.ads.plan.dishes} v={dish.name} />
         <Line
@@ -216,7 +236,7 @@ export function AdsCreate({
               : t.ads.campaign.areaDefault
           }
         />
-        <Line k={t.ads.plan.texts} v={text.headline} />
+
         {/* The proposal in so'm, beside a field in the account's currency.
             ⚠️ Shown rather than converted: we do not know the rate the owner's
             bank used, and a made-up one would read as a fact. */}
@@ -230,7 +250,31 @@ export function AdsCreate({
         )}
       </dl>
       )}
-      {(mode === "post" ? post : dish && text) && (
+      {mode === "plan" && dish && (
+        <div className="grid gap-3">
+          <label className="block text-sm">
+            <span className="text-ink-soft">{t.ads.campaign.headline}</span>
+            <input
+              className="input mt-1 w-full"
+              value={headline}
+              maxLength={90}
+              onChange={(e) => setHeadline(e.target.value)}
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-ink-soft">{t.ads.campaign.bodyText}</span>
+            <textarea
+              className="input mt-1 w-full"
+              rows={3}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+            />
+          </label>
+          <p className="text-xs text-ink-muted">{t.ads.campaign.textNote}</p>
+        </div>
+      )}
+
+      {(mode === "post" ? post : dish) && (
       <>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field

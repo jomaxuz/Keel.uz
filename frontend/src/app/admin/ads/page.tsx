@@ -46,7 +46,7 @@ import type {
 
 import AdsConnect from "./connect";
 import { AdsCampaigns, AdsCreate } from "./campaigns";
-import { PickGroup, Pick, PlanFacts } from "./plan";
+import { CustomRow, MiniField, PickGroup, Pick, PlanFacts } from "./plan";
 import AdsReportCard from "./report";
 import AdsRules from "./rules";
 import Step from "./step";
@@ -70,6 +70,14 @@ export default function AdminAdsPage() {
   const [area, setArea] = useState<AdsAreaPick | null>(null);
   const [budget, setBudget] = useState<AdsBudgetPick | null>(null);
   const [text, setText] = useState<AdsTextPick | null>(null);
+
+  // What the owner typed instead of taking a proposal. ⚠️ Held beside the
+  // picks rather than inside them: clearing the field has to give the three
+  // cards back, and a custom value written over `area` would have nothing to
+  // go back to.
+  const [ownKm, setOwnKm] = useState("");
+  const [ownDaily, setOwnDaily] = useState("");
+  const [ownDays, setOwnDays] = useState("");
 
   const [list, setList] = useState<AdsCampaignList | null>(null);
   const [report, setReport] = useState<AdsReport | null>(null);
@@ -120,9 +128,14 @@ export default function AdminAdsPage() {
   // offering an advert for food the owner has just decided not to advertise.
   // A plan cached before wordings carried a dish has none of them, and there
   // the honest fallback is to show all rather than none.
-  const dishTexts = texts.some((x) => x.dish)
+  const filed = texts.some((x) => x.dish);
+  const dishTexts = filed
     ? texts.filter((x) => !dish || x.dish === dish.name)
     : texts;
+  // A plan written before wordings carried a dish, or one where the model
+  // filed none under the dish that was chosen. ⚠️ Said rather than silently
+  // showing somebody else's wording.
+  const textsAreStale = filed && dish !== null && dishTexts.length === 0;
 
   const campaigns = list?.campaigns ?? [];
   const ready = Boolean(state?.ready);
@@ -236,6 +249,35 @@ export default function AdminAdsPage() {
                       chosenLabel={t.ads.plan.chosen}
                     />
                   ))}
+                  <div className="sm:col-span-3">
+                    <CustomRow
+                      label={t.ads.plan.ownArea}
+                      on={Boolean(ownKm) && area?.label === t.ads.plan.ownArea}
+                      onClear={() => {
+                        setOwnKm("");
+                        setArea(null);
+                      }}
+                    >
+                      <MiniField
+                        value={ownKm}
+                        suffix="km"
+                        width="w-20"
+                        onChange={(v) => {
+                          setOwnKm(v);
+                          const km = Number(v);
+                          setArea(
+                            km > 0
+                              ? {
+                                  label: t.ads.plan.ownArea,
+                                  radiusKm: km,
+                                  why: t.ads.plan.ownWhy,
+                                }
+                              : null,
+                          );
+                        }}
+                      />
+                    </CustomRow>
+                  </div>
                 </PickGroup>
               )}
 
@@ -262,7 +304,61 @@ export default function AdminAdsPage() {
                       chosenLabel={t.ads.plan.chosen}
                     />
                   ))}
+                  <div className="sm:col-span-3">
+                    <CustomRow
+                      label={t.ads.plan.ownBudget}
+                      on={
+                        Boolean(ownDaily) &&
+                        budget?.why === t.ads.plan.ownWhy
+                      }
+                      onClear={() => {
+                        setOwnDaily("");
+                        setOwnDays("");
+                        setBudget(null);
+                      }}
+                    >
+                      <MiniField
+                        value={ownDaily}
+                        suffix={t.ads.plan.perDay}
+                        onChange={(v) => {
+                          setOwnDaily(v);
+                          const daily = Number(v);
+                          setBudget(
+                            daily > 0
+                              ? {
+                                  daily,
+                                  days: Number(ownDays) || 7,
+                                  why: t.ads.plan.ownWhy,
+                                }
+                              : null,
+                          );
+                        }}
+                      />
+                      <MiniField
+                        value={ownDays}
+                        suffix={t.ads.plan.days}
+                        width="w-16"
+                        onChange={(v) => {
+                          setOwnDays(v);
+                          const daily = Number(ownDaily);
+                          if (daily > 0) {
+                            setBudget({
+                              daily,
+                              days: Number(v) || 7,
+                              why: t.ads.plan.ownWhy,
+                            });
+                          }
+                        }}
+                      />
+                    </CustomRow>
+                  </div>
                 </PickGroup>
+              )}
+
+              {textsAreStale && (
+                <p className="rounded-xl bg-ink/5 p-3 text-sm text-ink-soft">
+                  {t.ads.plan.textsStale}
+                </p>
               )}
 
               {dishTexts.length > 0 && (

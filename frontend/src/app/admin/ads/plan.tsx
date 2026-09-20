@@ -203,3 +203,71 @@ export type Picks = {
   budget: AdsBudgetPick | null;
   text: AdsTextPick | null;
 };
+
+/** "…or type your own", under a group of proposals.
+ *
+ *  ⚠️ **The plan proposes; it does not decide what is allowed.** Three radii
+ *  and three budgets are a starting point drawn from one week of sales — an
+ *  owner who knows their city wants four kilometres, or has two hundred
+ *  thousand so'm and not three, and a screen that only accepts what a model
+ *  offered has quietly turned a suggestion into a rule.
+ *
+ *  ⚠️ **Typed values are checked by the same server that checks the proposed
+ *  ones** — Meta's own daily floor, the radius it will accept, the ceiling the
+ *  owner set. Nothing here is trusted because it was typed by hand. */
+export function CustomRow({
+  label,
+  on,
+  onClear,
+  children,
+}: {
+  label: string;
+  on: boolean;
+  onClear: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`flex flex-wrap items-end gap-2 rounded-xl border p-3 ${
+        on ? "border-brand bg-brand-tint" : "border-dashed border-ink/20"
+      }`}
+    >
+      <span className="text-sm font-medium">{label}</span>
+      {children}
+      {on && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="text-xs text-ink-soft underline-offset-2 hover:underline"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** A short number field that sits inline with a label. */
+export function MiniField({
+  value,
+  onChange,
+  suffix,
+  width = "w-24",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  suffix?: string;
+  width?: string;
+}) {
+  return (
+    <span className="flex items-center gap-1">
+      <input
+        className={`input ${width} py-1 text-sm`}
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {suffix && <span className="text-xs text-ink-muted">{suffix}</span>}
+    </span>
+  );
+}

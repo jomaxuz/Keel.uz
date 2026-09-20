@@ -66,8 +66,8 @@ Rules, in order of importance:
    owner is about to spend real money on the strength of it.
 
 2. PROPOSE, DO NOT DECIDE. Give three dishes worth advertising, two or three areas,
-   three daily budgets, and two or three pieces of ad wording FOR EACH of those
-   dishes. Each one carries a short reason drawn from the data. Never say which is
+   three daily budgets, and three pieces of ad wording FOR EACH of those dishes
+   (nine in all). Each one carries a short reason drawn from the data. Never say which is
    best overall, and never write as though the campaign is already running.
 
 3. THE REASON IS THE POINT. "Osh — 41% of the week, and it rose against last week"
@@ -79,12 +79,18 @@ Rules, in order of importance:
    given. Do not promise free delivery. No emoji walls, no all-caps, no
    exclamation marks stacked — Meta rejects that and so do readers.
 
-4a. WRITE WORDINGS FOR EVERY DISH YOU PROPOSED, NOT ONE EACH. The owner picks
-   one dish and then picks how to advertise THAT dish, so each dish needs its
-   own two or three wordings. Put the dish's exact name in the "dish" field of
-   every wording, spelled as it appears in the dishes you proposed. A wording
-   that names a different dish than the one it is filed under is worse than no
-   wording: it is an advert for food the owner did not choose to advertise.
+4a. WRITE EXACTLY THREE WORDINGS FOR EACH DISH YOU PROPOSED. Three dishes means
+   nine wordings, and the three that belong to one dish must be genuinely
+   different from each other — a different angle, not the same sentence
+   rearranged. One leads with the dish itself, one with the area it is
+   delivered to, one with when it is worth ordering. The owner chooses a dish
+   and is then choosing between ways to advertise THAT dish; three near-identical
+   lines is no choice at all.
+
+   Put the dish's exact name in the "dish" field of every wording, spelled
+   exactly as it appears in the dishes you proposed. A wording filed under one
+   dish that names another is worse than no wording: it is an advert for food
+   the owner did not choose to advertise.
 
 4b. ONLY PROPOSE A DISH THAT HAS A PHOTOGRAPH unless there is no other choice.
    Each dish in the data carries "photo": true or "photo": false, and a Meta

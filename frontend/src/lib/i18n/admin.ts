@@ -4772,6 +4772,10 @@ export const adminUz = {
       loadingPosts: "Postlar yuklanmoqda…",
       noPosts: "Instagram akkauntida post topilmadi.",
       notBoostable: "Ko'tarib bo'lmaydi",
+      headline: "Sarlavha (90 belgigacha)",
+      bodyText: "Reklama matni",
+      textNote:
+        "Rejadagi matn shu yerga qo'yilgan — istagancha tahrirlang yoki o'zingiz yozing. Meta kreativni yaratilgandan keyin o'zgartirishga ruxsat bermaydi, ya'ni matnni o'zgartirishning oxirgi joyi shu.",
     },
     report: {
       title: "Reklama nima keltirdi",
@@ -4828,6 +4832,11 @@ export const adminUz = {
       empty: "Reja shu filialning oxirgi yetti kunlik sotuvidan tuziladi: qaysi taom qancha pul keltirgani, o'tgan haftaga nisbatan qanday o'zgargani va oshxona qayergacha yetkazib berishi. Natijada uchta taom, hudud, byudjet va reklama matni — har biri sababi bilan.",
       noPhoto: "Fotosi yo'q — reklama uchun avval menyuga rasm yuklang",
       pickDishFirst: "Avval taomni tanlang",
+      ownArea: "O'z hududim",
+      ownBudget: "O'z byudjetim",
+      ownWhy: "O'zingiz kiritdingiz",
+      textsStale:
+        "Bu taom uchun matn rejada yo'q — «Yangilash» ni bosing yoki keyingi qadamda matnni o'zingiz yozing.",
       handNote:
         "Meta akkaunti ulanmagani uchun hozircha kompaniyani Meta'da qo'lda ochasiz — bu reja aynan shuning uchun tayyor.",
     },
@@ -9737,6 +9746,10 @@ export const adminRu: AdminDict = {
       loadingPosts: "Посты загружаются…",
       noPosts: "В аккаунте Instagram постов не найдено.",
       notBoostable: "Нельзя продвигать",
+      headline: "Заголовок (до 90 символов)",
+      bodyText: "Текст рекламы",
+      textNote:
+        "Текст из плана подставлен сюда — правьте как хотите или напишите свой. Meta не позволяет менять креатив после создания, так что это последнее место, где текст можно изменить.",
     },
     report: {
       title: "Что принесла реклама",
@@ -9793,6 +9806,11 @@ export const adminRu: AdminDict = {
       empty: "План строится из продаж этого филиала за последние семь дней: какое блюдо сколько принесло, как изменилось к прошлой неделе и докуда доезжает кухня. На выходе — три блюда, районы, бюджеты и тексты, каждый со своей причиной.",
       noPhoto: "Нет фото — загрузите изображение в меню, иначе рекламу создать нельзя",
       pickDishFirst: "Сначала выберите блюдо",
+      ownArea: "Свой радиус",
+      ownBudget: "Свой бюджет",
+      ownWhy: "Вы ввели сами",
+      textsStale:
+        "Для этого блюда текста в плане нет — нажмите «Обновить» или напишите текст сами на следующем шаге.",
       handNote:
         "Аккаунт Meta пока не подключён, поэтому кампанию вы создаёте в Meta вручную — план собран именно для этого.",
     },
@@ -14659,6 +14677,10 @@ export const adminEn: AdminDict = {
       loadingPosts: "Loading posts…",
       noPosts: "No posts found on the Instagram account.",
       notBoostable: "Cannot be boosted",
+      headline: "Headline (up to 90 characters)",
+      bodyText: "Advert wording",
+      textNote:
+        "The plan's wording is filled in here — edit it freely or write your own. Meta does not allow a creative to be changed once it is made, so this is the last place the words can move.",
     },
     report: {
       title: "What the advertising brought",
@@ -14715,6 +14737,11 @@ export const adminEn: AdminDict = {
       empty: "The plan is built from this branch's last seven days of sales: which dish brought what, how it moved against the week before, and how far the kitchen delivers. Out of it come three dishes, some areas, budgets and wordings — each with its reason.",
       noPhoto: "No photograph — upload one to the menu first, or the advert cannot be created",
       pickDishFirst: "Choose a dish first",
+      ownArea: "My own radius",
+      ownBudget: "My own budget",
+      ownWhy: "You typed it",
+      textsStale:
+        "There is no wording for this dish in the plan — press Refresh, or write the wording yourself in the next step.",
       handNote:
         "No Meta account is connected yet, so the campaign is created in Meta by hand — which is exactly what this plan is for.",
     },

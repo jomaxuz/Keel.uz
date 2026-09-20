@@ -52,6 +52,12 @@ const adsWeek = 7 * 24 * time.Hour
 // become decoration.
 const adsDishRows = 5
 
+// adsPlanShape is bumped whenever the plan's structure changes.
+//
+// v2: every wording carries the dish it advertises, and each dish carries
+// whether the restaurant has a photograph of it.
+const adsPlanShape = "v2"
+
 // storedAdsPlan is one day's plan for one lens.
 type storedAdsPlan struct {
 	ID    primitive.ObjectID `bson:"_id,omitempty"`
@@ -82,7 +88,13 @@ func (h *Handler) AdminAdsPlan(w http.ResponseWriter, r *http.Request) {
 	// Local, like the advisor's day: a day that turns over at five in the
 	// morning Tashkent time would change the plan during the night shift's close.
 	day := time.Now().In(time.Local).Format("2006-01-02")
-	key := scopeKey(scope)
+	// ⚠️ **The shape of the plan is part of the key.** A day's plan is cached
+	// so a second press does not pay for the same week twice — which also
+	// means a release that changes what the plan *contains* would go on
+	// serving yesterday's shape until midnight, and the change would look like
+	// it had not deployed. Bumping this is how a shape change reaches the
+	// screen the moment it ships.
+	key := scopeKey(scope) + "#" + adsPlanShape
 
 	// ---- Already planned this morning ----
 	var have storedAdsPlan

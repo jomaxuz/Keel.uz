@@ -373,6 +373,36 @@ Login for Business konfiguratsiyasiga ruxsat qo'shish va **App Review'da yana
 bir band**. Shuning uchun u verifikatsiyadan keyingi ishga qoldirildi —
 hozirgi oqim restoranning o'z taom fotosidan kreativ yasaydi.
 
+### Reja taklif qiladi, ega hal qiladi (2026-09-20)
+
+Birinchi versiyada uchta taklifdan tashqarisini tanlab bo'lmasdi — ya'ni
+**taklif jimgina qoidaga aylangan edi**. Endi:
+
+- **Hudud**: uchta variant ostida «O'z hududim · __ km».
+- **Byudjet**: «O'z byudjetim · __ so'm/kun · __ kun».
+- **Matn**: kampaniya qadamida sarlavha va matn **tahrirlanadigan maydon**
+  bo'lib turadi (rejadagisi ichiga qo'yilgan). ⚠️ Meta kreativni yaratilgandan
+  keyin o'zgartirishga ruxsat bermaydi, ya'ni bu — matnni o'zgartirishning
+  **oxirgi joyi**, va shuning uchun u aynan shu ekranda.
+
+⚠️ Qo'lda kiritilgan qiymat **imtiyozga ega emas**: server uni taklifdagi bilan
+bir xil tekshiradi — Meta'ning kunlik minimumi, qabul qiladigan radiusi, eganing
+o'zi qo'ygan chegarasi.
+
+⚠️ **Reja keshining kaliti endi shaklni ham o'z ichiga oladi** (`#v2`). Kunlik
+kesh bir kunda ikki marta pul to'lamaslik uchun bor, lekin u tufayli rejaning
+**tarkibini** o'zgartirgan reliz yarim tungacha eski shaklni berib turardi — va
+o'zgarish deploy bo'lmagandek ko'rinardi.
+
+### Har taomga uchta matn
+
+Birinchi tuzatishdan keyin ham uchta taomga bittadan matn kelardi. Endi prompt
+**har taomga aynan uchta** va ular **haqiqatan boshqacha** bo'lishini talab
+qiladi (biri taomning o'zidan, biri hudud, biri qachon buyurtma qilish
+kerakligidan boshlanadi) — to'qqizta matn, va ega taom tanlagach **o'sha
+taomning uchtasini** ko'radi. Tanlangan taomga matn topilmasa ekran shuni
+aytadi va matnni o'zi yozish yo'lini ko'rsatadi.
+
 ### Tayyor postni ko'tarish (bajarildi, 2026-09-20)
 
 Ega tayyor postga pul qo'yishni so'radi — targetolog ishining ikkinchi yarmi:
