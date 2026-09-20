@@ -109,7 +109,22 @@ func (h *Handler) AdminAdsApp(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusForbidden, err.Error())
 		return
 	}
-	out, err := h.callControlPath(r.Context(), "/internal/ads-app", map[string]any{})
+	// Where the owner should land when Meta is done with them.
+	//
+	// ⚠️ **Sent by the browser, checked by the platform.** This panel can be
+	// opened on any hostname the restaurant has connected, and this server has
+	// no reliable way to know which one is in the address bar. The console
+	// compares it against the domains it routes to this tenant, which is the
+	// list that decides the answer anyway — so a wrong value is refused there
+	// rather than trusted here.
+	back := strings.TrimSpace(r.URL.Query().Get("returnTo"))
+	if back == "" && len(h.Cfg.CORSOrigins) > 0 {
+		back = strings.TrimSuffix(strings.TrimSpace(h.Cfg.CORSOrigins[0]), "/") +
+			"/admin/ads"
+	}
+	out, err := h.callControlPath(r.Context(), "/internal/ads-app", map[string]any{
+		"returnTo": back,
+	})
 	if err != nil {
 		httpx.Error(w, http.StatusBadGateway, err.Error())
 		return
@@ -118,8 +133,7 @@ func (h *Handler) AdminAdsApp(w http.ResponseWriter, r *http.Request) {
 }
 
 type adsConnectRequest struct {
-	Code        string `json:"code"`
-	RedirectURI string `json:"redirectUri"`
+	Code string `json:"code"`
 }
 
 // AdminAdsConnect turns the code Meta gave the browser into a stored token.
@@ -135,9 +149,12 @@ func (h *Handler) AdminAdsConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	// ⚠️ No redirect address travels with the code: the dialog was opened with
+	// the platform's own, and the exchange has to use that exact string. A
+	// value from here would be a second copy of it, wrong the first time
+	// anybody edits one of the two.
 	out, err := h.callControlPath(ctx, "/internal/ads-token", map[string]any{
-		"code":        strings.TrimSpace(req.Code),
-		"redirectUri": strings.TrimSpace(req.RedirectURI),
+		"code": strings.TrimSpace(req.Code),
 	})
 	if err != nil {
 		httpx.Error(w, http.StatusBadGateway, err.Error())

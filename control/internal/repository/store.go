@@ -20,7 +20,15 @@ type Store struct {
 	// What each tenant has spent on campaign plans. ⚠️ Separate from the
 	// briefing's ledger on purpose — the advertising add-on carries its own
 	// daily cap, and one table would have to serve two numbers.
-	AdsLog     *mongo.Collection
+	AdsLog *mongo.Collection
+	// One pending Meta login, keyed by the `state` the dialog carries.
+	//
+	// ⚠️ **Server-side, not a signed value in the URL.** The row is what says
+	// where a returning browser may be sent, and it is written by us from the
+	// tenant's own domain list — so the redirect target is never something a
+	// request can assert. Swept by a TTL: an owner who closes the dialog
+	// leaves one behind, and there is nothing to clean it up by hand.
+	AdsStates  *mongo.Collection
 	Days       *mongo.Collection
 	Blog       *mongo.Collection
 	BlogImages *mongo.Collection
@@ -74,6 +82,7 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		Tenants:         db.Collection("tenant"),
 		BriefingLog:     db.Collection("briefing_log"),
 		AdsLog:          db.Collection("ads_log"),
+		AdsStates:       db.Collection("ads_state"),
 		Days:            db.Collection("tenant_day"),
 		Blog:            db.Collection("blog_post"),
 		BlogImages:      db.Collection("blog_image"),
@@ -145,6 +154,25 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	if _, err := s.Blog.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "slug", Value: 1}},
 		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// One pending login per `state`, and gone a quarter of an hour later.
+	//
+	// ⚠️ **Unique, because the state is what authorises a redirect.** Two rows
+	// under one state would let `FindOne` choose which restaurant a returning
+	// browser — carrying an authorization code — is sent to. The TTL is the
+	// other half: a code is single-use and short-lived, so a state that
+	// outlived the dialog is only a way in for somebody who found it later.
+	if _, err := s.AdsStates.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "state", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	if _, err := s.AdsStates.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "at", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(15 * 60),
 	}); err != nil {
 		return err
 	}

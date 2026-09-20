@@ -2994,19 +2994,29 @@ export const api = {
       scope: true,
     }),
 
-  /** Which Meta app the login dialog belongs to. */
-  adsApp: () => request<AdsApp>("/admin/ads/app", { auth: true }),
+  /** Which Meta app the login dialog belongs to, where it returns to, and the
+   *  one-time state that says which restaurant came back.
+   *
+   *  ⚠️ `returnTo` is this browser's own address: the panel can be open on any
+   *  hostname the restaurant has connected, and the server cannot know which.
+   *  The platform checks it against that tenant's domains before it books
+   *  anything. */
+  adsApp: (returnTo: string) =>
+    request<AdsApp>(
+      `/admin/ads/app?returnTo=${encodeURIComponent(returnTo)}`,
+      { auth: true },
+    ),
 
   /** The code Meta handed the browser, turned into a stored token.
    *
    *  ⚠️ **The code goes to our server, never to Meta from here.** Exchanging it
    *  needs the app secret, and a page that held one would be handing it to
    *  everybody who opened the panel. */
-  adsConnect: (code: string, redirectUri: string) =>
+  adsConnect: (code: string) =>
     request<{ ok: boolean }>("/admin/ads/connect", {
       method: "POST",
       auth: true,
-      body: { code, redirectUri },
+      body: { code },
     }),
 
   /** Forget the token. ⚠️ Does **not** stop a running campaign — Meta keeps

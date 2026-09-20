@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"keel-control/internal/models"
 )
 
 // between is one function's body, cut out of the file it lives in.
@@ -79,5 +81,77 @@ func TestTheGraphVersionMatchesTheTenantsOwn(t *testing.T) {
 	if !strings.Contains(src, `const metaVersion = "v26.0"`) {
 		t.Fatal("the console's Graph version moved; the tenant's meta.Version " +
 			"has to move with it")
+	}
+}
+
+// ⚠️ **The redirect target is never something a request asserts.** The caller
+// is a customer's own container; a value it could name freely would decide
+// where a browser holding an authorization code for *this* restaurant's ad
+// account is sent next.
+func TestTheReturnAddressIsCheckedAgainstTheTenantsOwnDomains(t *testing.T) {
+	h := &Handler{}
+	tenant := &models.Tenant{
+		Slug:    "osh",
+		Domains: []string{"osh.uz", "osh.keel.uz"},
+	}
+	if _, err := h.adsReturnTo(tenant, "https://osh.uz/admin/ads"); err != nil {
+		t.Fatalf("a hostname this tenant actually serves was refused: %v", err)
+	}
+	for _, bad := range []string{
+		"https://evil.example/admin/ads",
+		"https://osh.uz.evil.example/admin/ads",
+		"ftp://osh.uz/admin/ads",
+		"/admin/ads",
+		"",
+	} {
+		if _, err := h.adsReturnTo(tenant, bad); err == nil {
+			t.Fatalf("%q was accepted as a place to send an authorization code", bad)
+		}
+	}
+	// ⚠️ A query the caller attached is dropped: it would be glued onto the
+	// address we are about to put a code on.
+	got, err := h.adsReturnTo(tenant, "https://osh.uz/admin/ads?next=//evil.example")
+	if err != nil || got != "https://osh.uz/admin/ads" {
+		t.Fatalf("a caller's query survived onto the return address: %q (%v)", got, err)
+	}
+}
+
+// ⚠️ **One address in Meta's settings, not one per restaurant.** Whitelisting
+// each customer's domain means editing Meta for every sale, and the one nobody
+// remembered is a connect button failing with a message about redirect URIs.
+func TestTheDialogAndTheExchangeUseOnePlatformAddress(t *testing.T) {
+	src := adsMetaSource(t)
+	app := between(t, src, "func (h *Handler) AdsApp", "\n}\n")
+	if !strings.Contains(app, "h.Cfg.MetaRedirectURI") {
+		t.Fatal("the dialog is no longer opened against the platform's own " +
+			"redirect address")
+	}
+	tok := between(t, src, "func (h *Handler) AdsToken", "\n}\n")
+	if !strings.Contains(tok, "h.Cfg.MetaRedirectURI") {
+		t.Fatal("the code exchange stopped using the same address the dialog " +
+			"used; Meta compares the two byte for byte")
+	}
+	if strings.Contains(tok, "req.RedirectURI") {
+		t.Fatal("a caller-supplied redirect address is back in the exchange")
+	}
+}
+
+// ⚠️ **An unknown state is forwarded nowhere.** It is either an expired dialog
+// or somebody trying the address by hand, and the one thing this endpoint must
+// never do is hand a code to a destination it cannot account for.
+func TestAnUnknownStateIsNotRedirectedAnywhere(t *testing.T) {
+	fn := between(t, adsMetaSource(t), "func (h *Handler) AdsRedirect", "\n}\n")
+	lookup := strings.Index(fn, "FindOneAndDelete")
+	redirect := strings.Index(fn, "http.Redirect")
+	if lookup < 0 || redirect < 0 {
+		t.Fatal("the redirect no longer looks the state up, or no longer forwards")
+	}
+	if lookup > redirect {
+		t.Fatal("the browser is forwarded before the state is resolved")
+	}
+	// Consumed on use: a code is single-use, and so is the row that says where
+	// it may go.
+	if !strings.Contains(fn, "FindOneAndDelete") {
+		t.Fatal("the state survives its own use")
 	}
 }

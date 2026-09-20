@@ -163,6 +163,16 @@ type Config struct {
 	// entirely: which permissions and which asset types are asked for is
 	// decided in the Meta app dashboard, not in our query string.
 	MetaConfigID string
+	// Where Meta sends the browser back to after the login dialog.
+	//
+	// ⚠️ **One address for the whole platform, not one per restaurant.** Meta
+	// only redirects to URIs whitelisted in the app, and every customer has
+	// their own domain — whitelisting each would mean editing Meta's settings
+	// for every restaurant that buys the add-on, and forgetting one is a
+	// connect button that fails with an error about a redirect URI. So the
+	// dialog always comes back here and this service forwards the code to the
+	// restaurant that started it. See adsmeta.go.
+	MetaRedirectURI string
 
 	GitHubToken string
 	// "owner/repo".
@@ -257,6 +267,11 @@ func Load() *Config {
 		MetaAppID:     get("META_APP_ID", ""),
 		MetaAppSecret: get("META_APP_SECRET", ""),
 		MetaConfigID:  get("META_CONFIG_ID", ""),
+		// Defaulted rather than required: it is derivable from the domain this
+		// platform already knows it runs on, and a second place to get it
+		// wrong is a second place for the connect button to fail.
+		MetaRedirectURI: get("META_REDIRECT_URI",
+			"https://"+get("BASE_DOMAIN", "keel.uz")+"/api/v1/ads/connect"),
 
 		GitHubToken:     get("GITHUB_TOKEN", ""),
 		GitHubRepo:      get("GITHUB_REPO", ""),

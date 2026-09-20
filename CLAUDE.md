@@ -310,7 +310,10 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   (GET/POST + PUT `/{id}`), `report`. ⚠️ Meta bilan **tenant serveri o'zi**
   gaplashadi (kvota reklama akkaunti bo'yicha sanaladi); konsolga faqat ikki
   chaqiruv ketadi — `/internal/ads-app` va `/internal/ads-token`, chunki
-  ilovaning siri platformaniki.
+  ilovaning siri platformaniki. ⚠️ Meta dialogi **har doim konsolga** qaytadi
+  (`GET /api/v1/ads/connect`, public) va u kodni tenantga uzatadi: Meta faqat
+  oq ro'yxatdagi manzilga qaytaradi, har mijozga bittadan manzil esa har
+  sotuvda Meta sozlamasini tahrirlash demakdir.
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
   `/admin/push` (ega telefonining tokeni va tili — loss alertlar shu orqali
   ham boradi, Telegram bilan yonma-yon),

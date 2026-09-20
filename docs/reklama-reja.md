@@ -310,7 +310,11 @@ birinchi mijozlarni ham yig'amiz.
    kiritilmasa). Bu mijozning xarajati, lekin ekranda aytilishi kerakmi?
 5. **Javobgarlik chegarasi**: reklama matni mijoz nomidan chiqadi. Ofertaga
    bir band kerakmi?
-6. ⚠️ **Valyuta** (yangi, 2026-09-20): Meta reklama akkauntlari ro'yxatida
+6. ✅ **Qaytish manzili** (hal qilindi, 2026-09-20): bitta platforma manzili
+   (`https://keel.uz/api/v1/ads/connect`) + `ads_state` orqali tenantga
+   uzatish. Har mijoz domenini Meta'ga qo'shish varianti rad etildi — u har
+   sotuvda qo'lda ish va unutilishi mumkin bo'lgan qadam.
+7. ⚠️ **Valyuta** (yangi, 2026-09-20): Meta reklama akkauntlari ro'yxatida
    **UZS yo'q** — demak mijozning akkaunti amalda USD da bo'ladi. Reja so'mda
    taklif qiladi, byudjet esa akkaunt valyutasida kiritiladi, va **kurs hech
    qayerda o'ylab topilmaydi**. Ega uchun bu bitta qo'shimcha qadam; muqobili —

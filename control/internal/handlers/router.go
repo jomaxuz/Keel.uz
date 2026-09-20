@@ -116,6 +116,19 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/auth/login", h.Login)
 
+		// Where Meta returns every restaurant's owner after the login dialog.
+		//
+		// ⚠️ **Public, and it must be**: the caller is the owner's browser
+		// coming back from facebook.com with no session of ours. What makes it
+		// safe is that it forwards only to an address we wrote down ourselves
+		// when the dialog was opened — see adsmeta.go.
+		//
+		// ⚠️ **Under `/api/` because that is the only prefix the edge routes to
+		// this service** on keel.uz (internal/caddy). A path outside it would
+		// reach the marketing site instead, and the failure would look like a
+		// Meta problem.
+		r.Get("/ads/connect", h.AdsRedirect)
+
 		r.Group(func(r chi.Router) {
 			r.Use(mw.RequireAuth(cfg.JWTSecret))
 			r.Get("/me", h.Me)

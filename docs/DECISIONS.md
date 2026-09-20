@@ -8399,6 +8399,24 @@ yaxshiroq, chunki u nimani bilishga haqli ekani boshqacha.
   faqat o'z kalitimizni unutamiz, Meta esa sarflashda davom etadi. Xuddi
   shunday — **token bekor qilinsa ham** kampaniya to'xtamaydi, biz ko'r bo'lib
   qolamiz; shuning uchun `status: revoked` ekranda qizil qator.
+- ⚠️ **Meta'ga qaytish manzili bitta — platformaniki, restoranniki emas.**
+  Meta faqat ilovada oq ro'yxatga kiritilgan URI'ga qaytaradi, har mijozning
+  esa o'z domeni bor: har birini qo'shish — har sotuvda Meta sozlamasini
+  tahrirlash demak, va qo'shilmay qolgani «redirect URI» haqidagi xato bilan
+  ishlamaydigan tugma bo'lib chiqadi. Shuning uchun dialog doim
+  `https://keel.uz/api/v1/ads/connect` ga qaytadi va konsol kodni **o'zi
+  yozib qo'ygan** manzilga uzatadi.
+  - ⚠️ **Qaysi manzil ekanini so'rov aytmaydi** — `ads_state` hujjati aytadi:
+    konsol uni dialog ochilishidan oldin **tenantning o'z domenlari ro'yxati**
+    bo'yicha tekshirib yozadi (`state` unique, 15 daqiqalik TTL). Aks holda
+    buzilgan tenant konteyneri birovning manzilini ayta olardi va o'sha
+    restoranning reklama akkauntiga kalit bo'lgan kodni olardi.
+  - ⚠️ **Noma'lum `state` hech qayerga yo'naltirilmaydi.** U yo eskirgan
+    dialog, yo manzilni qo'lda terib ko'rgan odam; bu endpoint hech qachon
+    hisob bera olmaydigan joyga kod uzatmasligi kerak.
+  - ⚠️ `/api/` prefiksi ataylab: keel.uz da chekka **faqat shu prefiksni**
+    konsolga yo'naltiradi (`internal/caddy`). Boshqa yo'l marketing saytiga
+    tushardi, va nosozlik Meta muammosiga o'xshab ko'rinardi.
 - ⚠️ **Rasm restoranning o'zining fotosi**, generatsiya qilinmaydi; yo'q bo'lsa
   ekran «avval rasm yuklang» deydi. O'ylab topilgan taom surati — eshikka
   keladigan narsa haqida yolg'on.

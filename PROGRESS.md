@@ -15080,3 +15080,48 @@ qo'lda kuzatib ochilsin.
 qaysi ruxsat kerakligini yozadi (`Actions: Read and write`, va repozitoriy
 tokenning tanlangan ro'yxatida bo'lishi kerak), chunki GitHub'ning jumlasi
 o'quvchini `release.yml` ga qaratadi — u esa hech qachon muammo emas.
+
+---
+
+## 2026-09-20 (2) — Reklama: Meta'ga qaytish manzili bitta bo'ldi
+
+`control/internal/handlers/adsmeta.go` · `control/internal/repository/store.go`
+· `backend/internal/handlers/adsconnect.go` · `frontend/src/app/admin/ads/connect.tsx`
+
+Ilova va Login for Business konfiguratsiyasi Meta'da yaratildi (App ID
+`954026314413314`, config `1627056515798526`, **system user** tokeni,
+muddati **«hech qachon»** — 60 kunlik token ikki oyda jimgina to'xtaydi, Meta
+esa kampaniyani ishlatishda davom etadi). Shunda birinchi oqim sinovga
+tayyorlanayotganda ko'rindiki, **oqimning o'zi noto'g'ri edi**: dialog
+`https://<restoran-domeni>/admin/ads` ga qaytardi, Meta esa faqat ilovada oq
+ro'yxatga kiritilgan manzilga qaytaradi. Ya'ni har bir sotilgan mijoz uchun
+Meta sozlamasini qo'lda tahrirlash kerak bo'lardi — va qo'shilmay qolgani
+«redirect URI» haqidagi xato bilan ishlamaydigan tugma bo'lib chiqardi.
+
+**Endi manzil bitta**: `https://keel.uz/api/v1/ads/connect`. Konsol dialog
+ochilishidan **oldin** `ads_state` yozadi (qaysi tenant, qaysi manzilga
+qaytadi), Meta qaytganda o'sha qatordan o'qib kodni panelga uzatadi.
+⚠️ **Qaytish manzilini so'rov aytmaydi** — konsol uni **tenantning o'z
+domenlari** bo'yicha tekshirib yozadi: aks holda buzilgan konteyner birovning
+manzilini ayta olardi va o'sha restoranning reklama akkauntiga kalit bo'lgan
+kodni olardi. ⚠️ `state` unique va 15 daqiqada o'chadi (kod baribir bir
+martalik va qisqa umrli — eskirgan `state` faqat uni keyinroq topgan odamga
+yo'l bo'lardi). ⚠️ Noma'lum `state` **hech qayerga** yo'naltirilmaydi.
+⚠️ Token almashinuvi ham **o'sha** manzilni ishlatadi: Meta ikkalasini bayt-bayt
+solishtiradi, va chaqiruvchidan kelgan qiymat ikkinchi nusxa bo'lardi.
+
+⚠️ `/api/` prefiksi ataylab: keel.uz da chekka faqat shu prefiksni konsolga
+yo'naltiradi, boshqa yo'l marketing saytiga tushardi va nosozlik Meta
+muammosiga o'xshardi.
+
+Tekshiruv: control `build` + `vet` + testlar (4 ta yangi: qaytish manzili
+tenant domeni bo'yicha tekshirilishi, chaqiruvchining query'si tushib qolishi,
+dialog va almashinuv bitta manzilni ishlatishi, noma'lum `state` hech qayerga
+uzatmasligi); backend `build` + `vet` + `go test ./...`; frontend `tsc` + 273
+test.
+
+Serverda `/opt/keel/.env` ga uchala qiymat yozildi (fayl `>>` va inode'ni
+saqlaydigan tahrir bilan — `sed -i` uni root'niki qilib qo'yardi va keyingi
+deploy'ning `git reset` i jimgina yarim yiqilardi).
+⏳ Meta ilovasi hamon **development** rejimida va biznes-portfel
+tasdiqlanmagan — jonli ulanish shundan keyin.

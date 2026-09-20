@@ -5285,6 +5285,13 @@ export type AdsApp = {
   appId?: string;
   configId?: string;
   version?: string;
+  /** Where Meta returns the browser — the platform's own address, the same for
+   *  every restaurant. ⚠️ Never this panel's: Meta only redirects to URIs
+   *  whitelisted in the app, and one per customer is a list somebody forgets
+   *  to add to. */
+  redirectUri?: string;
+  /** The one-time value that says which restaurant is coming back. */
+  state?: string;
 };
 
 /** One dish's week, as the plan was written from it.

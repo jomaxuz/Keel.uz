@@ -24,10 +24,13 @@ import { api, ApiError } from "@/lib/api";
 import type { AdminDict } from "@/lib/i18n/admin";
 import type { AdsAssets, AdsState } from "@/lib/types";
 
-/** Where Meta sends the browser back to. ⚠️ Compared by Meta byte for byte
- *  with the one the dialog was opened with, so it is built once and used
- *  twice. */
-function redirectURI(): string {
+/** Where this panel wants the owner to land once Meta is done with them.
+ *
+ *  ⚠️ **Not the address Meta redirects to.** Meta returns to the platform's
+ *  single whitelisted URI and the platform forwards here — one entry in Meta's
+ *  settings for every restaurant, rather than one per customer that somebody
+ *  has to remember to add. */
+function returnTo(): string {
   return `${window.location.origin}/admin/ads`;
 }
 
@@ -81,7 +84,7 @@ export default function AdsConnect({
     }
     setBusy(true);
     api
-      .adsConnect(code as string, redirectURI())
+      .adsConnect(code as string)
       .then(() => reload())
       .catch((e) =>
         setError(e instanceof ApiError ? e.message : t.ads.connect.failed),
@@ -92,8 +95,14 @@ export default function AdsConnect({
   async function start() {
     setError("");
     try {
-      const app = await api.adsApp();
-      if (!app.configured || !app.appId || !app.configId) {
+      const app = await api.adsApp(returnTo());
+      if (
+        !app.configured ||
+        !app.appId ||
+        !app.configId ||
+        !app.redirectUri ||
+        !app.state
+      ) {
         setError(t.ads.connect.notConfigured);
         return;
       }
@@ -104,7 +113,11 @@ export default function AdsConnect({
         config_id: app.configId,
         response_type: "code",
         override_default_response_type: "true",
-        redirect_uri: redirectURI(),
+        redirect_uri: app.redirectUri,
+        // ⚠️ Booked by the platform against this restaurant before the dialog
+        // opens: it is what lets the single redirect address find its way back
+        // to the right panel, and it is checked rather than parsed.
+        state: app.state,
       });
       window.location.href = `https://www.facebook.com/${
         app.version ?? "v26.0"
