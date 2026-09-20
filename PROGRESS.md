@@ -15259,3 +15259,15 @@ Oldin, shu ish yo'lida topilgan va tuzatilgan ikki jim xato:
 ⏳ Qolgani: rasm tanlash/yuklash konsoldan (hozir yo'l qo'lda yoziladi —
 tenantning `uploads` iga konsol yoza olmaydi, bu alohida qaror), va
 konstruktor chrome'ini soddalashtirish.
+
+**ecom.keel.uz jonli** (2026-09-21): shablon qo'llandi, ranglar (#F04E23 /
+#FFD400) va beshta navbar havolasi qo'yildi, chop etildi. Jonli muharrir
+brauzerda uchdan-uchi tekshirildi: sahifadagi bosish bandni tanlaydi va
+tutqichlarni chizadi, ikki bosish so'zlar ustida yozish oynasini ochadi,
+Enter saqlaydi va qolgan ikki tilga tegmaydi.
+
+⚠️ **Rasm yo'q va bu tenantda bo'lishi ham mumkin emas**: yangi tenantning
+`uploads` papkasi bo'sh (`coverUrl` seed rasmga ishora qiladi va u 404).
+Shablon shuning uchun rasmsiz ham to'liq ko'rinadigan qilib chizilgan.
+Konsoldan tenantga rasm yuklash — alohida qaror (tenant API'siga proksilash,
+yoki tenantda allaqachon bor rasmlarni ro'yxatdan tanlatish).
