@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { AdminDict } from "@/lib/i18n/admin";
 import type {
+  AdsIGPost,
   AdsAreaPick,
   AdsBudgetPick,
   AdsCampaign,
@@ -70,7 +71,35 @@ export function AdsCreate({
   const [made, setMade] = useState<AdsCampaign | null>(null);
   const [estimate, setEstimate] = useState<AdsEstimate | null>(null);
 
-  const ready = Boolean(dish && text && Number(daily) > 0);
+  // ---- Two ways to make an advert ----
+  //
+  // ⚠️ **Assembled or borrowed, never both.** One builds a creative out of a
+  // dish photograph and a wording the owner chose; the other puts money behind
+  // a post their followers have already reacted to — and Meta keeps those likes
+  // and comments, which is the only reason anybody asks for it. They are
+  // different objects at Meta and they chase different outcomes, so the choice
+  // is made here rather than folded into one form with optional halves.
+  const [mode, setMode] = useState<"plan" | "post">("plan");
+  const [posts, setPosts] = useState<AdsIGPost[] | null>(null);
+  const [igConnected, setIgConnected] = useState(true);
+  const [post, setPost] = useState<AdsIGPost | null>(null);
+
+  useEffect(() => {
+    if (mode !== "post" || posts) return;
+    api
+      .adsInstagram()
+      .then((r) => {
+        setPosts(r.posts);
+        setIgConnected(r.connected);
+      })
+      .catch(() => {
+        setPosts([]);
+        setIgConnected(false);
+      });
+  }, [mode, posts]);
+
+  const ready =
+    Number(daily) > 0 && (mode === "post" ? Boolean(post) : Boolean(dish && text));
 
   // ---- What Meta thinks this buys ----
   //
@@ -101,22 +130,35 @@ export function AdsCreate({
   }, [daily, radiusKm]);
 
   async function create() {
-    if (!dish || !text) return;
+    if (!ready) return;
     setBusy(true);
     setError("");
     try {
-      const row = await api.adsCreateCampaign({
-        dishName: dish.name,
-        why: dish.why,
-        areaLabel: area?.label,
-        radiusKm: area?.radiusKm,
-        daily: Number(daily),
-        cap: cap ? Number(cap) : undefined,
-        days: days ? Number(days) : budget?.days,
-        headline: text.headline,
-        body: text.body,
-        start,
-      });
+      const row = await api.adsCreateCampaign(
+        mode === "post"
+          ? {
+              sourcePostId: post?.id,
+              dishName: dish?.name ?? "",
+              areaLabel: area?.label,
+              radiusKm: area?.radiusKm,
+              daily: Number(daily),
+              cap: cap ? Number(cap) : undefined,
+              days: days ? Number(days) : budget?.days,
+              start,
+            }
+          : {
+              dishName: dish?.name ?? "",
+              why: dish?.why,
+              areaLabel: area?.label,
+              radiusKm: area?.radiusKm,
+              daily: Number(daily),
+              cap: cap ? Number(cap) : undefined,
+              days: days ? Number(days) : budget?.days,
+              headline: text?.headline,
+              body: text?.body,
+              start,
+            },
+      );
       setMade(row);
       onCreated();
     } catch (e) {
@@ -126,14 +168,42 @@ export function AdsCreate({
     }
   }
 
-  if (!dish || !text) return null;
-
   return (
     <div className="space-y-3">
+      {/* ⚠️ A pair of buttons rather than a dropdown: these are two different
+          products of this section, and one of them is the reason a restaurant
+          that posts its food every day bought it. */}
+      <div className="flex flex-wrap gap-2">
+        <ModeTab
+          on={mode === "plan"}
+          onClick={() => setMode("plan")}
+          label={t.ads.campaign.modePlan}
+        />
+        <ModeTab
+          on={mode === "post"}
+          onClick={() => setMode("post")}
+          label={t.ads.campaign.modePost}
+        />
+      </div>
+
+      {mode === "post" && (
+        <IGPicker
+          t={t}
+          posts={posts}
+          connected={igConnected}
+          chosen={post}
+          onPick={setPost}
+        />
+      )}
+
+      {mode === "plan" && (!dish || !text) && (
+        <p className="text-sm text-ink-muted">{t.ads.campaign.needPicks}</p>
+      )}
       {/* ⚠️ **What is about to be created, in one block.** The four choices were
           made a screen and a half further up; an owner typing a budget here
           cannot see them, and the one thing they must not do is spend money on
           a campaign they have misremembered. */}
+      {mode === "plan" && dish && text && (
       <dl className="grid gap-x-4 gap-y-1 rounded-xl bg-ink/5 p-3 text-sm sm:grid-cols-2">
         <Line k={t.ads.plan.dishes} v={dish.name} />
         <Line
@@ -159,6 +229,8 @@ export function AdsCreate({
           />
         )}
       </dl>
+      )}
+      {(mode === "post" ? post : dish && text) && (
       <>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field
@@ -257,6 +329,7 @@ export function AdsCreate({
             {busy ? t.ads.campaign.creating : t.ads.campaign.create}
           </button>
       </>
+      )}
     </div>
   );
 }
@@ -430,5 +503,98 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
       />
     </label>
+  );
+}
+
+function ModeTab({
+  on,
+  onClick,
+  label,
+}: {
+  on: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+        on
+          ? "border-brand bg-brand-tint font-semibold text-brand-dark"
+          : "border-ink/10 text-ink-soft hover:border-brand/40"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+// The restaurant's own posts, with Meta's verdict on each.
+//
+// ⚠️ **What cannot be boosted is shown and refused, not hidden.** An owner
+// looking for the post they remember and not finding it assumes the feature is
+// broken; a post greyed out with Meta's reason beside it is an answer.
+function IGPicker({
+  t,
+  posts,
+  connected,
+  chosen,
+  onPick,
+}: {
+  t: AdminDict;
+  posts: AdsIGPost[] | null;
+  connected: boolean;
+  chosen: AdsIGPost | null;
+  onPick: (p: AdsIGPost) => void;
+}) {
+  if (!connected) {
+    return <p className="text-sm text-ink-muted">{t.ads.campaign.noInstagram}</p>;
+  }
+  if (posts === null) {
+    return <p className="text-sm text-ink-muted">{t.ads.campaign.loadingPosts}</p>;
+  }
+  if (posts.length === 0) {
+    return <p className="text-sm text-ink-muted">{t.ads.campaign.noPosts}</p>;
+  }
+  return (
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      {posts.map((p) => {
+        const ok = !p.blocked;
+        const on = chosen?.id === p.id;
+        return (
+          <button
+            key={p.id}
+            type="button"
+            disabled={!ok}
+            onClick={() => onPick(p)}
+            aria-pressed={on}
+            title={ok ? (p.caption ?? "") : (p.why ?? "")}
+            className={`relative aspect-square overflow-hidden rounded-lg border transition ${
+              on ? "border-brand ring-2 ring-brand" : "border-ink/10"
+            } ${ok ? "hover:border-brand/40" : "cursor-not-allowed opacity-40"}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={p.image}
+              alt={p.caption?.slice(0, 60) ?? ""}
+              className="h-full w-full object-cover"
+            />
+            {/* Which network it came from. ⚠️ Shown because the two behave
+                differently once promoted, and an owner who cannot tell them
+                apart cannot tell why the results differ. */}
+            <span className="absolute left-1 top-1 rounded bg-ink/70 px-1 text-[10px] text-white">
+              {p.source === "instagram" ? "IG" : "FB"}
+            </span>
+            {!ok && (
+              <span className="absolute inset-x-0 bottom-0 bg-ink/70 px-1 py-0.5 text-[10px] text-white">
+                {t.ads.campaign.notBoostable}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }

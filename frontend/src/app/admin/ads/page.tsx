@@ -126,11 +126,6 @@ export default function AdminAdsPage() {
 
   const campaigns = list?.campaigns ?? [];
   const ready = Boolean(state?.ready);
-  // ⚠️ A dish and wording are what the server insists on; the area and the
-  // budget have defaults it can fall back to. The gate here is the same one
-  // `AdminAdsCreateCampaign` applies, so the button is never enabled for a
-  // request that will be refused.
-  const canLaunch = Boolean(dish && text);
 
   if (state && !state.on) {
     return (
@@ -309,12 +304,15 @@ export default function AdminAdsPage() {
         n={3}
         title={t.ads.campaign.title}
         lead={t.ads.campaign.lead}
-        state={ready && canLaunch ? "now" : "later"}
-        waiting={
-          !ready ? t.ads.campaign.waitingConnect : t.ads.campaign.waitingPicks
-        }
+        // ⚠️ **Open as soon as the account is connected, not once the plan has
+        // been picked from.** The other way of making an advert — putting money
+        // behind a post the restaurant already published — needs no plan at
+        // all, and gating the whole stage on the plan hid it from exactly the
+        // restaurants that post their food every day.
+        state={ready ? "now" : "later"}
+        waiting={t.ads.campaign.waitingConnect}
       >
-        {state && ready && canLaunch && (
+        {state && ready && (
           <AdsCreate
             t={t}
             settings={state.settings}

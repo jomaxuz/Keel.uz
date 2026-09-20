@@ -264,6 +264,10 @@ var messages = map[string]pair{
 		"Ваш аккаунт временно отключён — свяжитесь с рестораном",
 		"Your account has been switched off for now — contact the restaurant",
 	},
+	"Instagram akkaunti ulanmagan": {
+		"Аккаунт Instagram не подключён",
+		"No Instagram account is connected",
+	},
 	"Ish grafikingiz yangilandi — ilovadan ko'rib qo'ying": {
 		"Ваш рабочий график обновлён — посмотрите в приложении",
 		"Your roster has been updated — take a look in the app",

@@ -372,3 +372,40 @@ kreativ), va u qo'shimcha ruxsat talab qiladi (`instagram_basic`), ya'ni
 Login for Business konfiguratsiyasiga ruxsat qo'shish va **App Review'da yana
 bir band**. Shuning uchun u verifikatsiyadan keyingi ishga qoldirildi —
 hozirgi oqim restoranning o'z taom fotosidan kreativ yasaydi.
+
+### Tayyor postni ko'tarish (bajarildi, 2026-09-20)
+
+Ega tayyor postga pul qo'yishni so'radi — targetolog ishining ikkinchi yarmi:
+«bu post yaxshi ketdi, orqasiga pul qo'y». Meta ko'tarilgan postda **layk va
+izohlarni saqlaydi**, ya'ni yangidan yig'ilgan reklama bunga hech qachon ega
+bo'lolmaydi.
+
+⚠️ **Instagram media ro'yxatini olish `instagram_basic` talab qiladi, va Meta
+uni Login for Business konfiguratsiyasida bermaydi** — tekshirdik: ilovaga
+«Instagram kontentini boshqarish» stsenariysi qo'shilgandan keyin ham
+konfiguratsiyadagi ruxsatlar ro'yxati o'sha beshtaligicha qoldi
+(`ads_management`, `ads_read`, `business_management`, `pages_read_engagement`,
+`pages_show_list`). Sabab: system user tokeni — reklama akkauntiga kerak bo'lgan
+token — Instagram kontent ruxsatlari bilan bir konfiguratsiyada kelmaydi.
+
+Shuning uchun ro'yxat **ikki manbadan** yig'iladi va bittasi bo'lmasa
+ikkinchisi baribir ishlaydi:
+
+- **Sahifa postlari** (`/{page}/published_posts`, `pages_read_engagement`) —
+  bugun **ishlaydi**. ⚠️ `feed` emas, `published_posts`: feed'da begonalar
+  yozgani ham bor, va birovning so'zini pul bilan targ'ib qilish — boshqa
+  narsa. Kreativ `object_story_id` bilan quriladi. Sahifaga Instagram akkaunti
+  bog'langan bo'lsa, reklama Instagram joylashuvlarida ham chiqadi.
+- **Instagram postlari** (`/{ig-user}/media`) — ruxsat berilsa qo'shiladi;
+  berilmasa **jimgina tushib qoladi**, sahifa postlari ro'yxatda qoladi.
+  Kreativ `instagram_user_id` + `source_instagram_media_id` bilan quriladi.
+
+⚠️ **Ko'tarilgan post `OUTCOME_ENGAGEMENT` / `POST_ENGAGEMENT` bilan ketadi**,
+konversiya bilan emas: post ichida bizning havolamiz yo'q, ya'ni piksel undan
+keyin nima bo'lganini **ko'ra olmaydi**. Konversiyaga optimallashtirish
+byudjetni jismonan sodir bo'lolmaydigan natijaga sarflardi, va Meta ishlab
+turgan kampaniya uchun nol yozardi. Shu sababdan `conversion_domain` ham
+yuborilmaydi.
+
+⚠️ **`kind` maydoni kampaniyada saqlanadi** (`built` / `boost`): ikkalasi
+hisobotda bitta qatorga qo'shilmaydi — laykni kechki ovqatga qo'shish bo'lardi.

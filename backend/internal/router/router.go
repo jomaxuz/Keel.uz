@@ -1419,6 +1419,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// it costs one of the ad account's hourly calls, and a GET that
 			// spends a quota is one a browser prefetch can spend for you.
 			r.Post("/admin/ads/estimate", h.AdminAdsEstimate)
+			// The posts this restaurant has already published, for the other
+			// half of what a targetolog does: "that one did well, put money
+			// behind it". See handlers/adsinstagram.go.
+			r.Get("/admin/ads/instagram", h.AdminAdsInstagram)
 
 			r.Post("/admin/advisor", h.AdminAdvisorAsk)
 			r.Get("/admin/advisor/state", h.AdminAdvisorState)

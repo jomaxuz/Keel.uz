@@ -5276,6 +5276,34 @@ export type AdsReport = {
   lastSyncAt?: string;
 };
 
+/** One post the restaurant has already published on Instagram.
+ *
+ *  ⚠️ **Meta decides what may be boosted, not us.** A post with music, with
+ *  somebody else's material, or simply too old is refused at creation with a
+ *  message about a media id — long after the owner chose it. `boost` carries
+ *  the same answer before the choice. */
+export type AdsIGPost = {
+  id: string;
+  /** "instagram" or "page". ⚠️ Decides how the creative is built, and is shown
+   *  as a label — but it is not a choice the owner makes before seeing the
+   *  posts. They think "that one did well", not "that media object". */
+  source: string;
+  image?: string;
+  caption?: string;
+  link?: string;
+  at?: string;
+  /** True only where Meta itself said it will not boost this post. */
+  blocked?: boolean;
+  why?: string;
+};
+
+export type AdsInstagram = {
+  /** False when neither a Page nor an Instagram account is connected — a
+   *  normal restaurant, told what to do rather than shown a failure. */
+  connected: boolean;
+  posts: AdsIGPost[];
+};
+
 /** Meta's own forecast for a targeting and a daily budget.
  *
  *  ⚠️ **Meta's number, and the screen never drops whose it is.** The planner is

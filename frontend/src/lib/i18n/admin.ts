@@ -4765,6 +4765,13 @@ export const adminUz = {
         "Meta bu hudud va byudjet uchun hali taxmin bermayapti — odatda auditoriya kichik yoki akkaunt yangi.",
       forecastNote:
         "Bu raqamlar Meta'niki, bizniki emas — Ads Manager ham shuni ko'rsatadi. Kafolat emas, taxmin.",
+      modePlan: "Rejadan yangi reklama",
+      modePost: "Tayyor postni ko'tarish",
+      noInstagram:
+        "Sahifa ham, Instagram akkaunti ham ulanmagan. Yuqoridagi «Meta akkaunti» qadamida sahifani tanlang.",
+      loadingPosts: "Postlar yuklanmoqda…",
+      noPosts: "Instagram akkauntida post topilmadi.",
+      notBoostable: "Ko'tarib bo'lmaydi",
     },
     report: {
       title: "Reklama nima keltirdi",
@@ -9723,6 +9730,13 @@ export const adminRu: AdminDict = {
         "Meta пока не даёт оценку для этого района и бюджета — обычно аудитория мала или аккаунт новый.",
       forecastNote:
         "Это числа Meta, а не наши — Ads Manager показывает те же. Оценка, а не гарантия.",
+      modePlan: "Новая реклама по плану",
+      modePost: "Продвинуть готовый пост",
+      noInstagram:
+        "Ни страница, ни аккаунт Instagram не подключены. Выберите страницу в шаге «Аккаунт Meta» выше.",
+      loadingPosts: "Посты загружаются…",
+      noPosts: "В аккаунте Instagram постов не найдено.",
+      notBoostable: "Нельзя продвигать",
     },
     report: {
       title: "Что принесла реклама",
@@ -14638,6 +14652,13 @@ export const adminEn: AdminDict = {
         "Meta will not estimate for this area and budget yet — usually the audience is small or the account is new.",
       forecastNote:
         "These are Meta's numbers, not ours — Ads Manager shows the same. An estimate, not a promise.",
+      modePlan: "New advert from the plan",
+      modePost: "Boost a post you published",
+      noInstagram:
+        "Neither a Page nor an Instagram account is connected. Choose a Page in the \"Meta account\" step above.",
+      loadingPosts: "Loading posts…",
+      noPosts: "No posts found on the Instagram account.",
+      notBoostable: "Cannot be boosted",
     },
     report: {
       title: "What the advertising brought",

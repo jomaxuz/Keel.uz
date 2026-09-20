@@ -108,6 +108,14 @@ type adsCreateRequest struct {
 	Body     string `json:"body"`
 	Link     string `json:"link"`
 
+	// An Instagram post to put money behind instead of assembling an advert.
+	//
+	// ⚠️ **When this is set nothing of ours goes into the creative** — no
+	// photograph, no wording, no link. The post is the advert exactly as its
+	// followers saw it, which is the only reason an owner asks for this: Meta
+	// keeps the likes and comments the post has already collected.
+	SourcePostID string `json:"sourcePostId"`
+
 	// Whether to switch it on straight away. Default is to leave it paused.
 	Start bool `json:"start"`
 }
@@ -155,30 +163,38 @@ func (h *Handler) AdminAdsCreateCampaign(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	boost := strings.TrimSpace(req.SourcePostID)
 	headline := strings.TrimSpace(req.Headline)
 	body := strings.TrimSpace(req.Body)
-	if headline == "" || body == "" {
-		httpx.Error(w, http.StatusBadRequest, "reklama matni tanlanmagan")
-		return
-	}
-	// Meta's own limit on the headline. Refused rather than truncated: a
-	// sentence cut in half is an advert the restaurant did not write.
-	if len([]rune(headline)) > 90 {
-		httpx.Error(w, http.StatusBadRequest, "sarlavha 90 belgidan oshmasligi kerak")
-		return
-	}
+	var dishID primitive.ObjectID
+	var imgName string
+	var imgData []byte
 
-	// ---- The picture ----
-	//
-	// ⚠️ **The restaurant's own photograph or nothing.** The dish photographs
-	// are already on this server because somebody photographed the food they
-	// actually serve; an invented picture is an advert that lies about what
-	// arrives at the door.
-	dishID, _ := objectID(req.DishID)
-	imgName, imgData, err := h.adsDishPhoto(ctx, dishID, req.DishName)
-	if err != nil {
-		httpx.Error(w, http.StatusBadRequest, err.Error())
-		return
+	if boost == "" {
+		if headline == "" || body == "" {
+			httpx.Error(w, http.StatusBadRequest, "reklama matni tanlanmagan")
+			return
+		}
+		// Meta's own limit on the headline. Refused rather than truncated: a
+		// sentence cut in half is an advert the restaurant did not write.
+		if len([]rune(headline)) > 90 {
+			httpx.Error(w, http.StatusBadRequest,
+				"sarlavha 90 belgidan oshmasligi kerak")
+			return
+		}
+
+		// ---- The picture ----
+		//
+		// ⚠️ **The restaurant's own photograph or nothing.** The dish
+		// photographs are already on this server because somebody photographed
+		// the food they actually serve; an invented picture is an advert that
+		// lies about what arrives at the door.
+		dishID, _ = objectID(req.DishID)
+		imgName, imgData, err = h.adsDishPhoto(ctx, dishID, req.DishName)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 
 	// ---- The money ----
@@ -256,34 +272,48 @@ func (h *Handler) AdminAdsCreateCampaign(w http.ResponseWriter, r *http.Request)
 	// the menu — promising conversions Meta cannot see would spend the budget
 	// against a target that never arrives.
 	objective, goal, billing := "OUTCOME_TRAFFIC", "LINK_CLICKS", "IMPRESSIONS"
-	if s.PixelID != "" {
+	switch {
+	case boost != "":
+		// ⚠️ **A boosted post chases engagement, never conversions.** There is
+		// no link of ours inside somebody's Instagram post, so a pixel cannot
+		// see anything that happens after it — optimising for orders would
+		// spend the budget against an outcome that physically cannot occur, and
+		// Meta would report zero for a campaign that was working.
+		objective, goal = "OUTCOME_ENGAGEMENT", "POST_ENGAGEMENT"
+	case s.PixelID != "":
 		objective, goal = "OUTCOME_SALES", "OFFSITE_CONVERSIONS"
 	}
 
 	name := adsCampaignName(branch.Name, req.DishName)
+	kind := "built"
+	if boost != "" {
+		kind = "boost"
+	}
 	row := models.AdCampaign{
-		BrandID:    branch.BrandID,
-		BranchID:   branch.ID,
-		Name:       name,
-		Objective:  objective,
-		Goal:       goal,
-		DishID:     dishID,
-		DishName:   strings.TrimSpace(req.DishName),
-		Why:        strings.TrimSpace(req.Why),
-		AreaLabel:  strings.TrimSpace(req.AreaLabel),
-		RadiusKm:   radius,
-		Lat:        branch.Address.Lat,
-		Lng:        branch.Address.Lng,
-		DailyMinor: daily,
-		CapMinor:   capMinor,
-		Currency:   acc.Currency,
-		Days:       days,
-		Headline:   headline,
-		Body:       body,
-		Link:       link,
-		Status:     models.AdCampaignDraft,
-		CreatedAt:  time.Now(),
-		EndsAt:     &ends,
+		BrandID:      branch.BrandID,
+		BranchID:     branch.ID,
+		Name:         name,
+		Kind:         kind,
+		SourcePostID: boost,
+		Objective:    objective,
+		Goal:         goal,
+		DishID:       dishID,
+		DishName:     strings.TrimSpace(req.DishName),
+		Why:          strings.TrimSpace(req.Why),
+		AreaLabel:    strings.TrimSpace(req.AreaLabel),
+		RadiusKm:     radius,
+		Lat:          branch.Address.Lat,
+		Lng:          branch.Address.Lng,
+		DailyMinor:   daily,
+		CapMinor:     capMinor,
+		Currency:     acc.Currency,
+		Days:         days,
+		Headline:     headline,
+		Body:         body,
+		Link:         link,
+		Status:       models.AdCampaignDraft,
+		CreatedAt:    time.Now(),
+		EndsAt:       &ends,
 	}
 	if claims := middleware.ClaimsFrom(ctx); claims != nil {
 		row.CreatedBy = claims.UserID
@@ -340,37 +370,67 @@ func (h *Handler) AdminAdsCreateCampaign(w http.ResponseWriter, r *http.Request)
 	made = append(made, adsetID)
 	row.AdSetID = adsetID
 
-	img, err := client.UploadImage(ctx, acc.ID, imgName, imgData)
-	if err != nil {
-		fail(err)
-		return
-	}
-	row.ImageHash = img.Hash
+	var creativeID string
+	if boost != "" {
+		// ⚠️ **Which network published it decides how the creative is built.**
+		// A Page post is named `{page}_{post}` and becomes an `object_story_id`;
+		// an Instagram media id is a bare number and needs the Page, the
+		// Instagram account and the media together. Guessing wrong produces a
+		// Meta error about an object id that says nothing about either.
+		if strings.Contains(boost, "_") {
+			creativeID, err = client.CreateCreativeFromPagePost(
+				ctx, acc.ID, boost, name)
+		} else {
+			var ig string
+			ig, err = h.instagramID(ctx, client, s.InstagramID, acc.ID)
+			if err == nil && ig == "" {
+				err = errors.New("Instagram akkaunti ulanmagan")
+			}
+			if err == nil {
+				creativeID, err = client.CreateCreativeFromPost(
+					ctx, acc.ID, s.PageID, ig, boost, name)
+			}
+		}
+		if err != nil {
+			fail(err)
+			return
+		}
+	} else {
+		img, err := client.UploadImage(ctx, acc.ID, imgName, imgData)
+		if err != nil {
+			fail(err)
+			return
+		}
+		row.ImageHash = img.Hash
 
-	creativeID, err := client.CreateCreative(ctx, acc.ID, meta.CreativeSpec{
-		Name:        name,
-		PageID:      s.PageID,
-		InstagramID: s.InstagramID,
-		ImageHash:   img.Hash,
-		Link:        link,
-		Message:     body,
-		Headline:    headline,
-		// "Order now" is the truth on a site that takes orders; anything else
-		// promises a shop that is not there.
-		CallToAction: "ORDER_NOW",
-	})
-	if err != nil {
-		fail(err)
-		return
+		creativeID, err = client.CreateCreative(ctx, acc.ID, meta.CreativeSpec{
+			Name:        name,
+			PageID:      s.PageID,
+			InstagramID: s.InstagramID,
+			ImageHash:   img.Hash,
+			Link:        link,
+			Message:     body,
+			Headline:    headline,
+			// "Order now" is the truth on a site that takes orders; anything
+			// else promises a shop that is not there.
+			CallToAction: "ORDER_NOW",
+		})
+		if err != nil {
+			fail(err)
+			return
+		}
 	}
 	made = append(made, creativeID)
 	row.CreativeID = creativeID
 
 	adID, err := client.CreateAd(ctx, acc.ID, meta.AdSpec{
-		Name:             name,
-		AdSetID:          adsetID,
-		CreativeID:       creativeID,
-		ConversionDomain: domain,
+		Name:       name,
+		AdSetID:    adsetID,
+		CreativeID: creativeID,
+		// ⚠️ Only where a pixel is sharing data. A boosted post carries no
+		// link of ours, and Meta refuses the field on a campaign that has no
+		// domain to attribute to.
+		ConversionDomain: conversionDomain(boost, s.PixelID, domain),
 	})
 	if err != nil {
 		fail(err)
@@ -406,6 +466,14 @@ func (h *Handler) AdminAdsCreateCampaign(w http.ResponseWriter, r *http.Request)
 	h.logAction(r, ActAdsCreate, "ads", row.MetaCampaignID, name,
 		fmt.Sprintf("%s %s/kun", money(daily, unit), acc.Currency))
 	httpx.JSON(w, http.StatusOK, row)
+}
+
+// conversionDomain is set only where Meta requires it.
+func conversionDomain(boost, pixel, domain string) string {
+	if boost != "" || pixel == "" {
+		return ""
+	}
+	return domain
 }
 
 // pixelFor and eventFor keep the "only when the goal needs it" rule in one

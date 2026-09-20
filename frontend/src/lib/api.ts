@@ -10,6 +10,7 @@ import type {
   AdsCampaign,
   AdsCampaignList,
   AdsEstimate,
+  AdsInstagram,
   AdsReport,
   AdsRules,
   AdsState,
@@ -3075,10 +3076,14 @@ export const api = {
     daily: number;
     cap?: number;
     days?: number;
-    headline: string;
-    body: string;
+    headline?: string;
+    body?: string;
     link?: string;
     start?: boolean;
+    /** Put money behind a post that already exists instead of assembling an
+     *  advert. ⚠️ When set, nothing of ours goes into the creative — the post
+     *  is the advert, with the likes and comments it has already collected. */
+    sourcePostId?: string;
   }) =>
     request<AdsCampaign>("/admin/ads/campaigns", {
       method: "POST",
@@ -3093,6 +3098,11 @@ export const api = {
       auth: true,
       body,
     }),
+
+  /** The posts this restaurant has already published, and whether Meta will
+   *  let each one be boosted. */
+  adsInstagram: () =>
+    request<AdsInstagram>("/admin/ads/instagram", { auth: true }),
 
   /** What Meta thinks a budget will buy, before it is spent.
    *

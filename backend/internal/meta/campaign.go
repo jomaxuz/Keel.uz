@@ -366,3 +366,134 @@ func (c *Client) DeliveryEstimate(
 	}
 	return out.Data[0], nil
 }
+
+// ---- Boosting a post the restaurant already published ----
+//
+// ⚠️ **A different creative, not a different picture.** Everything above builds
+// an advert out of parts: a photograph, a headline, a body, a link. This builds
+// one out of something the restaurant already posted and that its followers
+// already reacted to — Meta keeps the likes and comments on the promoted post,
+// which is the whole reason an owner asks for it. The two cannot be mixed:
+// a creative is either assembled or borrowed.
+
+// IGPost is one thing the restaurant published on Instagram.
+type IGPost struct {
+	ID        string `json:"id"`
+	MediaType string `json:"media_type"`
+	MediaURL  string `json:"media_url"`
+	Thumbnail string `json:"thumbnail_url"`
+	Caption   string `json:"caption"`
+	Permalink string `json:"permalink"`
+	Timestamp string `json:"timestamp"`
+	// ⚠️ **Meta decides what may be boosted, not us.** A post with music, with
+	// somebody else's material, or simply too old is refused at creation with
+	// a message about the media id — long after the owner chose it. This field
+	// is the same answer, before the choice.
+	Boost struct {
+		Eligible bool     `json:"eligible_to_boost"`
+		Reasons  []string `json:"eligibility_reasons"`
+	} `json:"boost_eligibility_info"`
+}
+
+// InstagramPosts lists what the connected Instagram account has published.
+func (c *Client) InstagramPosts(ctx context.Context, igUserID string, limit int) ([]IGPost, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 24
+	}
+	var out listOf[IGPost]
+	err := c.Get(ctx, igUserID+"/media", url.Values{
+		"fields": {"id,media_type,media_url,thumbnail_url,caption," +
+			"permalink,timestamp,boost_eligibility_info"},
+		"limit": {strconv.Itoa(limit)},
+	}, &out)
+	return out.Data, err
+}
+
+// ConnectedInstagram is the Instagram account an ad account may advertise as.
+//
+// ⚠️ **Asked of the ad account, not only of the Page.** The Page's
+// `instagram_business_account` is the usual answer and sometimes empty while
+// the account is perfectly reachable from the ad account — two edges for one
+// fact, and an install that read only the first showed an owner no posts at
+// all.
+func (c *Client) ConnectedInstagram(ctx context.Context, act string) (string, error) {
+	var out listOf[struct {
+		ID string `json:"id"`
+	}]
+	if err := c.Get(ctx, act+"/connected_instagram_accounts",
+		url.Values{"fields": {"id"}}, &out); err != nil {
+		return "", err
+	}
+	if len(out.Data) == 0 {
+		return "", nil
+	}
+	return out.Data[0].ID, nil
+}
+
+// CreateCreativeFromPost makes an advert out of an existing Instagram post.
+//
+// ⚠️ **Three ids and no content.** The Page owns the advert, the Instagram
+// account published it, and the media id says which post. Nothing about the
+// wording or the picture travels — they are the post's, and changing either
+// would make it a different post.
+func (c *Client) CreateCreativeFromPost(
+	ctx context.Context, act, pageID, igUserID, mediaID, name string,
+) (string, error) {
+	form := url.Values{
+		"name":                      {name},
+		"object_id":                 {pageID},
+		"instagram_user_id":         {igUserID},
+		"source_instagram_media_id": {mediaID},
+	}
+	var outCreated Created
+	err := c.Post(ctx, act+"/adcreatives", form, &outCreated)
+	return outCreated.ID, err
+}
+
+// PagePost is one thing the restaurant published on its Facebook Page.
+//
+// ⚠️ **The path that works with the permissions an ads integration is actually
+// granted.** Listing Instagram media needs `instagram_basic`, which Meta does
+// not offer inside a Login for Business configuration built on a system user
+// token — the token an ad account needs. A Page's own posts need
+// `pages_read_engagement`, which it does offer, and a Page post is delivered on
+// Instagram placements too when an Instagram account is attached to the Page.
+type PagePost struct {
+	// Already `{page-id}_{post-id}`, which is exactly what `object_story_id`
+	// wants — no assembling on our side.
+	ID          string `json:"id"`
+	Message     string `json:"message"`
+	FullPicture string `json:"full_picture"`
+	Permalink   string `json:"permalink_url"`
+	CreatedTime string `json:"created_time"`
+}
+
+// PagePosts lists what the Page has published.
+//
+// ⚠️ **`published_posts`, not `feed`.** The feed carries what other people
+// wrote on the Page as well, and an advert built from a stranger's post is
+// money spent promoting somebody else's words.
+func (c *Client) PagePosts(ctx context.Context, pageID string, limit int) ([]PagePost, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 24
+	}
+	var out listOf[PagePost]
+	err := c.Get(ctx, pageID+"/published_posts", url.Values{
+		"fields": {"id,message,full_picture,permalink_url,created_time"},
+		"limit":  {strconv.Itoa(limit)},
+	}, &out)
+	return out.Data, err
+}
+
+// CreateCreativeFromPagePost makes an advert out of a post the Page published.
+func (c *Client) CreateCreativeFromPagePost(
+	ctx context.Context, act, storyID, name string,
+) (string, error) {
+	form := url.Values{
+		"name":            {name},
+		"object_story_id": {storyID},
+	}
+	var out Created
+	err := c.Post(ctx, act+"/adcreatives", form, &out)
+	return out.ID, err
+}

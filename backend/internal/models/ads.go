@@ -134,9 +134,18 @@ type AdCampaign struct {
 	CreativeID     string `bson:"creativeId,omitempty" json:"creativeId,omitempty"`
 	ImageHash      string `bson:"imageHash,omitempty" json:"imageHash,omitempty"`
 
-	Name      string `bson:"name" json:"name"`
-	Objective string `bson:"objective,omitempty" json:"objective,omitempty"`
-	Goal      string `bson:"goal,omitempty" json:"goal,omitempty"`
+	Name string `bson:"name" json:"name"`
+	// "built" — assembled from a dish photograph and a wording; "boost" — an
+	// Instagram post the restaurant had already published.
+	//
+	// ⚠️ **Kept because the two cannot be compared as one line in a report.**
+	// A boosted post is optimised for engagement and carries no link of ours;
+	// a built advert chases orders through the pixel. Summing their results
+	// would be adding likes to dinners.
+	Kind         string `bson:"kind,omitempty" json:"kind,omitempty"`
+	SourcePostID string `bson:"sourcePostId,omitempty" json:"sourcePostId,omitempty"`
+	Objective    string `bson:"objective,omitempty" json:"objective,omitempty"`
+	Goal         string `bson:"goal,omitempty" json:"goal,omitempty"`
 
 	// What is being advertised, and the reason the plan gave for it.
 	DishID   primitive.ObjectID `bson:"dishId,omitempty" json:"dishId,omitempty"`
