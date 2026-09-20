@@ -55,6 +55,7 @@ export default function AdsConnect({
   // the page read as a settings screen rather than as the four steps it is.
   // Open it again and every control is where it was.
   const [open, setOpen] = useState(false);
+  const [pixelDraft, setPixelDraft] = useState("");
   const s = state.settings;
   const shut = step === "done" && !open;
 
@@ -247,17 +248,6 @@ export default function AdsConnect({
           {assets && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Picker
-                label={t.ads.connect.business}
-                value={s.businessId ?? ""}
-                disabled={busy}
-                options={assets.businesses.map((b) => ({
-                  id: b.id,
-                  label: b.name,
-                }))}
-                none={t.ads.connect.none}
-                onPick={(id) => choose({ businessId: id })}
-              />
-              <Picker
                 label={t.ads.connect.account}
                 value={s.adAccountId ?? ""}
                 disabled={busy}
@@ -289,22 +279,51 @@ export default function AdsConnect({
                   label: p.name,
                 }))}
                 none={t.ads.connect.none}
+                hint={assets.pagesNote}
                 onPick={(id) => choose({ pageId: id })}
               />
-              <Picker
-                label={t.ads.connect.pixel}
-                value={s.pixelId ?? ""}
-                disabled={busy}
-                // Said where the pixel is chosen, because this is the sentence
-                // that explains why the extra step is worth taking.
-                hint={s.pixelId ? undefined : t.ads.connect.pixelNote}
-                options={assets.pixels.map((p) => ({
-                  id: p.id,
-                  label: p.name,
-                }))}
-                none={t.ads.connect.none}
-                onPick={(id) => choose({ pixelId: id })}
-              />
+              <div>
+                <Picker
+                  label={t.ads.connect.pixel}
+                  value={s.pixelId ?? ""}
+                  disabled={busy}
+                  // Said where the pixel is chosen, because this is the
+                  // sentence that explains why the extra step is worth taking.
+                  hint={
+                    assets.pixelNote ||
+                    (s.pixelId ? undefined : t.ads.connect.pixelNote)
+                  }
+                  options={assets.pixels.map((p) => ({
+                    id: p.id,
+                    label: p.name,
+                  }))}
+                  none={t.ads.connect.none}
+                  onPick={(id) => choose({ pixelId: id })}
+                />
+                {/* ⚠️ **A pixel id can always be typed.** Meta refuses the
+                    list for some tokens, and an owner who cannot pick from a
+                    list they cannot see is stuck on a feature whose id is
+                    printed in their own Events Manager. Typed or picked, the
+                    server stores the same field. */}
+                {assets.pixels.length === 0 && (
+                  <div className="mt-1 flex gap-2">
+                    <input
+                      className="input w-full py-1 text-sm"
+                      placeholder={t.ads.connect.pixelByHand}
+                      value={pixelDraft}
+                      onChange={(e) => setPixelDraft(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      disabled={busy || !pixelDraft.trim()}
+                      onClick={() => choose({ pixelId: pixelDraft.trim() })}
+                      className="btn btn-dark shrink-0 px-3 py-1 text-sm disabled:opacity-40"
+                    >
+                      {t.ads.connect.save}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

@@ -229,7 +229,15 @@ func (h *Handler) adsFacts(
 	dishes := make([]map[string]any, 0, len(top))
 	for _, d := range top {
 		dishes = append(dishes, map[string]any{
-			"name": d.Name, "qty": d.Qty, "money": d.Money,
+			// ⚠️ **The id travels with the name.** The campaign used to find
+			// the dish by its name, which is the one field a menu screen lets
+			// somebody rename — and a rename between planning and launching
+			// turned into "dish not found" at the button that spends money.
+			// The model never sees this; it is passed through for the panel.
+			"id":    d.ID,
+			"name":  d.Name,
+			"qty":   d.Qty,
+			"money": d.Money,
 			"photo": photos[d.ID],
 			// ⚠️ Computed here, in integers, and sent as a fact. The share is
 			// the number the whole plan argues from and the one the panel draws

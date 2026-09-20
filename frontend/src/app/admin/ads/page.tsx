@@ -286,7 +286,11 @@ export default function AdminAdsPage() {
                   title={t.ads.plan.budgets}
                   chosen={
                     budget
-                      ? `${som(budget.daily)} ${t.ads.plan.perDay}`
+                      ? `${som(budget.daily)}${
+                          budget.own && state?.settings.currency
+                            ? ` ${state.settings.currency}`
+                            : ""
+                        } ${t.ads.plan.perDay}`
                       : undefined
                   }
                   none={t.ads.plan.notChosen}
@@ -306,7 +310,11 @@ export default function AdminAdsPage() {
                   ))}
                   <div className="sm:col-span-3">
                     <CustomRow
-                      label={t.ads.plan.ownBudget}
+                      label={
+                        state?.settings.currency
+                          ? `${t.ads.plan.ownBudget} (${state.settings.currency})`
+                          : t.ads.plan.ownBudget
+                      }
                       on={
                         Boolean(ownDaily) &&
                         budget?.why === t.ads.plan.ownWhy
@@ -323,12 +331,16 @@ export default function AdminAdsPage() {
                         onChange={(v) => {
                           setOwnDaily(v);
                           const daily = Number(v);
+                          // ⚠️ Typed once, in the currency the card is charged
+                          // in — the launch step reads it straight from here
+                          // rather than asking for the same number again.
                           setBudget(
                             daily > 0
                               ? {
                                   daily,
                                   days: Number(ownDays) || 7,
                                   why: t.ads.plan.ownWhy,
+                                  own: true,
                                 }
                               : null,
                           );
@@ -346,6 +358,7 @@ export default function AdminAdsPage() {
                               daily,
                               days: Number(v) || 7,
                               why: t.ads.plan.ownWhy,
+                              own: true,
                             });
                           }
                         }}
@@ -413,6 +426,11 @@ export default function AdminAdsPage() {
             t={t}
             settings={state.settings}
             dish={dish}
+            dishId={
+              dish
+                ? facts?.dishes.find((f) => f.name === dish.name)?.id
+                : undefined
+            }
             area={area}
             budget={budget}
             text={text}

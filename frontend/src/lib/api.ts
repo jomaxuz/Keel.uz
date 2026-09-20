@@ -3034,7 +3034,6 @@ export const api = {
 
   /** Which of them this restaurant advertises from. */
   adsChoose: (body: {
-    businessId?: string;
     adAccountId?: string;
     pageId?: string;
     instagramId?: string;

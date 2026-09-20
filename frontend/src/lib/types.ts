@@ -5170,7 +5170,6 @@ export type AdsRules = {
 
 /** What the token can see at Meta, for the owner to point at. */
 export type AdsAssets = {
-  businesses: { id: string; name: string }[];
   accounts: {
     /** `act_123…` — what every Graph path wants. */
     id: string;
@@ -5187,6 +5186,11 @@ export type AdsAssets = {
     instagram_business_account?: { id: string };
   }[];
   pixels: { id: string; name: string }[];
+  /** Why a list is empty, when Meta refused it. ⚠️ An empty dropdown over a
+   *  working connection is the screen an owner reads as "this is broken"; the
+   *  reason travels beside the list so it can say what actually happened. */
+  pagesNote?: string;
+  pixelNote?: string;
 };
 
 /** One thing the rules did, and why. */
@@ -5353,6 +5357,9 @@ export type AdsApp = {
  *  server's arithmetic** — not the model's. A share written by a model would be
  *  a number an owner budgets against that nobody computed. */
 export type AdsDishFact = {
+  /** ⚠️ Carried so a campaign finds the dish by id, not by the one field a
+   *  menu screen lets somebody rename between planning and launching. */
+  id?: string;
   name: string;
   qty: number;
   money: number;
@@ -5389,7 +5396,16 @@ export type AdsFacts = {
 export type AdsPick = { why: string };
 export type AdsDishPick = AdsPick & { name: string };
 export type AdsAreaPick = AdsPick & { label: string; radiusKm?: number };
-export type AdsBudgetPick = AdsPick & { daily: number; days: number };
+/** ⚠️ **`own` says which currency `daily` is in.** The model proposes in so'm
+ *  because that is what a restaurant counts in; a number the owner typed once
+ *  the account is connected is in the account's own currency, because that is
+ *  what Meta will charge. Without the flag the two are the same field holding
+ *  two different units — the mistake this whole section guards against. */
+export type AdsBudgetPick = AdsPick & {
+  daily: number;
+  days: number;
+  own?: boolean;
+};
 /** ⚠️ **Wordings are filed under the dish they advertise.** A flat list meant
  *  an owner who chose the osh was offered wordings for the soup and the somsa.
  *  Optional because a plan cached before the field existed has none, and the

@@ -18,12 +18,6 @@ import (
 	"strings"
 )
 
-// Business is one business portfolio the token can see.
-type Business struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
 // AdAccount is one ad account, with the three facts that decide whether a
 // campaign can run at all.
 type AdAccount struct {
@@ -51,6 +45,18 @@ type AdAccount struct {
 	// Whether a card is on the account. An account without one creates
 	// campaigns happily and runs none of them.
 	FundingSource string `json:"funding_source"`
+	// Which portfolio owns it.
+	//
+	// ⚠️ **Asked of the account, because `me/businesses` answers nothing for
+	// the token we hold.** A business integration system user *is* the
+	// portfolio's user; there is no "my businesses" for it, so that list came
+	// back empty and the panel drew an empty dropdown over a connection that
+	// was working. The account knows its own owner, and that is the one that
+	// matters anyway — it is the portfolio the adverts are billed under.
+	Business struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"business"`
 }
 
 // Live says whether this account can actually carry a campaign today.
@@ -75,16 +81,8 @@ type listOf[T any] struct {
 	Data []T `json:"data"`
 }
 
-// Businesses lists the portfolios this token was granted.
-func (c *Client) Businesses(ctx context.Context) ([]Business, error) {
-	var out listOf[Business]
-	err := c.Get(ctx, "me/businesses",
-		url.Values{"fields": {"id,name"}, "limit": {"50"}}, &out)
-	return out.Data, err
-}
-
 const adAccountFields = "id,account_id,name,currency,account_status," +
-	"disable_reason,min_daily_budget,funding_source"
+	"disable_reason,min_daily_budget,funding_source,business{id,name}"
 
 // AdAccounts lists the ad accounts the token reaches.
 //

@@ -4717,6 +4717,8 @@ export const adminUz = {
       change: "O'zgartirish",
       collapse: "Yig'ish",
       noPixel: "Piksel yo'q",
+      pixelByHand: "Piksel ID sini qo'lda kiriting",
+      save: "Saqlash",
     },
     campaign: {
       title: "Kampaniya ochish",
@@ -9691,6 +9693,8 @@ export const adminRu: AdminDict = {
       change: "Изменить",
       collapse: "Свернуть",
       noPixel: "Пикселя нет",
+      pixelByHand: "Введите ID пикселя вручную",
+      save: "Сохранить",
     },
     campaign: {
       title: "Создать кампанию",
@@ -14622,6 +14626,8 @@ export const adminEn: AdminDict = {
       change: "Change",
       collapse: "Collapse",
       noPixel: "No pixel",
+      pixelByHand: "Type the pixel id by hand",
+      save: "Save",
     },
     campaign: {
       title: "Create a campaign",

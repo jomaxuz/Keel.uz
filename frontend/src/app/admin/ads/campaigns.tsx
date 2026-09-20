@@ -48,6 +48,7 @@ export function AdsCreate({
   t,
   settings,
   dish,
+  dishId,
   area,
   budget,
   text,
@@ -56,6 +57,9 @@ export function AdsCreate({
   t: AdminDict;
   settings: AdsSettingsView;
   dish: AdsDishPick | null;
+  /** ⚠️ Sent so the server finds the dish by id rather than by the one field a
+   *  menu screen lets somebody rename between planning and launching. */
+  dishId?: string;
   area: AdsAreaPick | null;
   budget: AdsBudgetPick | null;
   text: AdsTextPick | null;
@@ -70,6 +74,23 @@ export function AdsCreate({
   const [error, setError] = useState("");
   const [made, setMade] = useState<AdsCampaign | null>(null);
   const [estimate, setEstimate] = useState<AdsEstimate | null>(null);
+
+  // ---- The budget is typed once ----
+  //
+  // ⚠️ **Only a figure already in this account's currency is carried over.**
+  // The model proposes in so'm and Meta charges in the account's currency,
+  // which for an Uzbek restaurant is dollars; copying one into the other would
+  // be a hundredfold error wearing the owner's own handwriting. So a budget the
+  // owner typed after connecting (`own`) flows straight in, a proposal flows in
+  // only where the account really is in so'm, and otherwise the so'm proposal
+  // stays beside the field as advice.
+  useEffect(() => {
+    if (!budget) return;
+    if (budget.own || settings.currency === "UZS") {
+      setDaily(String(budget.daily));
+    }
+    if (budget.days) setDays(String(budget.days));
+  }, [budget, settings.currency]);
 
   // ---- Two ways to make an advert ----
   //
@@ -158,6 +179,7 @@ export function AdsCreate({
         mode === "post"
           ? {
               sourcePostId: post?.id,
+              dishId,
               dishName: dish?.name ?? "",
               areaLabel: area?.label,
               radiusKm: area?.radiusKm,
@@ -167,6 +189,7 @@ export function AdsCreate({
               start,
             }
           : {
+              dishId,
               dishName: dish?.name ?? "",
               why: dish?.why,
               areaLabel: area?.label,

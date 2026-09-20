@@ -175,7 +175,10 @@ func (h *Handler) AdminAdsConnect(w http.ResponseWriter, r *http.Request) {
 	// instead, with nothing to say why — and the owner has by then closed the
 	// dialog that could have been reopened.
 	client := meta.New(token)
-	businesses, err := client.Businesses(ctx)
+	// ⚠️ A cheap call that proves the token works. Its *result* is not used:
+	// a business integration system user has no "my businesses" to list, and
+	// an empty answer here is the normal one — see meta.AdAccount.Business.
+	_, err = client.AdAccounts(ctx, "")
 	if err != nil {
 		if e := meta.AsError(err); e != nil {
 			httpx.Error(w, http.StatusBadRequest, e.Human())
@@ -194,12 +197,6 @@ func (h *Handler) AdminAdsConnect(w http.ResponseWriter, r *http.Request) {
 	}
 	if claims := middleware.ClaimsFrom(ctx); claims != nil {
 		set["connectedBy"] = claims.UserID
-	}
-	// One portfolio is the ordinary case and choosing it here saves the owner a
-	// step; two or more is a question only they can answer.
-	if len(businesses) == 1 {
-		set["businessId"] = businesses[0].ID
-		set["businessName"] = businesses[0].Name
 	}
 	if err := h.saveAds(ctx, set); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, "saqlanmadi")
@@ -248,38 +245,53 @@ func (h *Handler) AdminAdsAssets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	businesses, err := client.Businesses(ctx)
-	if err != nil {
-		h.noteMetaError(ctx, err)
-		httpx.Error(w, http.StatusBadGateway, err.Error())
-		return
-	}
 	accounts, err := client.AdAccounts(ctx, s.BusinessID)
 	if err != nil {
 		h.noteMetaError(ctx, err)
+		if e := meta.AsError(err); e != nil {
+			httpx.Error(w, http.StatusBadGateway, e.Human())
+			return
+		}
 		httpx.Error(w, http.StatusBadGateway, err.Error())
 		return
 	}
-	// ⚠️ Pages and pixels are asked for but a failure on either is not fatal:
-	// a token without `pages_show_list` still lets the owner choose an account,
-	// and an empty list with the account visible is a far better screen than an
-	// error that hides all four.
-	pages, _ := client.Pages(ctx)
+
+	// ⚠️ **A list that could not be fetched says so, instead of arriving
+	// empty.** Pages and pixels are asked for with the same token and either
+	// can be refused — Meta answers `(#210) A page access token is required`
+	// for one of them on a system user token — and an empty dropdown over a
+	// working connection is the screen an owner reads as "this is broken".
+	// The reason travels beside the list, in a sentence, and the account
+	// remains choosable either way.
+	pages, pagesErr := client.Pages(ctx)
 	var pixels []meta.Pixel
+	var pixelsErr error
 	if s.AdAccountID != "" {
-		pixels, _ = client.Pixels(ctx, s.AdAccountID)
+		pixels, pixelsErr = client.Pixels(ctx, s.AdAccountID)
 	}
 
 	_ = h.saveAds(ctx, bson.M{"lastCheckAt": time.Now(), "status": "ok", "statusNote": ""})
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		// ⚠️ Empty slices rather than nil, all four: a nil slice reaches the
-		// browser as `null` and `null.map` is the crash this codebase has
-		// shipped twice (CLAUDE.md §10).
-		"businesses": nonNil(businesses),
-		"accounts":   nonNil(accounts),
-		"pages":      nonNil(pages),
-		"pixels":     nonNil(pixels),
+		// ⚠️ Empty slices rather than nil: a nil slice reaches the browser as
+		// `null` and `null.map` is the crash this codebase has shipped twice
+		// (CLAUDE.md §10).
+		"accounts":  nonNil(accounts),
+		"pages":     nonNil(pages),
+		"pixels":    nonNil(pixels),
+		"pagesNote": metaNote(pagesErr),
+		"pixelNote": metaNote(pixelsErr),
 	})
+}
+
+// metaNote is Meta's refusal in a sentence, or nothing at all.
+func metaNote(err error) string {
+	if err == nil {
+		return ""
+	}
+	if e := meta.AsError(err); e != nil {
+		return e.Human()
+	}
+	return err.Error()
 }
 
 type adsChooseRequest struct {
@@ -337,6 +349,12 @@ func (h *Handler) AdminAdsChoose(w http.ResponseWriter, r *http.Request) {
 		set["adAccountName"] = acc.Name
 		set["currency"] = acc.Currency
 		set["minDailyBudget"] = acc.MinDailyBudget
+		// The portfolio comes with the account rather than from a list the
+		// owner picks from — see meta.AdAccount.Business.
+		if acc.Business.ID != "" {
+			set["businessId"] = acc.Business.ID
+			set["businessName"] = acc.Business.Name
+		}
 	}
 	if id := strings.TrimSpace(req.PageID); id != "" {
 		set["pageId"] = id

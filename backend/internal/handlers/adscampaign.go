@@ -591,13 +591,26 @@ func (h *Handler) adsDishPhoto(
 		// minute and which makes the advert true.
 		return "", nil, errors.New("bu taomning fotosi yo'q — avval rasm yuklang")
 	}
-	// Whatever shape the field is in — `/uploads/x.jpg`, a bare name or a full
-	// URL — what is on this disk is the last path element.
-	file := path.Base(strings.TrimSuffix(src, "/"))
+	// ---- Where the file actually is ----
+	//
+	// ⚠️ **The path under `uploads/`, not the file name.** This took the last
+	// element of the path, which is right for `/uploads/abc.jpg` and wrong for
+	// every photograph in a folder — and the demo menus, the seeded ones and
+	// anything the importer downloaded all live in one (`/uploads/seed/osh.jpg`).
+	// The lookup then failed on a dish that plainly has a picture, and said so
+	// at the launch button: "no photograph for this dish", about a dish whose
+	// photograph is on the menu screen two clicks away.
+	file := strings.TrimSpace(src)
 	if q := strings.IndexByte(file, '?'); q >= 0 {
 		file = file[:q]
 	}
-	if file == "" || file == "." || file == "/" {
+	// A full URL, a rooted path or a bare name all reduce to the same thing:
+	// whatever follows `uploads/`.
+	if i := strings.Index(file, "/uploads/"); i >= 0 {
+		file = file[i+len("/uploads/"):]
+	}
+	file = strings.TrimPrefix(strings.TrimPrefix(file, "uploads/"), "/")
+	if file == "" || file == "." || strings.HasSuffix(file, "/") {
 		return "", nil, errors.New("bu taomning fotosi topilmadi")
 	}
 	// ⚠️ `OpenRoot`, like the upload server next door: the name comes out of a
@@ -625,13 +638,18 @@ func (h *Handler) adsDishPhoto(
 	if len(data) == 0 {
 		return "", nil, errors.New("bu taomning fotosi topilmadi")
 	}
+	// ⚠️ **Meta is given a file name, never the path.** It keys its answer by
+	// the name it was handed, and a `/` in it comes back as a key we then fail
+	// to find — the upload succeeds and the campaign fails one call later.
+	//
 	// ⚠️ **The name must carry an extension** or Meta rejects the upload with a
 	// message that says nothing about the name (docs/vendor/meta-marketing.md
 	// §4.4). A stored file without one gets `.jpg`, which is what it is.
-	if path.Ext(file) == "" {
-		file += ".jpg"
+	sent := path.Base(file)
+	if path.Ext(sent) == "" {
+		sent += ".jpg"
 	}
-	return file, data, nil
+	return sent, data, nil
 }
 
 // ---- The list, and changing one ----

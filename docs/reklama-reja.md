@@ -403,6 +403,39 @@ kerakligidan boshlanadi) — to'qqizta matn, va ega taom tanlagach **o'sha
 taomning uchtasini** ko'radi. Tanlangan taomga matn topilmasa ekran shuni
 aytadi va matnni o'zi yozish yo'lini ko'rsatadi.
 
+### Jonli ulanishdan chiqqan uchta tuzatish (2026-09-20)
+
+1. ⚠️ **«Bu taomning fotosi topilmadi» — papkadagi rasm topilmasdi.** Kod fayl
+   yo'lidan **oxirgi bo'lakni** olardi (`path.Base`), bu `/uploads/x.jpg` uchun
+   to'g'ri va **papkadagi har bir foto uchun noto'g'ri** — seed menyular,
+   import qilinganlar va demo menyular hammasi `/uploads/seed/osh.jpg` shaklida
+   turadi. Endi `uploads/` dan keyingi **butun yo'l** olinadi (`os.OpenRoot`
+   baribir papkadan chiqishga yo'l bermaydi), Meta'ga esa **faqat fayl nomi**
+   beriladi: u javobini o'zi olgan nom bo'yicha kalitlaydi, va ichidagi `/`
+   yuklanishdan keyin topilmaydigan kalit bo'lib qaytadi.
+   - Qo'shimcha: taom endi **id bo'yicha** topiladi. Ilgari nom bo'yicha
+     qidirilardi — menyuda nom o'zgartirilsa, rejadan kampaniyagacha bo'lgan
+     yo'lda «taom topilmadi» bo'lib chiqardi.
+2. ⚠️ **Byudjet ikki marta yozilardi.** Reja so'mda taklif qiladi, Meta esa
+   akkaunt valyutasida (USD) hisoblaydi — shuning uchun rejadagi raqam
+   kampaniyaga **ko'chirilmasdi**. Endi rejadagi «O'z byudjetim» maydoni
+   **akkaunt valyutasida** (yorlig'ida valyuta yozilgan) va kampaniya qadamiga
+   **to'g'ridan-to'g'ri o'tadi**. ⚠️ Model taklif qilgan so'mdagi raqam esa
+   faqat akkaunt haqiqatan UZS bo'lganda ko'chiriladi — aks holda u maslahat
+   bo'lib maydon yonida qoladi. Birini ikkinchisiga ko'chirish **yuz barobar
+   xato** bo'lardi, va u eganing o'z qo'l yozuvida ko'rinardi.
+3. ⚠️ **Biznes-portfel va piksel ro'yxatlari bo'sh kelardi.**
+   - Portfel: `me/businesses` biz ushlab turgan token uchun **hech nima
+     qaytarmaydi** — business integration system user *o'zi* portfelning
+     foydalanuvchisi, uning «mening bizneslarim»i yo'q. Endi portfel **reklama
+     akkauntining o'zidan** olinadi (`business{id,name}`), ya'ni tanlash
+     dropdown'i umuman kerak emas: akkaunt tanlangani hamono portfel to'ladi.
+   - Piksel: Meta ba'zi tokenlarga ro'yxatni bermaydi
+     (`(#210) A page access token is required`). Ilgari xato **yutilardi** va
+     ega ishlab turgan ulanish ustida bo'sh dropdown ko'rardi. Endi **sabab
+     ro'yxat yonida jumla bo'lib turadi**, va piksel ID sini **qo'lda kiritish**
+     mumkin — u Events Manager'da yozilgan, ya'ni ega baribir yo'lda qolmaydi.
+
 ### Tayyor postni ko'tarish (bajarildi, 2026-09-20)
 
 Ega tayyor postga pul qo'yishni so'radi — targetolog ishining ikkinchi yarmi:
