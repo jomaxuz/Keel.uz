@@ -91,6 +91,8 @@ const uz = {
   showMobile: "Telefonda ko'rsatish",
   clearMobile: "Telefon joylashuvini tozalash",
 
+  imageChoose: "Rasm tanlash",
+  imageUploading: "Yuklanmoqda…",
   themeTitle: "Ranglar",
   themeHint:
     "Shu yerda tokenlarning ma'nosi belgilanadi. Bandlar va elementlar hech qachon hex rang olmaydi — ular «brend» yoki «accent» deydi, va qorong'i rejimda ham to'g'ri qoladi.",
@@ -224,6 +226,8 @@ const ru: EditorDict = {
   showMobile: "Показать на телефоне",
   clearMobile: "Очистить раскладку телефона",
 
+  imageChoose: "Выбрать изображение",
+  imageUploading: "Загружается…",
   themeTitle: "Цвета",
   themeHint:
     "Здесь задаётся, что означают токены. Банды и элементы никогда не получают hex — они говорят «бренд» или «accent», и остаются верными в тёмной теме.",
@@ -355,6 +359,8 @@ const en: EditorDict = {
   showMobile: "Show on a phone",
   clearMobile: "Clear the phone layout",
 
+  imageChoose: "Choose an image",
+  imageUploading: "Uploading…",
   themeTitle: "Colours",
   themeHint:
     "This is where the tokens get their meaning. Bands and elements never carry a hex — they say \"brand\" or \"accent\", which is what keeps them right in dark mode.",

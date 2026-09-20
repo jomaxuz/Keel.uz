@@ -60,6 +60,7 @@ import {
   type StylePreset,
   designSchema,
   designTemplates,
+  uploadTenantImage,
 } from "@/lib/api";
 import SchemaSettings, {
   Control,
@@ -206,6 +207,10 @@ export default function DesignEditorPage() {
   // Which repeatable item inside the band is being edited. Separate from the
   // element selection: a band has blocks *or* freely drawn elements, never both.
   const [pickBlock, setPickBlock] = useState<number | null>(null);
+  // ⚠️ The **schematic** canvas's zoom, which the operator sets with the −/+
+  // buttons. The live pane has its own (`siteZoom`) and it is measured rather
+  // than chosen: one number for two surfaces meant the drag handles were placed
+  // at whatever the other pane happened to be set to.
   const [zoom, setZoom] = useState(0.7);
   // ⚠️ Editing **on the live preview**: handles drawn over the iframe, using the
   // geometry the site reports. Off by default — the preview is also the pane
@@ -409,16 +414,52 @@ export default function DesignEditorPage() {
 
   const previewWidth = device === "phone" ? 390 : 1280;
 
+  // How big the preview pane actually is, measured.
+  //
+  // ⚠️ **The scale used to be the constant 0.62, and the pane had a hole in
+  // it.** A 1280px page at 0.62 is 794px wide whatever the window is, and
+  // `transform` does not change layout — so on any pane wider than that the
+  // site sat in the top-left corner with bare panel showing down the right and
+  // along the bottom. It reads as the preview failing to load rather than as a
+  // scale that happens not to fit, which is the worse of the two.
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [pane_, setPaneSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = paneRef.current;
+    if (!el) return;
+    const read = () =>
+      setPaneSize({ w: el.clientWidth, h: el.clientHeight });
+    read();
+    // ⚠️ A ResizeObserver rather than a window listener: the pane also changes
+    // width when the left column's tab changes, which the window never hears
+    // about — and a stale scale puts the drag handles somewhere the element is
+    // not, which is the one bug that makes an editor feel broken.
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /** The scale the preview is drawn at.
+   *
+   *  ⚠️ **Never above 1.** Blowing a 390px phone page up to fill a desktop
+   *  pane is a preview of something nobody will ever see, at a blur that hides
+   *  exactly the detail the pane exists to check. */
+  const siteZoom = useMemo(() => {
+    if (!pane_.w) return device === "phone" ? 1 : 0.62;
+    return Math.min(1, pane_.w / previewWidth);
+  }, [pane_.w, previewWidth, device]);
+
   const frameStyle = useMemo(
     () => ({
       width: previewWidth,
-      // Scaled to fit rather than shrunk: a preview at 60% still answers "does the
-      // composition hold", and one squeezed into the pane answers nothing.
-      transform: device === "phone" ? "none" : "scale(0.62)",
+      transform: `scale(${siteZoom})`,
       transformOrigin: "top left",
-      height: device === "phone" ? 780 : 1400,
+      // ⚠️ Tall enough that the scaled result fills the pane exactly. A fixed
+      // 1400px left a scaled page 868px tall in a pane that might be 900 — the
+      // same hole as the width, one axis along.
+      height: pane_.h ? Math.round(pane_.h / siteZoom) : 1400,
     }),
-    [device, previewWidth],
+    [previewWidth, siteZoom, pane_.h],
   );
 
   return (
@@ -610,6 +651,7 @@ export default function DesignEditorPage() {
               }
               onElement={(patch) => updateElement(pick.band, pick.el!, patch)}
               onBox={(patch) => moveBox(pick.band, pick.el!, patch)}
+              tenantId={tenantId}
             />
           )}
 
@@ -773,7 +815,7 @@ export default function DesignEditorPage() {
             )}
           </div>
 
-          <div className="flex-1 overflow-auto p-4">
+          <div ref={paneRef} className="flex-1 overflow-auto p-4">
             {pane === "canvas" ? (
               band?.canvas ? (
                 <div
@@ -809,7 +851,16 @@ export default function DesignEditorPage() {
                 </p>
               )
             ) : previewUrl ? (
-              <div className="mx-auto overflow-hidden rounded-2xl border border-line bg-surface" style={{ width: device === "phone" ? 390 : "100%" }}>
+              // ⚠️ **Sized to the scaled result, not to the raw page.** A
+              // transform does not change layout, so a box left at 100% wide
+              // around a 794px rendering is a box with bare panel inside it.
+              <div
+                className="mx-auto overflow-hidden rounded-2xl border border-line bg-surface"
+                style={{
+                  width: Math.round(previewWidth * siteZoom),
+                  height: pane_.h ? pane_.h - 8 : undefined,
+                }}
+              >
                 <iframe
                   ref={frame}
                   src={previewUrl}
@@ -834,7 +885,9 @@ export default function DesignEditorPage() {
                 {liveEdit && (
                   <PreviewOverlay
                     frame={frame}
-                    zoom={device === "phone" ? 1 : 0.62}
+                    // ⚠️ The same number the iframe is drawn at. Two scales
+                    // here is handles that sit where the element is not.
+                    zoom={siteZoom}
                     activeBand={pick.band}
                     selected={pick.el}
                     onSelect={(el) => {
@@ -1266,6 +1319,7 @@ function ElementSettings({
   onStyle,
   onElement,
   onBox,
+  tenantId,
 }: {
   el: DesignElement;
   editing: "desktop" | "mobile";
@@ -1273,6 +1327,8 @@ function ElementSettings({
   onStyle: (patch: Record<string, unknown>) => void;
   onElement: (patch: Partial<DesignElement>) => void;
   onBox: (patch: Partial<DesignBox>) => void;
+  /** Whose uploads a chosen photograph is written into. */
+  tenantId: string;
 }) {
   const { lang } = useT();
   const d = editorDict(lang);
@@ -1516,11 +1572,11 @@ function ElementSettings({
 
       {el.type === "image" && (
         <Row label={d.image}>
-          <input
+          <ImageField
             value={el.image ?? ""}
-            onChange={(e) => onElement({ image: e.target.value })}
-            placeholder="/uploads/abc.jpg"
-            className="input"
+            onChange={(v) => onElement({ image: v })}
+            tenantId={tenantId}
+            d={d}
           />
         </Row>
       )}
@@ -2111,4 +2167,112 @@ function ThemePanel({
       <Colour k="accent" label={d.themeAccent} hint={d.themeAccentHint} />
     </div>
   );
+}
+
+/** A photograph: chosen from the operator's own machine, or a path typed by
+ *  hand.
+ *
+ *  ⚠️ **Both, and the box stays.** Choosing a file is what somebody wants
+ *  nineteen times out of twenty — the brief is a folder of pictures and the
+ *  customer has uploaded nothing yet, because the site is being drawn before
+ *  they have ever logged in. The box is for the twentieth: a photograph the
+ *  restaurant already has, whose path is copied out of their own panel, which
+ *  no upload button can reach.
+ *
+ *  ⚠️ **The file goes into the customer's own uploads, not ours.** A design
+ *  pointing at a picture on keel.uz would be a page that breaks the day we
+ *  move a file, on a site we do not own — and it would serve every one of that
+ *  restaurant's visitors from our bandwidth. */
+function ImageField({
+  value,
+  onChange,
+  tenantId,
+  d,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  tenantId: string;
+  d: EditorDict;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function choose(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await uploadTenantImage(tenantId, file);
+      onChange(res.path);
+    } catch (e) {
+      // ⚠️ The server's own sentence, not "yuklanmadi". It is the only thing
+      // that distinguishes a file that is too large from one that is a PDF,
+      // and both are things the operator can fix in ten seconds if told.
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {/* What is actually there, if anything. A path is not a picture, and a
+          field that shows only a path is a field somebody has to publish to
+          check. */}
+      {value ? (
+        <div className="overflow-hidden rounded-xl border border-line bg-raised">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`https://${tenantSlugHost()}${value}`}
+            alt=""
+            className="h-24 w-full object-cover"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+        </div>
+      ) : null}
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="/uploads/abc.jpg"
+        spellCheck={false}
+        className="input font-mono text-[11px]"
+      />
+      <label className="flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-line py-2 text-[11px] font-semibold text-ink-muted hover:border-signal-500 hover:text-ink">
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+          className="hidden"
+          disabled={busy}
+          onChange={(e) => {
+            void choose(e.target.files?.[0]);
+            // ⚠️ Cleared, so choosing the same file twice fires again. Without
+            // it a failed upload cannot be retried with the same picture, and
+            // the button reads as dead.
+            e.target.value = "";
+          }}
+        />
+        {busy ? d.imageUploading : d.imageChoose}
+      </label>
+      {error && <p className="text-[11px] text-hot-600">{error}</p>}
+    </div>
+  );
+}
+
+/** The host a chosen photograph will be served from.
+ *
+ *  ⚠️ The preview iframe already points at the tenant, so the slug is known —
+ *  but reading it out of the iframe would tie this component to the pane beside
+ *  it. It is taken from the preview URL the editor already holds, and when
+ *  there is none the thumbnail simply does not draw, which is the honest
+ *  outcome rather than a broken image. */
+function tenantSlugHost(): string {
+  const frame = typeof document === "undefined" ? null : document.querySelector("iframe");
+  const src = frame?.getAttribute("src") ?? "";
+  try {
+    return new URL(src).host;
+  } catch {
+    return "";
+  }
 }

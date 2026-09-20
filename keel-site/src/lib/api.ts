@@ -1605,6 +1605,26 @@ export const saveTenantDesign = (
     body: JSON.stringify({ sections, customCss, stylePresets, nav, theme }),
   });
 
+/** Puts one photograph into the customer's own uploads and answers with the
+ *  path a design can point at.
+ *
+ *  ⚠️ Why this exists: the constructor could point a design at an image only by
+ *  typing a path that already existed, so a layout built around a photograph
+ *  could only be drawn for a customer who had already uploaded one through
+ *  their own panel — and the site is drawn *before* the owner ever logs in.
+ *
+ *  ⚠️ The body is a `FormData` and `req` knows not to name a content type for
+ *  one: the boundary is the browser's, and a header written by hand would name
+ *  a different one, which the server reads as a request with no fields in it. */
+export const uploadTenantImage = (tenantId: string, file: File) => {
+  const body = new FormData();
+  body.append("file", file);
+  return req<{ path: string; size: number }>(`/tenants/${tenantId}/uploads`, {
+    method: "POST",
+    body,
+  });
+};
+
 /** A short-lived link that shows the **unpublished** draft on the real site.
  *
  *  ⚠️ This is what makes the editor an editor: a schematic preview cannot answer

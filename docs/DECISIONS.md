@@ -8800,3 +8800,48 @@ har bir muharrirda bor (Figma, Canva, Shopify), va ularning yo'qligi
 **Sudrash paytida raqam ko'rsatiladi** (`x · y %` yoki `w × h %`) — ⚠️ foizda,
 chunki hujjatda foiz saqlanadi; pikseldagi raqamni operator muharrirning hech
 bir joyidan qayta topa olmaydi.
+
+### Konsoldan tenantga rasm yuklash
+
+⚠️ **Konstruktor rasmga faqat allaqachon mavjud yo'lni yozib ko'rsata olardi.**
+Ya'ni fotosurat atrofida qurilgan maket faqat **o'z panelidan allaqachon rasm
+yuklagan** mijozga chizilardi. Do'kon uchun bu teskari: sayt ega **birinchi
+marta kirmasidan oldin** chiziladi, va rasmlar operator ishlayotgan brifda.
+
+**Yozish bir martalik konteyner orqali** (`provision.WriteUpload`), aynan
+`PurgeUploads` naqshi bilan. Sabab: `uploads` ildizi konsolga **faqat o'qish
+uchun** ulangan, va bu — doimiy kafolat: control plane qiladigan hech nima
+mijozning fayllariga yoza olmaydi. Bitta tugma uchun mount'ni bo'shatish —
+kafolatni qulaylikka almashtirish. Docker — bu jarayonda allaqachon bor
+kuch; u bir marta, **bitta tenantning papkasi** doirasida sarflanadi.
+
+⚠️ **Bind — tenantning o'z papkasi**, ildiz + subpath emas: ota-papkani
+ulash bir nusxa ko'chirish davomida har bir restoranning rasmlariga yozish
+huquqini berardi, va qaysi biriga ekanini **satr** hal qilardi.
+
+⚠️ **Baytlar `/tmp` ga, arxiv endpointi orqali kiradi** — ya'ni konteynerning
+**o'z** fayl tizimiga, chunki hali ishga tushmagan konteyner uchun o'sha
+endpoint aynan shunga yozadi. Binddagi yo'lga to'g'ridan-to'g'ri yozish —
+ko'rinib turgan qisqa yo'l va u **aniqlanmagan**: Docker to'xtagan
+konteynerning volume'iga `cp` ni konteyner qatlamiga tushadi deb hujjatlagan,
+ya'ni fayl konteyner bilan birga yo'qolardi va yuklash **muvaffaqiyat** deb
+javob berardi.
+
+⚠️ **Fayl nomi serverda generatsiya qilinadi, brauzerdan olinmaydi.** U shell
+buyrug'iga va fayl yo'liga tushadi; bu savolning yagona xavfsiz varianti —
+uni umuman so'ramaslik. `safeUploadName` ikkinchi qulf: slash papkadan
+chiqaradi, qo'shtirnoq/nuqtali vergul argumentni tugatib yangi buyruq
+boshlaydi, boshidagi tire esa uni flagga aylantiradi.
+
+⚠️ **Tur baytlardan o'qiladi, brauzerning `Content-Type` idan emas** — u
+so'rovni yasagan narsa yozgan taxmin. Va **SVG qabul qilinmaydi**: u
+`image/*` bo'yicha rasm, qolgan har qanday o'lchov bo'yicha bajariladigan
+hujjat — va u **mijozning o'z origini** dan uzatilardi, ya'ni skript ishlamasligi
+kerak bo'lgan yagona joydan.
+
+⚠️ **Nom tasodifiy**: ikki mijozning brifida ham "hero.jpg" bor, va yuklangan
+fayldan olingan nom allaqachon jonli saytdagi rasmning ustiga yozardi.
+
+10 MB shift — bu har bir mijoz bo'lishadigan diskka tushadi; undan kattasi
+kimdir kichraytirishni unutgan fayl, va sayt uni har bir telefondagi
+mehmonga uzatadi.
