@@ -2340,6 +2340,21 @@ tutgan ega qolgan to'rttasiga ham ishonmay qo'yadi.
   huquq (tarif, qo'shimcha, kunlik limit), kassa bilan sotiladigan bo'lim emas.
   Ikki joyda tekshirilsa, kelishmagan kunda ega to'lab turgan narsasini «sotib
   olmagansiz» degan javob bilan uchratadi.
+- ⚠️ **Savol yuborilgan zahoti chatda paydo bo'ladi, javob kelganda emas.**
+  Ilgari `turns` ga faqat **muvaffaqiyatdan keyin** qo'shilardi: ega savolni
+  yozadi, quti bo'shaydi, va model ishlayotgan bir necha soniya davomida
+  ekranda **hech qanday belgi qolmaydi** — yiqilgan savol esa umuman izsiz
+  yo'qolardi. Har qanday chat o'z xabaringizni darhol ko'rsatadi; ko'rsatmagani
+  «yuborish tugmasi ishlamadi» bo'lib o'qiladi.
+  - ⚠️ **Tarix javob olgan almashuvlardan quriladi**: hali javobsiz savolni
+    kontekst sifatida yuborish — modelga uning o'z nomidan bo'sh javob
+    berishdir.
+  - ⚠️ **Rad javobi o'z savoli ostida qoladi** (limit, tarif, xato). Pastdagi
+    banner «oxirgi nima bo'ldi» haqida va keyingi savol berilishi bilan
+    yolg'on bo'ladi; savolga biriktirilgani esa suhbat turgunicha rost.
+  - Buning testi bor (`SupportWidget.test.ts`): xato faqat model chaqiruvini
+    soxtalashtirgan holdagina ko'rinadi, ya'ni oddiy render testi uni
+    ushlamaydi.
 
 ### Sozlanadigan KPI dashboard
 - `admin_user.dashboard {hidden, order}` — **har admin uchun alohida**, kompaniya

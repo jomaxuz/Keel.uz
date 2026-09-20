@@ -575,10 +575,16 @@ function AdvisorPane() {
    *  Everything else keeps the box, because a box that might work beats a tab
    *  that explains why it does not. */
   const [blocked, setBlocked] = useState(false);
-  const [turns, setTurns] = useState<{ question: string; answer: string }[]>([]);
+  // One exchange. ⚠️ **The question is a turn from the moment it is sent, not
+  // from the moment it is answered.** It used to be appended only on success,
+  // so typing a question emptied the box and left the thread exactly as it was
+  // — for the several seconds a model takes, the panel showed no sign that
+  // anything had been asked, and a failed question vanished without trace.
+  // Every chat anybody has ever used shows their own message immediately; one
+  // that does not reads as a send button that did nothing.
+  const [turns, setTurns] = useState<AdvisorTurn[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState("");
   const [asOf, setAsOf] = useState("");
   const end = useRef<HTMLDivElement>(null);
 
@@ -626,28 +632,51 @@ function AdvisorPane() {
     const text = question.trim();
     if (!text || busy) return;
     setBusy(true);
-    setNote("");
     setDraft("");
+
+    // ⚠️ **Built before the question joins the thread.** The history is the
+    // exchanges that actually happened; the one being asked has no answer yet,
+    // and sending it back as context would hand the model an empty reply
+    // attributed to itself.
+    const history = turns
+      .filter((x) => x.answer)
+      .map((x) => ({ question: x.question, answer: x.answer }));
+
+    // The question appears now, with the answer still to come.
+    const at = turns.length;
+    setTurns((prev) => [...prev, { question: text, answer: "", pending: true }]);
+
+    const settle = (patch: Partial<AdvisorTurn>) =>
+      setTurns((prev) =>
+        prev.map((turn, i) =>
+          i === at ? { ...turn, pending: false, ...patch } : turn,
+        ),
+      );
+
     try {
       const res: AdvisorAnswer = await api.advisorAsk({
         question: text,
         // ⚠️ Sent as question/answer pairs rather than as a transcript: the
         // server caps the count, and a flat transcript would make "how many
         // turns is this" a second thing to agree about.
-        history: turns,
+        history,
       });
+      // ⚠️ **The reason goes on the question, not into a banner at the
+      // bottom.** A banner is about "the last thing that happened" and is
+      // wrong the moment anything else happens; attached to the question that
+      // caused it, it stays true for as long as the thread does.
       if (res.entitled === false) {
-        setNote(t.advisor.locked);
+        settle({ failed: t.advisor.locked });
       } else if (res.capped) {
-        setNote(t.advisor.capped(res.cap ?? 0));
+        settle({ failed: t.advisor.capped(res.cap ?? 0) });
       } else if (res.error || !res.answer) {
-        setNote(res.error || t.advisor.failed);
+        settle({ failed: res.error || t.advisor.failed });
       } else {
-        setTurns((prev) => [...prev, { question: text, answer: res.answer! }]);
+        settle({ answer: res.answer });
         if (res.asOf) setAsOf(res.asOf);
       }
     } catch {
-      setNote(t.advisor.failed);
+      settle({ failed: t.advisor.failed });
     } finally {
       setBusy(false);
     }
@@ -710,20 +739,46 @@ function AdvisorPane() {
                 {turn.question}
               </div>
             </div>
-            <div className="flex">
-              <div className="max-w-[90%] rounded-2xl border border-line bg-raised px-3 py-2 text-sm leading-relaxed text-ink">
-                <p className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold text-ink-muted">
-                  <LuSparkles className="h-3 w-3" />
-                  {t.advisor.title}
-                </p>
-                <p className="whitespace-pre-wrap break-words">{turn.answer}</p>
+            {/* ⚠️ A question that was refused keeps its own reason under it.
+                The banner at the bottom says the same thing once; attached to
+                the question it stays true after the next one is asked. */}
+            {turn.failed ? (
+              <div className="flex">
+                <div className="max-w-[90%] rounded-2xl border border-line bg-raised px-3 py-2 text-sm text-ink-muted">
+                  {turn.failed}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex">
+                <div className="max-w-[90%] rounded-2xl border border-line bg-raised px-3 py-2 text-sm leading-relaxed text-ink">
+                  <p className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold text-ink-muted">
+                    <LuSparkles className="h-3 w-3" />
+                    {t.advisor.title}
+                  </p>
+                  {turn.pending ? (
+                    // The answer's own place, waiting. ⚠️ Here rather than as a
+                    // line under the thread: a status that sits somewhere else
+                    // leaves the question looking unanswered rather than
+                    // being answered.
+                    <span className="flex items-center gap-1 text-ink-muted">
+                      {t.advisor.thinking}
+                      <span className="inline-flex gap-0.5" aria-hidden>
+                        <Dot delay="0ms" />
+                        <Dot delay="150ms" />
+                        <Dot delay="300ms" />
+                      </span>
+                    </span>
+                  ) : (
+                    <p className="whitespace-pre-wrap break-words">
+                      {turn.answer}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </Fragment>
         ))}
 
-        {busy && <p className="text-xs text-ink-muted">{t.advisor.thinking}</p>}
-        {note && <p className="text-sm text-rose-600">{note}</p>}
         {/* ⚠️ When the figures were taken, once and at the bottom. The advice is
             "as of this morning" — a snapshot built once a day so that the same
             question does not get two answers before lunch — and an owner who is
@@ -763,6 +818,29 @@ function AdvisorPane() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** One exchange in the advisor thread.
+ *
+ *  ⚠️ **A turn exists from the moment the question is sent.** `pending` is the
+ *  gap between asking and hearing back, and `failed` is a question that was
+ *  refused — both keep the owner's own words on screen, which is the one thing
+ *  every chat does and this one used to not. */
+type AdvisorTurn = {
+  question: string;
+  answer: string;
+  pending?: boolean;
+  failed?: string;
+};
+
+/** The three dots, while the answer is on its way. */
+function Dot({ delay }: { delay: string }) {
+  return (
+    <span
+      className="inline-block h-1 w-1 animate-bounce rounded-full bg-ink-muted"
+      style={{ animationDelay: delay }}
+    />
   );
 }
 
