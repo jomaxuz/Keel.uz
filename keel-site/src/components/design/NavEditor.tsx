@@ -46,8 +46,22 @@ export default function NavEditor({
   const patch = (i: number, p: Partial<NavLink>) =>
     setNav(nav.map((l, k) => (k === i ? { ...l, ...p } : l)));
 
+  // ⚠️ **Never `l.label.uz`, and this took the whole editor down once.**
+  //
+  // A link's three-language label is an object in a document written by
+  // something else — an older console, a template, a restored backup, a hand
+  // edit — and a link without one is not hypothetical. Read directly it threw
+  // `Cannot read properties of undefined (reading 'uz')` inside the list's
+  // `map`, which is not a broken row: React unmounts the whole tree, so the
+  // constructor turned into the platform's error page mid-edit, with the
+  // operator's unsaved work in it.
+  //
+  // Exactly the nil-slice lesson from CLAUDE.md, one field along: what the
+  // server sends is never assumed to be shaped the way this component wants.
+  const labelOf = (l: NavLink) => l.label ?? { uz: "", ru: "", en: "" };
+
   const label = (i: number, lang: "uz" | "ru" | "en", v: string) =>
-    patch(i, { label: { ...nav[i].label, [lang]: v } });
+    patch(i, { label: { ...labelOf(nav[i]), [lang]: v } });
 
   /** ⚠️ Swap rather than splice-and-insert: the bar's order is the only thing
    *  a move is meant to change, and a splice on the last row silently drops it
@@ -84,21 +98,21 @@ export default function NavEditor({
                   bar that is right in Uzbek and blank in Russian is invisible
                   to whoever typed it — the guest is the one who finds out. */}
               <input
-                value={l.label.uz}
+                value={labelOf(l).uz}
                 onChange={(e) => label(i, "uz", e.target.value)}
                 placeholder="UZ"
                 className="min-w-0 flex-1 rounded-lg border border-line bg-raised px-2 py-1 text-[11px] text-ink"
                 aria-label={`${d.navLabel} UZ`}
               />
               <input
-                value={l.label.ru}
+                value={labelOf(l).ru}
                 onChange={(e) => label(i, "ru", e.target.value)}
                 placeholder="RU"
                 className="min-w-0 flex-1 rounded-lg border border-line bg-raised px-2 py-1 text-[11px] text-ink"
                 aria-label={`${d.navLabel} RU`}
               />
               <input
-                value={l.label.en}
+                value={labelOf(l).en}
                 onChange={(e) => label(i, "en", e.target.value)}
                 placeholder="EN"
                 className="min-w-0 flex-1 rounded-lg border border-line bg-raised px-2 py-1 text-[11px] text-ink"
@@ -107,7 +121,7 @@ export default function NavEditor({
             </div>
 
             <input
-              value={l.href}
+              value={l.href ?? ""}
               onChange={(e) => patch(i, { href: e.target.value })}
               placeholder="/menu?cat=ayollar"
               spellCheck={false}
@@ -120,7 +134,7 @@ export default function NavEditor({
                   a new tab on a path of ours lands the guest in a second copy
                   of the shop with an empty basket. The server clears it too —
                   this is so nobody ticks it and wonders where it went. */}
-              {l.href.startsWith("http") && (
+              {(l.href ?? "").startsWith("http") && (
                 <label className="flex items-center gap-1">
                   <input
                     type="checkbox"
