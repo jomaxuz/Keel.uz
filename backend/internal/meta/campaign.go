@@ -54,6 +54,21 @@ func (c *Client) CreateCampaign(ctx context.Context, act string, s CampaignSpec)
 		"status":                {"PAUSED"},
 		"buying_type":           {"AUCTION"},
 		"special_ad_categories": {JSONField([]string{"NONE"})},
+		// ⚠️ **Required whenever the budget is on the ad set rather than the
+		// campaign, and refused as a missing field otherwise.** Meta says so
+		// in as many words: "You must specify True or False in the field
+		// is_adset_budget_sharing_enabled if you are not using campaign
+		// budget." Ours is always on the ad set — see the note above about
+		// never setting both.
+		//
+		// ⚠️ **False, and that is a decision rather than a default.** True
+		// lets ad sets lend each other a fifth of their budget; our campaigns
+		// carry exactly one ad set, so there is nobody to lend to — and the
+		// day one carries two, "the daily budget I set" would stop being the
+		// amount spent on the thing it was set for. The owner's ceiling is
+		// binding everywhere else in this section; it does not get to be
+		// approximate here.
+		"is_adset_budget_sharing_enabled": {"false"},
 	}
 	var out Created
 	err := c.Post(ctx, act+"/campaigns", form, &out)

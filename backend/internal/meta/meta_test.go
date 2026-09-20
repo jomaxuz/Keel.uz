@@ -3,6 +3,7 @@ package meta
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"os"
 	"strings"
 	"testing"
 )
@@ -107,5 +108,34 @@ func TestTargetingSendsACircleAndNoCountry(t *testing.T) {
 	if auto == nil || auto["advantage_audience"] != 1 {
 		t.Fatal("Meta is no longer asked to choose the audience — which is " +
 			"the API flag a targetolog charges for pressing")
+	}
+}
+
+// ⚠️ **Meta refuses a campaign that does not say whether its ad sets may share
+// a budget**, whenever the budget is on the ad set rather than the campaign —
+// which is always, here. It arrives as a message about a field nobody has
+// heard of, at the moment an owner presses the button that spends money.
+//
+// ⚠️ **And the answer is false.** True lets ad sets lend each other a fifth of
+// their budget; ours carry one ad set, and a ceiling the owner set does not get
+// to be approximate.
+func TestACampaignSaysWhetherItsAdSetsShareBudget(t *testing.T) {
+	src, err := os.ReadFile("campaign.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn := string(src)
+	at := strings.Index(fn, "func (c *Client) CreateCampaign")
+	if at < 0 {
+		t.Fatal("CreateCampaign is gone")
+	}
+	body := fn[at:]
+	if end := strings.Index(body, "\n}\n"); end > 0 {
+		body = body[:end]
+	}
+	if !strings.Contains(body, `"is_adset_budget_sharing_enabled": {"false"}`) {
+		t.Fatal("the campaign no longer states that its ad sets do not share " +
+			"a budget; Meta refuses the create with a message about a field " +
+			"the owner has never heard of")
 	}
 }

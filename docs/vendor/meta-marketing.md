@@ -128,6 +128,13 @@ yangilashda). `buying_type`: `AUCTION` (standart) | `RESERVED`.
 Byudjet: `daily_budget` yoki `lifetime_budget` **kampaniya darajasida** (CBO) —
 ⚠️ kampaniya va ad set darajasida **bir vaqtda** byudjet qo'yib bo'lmaydi.
 
+⚠️ **`is_adset_budget_sharing_enabled` — byudjet ad set darajasida bo'lsa
+majburiy** (o'qildi 2026-09-20, jonli xatodan): «You must specify True or False
+in the field is_adset_budget_sharing_enabled if you are not using campaign
+budget.» `true` — ad setlar bir-biriga byudjetining 20% ini bera oladi.
+Bizda **`false`**: kampaniyada bitta ad set bor, ya'ni beradigan kishi yo'q, va
+ega qo'ygan chegara taxminiy bo'lib qolmasligi kerak.
+
 Havola: <https://developers.facebook.com/docs/marketing-api/reference/ad-campaign-group/>
 
 ### 4.2 Ad set — `POST /act_{ad_account_id}/adsets`
