@@ -200,7 +200,12 @@ export default function DesignRenderer({
   const bands = sections.filter((s) => s.type !== "popup");
 
   return (
-    <main>
+    // ⚠️ A backstop for the same failure the canvas clips at source: any band
+    // whose contents run wider than the page would otherwise widen the
+    // document and give the whole site a horizontal scrollbar. `clip`, never
+    // `hidden` — `hidden` would make this a scroll container and break the
+    // sticky header above it.
+    <main className="overflow-x-clip">
       {/* ⚠️ The designer's own corrections, and the one free-form value in the
           whole document. It is refused outright by the backend if it contains
           anything that could close this element (see sanitizeCSS), and it can only

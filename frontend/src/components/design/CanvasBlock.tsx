@@ -200,9 +200,19 @@ export default function CanvasBlock({
           positioned and the phone version is flow, and no single DOM structure is
           both. Doing it with CSS rather than JavaScript keeps it correct during
           server rendering, which is where this page is drawn. */}
+      {/* ⚠️ **`overflow-x-clip`, and it is not tidiness.** A box may be placed
+          past the edge of the band on purpose — `sanitizeBox` allows -50% to
+          150% because a shape bleeding off the side is a real technique, and
+          the shop templates are built on one. Absolutely positioned, that
+          overflow widened the document: the whole site got a horizontal
+          scrollbar and could be dragged sideways into empty page. Clipped on
+          the x axis only, so a bleed still reads as a bleed and an element that
+          overhangs the band vertically is untouched. `clip` rather than
+          `hidden` because `hidden` makes this a scroll container, which breaks
+          `position: sticky` on anything above it — the header. */}
       <div
         data-keel-band={bandIndex}
-        className={`relative hidden w-full lg:block ${TONE_CLASS[canvas?.background ?? ""] ?? ""}`}
+        className={`relative hidden w-full overflow-x-clip lg:block ${TONE_CLASS[canvas?.background ?? ""] ?? ""}`}
         style={{ height: `${height}vh` }}
       >
         <BandImage canvas={canvas} />
@@ -222,7 +232,7 @@ export default function CanvasBlock({
       {hasMobile ? (
         <div
           data-keel-band={bandIndex}
-          className={`relative w-full lg:hidden ${TONE_CLASS[canvas?.background ?? ""] ?? ""}`}
+          className={`relative w-full overflow-x-clip lg:hidden ${TONE_CLASS[canvas?.background ?? ""] ?? ""}`}
           style={{ height: `${mobileHeight || height}vh` }}
         >
           <BandImage canvas={canvas} />
