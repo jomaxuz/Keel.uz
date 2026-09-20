@@ -5032,6 +5032,7 @@ export const ALERT_KINDS = [
   "void_after_precheck",
   "big_discount",
   "debt_written",
+  "ads_paused",
   "cash_short",
   "cash_out",
   "shift_overdue",
@@ -5094,8 +5095,196 @@ export type AdsState = {
   entitled: boolean;
   /** This install is connected to the Keel platform at all. */
   on: boolean;
-  /** A Meta ad account is connected. False until the connect flow ships. */
+  /** A Meta token is stored. */
   connected: boolean;
+  /** Connected *and* pointed at an ad account and a Page — the state in which
+   *  a campaign can actually be created. */
+  ready: boolean;
+  /** The connect checklist. ⚠️ **Every step is a fact read back from Meta**,
+   *  which is the only kind of progress bar worth drawing: a bar that counted
+   *  screens the owner had visited would sit at five-fifths over a connection
+   *  that cannot run an advert. */
+  steps: AdsStep[];
+  settings: AdsSettingsView;
+};
+
+export type AdsStep = {
+  /** "token" | "business" | "account" | "page" | "pixel". */
+  key: string;
+  done: boolean;
+  /** What was chosen, by name — an id on a checklist tells nobody whether it
+   *  is the right one. */
+  name?: string;
+};
+
+/** The connection, as the browser is allowed to see it.
+ *
+ *  ⚠️ **There is no token field and there is no endpoint that returns one.**
+ *  Same rule as the payment keys: one forgotten tag would be a credential that
+ *  can spend money leaving the server. */
+export type AdsSettingsView = {
+  hasToken: boolean;
+  businessId?: string;
+  businessName?: string;
+  adAccountId?: string;
+  adAccountName?: string;
+  /** What Meta bills this account in. ⚠️ **Almost never UZS** — Meta does not
+   *  list the som among ad-account currencies, so every budget on this screen
+   *  is in dollars or another currency the owner's card is charged in. */
+  currency?: string;
+  /** Meta's own floor for a daily budget, in that currency's minor units. */
+  minDailyBudget?: number;
+  /** How many minor units make one of `currency`. ⚠️ **Sent by the server, not
+   *  known here**: a currency table in the browser is a second copy of the one
+   *  that decides how much money moves. */
+  unit?: number;
+  pageId?: string;
+  pageName?: string;
+  instagramId?: string;
+  pixelId?: string;
+  pixelName?: string;
+  /** "" | "ok" | "revoked" | "error", and when we last had an answer.
+   *  ⚠️ The date matters as much as the word: a stored "ok" ages the moment
+   *  the clock passes it. */
+  status?: string;
+  statusNote?: string;
+  lastCheckAt?: string;
+  connectedAt?: string;
+  rules: AdsRules;
+};
+
+/** The standing instruction the rules act within.
+ *
+ *  ⚠️ **Every number is a ceiling, never a target.** The rules may stop a
+ *  campaign and may lower a budget; the only upward move is inside
+ *  `maxDailyMinor`, which the owner typed. */
+export type AdsRules = {
+  on: boolean;
+  /** All four are in the ad account currency's **minor units** — the units
+   *  Meta counts in, not the ones the owner reads. The screen converts. */
+  maxDailyMinor?: number;
+  noResultMinor?: number;
+  maxCostMinor?: number;
+  tune?: boolean;
+};
+
+/** What the token can see at Meta, for the owner to point at. */
+export type AdsAssets = {
+  businesses: { id: string; name: string }[];
+  accounts: {
+    /** `act_123…` — what every Graph path wants. */
+    id: string;
+    /** The bare number, which is what Ads Manager shows. */
+    account_id: string;
+    name: string;
+    currency: string;
+    account_status: number;
+    min_daily_budget: number;
+  }[];
+  pages: {
+    id: string;
+    name: string;
+    instagram_business_account?: { id: string };
+  }[];
+  pixels: { id: string; name: string }[];
+};
+
+/** One thing the rules did, and why. */
+export type AdsDecision = {
+  at: string;
+  /** "pause" | "stop" | "budget". */
+  action: string;
+  why: string;
+  from?: number;
+  to?: number;
+};
+
+/** Our record of a campaign — a decision, not Meta's copy of an object.
+ *
+ *  ⚠️ Meta already holds the campaign; what it does not hold is **why** this
+ *  dish, on what evidence, and what ceiling the owner set. */
+export type AdsCampaign = {
+  id: string;
+  name: string;
+  dishName?: string;
+  why?: string;
+  areaLabel?: string;
+  radiusKm?: number;
+  /** Minor units of `currency`. */
+  dailyMinor: number;
+  capMinor?: number;
+  currency?: string;
+  days?: number;
+  headline?: string;
+  body?: string;
+  link?: string;
+  /** Ours: "draft" | "active" | "paused" | "stopped" | "failed". */
+  status: string;
+  /** Meta's own word for the advert, and the reason when it was refused.
+   *  ⚠️ Kept apart: "is my advert running" is not the same question as which
+   *  object in Meta's chain is paused. */
+  metaStatus?: string;
+  reviewNote?: string;
+  createdAt: string;
+  startedAt?: string;
+  endsAt?: string;
+  stoppedAt?: string;
+  /** Totals rebuilt from the daily rows on every sync. Spend is in the ad
+   *  account's currency; revenue is in the currency our own events carried. */
+  spend: number;
+  purchases: number;
+  revenue: number;
+  lastSyncAt?: string;
+  decisions?: AdsDecision[];
+};
+
+export type AdsCampaignList = {
+  campaigns: AdsCampaign[];
+  currency?: string;
+  /** How many minor units make one of `currency`. */
+  unit: number;
+};
+
+/** What the money bought, day by day.
+ *
+ *  ⚠️ **Two systems, and the screen never subtracts one from the other.** The
+ *  spend is Meta's in Meta's currency; the orders are Meta's attribution of
+ *  events this server reported. A single "profit from advertising" figure
+ *  would be made of two currencies and somebody else's attribution model. */
+export type AdsReport = {
+  days: {
+    day: string;
+    spend: number;
+    impressions: number;
+    clicks: number;
+    purchases: number;
+    revenue: number;
+  }[];
+  total: {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    purchases: number;
+    revenue: number;
+  };
+  currency?: string;
+  /** Whose attribution these orders are. Always "meta" today. */
+  attribution: string;
+  /** Whether a pixel is connected at all — without one there are no orders to
+   *  attribute and the screen says so instead of showing a zero. */
+  pixel: boolean;
+  lastSyncAt?: string;
+};
+
+/** Which Meta app to open the login dialog for. ⚠️ Read from the server rather
+ *  than the bundle: a `NEXT_PUBLIC_*` value is sealed into the build. */
+export type AdsApp = {
+  entitled?: boolean;
+  monthly?: number;
+  configured?: boolean;
+  appId?: string;
+  configId?: string;
+  version?: string;
 };
 
 /** One dish's week, as the plan was written from it.

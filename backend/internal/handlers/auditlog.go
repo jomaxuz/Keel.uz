@@ -140,6 +140,20 @@ const (
 	ActProviderCreate = "provider.create"
 	ActProviderUpdate = "provider.update"
 	ActProviderDelete = "provider.delete"
+
+	// ---- Advertising ----
+	//
+	// ⚠️ **Every one of these spends the owner's money or decides who may.**
+	// Connecting an account, pointing it at a different Page, starting a
+	// campaign and moving a budget are the four actions in this panel whose
+	// consequence arrives on a card statement, which is exactly the kind a log
+	// exists for. See handlers/adsconnect.go.
+	ActAdsConnect    = "ads.connect"
+	ActAdsDisconnect = "ads.disconnect"
+	ActAdsChoose     = "ads.choose"
+	ActAdsRules      = "ads.rules"
+	ActAdsCreate     = "ads.campaign.create"
+	ActAdsUpdate     = "ads.campaign.update"
 )
 
 // logAction records what the acting admin just did. Never fails the request:

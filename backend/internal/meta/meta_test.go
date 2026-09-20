@@ -1,0 +1,111 @@
+package meta
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"strings"
+	"testing"
+)
+
+// ⚠️ **A phone that reaches Meta without a country code matches nobody, and
+// nothing says so.** The event is accepted, the order is simply never
+// attributed, and the whole section then looks like it does not work rather
+// than like it is misconfigured. Uzbek numbers are stored at least three ways
+// in this database and all three are one person.
+func TestUzbekNumbersReachMetaInOneShape(t *testing.T) {
+	want := "998901234567"
+	for _, in := range []string{
+		"+998 90 123 45 67", "998901234567", "90 123 45 67", "901234567",
+		"(998) 90-123-45-67", "0901234567",
+	} {
+		if got := phoneDigits(in); got != want {
+			t.Fatalf("%q normalised to %q, want %q — this order will be "+
+				"reported and never attributed", in, got, want)
+		}
+	}
+}
+
+// ⚠️ **Nothing identifying a guest may leave this server in the clear.** The
+// person ordered dinner; they did not agree to be named to Meta. What goes is
+// a hash of a normalised string, which is all Meta matches on anyway.
+func TestNothingAboutAGuestLeavesUnhashed(t *testing.T) {
+	u := Person("Aziz Karimov", "+998901234567", "Toshkent")
+	sum := sha256.Sum256([]byte("998901234567"))
+	if len(u.Phone) != 1 || u.Phone[0] != hex.EncodeToString(sum[:]) {
+		t.Fatal("the phone number did not reach Meta as a SHA-256 of the " +
+			"normalised number")
+	}
+	for _, field := range [][]string{u.Phone, u.FirstName, u.City, u.Country, u.ExternalID} {
+		for _, v := range field {
+			if len(v) != 64 || strings.ContainsAny(v, "+ @") {
+				t.Fatalf("%q is not a hash — something about a guest is "+
+					"travelling in the clear", v)
+			}
+		}
+	}
+}
+
+// ⚠️ **An empty value has a hash too, and sending it is sending a field that
+// matches nobody while looking like data.** Absent is the correct shape.
+func TestAnEmptyFieldIsAbsentRatherThanHashed(t *testing.T) {
+	u := Person("", "", "")
+	if u.Phone != nil || u.FirstName != nil || u.City != nil || u.ExternalID != nil {
+		t.Fatal("an empty field was hashed and sent")
+	}
+}
+
+// ⚠️ **Meta counts money in the account currency's minor units.** Fifty
+// thousand is $500.00 on a dollar account and ₩50,000 on a won one; getting
+// this wrong does not fail, it spends a hundred times what was typed.
+func TestMinorUnitsKnowsTheCurrenciesWithNoCents(t *testing.T) {
+	if MinorUnits("USD") != 100 || MinorUnits("usd") != 100 {
+		t.Fatal("a dollar account stopped being counted in cents")
+	}
+	for _, zero := range []string{"JPY", "KRW", "COP", "VND"} {
+		if MinorUnits(zero) != 1 {
+			t.Fatalf("%s was given a minor unit it does not have", zero)
+		}
+	}
+	// An unknown code falls back to cents, which is the common case — and the
+	// account's own `min_daily_budget` catches the rest before money moves.
+	if MinorUnits("") != 100 {
+		t.Fatal("an unknown currency stopped defaulting to cents")
+	}
+}
+
+// ⚠️ **Revoked and rate-limited are different answers to different questions.**
+// One means reconnect the account, the other means wait an hour; a single
+// "Meta error" sentence sends the owner to neither.
+func TestTheTwoFailuresThatNeedDifferentAnswersStayApart(t *testing.T) {
+	revoked := &Error{Code: 190}
+	if !revoked.Revoked() || revoked.RateLimited() {
+		t.Fatal("a revoked token is no longer told apart from a rate limit")
+	}
+	for _, code := range []int{4, 17, 32, 613, 80000, 80004, 80014} {
+		if e := (&Error{Code: code}); !e.RateLimited() {
+			t.Fatalf("code %d is no longer read as a rate limit", code)
+		}
+	}
+	if (&Error{Code: 100}).RateLimited() {
+		t.Fatal("an ordinary bad-request became a rate limit")
+	}
+}
+
+// ⚠️ **A country and a place inside it may not travel together**: Meta rejects
+// the pair as an overlap, and the message does not say which two fields
+// overlapped.
+func TestTargetingSendsACircleAndNoCountry(t *testing.T) {
+	spec := Targeting{Lat: 41.31, Lng: 69.24, RadiusKm: 5}.spec()
+	geo, _ := spec["geo_locations"].(map[string]any)
+	if geo == nil || geo["countries"] != nil {
+		t.Fatal("a country reached the targeting spec beside a custom location")
+	}
+	if geo["custom_locations"] == nil {
+		t.Fatal("the circle around the kitchen is gone")
+	}
+	auto, _ := spec["targeting_automation"].(map[string]any)
+	if auto == nil || auto["advantage_audience"] != 1 {
+		t.Fatal("Meta is no longer asked to choose the audience — which is " +
+			"the API flag a targetolog charges for pressing")
+	}
+}

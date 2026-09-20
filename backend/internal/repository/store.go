@@ -192,6 +192,15 @@ type Store struct {
 	// spend money on it. See handlers/adsplan.go.
 	AdsPlans *mongo.Collection
 
+	// The Meta connection, the campaigns we built and what each day cost.
+	//
+	// ⚠️ **The connection is its own document and never `restaurant`**: that
+	// profile goes to every visitor of the public site, and this one holds a
+	// token that can spend money from the owner's card. See models/ads.go.
+	AdsSettings  *mongo.Collection
+	AdsCampaigns *mongo.Collection
+	AdsDaily     *mongo.Collection
+
 	Vacancies       *mongo.Collection
 	ImportAssets    *mongo.Collection
 	JobApplications *mongo.Collection
@@ -286,6 +295,9 @@ func New(db *mongo.Database) *Store {
 		AdvisorSnapshots:  db.Collection("advisor_snapshot"),
 		AdvisorAnswers:    db.Collection("advisor_answer"),
 		AdsPlans:          db.Collection("ads_plan"),
+		AdsSettings:       db.Collection("ads_settings"),
+		AdsCampaigns:      db.Collection("ad_campaign"),
+		AdsDaily:          db.Collection("ad_daily"),
 		Vacancies:         db.Collection("vacancy"),
 		// Photographs the menu importer downloaded. ⚠️ Its own record because
 		// the sweeper must never be able to consider a file the owner uploaded

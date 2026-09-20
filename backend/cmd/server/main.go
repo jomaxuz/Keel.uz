@@ -198,6 +198,18 @@ func main() {
 	// only rings for somebody who already has it open; this is for the hours
 	// when nobody does. See handlers/queuewatch.go.
 	h.StartQueueWatch(syncCtx)
+	// ---- Advertising ----
+	//
+	// Pulls what each campaign cost and brought back into a daily snapshot,
+	// reports finished orders to Meta so the campaign can be measured in
+	// dinners rather than clicks, and applies the ceilings the owner set.
+	//
+	// ⚠️ **All three do nothing at all on an install with no Meta account
+	// connected**, which is almost every one: they read the connection first
+	// and return. See handlers/adsinsights.go, adscapi.go and adsrules.go.
+	h.StartAdsSync(syncCtx)
+	h.StartAdsEvents(syncCtx)
+	h.StartAdsRules(syncCtx)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

@@ -39,6 +39,7 @@ type notifyWords struct {
 	CashOut           string
 	BigWriteoff       string
 	DebtWritten       string
+	AdsPaused         string
 	// ⚠️ **Hours, not money.** Nothing has been lost yet, and a figure would
 	// read as an accusation about one; what has been lost is the ability to
 	// check, and the unit that says so is time.
@@ -87,6 +88,7 @@ func notifyWordsFor(lang string) notifyWords {
 			CashOut:           "Крупная выдача из кассы",
 			BigWriteoff:       "Крупное списание",
 			DebtWritten:       "Крупная сумма в долг",
+			AdsPaused:         "Реклама остановлена автоматически",
 			Hours:             "ч",
 			Table:             "Стол",
 			AfterPrecheck:     "счёт уже был распечатан",
@@ -117,6 +119,7 @@ func notifyWordsFor(lang string) notifyWords {
 			CashOut:           "Large cash withdrawal from the till",
 			BigWriteoff:       "Large write-off",
 			DebtWritten:       "Large sum put on the slate",
+			AdsPaused:         "An advertising campaign was stopped automatically",
 			Hours:             "h",
 			Table:             "Table",
 			AfterPrecheck:     "the bill had already been printed",
@@ -147,6 +150,7 @@ func notifyWordsFor(lang string) notifyWords {
 		CashOut:           "Kassadan katta summa chiqarildi",
 		BigWriteoff:       "Katta spisaniya",
 		DebtWritten:       "Qarzga katta summa yozildi",
+		AdsPaused:         "Reklama avtomatik to'xtatildi",
 		Hours:             "soat",
 		Table:             "Stol",
 		AfterPrecheck:     "hisob chiqarilgan edi",

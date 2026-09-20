@@ -130,6 +130,16 @@ const (
 	// usual size is the evening's shortfall moved onto somebody who will not see
 	// it until Friday.
 	AlertDebtWritten AlertKind = "debt_written"
+
+	// An advertising campaign the rules stopped or re-budgeted on their own.
+	//
+	// ⚠️ **The one alert here about money that was *not* lost yet.** Everything
+	// else on this list is a shortfall somebody has to explain; this is the
+	// system spending the owner's card at Meta and then changing its mind. An
+	// advert that stops with nobody told reads as our bug and is discovered by
+	// the owner wondering why orders fell off — days later, and with the
+	// explanation only in a log they have never opened.
+	AlertAdsPaused AlertKind = "ads_paused"
 )
 
 // LossAlert is one thing worth telling the owner about now.
@@ -348,6 +358,7 @@ var AlertKindsInOrder = []AlertKind{
 	AlertBigWriteoff,
 	AlertRecipeUp,
 	AlertPanelAction,
+	AlertAdsPaused,
 }
 
 // IsAlertKind reports whether k is a kind this server raises.

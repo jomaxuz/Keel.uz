@@ -15002,3 +15002,81 @@ solishtiriladi, sozlanmagani `noma'lum`, hujjatda `_id` yo'q, ruxsat faqat ega);
 backend `build` + `vet` + testlar; keel-site `tsc` + vitest + `next build`.
 ⏳ Tugma **jonli GitHub'da hali bosilmagan** — token qo'yilishi va birinchi
 reliz kuzatilishi kerak.
+
+---
+
+## 2026-09-20 — Reklama: Meta'ga ulanish, kampaniya, o'lchov va qoidalar (P1–P3)
+
+`backend/internal/meta/` · `backend/internal/handlers/ads{connect,campaign,insights,capi,rules}.go`
+· `control/internal/handlers/adsmeta.go` · `frontend/src/app/admin/ads/`
+
+P0 reja yozardi va egani Ads Manager'ga qo'li bilan yuborardi. Endi bo'limning
+qolgan uch bosqichi ham bor: **ulanish**, **kampaniyani biz ochishimiz** va
+**natijani buyurtmada o'lchash**.
+
+**Ilovaning siri konsolda, mijozning tokeni tenantda.** AI kalitidagi bilan bir
+qoida — N ta konteynerda N ta sir rotatsiya qilinmaydi, va konteyner mijozning
+mashinasi. Tenant Meta bilan **o'z** tokeni orqali o'zi gaplashadi (kvota
+akkaunt bo'yicha sanaladi), konsolga ikki marta keladi: qaysi ilova, va `code`
+→ token. ⚠️ Token bizning bazamizda **saqlanmaydi**.
+
+**Ulanish — beshta fakt, bitta tugma emas**: portfel, reklama akkaunti, sahifa,
+Instagram, piksel; har bir belgi **Meta'dan qaytgan** holat. ⚠️ O'zimiz bosgan
+ekranlarni sanaydigan bar reklama chiqara olmaydigan ulanish ustida to'la
+turardi. ⚠️ Piksel — **shart emas, lekin qadam**: usiz kampaniya ishlaydi,
+«qancha buyurtma keltirdi» degan javob esa yo'q — bo'lim aynan shu javob uchun
+sotiladi.
+
+**Valyuta — bu yerdagi eng qimmat tuzoq.** Meta reklama akkauntlari ro'yxatida
+**UZS yo'q** (2026-09-20 da o'qildi), ya'ni akkaunt USD da; byudjet esa **minor
+unit** da olinadi. Shuning uchun: kurs **hech qayerda o'ylab topilmaydi**
+(reja so'mda taklif qiladi, byudjet akkaunt valyutasida kiritiladi),
+konvertatsiya **serverda bir marta** va Meta o'zi qaytargan akkaunt bo'yicha,
+tekshiruv esa akkauntning **`min_daily_budget`** i bilan — birlik xatosi
+«byudjet juda kichik» bo'lib ushlanadi, yuz barobar ortiqcha sarf bo'lib emas.
+
+**Kampaniya to'xtatilgan holda ochiladi**, zanjir yarmida yiqilsa teskari
+tartibda o'chiriladi (Meta'da tranzaksiya yo'q — aks holda mijozning Ads
+Manager'i o'zi ochmagan bo'sh kampaniyalar bilan to'lardi). ⚠️ Yoqish/o'chirish
+**uchala obyektga** tegadi: faol kampaniya ostidagi to'xtatilgan ad set o'zini
+ishlayapti deb ko'rsatadi va hech nima sarflamaydi.
+
+**Chegara egani ham bog'laydi**: `capMinor` dan keyingi tahrir ham, qoidalar ham
+osha olmaydi, va qoidalar ikkita shiftning pastrog'ini oladi.
+
+**Buyurtma Meta'ga `delivered` bo'lganda boradi** (Conversions API), `event_id`
+= buyurtma raqami — pikselning nusxasi bilan birlashadi, aks holda har onlayn
+buyurtma **ikki marta** sanalardi, va ikkilangan raqam yo'qidan yomonroq:
+ega unga ishonadi. ⚠️ Mehmon haqidagi hamma narsa SHA-256 bo'lib chiqadi, va
+o'zbek raqami davlat kodi bilan normalizatsiya qilinadi — kodsiz raqam hech
+kimga mos kelmaydi va **buning belgisi yo'q**.
+
+**Qoidalar — arifmetika, hukm emas.** To'xtata oladi va byudjetni tushira
+oladi; ko'tarish faqat ega yozgan shift ichida (oyna uch kun, qadam 20%).
+Avtomatik to'xtatish egaga xabar qilinadi (`ads_paused` — nazorat
+xabarlarining yangi turi); byudjetning shift ichidagi qimirlashi qilinmaydi.
+⚠️ **Uzish kampaniyani to'xtatmaydi**, va tugma yonida shu yozilgan.
+
+**Hisobotda ikki tizim bor va ular bir-biridan ayirilmaydi**: sarf — Meta'niki,
+Meta valyutasida; buyurtmalar — Meta'ning atributsiyasi bizning hodisalarimiz
+ustida. Bitta «reklamadan foyda» raqami ikki valyuta va birovning atributsiya
+modelidan yasalgan bo'lardi.
+
+Yon paneldagi «Reklama» qatoriga **karnay** nishoni qo'shildi — yonidagi
+kampaniyalar (CRM xabarlari) qog'oz samolyot bilan turadi, va ikkita bir xil
+shakl bitta byudjetni ikkinchisiga o'xshatib qo'yardi.
+
+Tekshiruv: backend `build` + `vet` + `go test ./...` (i18n 29 ta yangi xabar
+bilan yashil, `internal/meta` uchun 6 ta birlik testi, handler'lar uchun 10 ta
+manba testi); control `build` + `vet` + testlar (3 ta yangi); frontend `tsc`,
+273 test, `next lint`.
+⏳ **Jonli Meta akkauntida hali bir marta ham ishlatilmagan** — `META_APP_ID` /
+`META_APP_SECRET` / `META_CONFIG_ID` qo'yilmaguncha ulanish tugmasi «platformada
+Meta ilovasi sozlanmagan» deydi. Birinchi kampaniya kichik byudjet bilan va
+qo'lda kuzatib ochilsin.
+
+**Konsol, reliz tugmasi:** «Resource not accessible by personal access token»
+— bu **workflow emas, token ruxsati**. 403 endi GitHub'ning o'z jumlasi yoniga
+qaysi ruxsat kerakligini yozadi (`Actions: Read and write`, va repozitoriy
+tokenning tanlangan ro'yxatida bo'lishi kerak), chunki GitHub'ning jumlasi
+o'quvchini `release.yml` ga qaratadi — u esa hech qachon muammo emas.

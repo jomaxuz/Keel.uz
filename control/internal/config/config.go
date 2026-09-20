@@ -150,6 +150,20 @@ type Config struct {
 	// switches provisioning off: the panel still reports every version it can
 	// read, and says plainly that raising it is not wired up here. A laptop
 	// must not be one misconfigured field away from releasing.
+	// ---- The Meta app every restaurant connects through ----
+	//
+	// ⚠️ **One app for the platform, and its secret never leaves this
+	// process.** The same rule the AI key follows: N restaurant containers
+	// would be N copies of a credential to rotate, and a tenant container is
+	// the customer's side of the wire. The tenant sends us the code Meta gave
+	// it and gets back a token for its own ad account — see adsmeta.go.
+	MetaAppID     string
+	MetaAppSecret string
+	// The Login for Business configuration id. ⚠️ It replaces `scope`
+	// entirely: which permissions and which asset types are asked for is
+	// decided in the Meta app dashboard, not in our query string.
+	MetaConfigID string
+
 	GitHubToken string
 	// "owner/repo".
 	GitHubRepo string
@@ -239,6 +253,10 @@ func Load() *Config {
 		BackupPath:         get("BACKUP_PATH", "/srv/keel/backups"),
 		RolloutOnBoot:      get("ROLLOUT_ON_BOOT", "1") != "0",
 		TillReleaseDir:     get("TILL_RELEASE_DIR", ""),
+
+		MetaAppID:     get("META_APP_ID", ""),
+		MetaAppSecret: get("META_APP_SECRET", ""),
+		MetaConfigID:  get("META_CONFIG_ID", ""),
 
 		GitHubToken:     get("GITHUB_TOKEN", ""),
 		GitHubRepo:      get("GITHUB_REPO", ""),

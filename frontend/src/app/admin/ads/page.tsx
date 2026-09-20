@@ -8,11 +8,12 @@
 // money stops trusting every other number on the panel — and that suspicion is
 // impossible to argue with after the fact.
 //
-// ⚠️ **What exists today is the plan, not the campaign.** Connecting an account
-// needs an app Meta has reviewed; until that lands the honest screen is one that
-// says "not connected" plainly and hands the owner a plan they can carry into
-// Meta by hand. A page that looked connected would be found out by somebody who
-// had just pressed a button expecting an advert to run.
+// ⚠️ **The plan and the campaign are separate halves, and the plan works
+// without Meta.** Deciding what to advertise needs only this restaurant's own
+// week; creating the advert needs a connected account. So the screen draws the
+// plan for everybody and the campaign section only once the connection can
+// actually carry one — and when it cannot, it says which of the five steps is
+// missing rather than "not connected".
 //
 // ⚠️ **The bars are drawn from the server's arithmetic, never from the plan.**
 // Every percentage on this screen comes out of `facts`, which the restaurant's
@@ -24,18 +25,25 @@
 // server, `PANEL_ROUTES` here), so this page only ever draws for a restaurant
 // that has it. The states below are about Meta, not about the invoice.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import type {
   AdsAreaPick,
   AdsBudgetPick,
+  AdsCampaignList,
   AdsDishPick,
   AdsPlanAnswer,
+  AdsReport,
   AdsState,
   AdsTextPick,
 } from "@/lib/types";
+
+import AdsConnect from "./connect";
+import { AdsCampaigns, AdsCreate } from "./campaigns";
+import AdsReportCard from "./report";
+import AdsRules from "./rules";
 
 // So'm, grouped. ⚠️ Whole so'm everywhere in this product — there are no tiyin.
 function som(n: number): string {
@@ -60,14 +68,26 @@ export default function AdminAdsPage() {
   const [text, setText] = useState<AdsTextPick | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
+  const [list, setList] = useState<AdsCampaignList | null>(null);
+  const [report, setReport] = useState<AdsReport | null>(null);
+
+  const reload = useCallback(() => {
     api
       .adsState()
       .then(setState)
       .catch((e) =>
         setError(e instanceof ApiError ? e.message : t.ads.loadFailed),
       );
+    // ⚠️ Both are allowed to fail quietly: a restaurant with no campaigns yet
+    // is the ordinary case, and an error banner over an empty list would
+    // describe nothing anybody can act on.
+    api.adsCampaigns().then(setList).catch(() => {});
+    api.adsReport().then(setReport).catch(() => {});
   }, [t.ads.loadFailed]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   async function build() {
     setBuilding(true);
@@ -124,12 +144,7 @@ export default function AdminAdsPage() {
         </div>
       )}
 
-      {state?.on && !state.connected && (
-        <div className="card space-y-2 p-4">
-          <p className="font-semibold">{t.ads.notConnectedTitle}</p>
-          <p className="max-w-2xl text-sm text-ink-soft">{t.ads.notConnected}</p>
-        </div>
-      )}
+      {state?.on && <AdsConnect t={t} state={state} reload={reload} />}
 
       {/* ---- The plan ---- */}
       {state?.on && (
@@ -297,16 +312,39 @@ export default function AdminAdsPage() {
                   {copied ? t.ads.plan.copied : t.ads.plan.copy}
                 </button>
               )}
-              {/* ⚠️ Said here rather than only at the top: this is the moment
-                  the owner has a plan in hand and looks for the button that
-                  runs it. Leaving them to find out there is none is how a
-                  working feature reads as broken. */}
-              <p className="mt-2 max-w-2xl text-xs text-ink-muted">
-                {t.ads.plan.handNote}
-              </p>
+              {/* ⚠️ Said only while the connection cannot carry a campaign.
+                  This is the moment the owner has a plan in hand and looks for
+                  the button that runs it — leaving them to find out there is
+                  none is how a working feature reads as broken. Once the
+                  account is connected the button is right below, and this
+                  sentence would be a lie. */}
+              {!state?.ready && (
+                <p className="mt-2 max-w-2xl text-xs text-ink-muted">
+                  {t.ads.plan.handNote}
+                </p>
+              )}
             </div>
           )}
         </div>
+      )}
+
+      {/* ---- From the plan to a campaign ---- */}
+      {state?.ready && (
+        <AdsCreate
+          t={t}
+          settings={state.settings}
+          dish={dish}
+          area={area}
+          budget={budget}
+          text={text}
+          onCreated={reload}
+        />
+      )}
+
+      {state?.connected && <AdsCampaigns t={t} list={list} reload={reload} />}
+      {state?.connected && <AdsReportCard t={t} report={report} />}
+      {state?.ready && (
+        <AdsRules t={t} settings={state.settings} reload={reload} />
       )}
     </div>
   );

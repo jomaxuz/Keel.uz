@@ -1868,6 +1868,19 @@ type Order struct {
 	// ⚠️ **Never returned to the browser**: it says nothing about the order, it
 	// records something about us.
 	NudgedAt *time.Time `bson:"nudgedAt,omitempty" json:"-"`
+	// When this order was reported to Meta as a purchase.
+	//
+	// ⚠️ **A stamp, because the alternative is counting the same dinner
+	// twice.** The advertising report's whole claim is "these orders came from
+	// the advert", and a sweeper that re-sent what it had already sent would
+	// inflate that number quietly — every order double-counted, nothing on any
+	// screen to say so, and the figure still perfectly believable. Meta dedupes
+	// on `event_id` as well, which is the order number; this is the half that
+	// does not depend on them.
+	//
+	// ⚠️ **Never returned to the browser**: like `NudgedAt`, it says nothing
+	// about the order and something about us.
+	AdsEventAt *time.Time `bson:"adsEventAt,omitempty" json:"-"`
 	// When the guest asked for it. Nil on an ordinary order, which is "now" and
 	// always has been — the field only exists for the ones that are not.
 	//

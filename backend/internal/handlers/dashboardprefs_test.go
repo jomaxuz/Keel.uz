@@ -95,10 +95,14 @@ func TestUnknownTilesAreDropped(t *testing.T) {
 // has bitten this codebase twice already, which is why the fix is a function
 // with a test rather than a habit.
 func TestEmptyPrefsAreArraysNotNull(t *testing.T) {
-	if nonNil(nil) == nil {
+	// ⚠️ Typed nil rather than a bare one: the helper is generic now (the
+	// advertising screens send four lists of their own through it), and a bare
+	// nil is exactly the argument that has no type to infer from.
+	var none []string
+	if nonNil(none) == nil {
 		t.Fatal("a nil slice reached the response and will marshal as null")
 	}
-	if len(nonNil(nil)) != 0 {
+	if len(nonNil(none)) != 0 {
 		t.Fatal("nonNil invented an entry")
 	}
 }

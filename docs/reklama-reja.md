@@ -4,7 +4,10 @@ Bu hujjat kod yozishdan **oldin** qabul qilingan qarorlarni, Meta tomonidagi
 hisob ishlarini va hali ochiq savollarni yozib qo'yadi — `pos-reja.md` bilan
 bir sabab: noto'g'ri faraz ustiga yozilgan kod keyin tashlanadi.
 
-Sana: **2026-09-16**. Holat: **reja, kod yo'q.**
+Sana: **2026-09-16**, yangilandi **2026-09-20**.
+Holat: **P0–P3 yozilgan; Meta tomonidagi hisob ishlari boshlanmagan.**
+⚠️ Kod tayyor bo'lsa ham, jonli reklama **Meta app review'idan keyin** chiqadi —
+1-bo'lim shuning uchun hamon birinchi.
 
 API kontraktlari — `docs/vendor/meta-marketing.md` (o'qilgan nusxa, manba
 havolalari va sanasi bilan). Bu yerda **mahsulot va jarayon**.
@@ -276,9 +279,15 @@ o'lchanadigan narsalar:
 | Bosqich | Nima chiqadi | Meta'dan kerak |
 |---|---|---|
 | **P0** ✅ | «Reklama» bo'limi, AI reja va variantlar, ega Ads Manager'da o'zi bosadi | **hech nima** |
-| **P1** | Ulanish (Login for Business), insights o'qish, piksel + CAPI, «qancha buyurtma keltirdi» | `ads_read` |
-| **P2** | Kampaniyani biz yaratamiz, pauza, byudjet | `ads_management` + review |
-| **P3** | Kunlik optimizatsiya qoidalari | o'shaning ustiga |
+| **P1** ✅ | Ulanish (Login for Business), aktivlarni tanlash, insights kunlik surati, piksel + CAPI, «qancha buyurtma keltirdi» | `ads_read` |
+| **P2** ✅ | Kampaniyani biz yaratamiz (kampaniya → ad set → kreativ → reklama), pauza, yakunlash, byudjet | `ads_management` + review |
+| **P3** ✅ | Kunlik qoidalar: muddat, natijasiz sarf, bitta buyurtmaning narxi, chegara ichida sozlash | o'shaning ustiga |
+
+⚠️ **«Yozilgan» ≠ «ishlagan».** P1–P3 kodi to'liq, testlari bor va jonli Meta
+akkauntida **hali bir marta ham ishlatilmagan** — `META_APP_ID` /
+`META_APP_SECRET` / `META_CONFIG_ID` qo'yilmaguncha ulanish tugmasi «platformada
+Meta ilovasi sozlanmagan» deydi. Birinchi haqiqiy kampaniya kichik byudjet bilan
+va **qo'lda kuzatib** ochilsin: bu yerda xato pul sarflaydi.
 
 ⚠️ **P0 vaqtinchalik yechim emas** — u review kutilayotganda **sotiladigan**
 mahsulot, va u bilan biz Full darajaga kerak bo'lgan chaqiruvlarni ham,
@@ -288,9 +297,10 @@ birinchi mijozlarni ham yig'amiz.
 
 ## 10. Ochiq savollar
 
-1. **Conversions API parametrlari o'qilmagan** (`docs/vendor/meta-marketing.md`
-   §10). P1 dan oldin o'qilishi shart — «47 ta buyurtma» degan raqam qaysi
-   maydondan olinishini taxmin qilib bo'lmaydi.
+1. ✅ **Conversions API parametrlari o'qildi** (2026-09-20) —
+   `docs/vendor/meta-marketing.md` §10–12: endpoint, hash qoidalari,
+   `event_id` deduplikatsiyasi, `offsite_conversion.fb_pixel_purchase` va
+   valyuta birliklari. Kod shularga yozilgan.
 2. **Lead-forma yo'li** (targetolog.ai shu modelda ishlaydi) — qo'shimcha ikki
    ruxsat va Page token talab qiladi. Restoranga lid kerakmi yoki buyurtmami —
    hal qilinmagan.
@@ -300,6 +310,11 @@ birinchi mijozlarni ham yig'amiz.
    kiritilmasa). Bu mijozning xarajati, lekin ekranda aytilishi kerakmi?
 5. **Javobgarlik chegarasi**: reklama matni mijoz nomidan chiqadi. Ofertaga
    bir band kerakmi?
+6. ⚠️ **Valyuta** (yangi, 2026-09-20): Meta reklama akkauntlari ro'yxatida
+   **UZS yo'q** — demak mijozning akkaunti amalda USD da bo'ladi. Reja so'mda
+   taklif qiladi, byudjet esa akkaunt valyutasida kiritiladi, va **kurs hech
+   qayerda o'ylab topilmaydi**. Ega uchun bu bitta qo'shimcha qadam; muqobili —
+   taxminiy kurs bilan chizilgan, haqiqiydek ko'rinadigan raqam.
 
 ---
 

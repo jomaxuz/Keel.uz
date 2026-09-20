@@ -187,9 +187,12 @@ func (h *Handler) AdminDashboardTiles(w http.ResponseWriter, r *http.Request) {
 // `hidden.includes(...)` on it. This is the trap that has already bitten twice
 // in this codebase; the fix lives in a function so the next edit cannot walk
 // around it.
-func nonNil(in []string) []string {
+// ⚠️ Generic rather than `[]string`: the advertising screens send four lists
+// of their own and a second copy of this rule is a second place for the next
+// edit to walk around it.
+func nonNil[T any](in []T) []T {
 	if in == nil {
-		return []string{}
+		return []T{}
 	}
 	return in
 }

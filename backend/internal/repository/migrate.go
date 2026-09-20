@@ -627,6 +627,28 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// One row per campaign per day. ⚠️ **Unique, because a re-sync must correct
+	// a day rather than lay a second one beside it**: Meta rewrites insights as
+	// attribution windows close, and two rows for one day would be summed into
+	// a spend the restaurant never had — on the screen whose entire job is to
+	// say what the advertising cost.
+	if _, err := s.AdsDaily.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "metaCampaignId", Value: 1},
+			{Key: "day", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
+	// The campaign list, newest first, inside one branch's lens.
+	if _, err := s.AdsCampaigns.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}},
+	}); err != nil {
+		return err
+	}
+
 	// ⚠️ **One row per phone, enforced rather than assumed** — the same lesson
 	// the push endpoint above already taught. The app re-registers on every
 	// launch, because the token is re-read from the operating system and can be

@@ -3,6 +3,7 @@ package handlers
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"keel-control/internal/config"
@@ -155,5 +156,24 @@ func write(t *testing.T, dir, body string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, "latest.json"), []byte(body), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// ⚠️ **A 403 from the dispatch is a token permission, and GitHub's sentence
+// does not say which one.** "Resource not accessible by personal access token"
+// sends the reader to the workflow file, which is never the problem — the
+// answer is a fine-grained token carrying **Actions: Read and write** on this
+// repository. The hint lives beside GitHub's own words rather than instead of
+// them.
+func TestAForbiddenDispatchNamesThePermission(t *testing.T) {
+	src, err := os.ReadFile("release.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn := string(src)
+	if !strings.Contains(fn, "http.StatusForbidden") ||
+		!strings.Contains(fn, "Actions: Read and write") {
+		t.Fatal("a 403 from GitHub no longer names the permission that is " +
+			"missing; the next reader will go looking at the workflow file")
 	}
 }

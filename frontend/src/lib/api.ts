@@ -5,6 +5,12 @@
 
 import type {
   AdsPlanAnswer,
+  AdsApp,
+  AdsAssets,
+  AdsCampaign,
+  AdsCampaignList,
+  AdsReport,
+  AdsRules,
   AdsState,
   AdvisorAnswer,
   AdvisorState,
@@ -2987,6 +2993,102 @@ export const api = {
       auth: true,
       scope: true,
     }),
+
+  /** Which Meta app the login dialog belongs to. */
+  adsApp: () => request<AdsApp>("/admin/ads/app", { auth: true }),
+
+  /** The code Meta handed the browser, turned into a stored token.
+   *
+   *  ⚠️ **The code goes to our server, never to Meta from here.** Exchanging it
+   *  needs the app secret, and a page that held one would be handing it to
+   *  everybody who opened the panel. */
+  adsConnect: (code: string, redirectUri: string) =>
+    request<{ ok: boolean }>("/admin/ads/connect", {
+      method: "POST",
+      auth: true,
+      body: { code, redirectUri },
+    }),
+
+  /** Forget the token. ⚠️ Does **not** stop a running campaign — Meta keeps
+   *  spending, and the screen says so where the button is. */
+  adsDisconnect: () =>
+    request<{ ok: boolean }>("/admin/ads/connect", {
+      method: "DELETE",
+      auth: true,
+    }),
+
+  /** The portfolios, accounts, Pages and pixels this token can see. */
+  adsAssets: () => request<AdsAssets>("/admin/ads/assets", { auth: true }),
+
+  /** Which of them this restaurant advertises from. */
+  adsChoose: (body: {
+    businessId?: string;
+    adAccountId?: string;
+    pageId?: string;
+    instagramId?: string;
+    pixelId?: string;
+  }) =>
+    request<{ ok: boolean }>("/admin/ads/assets", {
+      method: "PUT",
+      auth: true,
+      body,
+    }),
+
+  /** The ceilings the rules act within. */
+  adsRules: (rules: AdsRules) =>
+    request<{ ok: boolean }>("/admin/ads/rules", {
+      method: "PUT",
+      auth: true,
+      body: { rules },
+    }),
+
+  adsCampaigns: () =>
+    request<AdsCampaignList>("/admin/ads/campaigns", {
+      auth: true,
+      scope: true,
+    }),
+
+  /** Build the campaign at Meta.
+   *
+   *  ⚠️ **`daily` and `cap` are in the ad account's currency as the owner reads
+   *  it** — 5 means five dollars on a dollar account. The conversion into
+   *  Meta's minor units happens on the server, once, against the account Meta
+   *  itself reported: a browser doing that arithmetic is a browser that can
+   *  spend a hundred times what was typed. */
+  adsCreateCampaign: (body: {
+    dishId?: string;
+    dishName: string;
+    why?: string;
+    areaLabel?: string;
+    radiusKm?: number;
+    daily: number;
+    cap?: number;
+    days?: number;
+    headline: string;
+    body: string;
+    link?: string;
+    start?: boolean;
+  }) =>
+    request<AdsCampaign>("/admin/ads/campaigns", {
+      method: "POST",
+      auth: true,
+      scope: true,
+      body,
+    }),
+
+  adsUpdateCampaign: (id: string, body: { action: string; daily?: number }) =>
+    request<{ ok: boolean }>(`/admin/ads/campaigns/${id}`, {
+      method: "PUT",
+      auth: true,
+      body,
+    }),
+
+  /** What the money bought, from the daily snapshot. */
+  adsReport: (days?: number) =>
+    request<AdsReport>(
+      `/admin/ads/report${days ? `?days=${days}` : ""}`,
+      { auth: true },
+    ),
 
   /** One question about this restaurant, answered from this morning's figures.
    *

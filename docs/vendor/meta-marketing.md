@@ -1,6 +1,8 @@
 # Meta Marketing API — reklama (targetolog) uchun o'qilgan nusxa
 
-Manba: `developers.facebook.com` va `developers.meta.com` (o'qildi **2026-09-16**).
+Manba: `developers.facebook.com` va `developers.meta.com` (1–9-bo'limlar
+o'qildi **2026-09-16**, 10–12-bo'limlar **2026-09-20** — Conversions API,
+insights maydonlari, `promoted_object` va valyuta birliklari).
 Havolalar har bo'limning tagida.
 
 ⚠️ **Bu yerda faqat o'qilgan narsa bor.** O'qilmagani oxirgi bo'limda ro'yxat
@@ -317,12 +319,131 @@ Havolalar:
 
 ---
 
-## 10. ⚠️ O'qilmagani (kod yozishdan oldin o'qilishi shart)
+## 10. Conversions API (o'qildi 2026-09-20)
+
+Endpoint:
+
+```
+POST https://graph.facebook.com/v26.0/{PIXEL_ID}/events
+```
+
+Token `access_token` query parametrida ham qabul qilinadi — ⚠️ **biz sarlavhada
+yuboramiz**: query'dagi token yo'ldagi har bir proksi va loglarda qoladi, va bu
+pul sarflay oladigan kalit.
+
+Tana:
+
+```json
+{ "data": [ {
+  "event_name": "Purchase",
+  "event_time": 1633552688,
+  "event_id": "A-1042",
+  "action_source": "website",
+  "user_data": { "ph": ["<sha256>"], "em": ["<sha256>"],
+                 "client_ip_address": "…", "client_user_agent": "…" },
+  "custom_data": { "value": 84000, "currency": "UZS",
+                   "order_id": "A-1042",
+                   "content_ids": ["…"], "content_type": "product" }
+} ] }
+```
+
+`action_source`: `website | app | phone_call | physical_store | offline`.
+`test_event_code` — **ildizda**, faqat sinov uchun; u bilan yuborilgan hodisa
+hech qayerda hisoblanmaydi.
+
+### 10.1 Normalizatsiya va hash (⚠️ aynan shunday)
+
+Hash qilinadiganlar — **SHA-256**, oldin normalizatsiya:
+
+| Maydon | Qoida |
+|---|---|
+| `em` | trim + kichik harf |
+| `ph` | faqat raqam, **davlat kodi bilan**, oldidagi nollar olib tashlanadi |
+| `fn`, `ln` | kichik harf, tinish belgisiz |
+| `ct` | kichik harf, **bo'shliqsiz**, maxsus belgisiz |
+| `st` | 2 harfli kod, kichik |
+| `zp` | kichik, bo'shliqsiz, tiresiz |
+| `country` | ISO 3166-1 alpha-2, **kichik** (`uz`) |
+| `db` | `YYYYMMDD` |
+| `ge` | `f` / `m` |
+| `external_id` | hash tavsiya etiladi (majburiy emas) |
+
+Hash **qilinmaydiganlar**: `client_ip_address`, `client_user_agent`, `fbc`,
+`fbp`, `lead_id`, `page_id`, `subscription_id` va shu qatordagilar.
+
+⚠️ **O'zbek raqami uch xil saqlanadi** (`+998…`, `998…`, `90 123 45 67`) va
+uchalasi bitta odam. Davlat kodisiz ketgan raqam **hech kimga mos kelmaydi**, va
+buning belgisi yo'q: hodisa qabul qilinadi, buyurtma shunchaki atributsiya
+qilinmaydi.
+
+### 10.2 Deduplikatsiya
+
+Piksel va server bitta buyurtmani ikki marta yuboradi. Meta ularni **faqat
+`event_id` bir xil bo'lganda** birlashtiradi (`event_name` bilan birga).
+Bizda `event_id` = buyurtma raqami.
+
+Havolalar:
+<https://developers.facebook.com/docs/marketing-api/conversions-api/using-the-api/>
+<https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters/>
+
+---
+
+## 11. Insights maydonlari va `promoted_object` (o'qildi 2026-09-20)
+
+- `GET /{campaign-id}/insights?fields=spend,impressions,clicks,actions,action_values`
+  `&time_increment=1&time_range={"since":"…","until":"…"}`.
+- `level`: `campaign | adset | ad` — **parametr**, maydon emas.
+- `actions` — `[{action_type, value}]`. ⚠️ **Bizga kerakligi
+  `offsite_conversion.fb_pixel_purchase`**, `purchase` emas: birinchisi
+  pikselga (ya'ni bizning serverimiz yuborgan hodisalarga) tegishli, ikkinchisi
+  «omni» — Meta har qayerda bo'lgan deb hisoblagan xaridlar. Ikkalasini
+  aralashtirish buyurtmalar soni buyurtmalar ro'yxatiga to'g'ri kelmaydigan
+  hisobot beradi, va ega aynan shuni solishtiradi.
+- `purchase_roas` ham **piksel bo'yicha** hisoblanadi.
+
+`promoted_object` (`OFFSITE_CONVERSIONS` uchun **majburiy**) — uchta
+kombinatsiyadan biri:
+
+1. `pixel_id` + `custom_event_type` (standart hodisa),
+2. `pixel_id` + `custom_event_type: OTHER` + `custom_event_str`,
+3. `application_id` + `object_store_url` + `custom_event_type`.
+
+`custom_event_type` qiymatlari: `PURCHASE`, `LEAD`, `COMPLETE_REGISTRATION`,
+`ADD_TO_CART`, `INITIATED_CHECKOUT`, `CONTENT_VIEW`, `SEARCH`, `SUBSCRIBE`,
+`START_TRIAL`, `CONTACT`, `FIND_LOCATION`, `SCHEDULE`, `DONATE`,
+`SERVICE_BOOKING_REQUEST`, `MESSAGING_CONVERSATION_STARTED_7D`, `OTHER` va h.k.
+
+Havolalar:
+<https://developers.facebook.com/docs/marketing-api/insights/>
+<https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign>
+
+---
+
+## 12. ⚠️ Valyuta: byudjet **minor unit** da, va UZS ro'yxatda yo'q
+
+Meta byudjetni **reklama akkaunti valyutasining eng kichik birligida** oladi:
+`daily_budget: 50000` dollar akkauntida **$500.00**, sentsiz valyutada esa
+50 000. Meta'ning «Currency Codes» sahifasida offset jadvali bor, lekin **UZS u
+yerda yo'q** — ya'ni O'zbekistondagi restoranning akkaunti amalda **USD** da
+bo'ladi.
+
+Bundan ikkita qaror chiqadi:
+
+1. ⚠️ **Kursni biz o'ylab topmaymiz.** Reja so'mda taklif qiladi (restoran shunda
+   sanaydi), byudjet esa **akkaunt valyutasida** kiritiladi. Taxminiy kurs bilan
+   qilingan konvertatsiya ekranda haqiqiy raqamdek turardi.
+2. ⚠️ **Tekshiruv akkauntning o'zidan olinadi**: `min_daily_budget` (minor unit)
+   — uni Meta o'zi qaytaradi, ya'ni undan o'tgan byudjet Meta kutgan birlikda.
+   Offset jadvalidagi xato shu yerda «byudjet juda kichik» bo'lib ushlanadi,
+   yuz barobar ortiqcha sarf bo'lib emas.
+
+Havola: <https://developers.facebook.com/docs/marketing-api/currencies/>
+
+---
+
+## 13. ⚠️ O'qilmagani (kod yozishdan oldin o'qilishi shart)
 
 | Nima | Nega kerak |
 |---|---|
-| **Conversions API parametrlari** — endpoint (`/{pixel_id}/events`), `user_data` maydonlarining SHA-256 normalizatsiya qoidalari, `custom_data` (`value`, `currency`, `order_id`), piksel bilan `event_id` deduplikatsiyasi | Buyurtmani serverdan yuborish — bizning yagona jiddiy ustunligimiz. Rasmiy sahifa umumiy tavsif berdi, parametrlar sahifasi o'qilmadi |
-| Insights metrikalarining **aniq ta'rifi** (`actions` ichidagi turlar, `purchase_roas` qanday hisoblanishi) | «47 ta buyurtma» degan raqam qaysi maydondan olinishini taxmin qilib bo'lmaydi |
-| `promoted_object` ning aniq shakli (piksel + `custom_event_type`) | `OFFSITE_CONVERSIONS` uchun majburiy |
 | Ad Account'ni **dasturiy yaratish** (`business_management` Full Access) | Hozircha rejada yo'q — restoran o'z akkauntini o'zi yaratadi |
 | Lead forma yaratish API'sining aniq shakli | Lead-reklama qilinsa |

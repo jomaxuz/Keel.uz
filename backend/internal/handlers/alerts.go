@@ -262,6 +262,7 @@ func alertTitle(a models.LossAlert, lang string) string {
 		models.AlertCashOut:           w.CashOut,
 		models.AlertBigWriteoff:       w.BigWriteoff,
 		models.AlertDebtWritten:       w.DebtWritten,
+		models.AlertAdsPaused:         w.AdsPaused,
 	}[a.Kind]; ok && head != "" {
 		return head
 	}
@@ -284,6 +285,7 @@ func alertText(a models.LossAlert, restaurant, lang string) string {
 		models.AlertCashOut:           w.CashOut,
 		models.AlertBigWriteoff:       w.BigWriteoff,
 		models.AlertDebtWritten:       w.DebtWritten,
+		models.AlertAdsPaused:         w.AdsPaused,
 	}[a.Kind]
 	if head == "" {
 		head = w.Unknown

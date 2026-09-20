@@ -178,6 +178,23 @@ services:
       # Which is tried first: "gemini" puts Google in front, anything else keeps
       # Claude there. Not a hard choice — see above.
       AI_PROVIDER: ${AI_PROVIDER:-}
+      # ---- The Meta app every restaurant connects its ad account through ----
+      #
+      # ⚠️ **One app for the platform, and the secret never leaves this
+      # process.** The tenant container sends us the code Meta handed its
+      # browser and gets back a token for the restaurant's own ad account;
+      # copying the secret into N containers would be N places to rotate it,
+      # on machines that belong to customers.
+      #
+      # ⚠️ Empty is a supported state, and today the ordinary one: the
+      # advertising section still plans campaigns from the restaurant's own
+      # week, and the connect button says plainly that there is nothing to
+      # connect to yet. `META_CONFIG_ID` is the Login for Business
+      # configuration — it replaces `scope`, so which permissions are asked
+      # for is decided in Meta's dashboard rather than in our query string.
+      META_APP_ID: ${META_APP_ID:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_CONFIG_ID: ${META_CONFIG_ID:-}
       # Empty means each engine's own default, so a model can be changed
       # without a release.
       AI_MODEL: ${AI_MODEL:-}

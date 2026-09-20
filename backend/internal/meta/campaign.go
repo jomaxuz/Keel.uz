@@ -1,0 +1,294 @@
+package meta
+
+// ---- Building one campaign: four objects that must be made in order ----
+//
+// `campaign` → `ad set` → `ad creative` (+ `ad image`) → `ad`. Meta has no
+// transaction across them: the campaign exists the moment it is created, and if
+// the ad set fails afterwards the restaurant is left with an empty campaign in
+// their Ads Manager. So everything that can be checked is checked *before* the
+// first call, and what is created is written down as it is created — see
+// handlers/adscampaign.go, which rolls the half-built chain back.
+//
+// ⚠️ **Nothing here decides anything.** No budget is chosen, no radius is
+// clamped, no objective is picked in this file: it is the shape of the API and
+// nothing else. The decisions, and the ceilings the owner set on them, live in
+// the handler — one place, with the tests.
+//
+// ⚠️ **Created paused, always.** An advert that starts running the instant a
+// button is pressed leaves no moment in which a mistake is still free. The
+// handler switches it on as its own step, after the chain is whole.
+
+import (
+	"context"
+	"net/url"
+	"strconv"
+)
+
+// Created is the id every create call answers with.
+type Created struct {
+	ID string `json:"id"`
+}
+
+// CampaignSpec is one campaign.
+type CampaignSpec struct {
+	Name string
+	// `OUTCOME_SALES` when a pixel is reporting orders, `OUTCOME_TRAFFIC`
+	// otherwise. The old objective names still exist and are being replaced;
+	// we only ever send the new ones.
+	Objective string
+}
+
+// CreateCampaign makes the outer object.
+//
+// ⚠️ **`special_ad_categories` is required and cannot be left out**, even
+// though a restaurant is in none of them. Meta rejects the create without the
+// field rather than defaulting it, and the error names something else.
+//
+// ⚠️ **No budget here.** Meta refuses a budget on the campaign *and* the ad set
+// at once, and ours lives on the ad set, where the targeting it pays for is.
+func (c *Client) CreateCampaign(ctx context.Context, act string, s CampaignSpec) (string, error) {
+	form := url.Values{
+		"name":                  {s.Name},
+		"objective":             {s.Objective},
+		"status":                {"PAUSED"},
+		"buying_type":           {"AUCTION"},
+		"special_ad_categories": {JSONField([]string{"NONE"})},
+	}
+	var out Created
+	err := c.Post(ctx, act+"/campaigns", form, &out)
+	return out.ID, err
+}
+
+// Targeting is who sees the advert.
+//
+// ⚠️ **A circle on the map, and nothing else about the person.** In 2026 Meta
+// picks the audience itself (`advantage_audience`), which is the same button a
+// $500-a-month targetolog presses; what we bring is the kitchen's own reach —
+// the address it cooks at and how far its van goes.
+type Targeting struct {
+	Lat, Lng float64
+	RadiusKm float64
+	AgeMin   int
+	AgeMax   int
+}
+
+func (t Targeting) spec() map[string]any {
+	loc := map[string]any{
+		"latitude":      t.Lat,
+		"longitude":     t.Lng,
+		"radius":        t.RadiusKm,
+		"distance_unit": "kilometer",
+	}
+	tg := map[string]any{
+		// ⚠️ **A custom location alone, never a country beside it.** Meta
+		// rejects a country given together with a place inside it as an
+		// "overlap", and the message does not say which two fields overlapped.
+		"geo_locations": map[string]any{
+			"custom_locations": []any{loc},
+		},
+		"publisher_platforms": []string{"facebook", "instagram"},
+		// The audience flag itself: Meta's own AI widens from the circle.
+		"targeting_automation": map[string]any{"advantage_audience": 1},
+	}
+	if t.AgeMin > 0 {
+		tg["age_min"] = t.AgeMin
+	}
+	if t.AgeMax > 0 {
+		tg["age_max"] = t.AgeMax
+	}
+	return tg
+}
+
+// AdSetSpec is the budget, the audience and what Meta optimises towards.
+type AdSetSpec struct {
+	Name       string
+	CampaignID string
+	// ⚠️ **In the account currency's minor units** — see MinorUnits. The handler
+	// converts once, against the account Meta itself reported, and clamps to
+	// the ceiling the owner set.
+	DailyBudget int
+	Targeting   Targeting
+	// `OFFSITE_CONVERSIONS` with a pixel, `LINK_CLICKS` without one.
+	OptimizationGoal string
+	BillingEvent     string
+	// Set only for OFFSITE_CONVERSIONS, where Meta requires it.
+	PixelID         string
+	CustomEventType string
+	// When the campaign stops paying. ⚠️ **Always set**: an ad set with no end
+	// spends until somebody remembers it, and the owner chose a number of days.
+	EndTime string
+}
+
+// CreateAdSet makes the object that actually spends money.
+func (c *Client) CreateAdSet(ctx context.Context, act string, s AdSetSpec) (string, error) {
+	form := url.Values{
+		"name":              {s.Name},
+		"campaign_id":       {s.CampaignID},
+		"daily_budget":      {strconv.Itoa(s.DailyBudget)},
+		"billing_event":     {s.BillingEvent},
+		"optimization_goal": {s.OptimizationGoal},
+		"targeting":         {JSONField(s.Targeting.spec())},
+		"status":            {"PAUSED"},
+	}
+	if s.EndTime != "" {
+		form.Set("end_time", s.EndTime)
+	}
+	if s.PixelID != "" && s.CustomEventType != "" {
+		form.Set("promoted_object", JSONField(map[string]any{
+			"pixel_id":          s.PixelID,
+			"custom_event_type": s.CustomEventType,
+		}))
+	}
+	var out Created
+	err := c.Post(ctx, act+"/adsets", form, &out)
+	return out.ID, err
+}
+
+// Image is what an upload answers with.
+//
+// ⚠️ **Only the hash is usable.** The `url` Meta returns is temporary and a
+// creative built from it breaks days later, with the advert still running and
+// the picture gone.
+type Image struct {
+	Hash string `json:"hash"`
+	URL  string `json:"url"`
+}
+
+// UploadImage puts one of the restaurant's own dish photographs on the account.
+//
+// ⚠️ **Their photograph, never a generated one.** The pictures are already in
+// `uploads/` because somebody photographed the food they actually serve; an
+// invented image of a dish is an advert that lies about what arrives.
+func (c *Client) UploadImage(ctx context.Context, act, filename string, data []byte) (Image, error) {
+	var out struct {
+		Images map[string]Image `json:"images"`
+	}
+	if err := c.PostFile(ctx, act+"/adimages", "source", filename, data, nil, &out); err != nil {
+		return Image{}, err
+	}
+	// Meta keys the answer by the file name it was given, which is why the
+	// name matters twice: once for the extension, once to find the result.
+	for _, img := range out.Images {
+		return img, nil
+	}
+	return Image{}, &Error{Message: "Meta rasmni qabul qilmadi"}
+}
+
+// CreativeSpec is the advert as a reader sees it.
+type CreativeSpec struct {
+	Name        string
+	PageID      string
+	InstagramID string
+	ImageHash   string
+	Link        string
+	Message     string
+	Headline    string
+	Description string
+	// `ORDER_NOW` for delivery, `LEARN_MORE` otherwise.
+	CallToAction string
+}
+
+// CreateCreative makes the advert's body.
+//
+// ⚠️ **A creative cannot be edited after it is made** (docs/vendor/meta-marketing.md
+// §4.5). Changing a word means a new creative and a new ad, which is why the
+// owner picks the wording *before* anything is created rather than after seeing
+// it live — this is Meta's rule, not a limitation of our screen.
+func (c *Client) CreateCreative(ctx context.Context, act string, s CreativeSpec) (string, error) {
+	link := map[string]any{
+		"image_hash": s.ImageHash,
+		"link":       s.Link,
+		"message":    s.Message,
+		"name":       s.Headline,
+	}
+	if s.Description != "" {
+		link["description"] = s.Description
+	}
+	if s.CallToAction != "" {
+		link["call_to_action"] = map[string]any{
+			"type":  s.CallToAction,
+			"value": map[string]any{"link": s.Link},
+		}
+	}
+	story := map[string]any{
+		"page_id":   s.PageID,
+		"link_data": link,
+	}
+	if s.InstagramID != "" {
+		story["instagram_user_id"] = s.InstagramID
+	}
+	form := url.Values{
+		"name":              {s.Name},
+		"object_story_spec": {JSONField(story)},
+	}
+	var out Created
+	err := c.Post(ctx, act+"/adcreatives", form, &out)
+	return out.ID, err
+}
+
+// AdSpec ties a creative to an ad set.
+type AdSpec struct {
+	Name       string
+	AdSetID    string
+	CreativeID string
+	// ⚠️ Required by Meta whenever the campaign shares data with a pixel, and
+	// it is a domain — `keel.uz`, never `https://keel.uz/menu`.
+	ConversionDomain string
+}
+
+// CreateAd makes the last object. It arrives `PENDING_REVIEW`: Meta reads every
+// advert before it runs, and nothing we do here shortens that.
+func (c *Client) CreateAd(ctx context.Context, act string, s AdSpec) (string, error) {
+	form := url.Values{
+		"name":     {s.Name},
+		"adset_id": {s.AdSetID},
+		"creative": {JSONField(map[string]any{"creative_id": s.CreativeID})},
+		"status":   {"PAUSED"},
+	}
+	if s.ConversionDomain != "" {
+		form.Set("conversion_domain", s.ConversionDomain)
+	}
+	var out Created
+	err := c.Post(ctx, act+"/ads", form, &out)
+	return out.ID, err
+}
+
+// SetStatus switches one object on or off. `ACTIVE` | `PAUSED` | `ARCHIVED`.
+func (c *Client) SetStatus(ctx context.Context, id, status string) error {
+	return c.Post(ctx, id, url.Values{"status": {status}}, nil)
+}
+
+// SetDailyBudget moves an ad set's daily budget, in minor units.
+func (c *Client) SetDailyBudget(ctx context.Context, adsetID string, minor int) error {
+	return c.Post(ctx, adsetID,
+		url.Values{"daily_budget": {strconv.Itoa(minor)}}, nil)
+}
+
+// Delete removes an object we created — used only to undo a half-built chain.
+func (c *Client) Delete(ctx context.Context, id string) error {
+	return c.do(ctx, "DELETE", id, nil, nil, "", nil)
+}
+
+// Review is what Meta made of an advert.
+type Review struct {
+	ID              string `json:"id"`
+	EffectiveStatus string `json:"effective_status"`
+	// Present when the advert was rejected, and the only place the reason is.
+	IssuesInfo []struct {
+		ErrorCode    int    `json:"error_code"`
+		ErrorSummary string `json:"error_summary"`
+		ErrorMessage string `json:"error_message"`
+	} `json:"issues_info"`
+}
+
+// AdReview reads an advert's standing.
+//
+// ⚠️ **"rejected" is not an answer an owner can act on.** The reason is in
+// `issues_info` and nowhere else; a screen that showed only the status would
+// send somebody to Ads Manager to find out what we already had.
+func (c *Client) AdReview(ctx context.Context, adID string) (Review, error) {
+	var out Review
+	err := c.Get(ctx, adID,
+		url.Values{"fields": {"id,effective_status,issues_info"}}, &out)
+	return out, err
+}

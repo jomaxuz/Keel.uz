@@ -98,6 +98,13 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		// would make a restaurant's campaign questions eat its briefings. See
 		// adsadvice.go.
 		r.Post("/ads-advice", h.AdsAdvice)
+		// The two calls a restaurant's server makes to connect its own Meta ad
+		// account. ⚠️ **Here rather than in the tenant** because the app secret
+		// is the platform's and a container is the customer's machine — see
+		// adsmeta.go. What comes back is the restaurant's token, kept in the
+		// restaurant's database and never in ours.
+		r.Post("/ads-app", h.AdsApp)
+		r.Post("/ads-token", h.AdsToken)
 		r.Post("/campaign-text", h.CampaignText)
 		// Reading a menu off a page the owner pasted. ⚠️ The fallback only —
 		// the tenant parses schema.org data itself first, which is exact and

@@ -450,6 +450,19 @@ func (h *Handler) dispatchRelease(ctx context.Context, version string) error {
 	if strings.TrimSpace(e.Message) == "" {
 		return fmt.Errorf("GitHub: %s", res.Status)
 	}
+	// ⚠️ **403 here is a token permission, never a broken workflow**, and
+	// GitHub's own sentence does not say which permission. "Resource not
+	// accessible by personal access token" is the only reply a correctly
+	// spelled repository, workflow and ref can produce, so the one thing the
+	// reader needs is named beside it: a fine-grained token has to carry
+	// **Actions: Read and write** on this repository, and the repository has to
+	// be among the ones the token selects. Without this line the next person to
+	// see it goes looking at the workflow file, which is not the problem —
+	// and that search has already cost this platform an afternoon.
+	if res.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("GitHub: %s — tokenga shu repozitoriy uchun "+
+			"«Actions: Read and write» ruxsati kerak", e.Message)
+	}
 	return fmt.Errorf("GitHub: %s", e.Message)
 }
 

@@ -207,6 +207,17 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   sozlanmaydi, birinchi ishlatishda generatsiya qilinadi va **hech qachon
   almashtirilmaydi**: har obuna o'zi yaratilgan ochiq kalitga bog'langan);
   `pos_settings` + `pos_mapping` (filial darajasida), `telegram_chat`.
+- **Reklama**: `ads_settings` (Meta ulanishi — ⚠️ **`restaurant` dan tashqarida
+  va tokeni hech qachon qaytarilmaydi**: profil har tashrifchiga to'liq boradi,
+  bu esa egasining kartasidan pul sarflay oladigan kalit), `ad_campaign`
+  (bizning **qarorimiz** yozuvi — qaysi taom, nega, qanday shift; Meta'dagi
+  nusxa emas), `ad_daily` (kunlik insights surati — ⚠️ **tarix, kesh emas**:
+  Meta atributsiya oynalari yopilgani sayin kunni qayta yozadi, va qoidalar
+  o'sha kuni ko'rilganiga qarab to'xtatgan edi; `(metaCampaignId, day)` unique),
+  `ads_plan` (kunlik reja). ⚠️ Byudjet **reklama akkaunti valyutasining minor
+  unit** ida saqlanadi va valyuta shu hujjatda yonida turadi — Meta ro'yxatida
+  UZS yo'q, ya'ni akkaunt USD da; valyutasiz raqam bu yerda yuz barobar xato
+  demakdir. Qarang `docs/DECISIONS.md` → «Reklama».
 - **Marketplace**: `uzum_tezkor_settings` (Uzum Tezkor bizni chaqiradigan
   `client_id` + secret'ning **faqat hash'i**; qarang `docs/DECISIONS.md` →
   "Uzum Tezkor").
@@ -294,6 +305,12 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   `/tv/board` (⚠️ **faqat raqamlar** — `projection` bilan; olib ketish va zal,
   yetkazish emas).
 - **Kiosk** (`role: kiosk`): `/kiosk/*`.
+- **Reklama** (`/admin/ads/*`, faqat **ega**): `state`, `plan`, `app`,
+  `connect` (POST/DELETE), `assets` (GET/PUT), `rules`, `campaigns`
+  (GET/POST + PUT `/{id}`), `report`. ⚠️ Meta bilan **tenant serveri o'zi**
+  gaplashadi (kvota reklama akkaunti bo'yicha sanaladi); konsolga faqat ikki
+  chaqiruv ketadi — `/internal/ads-app` va `/internal/ads-token`, chunki
+  ilovaning siri platformaniki.
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
   `/admin/push` (ega telefonining tokeni va tili — loss alertlar shu orqali
   ham boradi, Telegram bilan yonma-yon),

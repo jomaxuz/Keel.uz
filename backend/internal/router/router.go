@@ -1389,6 +1389,32 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ⚠️ POST although it reads: it can cost a model call, and a GET
 			// that spends money is one a browser prefetch can spend for you.
 			r.Post("/admin/ads/plan", h.AdminAdsPlan)
+			// ---- Connecting the restaurant's own Meta ad account ----
+			//
+			// ⚠️ **Every one of these is owner-only, checked in the handler.**
+			// Between them they connect an account that can spend money, point
+			// it at a Page the adverts are published under, and start a
+			// campaign that bills the owner's card — the three things a branch
+			// manager must not be able to do even if somebody widens their
+			// allow-list. See handlers/adsconnect.go.
+			r.Get("/admin/ads/app", h.AdminAdsApp)
+			r.Post("/admin/ads/connect", h.AdminAdsConnect)
+			r.Delete("/admin/ads/connect", h.AdminAdsDisconnect)
+			r.Get("/admin/ads/assets", h.AdminAdsAssets)
+			r.Put("/admin/ads/assets", h.AdminAdsChoose)
+			// The standing instruction the rules act within — a ceiling per
+			// day, a spend worth losing without an order, a price per order.
+			r.Put("/admin/ads/rules", h.AdminAdsRules)
+			// The campaigns themselves. ⚠️ `POST` creates four objects at Meta
+			// and starts spending; there is no idempotent version of it, which
+			// is why the panel's button is disabled while it is in flight.
+			r.Get("/admin/ads/campaigns", h.AdminAdsCampaigns)
+			r.Post("/admin/ads/campaigns", h.AdminAdsCreateCampaign)
+			r.Put("/admin/ads/campaigns/{id}", h.AdminAdsUpdateCampaign)
+			// What the money bought. ⚠️ Read from the daily snapshot, never
+			// from Meta live: a Limited-tier account has a few hundred insights
+			// calls an hour for everything it does.
+			r.Get("/admin/ads/report", h.AdminAdsReport)
 
 			r.Post("/admin/advisor", h.AdminAdvisorAsk)
 			r.Get("/admin/advisor/state", h.AdminAdvisorState)

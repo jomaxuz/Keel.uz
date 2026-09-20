@@ -8334,6 +8334,75 @@ yaxshiroq, chunki u nimani bilishga haqli ekani boshqacha.
   `docs/reklama-reja.md` va `docs/vendor/meta-marketing.md`. P0 (reja va
   variantlar) **Meta'siz ishlaydi** va review kutilayotganda sotiladi.
 
+#### Meta bilan ulanish, kampaniya va qoidalar (P1–P3)
+
+- ⚠️ **Ilovaning siri konsolda, mijozning tokeni tenantda.** AI kalitidagi bilan
+  bir qoida: N ta konteynerda N ta sir — bu N ta rotatsiya joyi, va konteyner
+  mijozning mashinasi. Tenant Meta'ga **o'z** tokeni bilan o'zi murojaat qiladi
+  (kvota akkaunt bo'yicha sanaladi), konsolga esa faqat ikki marta keladi:
+  qaysi ilova va `code` → token. Token bizning bazamizda **saqlanmaydi** —
+  yuzta reklama akkauntining kaliti bir joyda turishi hech bir xususiyatga
+  kerak emas.
+- ⚠️ **Ulanish — bitta tugma emas, beshta fakt**: portfel, reklama akkaunti,
+  sahifa, Instagram, piksel. Har biri **Meta'dan qaytarilgan** holat
+  (`/admin/ads/state` → `steps`), o'zimiz chizgan qadam emas. Biz bosgan
+  ekranlarni sanaydigan progress bar reklama chiqara olmaydigan ulanish ustida
+  to'la turardi — va bu aynan yolg'on progress bar (reja §6).
+- ⚠️ **Valyuta: byudjet akkaunt valyutasida kiritiladi, so'mda emas.** Meta
+  ro'yxatida UZS yo'q, ya'ni akkaunt USD da; Meta byudjetni **minor unit** da
+  oladi. Shuning uchun: kurs hech qayerda o'ylab topilmaydi, konvertatsiya
+  **serverda bir marta** va Meta o'zi qaytargan akkaunt bo'yicha, va tekshiruv
+  akkauntning **`min_daily_budget`** i bilan. Bu — birlik xatosini pul
+  qimirlashidan **oldin** ushlaydigan yagona qo'riq: yuz barobar ortiqcha sarf
+  emas, «byudjet juda kichik» bo'lib chiqadi.
+- ⚠️ **Chegara egani ham bog'laydi.** `capMinor` — «bir kunda ko'pi bilan
+  shuncha»ga berilgan javob; keyingi tahrirda undan oshirib bo'lmasa, qoidalar
+  ham osha olmaydi. Aks holda u bezak bo'lib qolardi — ikkala tomonda ham.
+  Qoidalar ikkita shiftning **pastrog'ini** oladi.
+- ⚠️ **Kampaniya to'xtatilgan holda ochiladi.** Zanjirning oxiri bilan
+  yoqish o'rtasida xato hali **bepul** bo'lgan bitta lahza qoladi. Zanjir
+  yarmida yiqilsa — teskari tartibda **o'chiriladi**: Meta'da tranzaksiya yo'q,
+  va muqobili mijozning Ads Manager'i o'zi ochmagan bo'sh kampaniyalar bilan
+  to'lishi.
+- ⚠️ **Yoqish/o'chirish uchala obyektga tegadi** (kampaniya, ad set, reklama).
+  Meta har darajada alohida pauza qiladi; faol kampaniya ostidagi to'xtatilgan
+  ad set o'zini «ishlayapti» deb ko'rsatadi va hech nima sarflamaydi — bizning
+  nosozligimizdek o'qiladi.
+- ⚠️ **Insights — kunlik surat, kesh emas.** Meta atributsiya oynalari
+  yopilgani sayin kunni **qayta yozadi**, ya'ni «o'sha kuni nima ko'rgan edik»
+  boshqa savol — va qoidalar aynan birinchisiga qarab to'xtatgan edi.
+  `(metaCampaignId, day)` unique: ikkita qator bitta kunni **ikki marta**
+  qo'shardi, sarf haqidagi yagona ekranda.
+- ⚠️ **Buyurtma Meta'ga `delivered` bo'lganda yuboriladi, buyurtma tushganda
+  emas.** Eshik oldida bekor qilingani xarid deb yuborilsa, Meta «eshik oldida
+  bekor qiladiganlar»ni topishni o'rganadi — restoran budjeti bilan.
+  `event_id` = buyurtma raqami (pikselning nusxasi bilan birlashadi), va
+  **muvaffaqiyatli yuborilmaguncha hech narsa belgilanmaydi**: avval
+  belgilansa, hisobot mavjud bo'lishi uchun yaratilgan buyurtmalarni jimgina
+  yo'qotadi.
+- ⚠️ **Hisobotda ikki tizim bor va ular bir-biridan ayirilmaydi.** Sarf —
+  Meta'niki, Meta valyutasida; buyurtmalar — Meta'ning **atributsiyasi**
+  (bizning CAPI hodisalarimiz ustida). Bitta «reklamadan foyda» raqami ikki
+  valyuta va birovning atributsiya modelidan yasalgan bo'lardi — ega aynan
+  shunga qarab qaror qilardi, biz esa uni himoya qila olmasdik.
+- ⚠️ **Qoidalar — arifmetika, hukm emas.** To'xtata oladi va byudjetni
+  **tushira** oladi; ko'tarish faqat ega yozgan shift ichida. Assimetriya —
+  butun xavfsizlik xossasi: eng yomoni ruxsat berilganicha sarflaydi. Oyna
+  **uch kun** (bir kun — yomg'irli seshanba), qadam **20%** (keskin o'zgarish
+  Meta'ni qayta o'rganish bosqichiga qaytaradi).
+- ⚠️ **Avtomatik to'xtatish egaga xabar qilinadi** (`ads_paused` — nazorat
+  xabarlarining yangi turi), byudjetning shift ichidagi qimirlashi esa
+  **yo'q**. Har olti soatda keladigan xabar — bu jimlik; to'xtaganini
+  aytmaslik esa «buyurtmalar kamayib qolibdi» bo'lib bir necha kundan keyin
+  topiladi.
+- ⚠️ **Uzish kampaniyani to'xtatmaydi**, va tugma yonida shu yozilgan: biz
+  faqat o'z kalitimizni unutamiz, Meta esa sarflashda davom etadi. Xuddi
+  shunday — **token bekor qilinsa ham** kampaniya to'xtamaydi, biz ko'r bo'lib
+  qolamiz; shuning uchun `status: revoked` ekranda qizil qator.
+- ⚠️ **Rasm restoranning o'zining fotosi**, generatsiya qilinmaydi; yo'q bo'lsa
+  ekran «avval rasm yuklang» deydi. O'ylab topilgan taom surati — eshikka
+  keladigan narsa haqida yolg'on.
+
 ### Versiya paneli: kim nima deb turibdi, va uni ko'tarish
 
 `control/internal/handlers/release.go` · `keel-site/src/components/VersionPanel.tsx`

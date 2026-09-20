@@ -32,6 +32,7 @@ import {
   LuChartNoAxesColumn,
   LuCircleUser,
   LuLayoutDashboard,
+  LuMegaphone,
   LuMessageSquare,
   LuMonitor,
   LuPhone,
@@ -167,6 +168,13 @@ const ICONS: Record<string, IconType> = {
   feedback: LuMessageSquare,
   vacancies: LuBriefcase,
   campaigns: LuSend,
+  // ⚠️ **A megaphone, not a second paper plane.** The row above it is the
+  // messages this restaurant sends its own guests, and the two sit together in
+  // one column — the pair a reader has to tell apart at a glance. One is
+  // something posted to people who already gave their number; this one is
+  // shouting at a district. Two send-shaped marks would make one budget look
+  // like the other, which is the mistake that costs money rather than a click.
+  ads: LuMegaphone,
   couriers: LuBike,
   staff: LuUsers,
   payroll: LuWallet,

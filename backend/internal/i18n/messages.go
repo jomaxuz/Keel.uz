@@ -240,6 +240,10 @@ var messages = map[string]pair{
 		"Скидка",
 		"Giving a discount",
 	},
+	"Facebook sahifasi tanlanmagan": {
+		"Страница Facebook не выбрана",
+		"No Facebook Page has been chosen",
+	},
 	"Grafik o'zgardi": {
 		"График изменился",
 		"The roster changed",
@@ -288,6 +292,46 @@ var messages = map[string]pair{
 		"Отзыв гостя",
 		"A guest's review",
 	},
+	"Meta akkaunti ulanmagan": {
+		"Аккаунт Meta не подключён",
+		"No Meta account is connected",
+	},
+	"Meta bilan aloqa uzildi — reklama akkauntini qayta ulang": {
+		"Связь с Meta прервана — подключите рекламный аккаунт заново",
+		"The connection to Meta is gone — connect the ad account again",
+	},
+	"Meta bu obyektni ko'rsatmadi — ruxsat yoki akkaunt noto'g'ri": {
+		"Meta не показала этот объект — неверное разрешение или аккаунт",
+		"Meta did not show this object — the permission or the account is wrong",
+	},
+	"Meta javob bermadi: %s": {
+		"Meta не ответила: %s",
+		"Meta did not answer: %s",
+	},
+	"Meta javobi o'qilmadi: %s": {
+		"Ответ Meta не прочитан: %s",
+		"Meta's answer could not be read: %s",
+	},
+	"Meta rasmni qabul qilmadi": {
+		"Meta не приняла изображение",
+		"Meta did not accept the picture",
+	},
+	"Meta ruxsat bermadi — reklama akkauntida sizning rolingiz yetarli emas": {
+		"Meta отказала — вашей роли в рекламном аккаунте недостаточно",
+		"Meta refused — your role on the ad account is not enough",
+	},
+	"Meta so'rovlar chegarasiga yetdi — birozdan keyin urinib ko'ring": {
+		"Достигнут предел запросов Meta — попробуйте позже",
+		"Meta's request limit has been reached — try again a little later",
+	},
+	"Meta tokenni bermadi": {
+		"Meta не выдала токен",
+		"Meta did not issue a token",
+	},
+	"Meta vaqtincha javob bermayapti — birozdan keyin urinib ko'ring": {
+		"Meta временно не отвечает — попробуйте позже",
+		"Meta is not answering at the moment — try again a little later",
+	},
 	"Mijoz kartasi Safe Mode'da — Uzum ilovasida o'chirilishi kerak": {
 		"карта гостя в режиме Safe Mode — его нужно отключить в приложении Uzum",
 		"the guest's card is in Safe Mode — it has to be switched off in the Uzum app",
@@ -308,13 +352,85 @@ var messages = map[string]pair{
 		"Нет открытой смены — сначала отметьте приход",
 		"No shift is open — clock in first",
 	},
+	"bu reklama akkaunti Meta tomonidan faol emas": {
+		"этот рекламный аккаунт неактивен в Meta",
+		"this ad account is not active at Meta",
+	},
 	"bu ro'yxat hali yuborilmagan": {
 		"этот список ещё не отправлен",
 		"this list has not been sent yet",
 	},
+	"bu taomning fotosi topilmadi": {
+		"фото этого блюда не найдено",
+		"the photograph of this dish was not found",
+	},
+	"bu taomning fotosi yo'q — avval rasm yuklang": {
+		"у этого блюда нет фото — сначала загрузите изображение",
+		"this dish has no photograph — upload one first",
+	},
+	"chegara sozlamalardagi umumiy chegaradan oshib ketdi": {
+		"предел превышает общий предел в настройках",
+		"the cap is above the overall cap in the settings",
+	},
+	"filial xaritada belgilanmagan — reklama hududi shundan o'lchanadi": {
+		"филиал не отмечен на карте — от неё считается зона рекламы",
+		"the branch is not marked on the map — the advertising area is measured from it",
+	},
 	"kassada kamida bitta to'lov usuli yoqilgan bo'lishi kerak": {
 		"На кассе должен быть включён хотя бы один способ оплаты",
 		"At least one payment method must be switched on for the till",
+	},
+	"kod kelmadi": {
+		"код не получен",
+		"no code arrived",
+	},
+	"kunlik byudjet ko'rsatilmagan": {
+		"дневной бюджет не указан",
+		"no daily budget was given",
+	},
+	"kunlik byudjet o'zingiz qo'ygan chegaradan oshib ketdi": {
+		"дневной бюджет превышает установленный вами предел",
+		"the daily budget is above the cap you set",
+	},
+	"noma'lum amal": {
+		"неизвестное действие",
+		"unknown action",
+	},
+	"o'qib bo'lmadi": {
+		"не удалось прочитать",
+		"could not be read",
+	},
+	"qaysi taom reklama qilinishi tanlanmagan": {
+		"не выбрано, какое блюдо рекламировать",
+		"no dish was chosen to advertise",
+	},
+	"reklama akkaunti tanlanmagan": {
+		"рекламный аккаунт не выбран",
+		"no ad account has been chosen",
+	},
+	"reklama havolasi ko'rsatilmagan": {
+		"ссылка для рекламы не указана",
+		"no link was given for the advert",
+	},
+	"reklama havolasi noto'g'ri": {
+		"ссылка для рекламы неверна",
+		"the advert's link is not valid",
+	},
+	"reklama matni tanlanmagan": {
+		"текст рекламы не выбран",
+		"no advert wording was chosen",
+	},
+	"reklama uchun filialni tanlang": {
+		"выберите филиал для рекламы",
+		"choose the branch this advert is for",
+	},
+	"saqlanmadi": {
+		"не сохранено",
+		"could not be saved",
+	},
+	"sarlavha 90 belgidan oshmasligi kerak": {
+		"заголовок не длиннее 90 символов",
+		"the headline must not be longer than 90 characters",
 	},
 	"skladdan tovar chiqarishga ruxsat berilmagan — administratorga murojaat qiling": {
 		"нет доступа к выдаче товара со склада — обратитесь к администратору",
