@@ -1415,6 +1415,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// from Meta live: a Limited-tier account has a few hundred insights
 			// calls an hour for everything it does.
 			r.Get("/admin/ads/report", h.AdminAdsReport)
+			// What Meta thinks a budget will buy. ⚠️ `POST` although it reads:
+			// it costs one of the ad account's hourly calls, and a GET that
+			// spends a quota is one a browser prefetch can spend for you.
+			r.Post("/admin/ads/estimate", h.AdminAdsEstimate)
 
 			r.Post("/admin/advisor", h.AdminAdvisorAsk)
 			r.Get("/admin/advisor/state", h.AdminAdvisorState)

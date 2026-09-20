@@ -115,6 +115,15 @@ export default function AdminAdsPage() {
   const texts = plan?.texts ?? [];
   const hasPlan = dishes.length > 0;
 
+  // ⚠️ **Only the wordings written for the chosen dish.** A wording names the
+  // dish in its own text, so offering the soup's line for an osh campaign is
+  // offering an advert for food the owner has just decided not to advertise.
+  // A plan cached before wordings carried a dish has none of them, and there
+  // the honest fallback is to show all rather than none.
+  const dishTexts = texts.some((x) => x.dish)
+    ? texts.filter((x) => !dish || x.dish === dish.name)
+    : texts;
+
   const campaigns = list?.campaigns ?? [];
   const ready = Boolean(state?.ready);
   // ⚠️ A dish and wording are what the server insists on; the area and the
@@ -196,7 +205,19 @@ export default function AdminAdsPage() {
                     head={d.name}
                     why={d.why}
                     chosen={dish?.name === d.name}
-                    onPick={() => setDish(d)}
+                    note={
+                      facts?.dishes.find((f) => f.name === d.name)?.photo ===
+                      false
+                        ? t.ads.plan.noPhoto
+                        : undefined
+                    }
+                    onPick={() => {
+                      setDish(d);
+                      // ⚠️ The wording belonged to the dish that was chosen
+                      // before; keeping it would launch an advert for the old
+                      // one under the new one's name.
+                      setText(null);
+                    }}
                     chosenLabel={t.ads.plan.chosen}
                   />
                 ))}
@@ -249,13 +270,13 @@ export default function AdminAdsPage() {
                 </PickGroup>
               )}
 
-              {texts.length > 0 && (
+              {dishTexts.length > 0 && (
                 <PickGroup
                   title={t.ads.plan.texts}
                   chosen={text?.headline}
-                  none={t.ads.plan.notChosen}
+                  none={dish ? t.ads.plan.notChosen : t.ads.plan.pickDishFirst}
                 >
-                  {texts.map((x) => (
+                  {dishTexts.map((x) => (
                     <Pick
                       key={x.headline}
                       head={x.headline}

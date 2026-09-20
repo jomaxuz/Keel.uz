@@ -141,6 +141,7 @@ export function Pick({
   body,
   why,
   chosen,
+  note,
   onPick,
   chosenLabel,
 }: {
@@ -148,6 +149,9 @@ export function Pick({
   body?: string;
   why: string;
   chosen: boolean;
+  /** Something that will stop this choice working, said here rather than at
+   *  the button that refuses it. */
+  note?: string;
   onPick: () => void;
   chosenLabel: string;
 }) {
@@ -179,6 +183,11 @@ export function Pick({
       {/* Pushed to the bottom so a row of cards ends on one line however long
           the reasons are — ragged card bottoms read as a broken grid. */}
       <span className="mt-2 flex-1 text-xs text-ink-muted">{why}</span>
+      {note && (
+        <span className="mt-2 rounded-lg bg-danger/10 px-2 py-1 text-xs text-danger">
+          {note}
+        </span>
+      )}
       {chosen && (
         <span className="mt-2 text-xs font-semibold text-brand-dark">
           {chosenLabel}

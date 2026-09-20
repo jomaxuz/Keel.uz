@@ -16,7 +16,7 @@
 // ⚠️ **Paused by default.** The switch is a separate press, which leaves one
 // moment in which a mistake is still free.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import type { AdminDict } from "@/lib/i18n/admin";
@@ -26,6 +26,7 @@ import type {
   AdsCampaign,
   AdsCampaignList,
   AdsDishPick,
+  AdsEstimate,
   AdsSettingsView,
   AdsTextPick,
 } from "@/lib/types";
@@ -67,8 +68,37 @@ export function AdsCreate({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [made, setMade] = useState<AdsCampaign | null>(null);
+  const [estimate, setEstimate] = useState<AdsEstimate | null>(null);
 
   const ready = Boolean(dish && text && Number(daily) > 0);
+
+  // ---- What Meta thinks this buys ----
+  //
+  // ⚠️ **Asked after the typing stops, not on every keystroke.** Each estimate
+  // spends one of the ad account's hourly calls, and on a Limited-tier account
+  // that ceiling is shared with everything else this restaurant does at Meta.
+  //
+  // ⚠️ **Cleared while a new one is in flight**, so a figure never sits under a
+  // budget it was not calculated for — an owner reading last number against
+  // this number is the whole failure mode of a live forecast.
+  const radiusKm = area?.radiusKm;
+  useEffect(() => {
+    const amount = Number(daily);
+    if (!amount || amount <= 0) {
+      setEstimate(null);
+      return;
+    }
+    setEstimate(null);
+    const timer = window.setTimeout(() => {
+      api
+        .adsEstimate({ radiusKm, daily: amount })
+        .then(setEstimate)
+        // Quiet: a forecast that could not be fetched is a missing extra, not
+        // a reason to put an error over a form that still works.
+        .catch(() => setEstimate(null));
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [daily, radiusKm]);
 
   async function create() {
     if (!dish || !text) return;
@@ -154,6 +184,53 @@ export function AdsCreate({
                 .replace("{currency}", settings.currency ?? "")}
             </p>
           ) : null}
+          {estimate && (
+            <div className="rounded-xl border border-ink/10 p-3">
+              <p className="text-xs font-semibold text-ink-soft">
+                {t.ads.campaign.forecast}
+              </p>
+              {estimate.ready && estimate.reach ? (
+                <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
+                  <Stat
+                    k={t.ads.campaign.reach}
+                    v={`${som(estimate.reach)}${
+                      estimate.impressions
+                        ? ` · ${som(estimate.impressions)} ${t.ads.campaign.impressions}`
+                        : ""
+                    }`}
+                  />
+                  {typeof estimate.results === "number" && (
+                    <Stat
+                      k={
+                        estimate.goal === "OFFSITE_CONVERSIONS"
+                          ? t.ads.campaign.resultsOrders
+                          : t.ads.campaign.resultsClicks
+                      }
+                      v={som(estimate.results)}
+                    />
+                  )}
+                  {typeof estimate.audience === "number" &&
+                    estimate.audience > 0 && (
+                      <Stat
+                        k={t.ads.campaign.audience}
+                        v={som(estimate.audience)}
+                      />
+                    )}
+                </dl>
+              ) : (
+                <p className="mt-1 text-sm text-ink-muted">
+                  {t.ads.campaign.forecastNotReady}
+                </p>
+              )}
+              {/* ⚠️ Whose estimate it is, said every time it is shown. Our own
+                  planner is forbidden from predicting results; this number is
+                  Meta's, and an owner has to be able to tell them apart. */}
+              <p className="mt-1 text-xs text-ink-muted">
+                {t.ads.campaign.forecastNote}
+              </p>
+            </div>
+          )}
+
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

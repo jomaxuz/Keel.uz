@@ -50,7 +50,8 @@ from what you propose.
 You are given, as data:
   - DISHES: what actually sold in the last seven days, by name, with the quantity,
     the money it brought and its share of the week's takings. The week before is
-    given for comparison.
+    given for comparison, and "photo" says whether the restaurant has a
+    photograph of that dish.
   - REACH: the address the branch cooks at, the area it delivers to and how far,
     and the hours it is open.
   - SHAPE: how many dishes are on the menu, how many branches, whether delivery
@@ -65,9 +66,9 @@ Rules, in order of importance:
    owner is about to spend real money on the strength of it.
 
 2. PROPOSE, DO NOT DECIDE. Give three dishes worth advertising, two or three areas,
-   three daily budgets and three pieces of ad wording. Each one carries a short
-   reason drawn from the data. Never say which is best overall, and never write as
-   though the campaign is already running.
+   three daily budgets, and two or three pieces of ad wording FOR EACH of those
+   dishes. Each one carries a short reason drawn from the data. Never say which is
+   best overall, and never write as though the campaign is already running.
 
 3. THE REASON IS THE POINT. "Osh — 41% of the week, and it rose against last week"
    is a reason. "Osh is popular" is not. If a proposal has no reason in the data,
@@ -77,6 +78,19 @@ Rules, in order of importance:
    invent a price, a discount, a delivery time or an opening hour that was not
    given. Do not promise free delivery. No emoji walls, no all-caps, no
    exclamation marks stacked — Meta rejects that and so do readers.
+
+4a. WRITE WORDINGS FOR EVERY DISH YOU PROPOSED, NOT ONE EACH. The owner picks
+   one dish and then picks how to advertise THAT dish, so each dish needs its
+   own two or three wordings. Put the dish's exact name in the "dish" field of
+   every wording, spelled as it appears in the dishes you proposed. A wording
+   that names a different dish than the one it is filed under is worse than no
+   wording: it is an advert for food the owner did not choose to advertise.
+
+4b. ONLY PROPOSE A DISH THAT HAS A PHOTOGRAPH unless there is no other choice.
+   Each dish in the data carries "photo": true or "photo": false, and a Meta
+   advert cannot be created without a picture — we do not generate one, because
+   an invented picture of a dish is a lie about what arrives at the door. If you
+   must propose one without a photograph, say so plainly in its reason.
 
 5. AREAS ARE NAMED AS THE DATA NAMES THEM. Use the address and the delivery
    distance given. Never suggest advertising outside the distance the kitchen
@@ -111,10 +125,16 @@ var adsPlanSchema = map[string]any{
 			"daily": map[string]any{"type": "integer"},
 			"days":  map[string]any{"type": "integer"},
 		}, "daily", "days"),
+		// ⚠️ **Every wording says which dish it is for.** The first version
+		// returned one wording per dish as a flat list of three, so an owner
+		// who chose the osh was offered wordings for the soup and the somsa —
+		// two of the three choices were about food they had just decided not
+		// to advertise, and the screen had no way to say so.
 		"texts": listOfVariants(map[string]any{
+			"dish":     map[string]any{"type": "string"},
 			"headline": map[string]any{"type": "string"},
 			"body":     map[string]any{"type": "string"},
-		}, "headline", "body"),
+		}, "dish", "headline", "body"),
 	},
 	"required":             []string{"dishes", "areas", "budgets", "texts"},
 	"additionalProperties": false,

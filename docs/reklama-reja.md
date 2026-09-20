@@ -335,3 +335,40 @@ birinchi mijozlarni ham yig'amiz.
 ⚠️ Verifikatsiya bo'limidagi qadamlar **ikkilamchi manbalardan** — Meta'ning
 o'z yordam sahifalari JS bilan chiziladi va WebFetch ularning matnini
 qaytarmaydi. Portfel ichidagi ko'rsatma bilan solishtirilsin.
+
+---
+
+## 11. Jonli sinovdan chiqqan uchta tuzatish (2026-09-20)
+
+Birinchi haqiqiy reja b5somsa'da ishlatilganda uchta narsa ko'rindi — hammasi
+kod to'g'ri ishlab turib, mahsulot noto'g'ri bo'lgan holat:
+
+1. ⚠️ **Reklama matni tanlangan taomga bog'liq emas edi.** Model uchta taomga
+   uchta matn qaytarardi (flat ro'yxat), ya'ni oshni tanlagan ega qolgan ikki
+   variantda sho'rva va somsa reklamasini ko'rardi — uchtadan ikkitasi u endi
+   **reklama qilmaslikka qaror qilgan** taom haqida. Endi har matn `dish`
+   maydonini olib yuradi, model **har taomga 2–3 matn** yozadi, panel esa
+   tanlangan taomnikini ko'rsatadi. Taom almashsa matn tanlovi **tozalanadi**.
+2. ⚠️ **«Bu taomning fotosi yo'q» xatosi kampaniya ochilayotganda chiqardi** —
+   ya'ni tanlovdan to'rt ekran keyin, pul sarflash tugmasida. Endi reja
+   faktlari har taom uchun `photo` ni olib yuradi, model fotosi borini
+   **afzal ko'radi**, va fotosi yo'q taom **tanlash lahzasida** qizil yozuv
+   bilan belgilanadi.
+3. **Byudjet yozilganda Meta'ning o'z taxmini ko'rsatiladi**
+   (`/act_X/delivery_estimate`): kunlik qamrov, ko'rsatishlar, natija va
+   hududdagi auditoriya. ⚠️ **Bu Meta'ning raqami, bizniki emas**, va ekran
+   har safar shuni aytadi: bizning planerimizga natija bashorat qilish
+   **taqiqlangan** (7-qoida), chunki va'da qilingan raqam bilan bizni
+   o'lchashadi. ⚠️ `estimate_ready: false` bo'lsa nol chizilmaydi — yo'q
+   bashoratni bashorat qilib ko'rsatish eng yomoni. ⚠️ So'rov yozish
+   to'xtagandan keyin (700 ms), chunki har taxmin akkauntning soatlik
+   kvotasidan bitta chaqiruv yeydi.
+
+### Hali yo'q: Instagram postini ko'tarish
+
+Ega tayyor Instagram postini reklama qilishni so'radi. Bu **boshqa kreativ
+turi** (`object_story_id` / `source_instagram_media_id` — mavjud postdan
+kreativ), va u qo'shimcha ruxsat talab qiladi (`instagram_basic`), ya'ni
+Login for Business konfiguratsiyasiga ruxsat qo'shish va **App Review'da yana
+bir band**. Shuning uchun u verifikatsiyadan keyingi ishga qoldirildi —
+hozirgi oqim restoranning o'z taom fotosidan kreativ yasaydi.

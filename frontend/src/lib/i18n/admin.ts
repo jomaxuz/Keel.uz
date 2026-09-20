@@ -4755,6 +4755,16 @@ export const adminUz = {
       areaDefault: "Filialning yetkazish hududi",
       waitingConnect: "Meta akkaunti ulangach, tanlagan rejangiz shu yerda kampaniyaga aylanadi.",
       waitingPicks: "Rejadan taom va reklama matnini tanlang — kampaniya shu yerda yig'iladi.",
+      forecast: "Meta'ning taxmini",
+      reach: "Kunlik qamrov",
+      impressions: "ko'rsatish",
+      resultsOrders: "Kunlik buyurtma (taxmin)",
+      resultsClicks: "Kunlik bosish (taxmin)",
+      audience: "Hududdagi auditoriya",
+      forecastNotReady:
+        "Meta bu hudud va byudjet uchun hali taxmin bermayapti — odatda auditoriya kichik yoki akkaunt yangi.",
+      forecastNote:
+        "Bu raqamlar Meta'niki, bizniki emas — Ads Manager ham shuni ko'rsatadi. Kafolat emas, taxmin.",
     },
     report: {
       title: "Reklama nima keltirdi",
@@ -4809,6 +4819,8 @@ export const adminUz = {
       building: "Tayyorlanmoqda…",
       notChosen: "Tanlanmagan",
       empty: "Reja shu filialning oxirgi yetti kunlik sotuvidan tuziladi: qaysi taom qancha pul keltirgani, o'tgan haftaga nisbatan qanday o'zgargani va oshxona qayergacha yetkazib berishi. Natijada uchta taom, hudud, byudjet va reklama matni — har biri sababi bilan.",
+      noPhoto: "Fotosi yo'q — reklama uchun avval menyuga rasm yuklang",
+      pickDishFirst: "Avval taomni tanlang",
       handNote:
         "Meta akkaunti ulanmagani uchun hozircha kompaniyani Meta'da qo'lda ochasiz — bu reja aynan shuning uchun tayyor.",
     },
@@ -9701,6 +9713,16 @@ export const adminRu: AdminDict = {
       areaDefault: "Зона доставки филиала",
       waitingConnect: "Когда аккаунт Meta будет подключён, выбранный план превратится здесь в кампанию.",
       waitingPicks: "Выберите в плане блюдо и текст рекламы — кампания соберётся здесь.",
+      forecast: "Оценка Meta",
+      reach: "Охват в день",
+      impressions: "показов",
+      resultsOrders: "Заказов в день (оценка)",
+      resultsClicks: "Кликов в день (оценка)",
+      audience: "Аудитория в районе",
+      forecastNotReady:
+        "Meta пока не даёт оценку для этого района и бюджета — обычно аудитория мала или аккаунт новый.",
+      forecastNote:
+        "Это числа Meta, а не наши — Ads Manager показывает те же. Оценка, а не гарантия.",
     },
     report: {
       title: "Что принесла реклама",
@@ -9755,6 +9777,8 @@ export const adminRu: AdminDict = {
       building: "Готовится…",
       notChosen: "Не выбрано",
       empty: "План строится из продаж этого филиала за последние семь дней: какое блюдо сколько принесло, как изменилось к прошлой неделе и докуда доезжает кухня. На выходе — три блюда, районы, бюджеты и тексты, каждый со своей причиной.",
+      noPhoto: "Нет фото — загрузите изображение в меню, иначе рекламу создать нельзя",
+      pickDishFirst: "Сначала выберите блюдо",
       handNote:
         "Аккаунт Meta пока не подключён, поэтому кампанию вы создаёте в Meta вручную — план собран именно для этого.",
     },
@@ -14604,6 +14628,16 @@ export const adminEn: AdminDict = {
       areaDefault: "The branch's delivery area",
       waitingConnect: "Once the Meta account is connected, the plan you chose becomes a campaign here.",
       waitingPicks: "Pick a dish and the advert wording from the plan — the campaign is assembled here.",
+      forecast: "Meta's estimate",
+      reach: "Daily reach",
+      impressions: "impressions",
+      resultsOrders: "Orders a day (estimate)",
+      resultsClicks: "Clicks a day (estimate)",
+      audience: "Audience in the area",
+      forecastNotReady:
+        "Meta will not estimate for this area and budget yet — usually the audience is small or the account is new.",
+      forecastNote:
+        "These are Meta's numbers, not ours — Ads Manager shows the same. An estimate, not a promise.",
     },
     report: {
       title: "What the advertising brought",
@@ -14658,6 +14692,8 @@ export const adminEn: AdminDict = {
       building: "Working…",
       notChosen: "Not chosen",
       empty: "The plan is built from this branch's last seven days of sales: which dish brought what, how it moved against the week before, and how far the kitchen delivers. Out of it come three dishes, some areas, budgets and wordings — each with its reason.",
+      noPhoto: "No photograph — upload one to the menu first, or the advert cannot be created",
+      pickDishFirst: "Choose a dish first",
       handNote:
         "No Meta account is connected yet, so the campaign is created in Meta by hand — which is exactly what this plan is for.",
     },

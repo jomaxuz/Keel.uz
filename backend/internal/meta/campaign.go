@@ -20,6 +20,7 @@ package meta
 
 import (
 	"context"
+	"math"
 	"net/url"
 	"strconv"
 )
@@ -291,4 +292,77 @@ func (c *Client) AdReview(ctx context.Context, adID string) (Review, error) {
 	err := c.Get(ctx, adID,
 		url.Values{"fields": {"id,effective_status,issues_info"}}, &out)
 	return out, err
+}
+
+// ---- What Meta thinks this money will buy ----
+
+// Estimate is Meta's own forecast for a targeting and a budget.
+//
+// ⚠️ **Meta's number, never ours, and the screen says so.** The planner is
+// forbidden from predicting results for a reason — an owner who was promised a
+// figure measures us against it. This is different in kind: it is the same
+// estimate Ads Manager shows them, fetched from the system that will actually
+// deliver the adverts, and it is labelled with whose it is.
+type Estimate struct {
+	// How many people the targeting can reach at all. ⚠️ Monthly and daily
+	// active, as Meta counts them — not "customers".
+	DAU int64 `json:"estimate_dau"`
+	MAU int64 `json:"estimate_mau"`
+	// ⚠️ **False means the numbers are not usable yet**, which happens on a
+	// fresh account or an audience Meta considers too small. Showing the zeroes
+	// as a forecast would be inventing a prediction of nothing.
+	Ready bool `json:"estimate_ready"`
+	// Spend against outcome, in the ad account's currency's minor units.
+	Curve []EstimatePoint `json:"daily_outcomes_curve"`
+}
+
+// EstimatePoint is one budget on Meta's curve.
+type EstimatePoint struct {
+	Spend       float64 `json:"spend"`
+	Reach       float64 `json:"reach"`
+	Impressions float64 `json:"impressions"`
+	Actions     float64 `json:"actions"`
+}
+
+// At is the point on the curve closest to a daily budget, in minor units.
+//
+// ⚠️ **The nearest point, never an interpolation.** Meta returns the budgets it
+// is willing to answer for; a number invented between two of them would be ours
+// while looking like theirs.
+func (e Estimate) At(minor int) (EstimatePoint, bool) {
+	if !e.Ready || len(e.Curve) == 0 {
+		return EstimatePoint{}, false
+	}
+	want := float64(minor)
+	best, bestGap := e.Curve[0], math.Abs(e.Curve[0].Spend-want)
+	for _, p := range e.Curve[1:] {
+		if gap := math.Abs(p.Spend - want); gap < bestGap {
+			best, bestGap = p, gap
+		}
+	}
+	return best, true
+}
+
+// DeliveryEstimate asks Meta what a targeting is worth.
+func (c *Client) DeliveryEstimate(
+	ctx context.Context, act, goal string, t Targeting, pixelID, event string,
+) (Estimate, error) {
+	params := url.Values{
+		"optimization_goal": {goal},
+		"targeting_spec":    {JSONField(t.spec())},
+	}
+	if pixelID != "" && event != "" {
+		params.Set("promoted_object", JSONField(map[string]any{
+			"pixel_id":          pixelID,
+			"custom_event_type": event,
+		}))
+	}
+	var out listOf[Estimate]
+	if err := c.Get(ctx, act+"/delivery_estimate", params, &out); err != nil {
+		return Estimate{}, err
+	}
+	if len(out.Data) == 0 {
+		return Estimate{}, nil
+	}
+	return out.Data[0], nil
 }

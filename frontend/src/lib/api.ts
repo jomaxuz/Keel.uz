@@ -9,6 +9,7 @@ import type {
   AdsAssets,
   AdsCampaign,
   AdsCampaignList,
+  AdsEstimate,
   AdsReport,
   AdsRules,
   AdsState,
@@ -3090,6 +3091,19 @@ export const api = {
     request<{ ok: boolean }>(`/admin/ads/campaigns/${id}`, {
       method: "PUT",
       auth: true,
+      body,
+    }),
+
+  /** What Meta thinks a budget will buy, before it is spent.
+   *
+   *  ⚠️ POST although it reads: it spends one of the ad account's hourly
+   *  calls, and a GET that spends a quota is one a browser prefetch can spend
+   *  for you. */
+  adsEstimate: (body: { radiusKm?: number; daily: number }) =>
+    request<AdsEstimate>("/admin/ads/estimate", {
+      method: "POST",
+      auth: true,
+      scope: true,
       body,
     }),
 

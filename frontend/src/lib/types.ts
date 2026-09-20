@@ -5276,6 +5276,31 @@ export type AdsReport = {
   lastSyncAt?: string;
 };
 
+/** Meta's own forecast for a targeting and a daily budget.
+ *
+ *  ⚠️ **Meta's number, and the screen never drops whose it is.** The planner is
+ *  forbidden from predicting results; this is the estimate Ads Manager shows,
+ *  asked of the system that will actually deliver the adverts. */
+export type AdsEstimate = {
+  /** False on a fresh account or an audience Meta thinks too small — then
+   *  there are no figures, and drawing zeroes would be a prediction of
+   *  nothing. */
+  ready: boolean;
+  /** How many people the circle can reach at all, monthly and daily. */
+  audience?: number;
+  daily?: number;
+  currency?: string;
+  radiusKm?: number;
+  /** "LINK_CLICKS" or "OFFSITE_CONVERSIONS" — what `results` counts. */
+  goal?: string;
+  reach?: number;
+  impressions?: number;
+  results?: number;
+  /** The budget on Meta's own curve that these figures are for — never
+   *  interpolated, so it can differ a little from what was typed. */
+  atSpend?: number;
+};
+
 /** Which Meta app to open the login dialog for. ⚠️ Read from the server rather
  *  than the bundle: a `NEXT_PUBLIC_*` value is sealed into the build. */
 export type AdsApp = {
@@ -5307,6 +5332,12 @@ export type AdsDishFact = {
   share: number;
   /** What the same dish took the week before, for the comparison. */
   lastWeek: number;
+  /** Whether this restaurant has a photograph of it. ⚠️ A Meta advert cannot
+   *  be created without one and we never invent one, so this decides whether a
+   *  dish can be advertised at all — said at the moment of choosing rather
+   *  than at the launch button four screens later. Absent on plans built
+   *  before the field existed. */
+  photo?: boolean;
 };
 
 /** What the campaign plan was written from. */
@@ -5331,7 +5362,15 @@ export type AdsPick = { why: string };
 export type AdsDishPick = AdsPick & { name: string };
 export type AdsAreaPick = AdsPick & { label: string; radiusKm?: number };
 export type AdsBudgetPick = AdsPick & { daily: number; days: number };
-export type AdsTextPick = AdsPick & { headline: string; body: string };
+/** ⚠️ **Wordings are filed under the dish they advertise.** A flat list meant
+ *  an owner who chose the osh was offered wordings for the soup and the somsa.
+ *  Optional because a plan cached before the field existed has none, and the
+ *  screen falls back to showing every wording rather than none. */
+export type AdsTextPick = AdsPick & {
+  dish?: string;
+  headline: string;
+  body: string;
+};
 
 /** The answer to "what should I advertise?".
  *

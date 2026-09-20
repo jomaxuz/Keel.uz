@@ -27,6 +27,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"restaurant-backend/internal/httpx"
@@ -205,10 +206,19 @@ func (h *Handler) adsFacts(
 		}
 	}
 
+	// ⚠️ **Which dishes can actually be advertised.** A Meta advert cannot be
+	// created without a picture and we never invent one — so a plan that
+	// proposed a dish nobody has photographed sent the owner all the way to the
+	// launch button before anything said so, and what it said there was "no
+	// photograph for this dish", four screens away from the choice that caused
+	// it. The planner is told, and the panel marks it at the moment of choosing.
+	photos := h.dishPhotos(ctx, top)
+
 	dishes := make([]map[string]any, 0, len(top))
 	for _, d := range top {
 		dishes = append(dishes, map[string]any{
 			"name": d.Name, "qty": d.Qty, "money": d.Money,
+			"photo": photos[d.ID],
 			// ⚠️ Computed here, in integers, and sent as a fact. The share is
 			// the number the whole plan argues from and the one the panel draws
 			// a bar from — it is not a thing to ask a model for.
@@ -259,4 +269,39 @@ func (h *Handler) adsFacts(
 		}
 	}
 	return facts, true
+}
+
+// dishPhotos says, for each dish in the week, whether there is a photograph of
+// it on this server.
+//
+// ⚠️ **One query for the lot.** This runs inside the plan, which an owner is
+// already waiting on a model for; a lookup per dish would be five round trips
+// to say one word each.
+func (h *Handler) dishPhotos(
+	ctx context.Context, rows []dishSale,
+) map[string]bool {
+	out := map[string]bool{}
+	ids := make([]primitive.ObjectID, 0, len(rows))
+	for _, d := range rows {
+		if id, err := primitive.ObjectIDFromHex(d.ID); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return out
+	}
+	cur, err := h.Store.Menu.Find(ctx, bson.M{"_id": bson.M{"$in": ids}},
+		options.Find().SetProjection(bson.M{"imageUrl": 1, "images": 1}))
+	if err != nil {
+		return out
+	}
+	var items []models.MenuItem
+	if cur.All(ctx, &items) != nil {
+		return out
+	}
+	for _, it := range items {
+		out[it.ID.Hex()] = strings.TrimSpace(it.ImageURL) != "" ||
+			len(it.Images) > 0
+	}
+	return out
 }
