@@ -100,6 +100,8 @@ function pickItems(d: BlockData, section: DesignSection): MenuItem[] {
 
 export function HeroBlock({ d }: { d: BlockData; section: DesignSection }) {
   const { t, lang, data, currency } = d;
+  // The catalogue's own address for this business — see lib/catalogRoute.
+  const heroWords = siteWords(t, data?.brand?.businessType);
   const rest = data?.restaurant;
   const cover = imageUrl(rest?.coverUrl, 1200);
   const allItems = d.menu.flatMap((g) => g.items);
@@ -152,7 +154,7 @@ export function HeroBlock({ d }: { d: BlockData; section: DesignSection }) {
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3">
-            <Link href="/menu" className="btn-primary px-7 py-3.5 text-base">
+            <Link href={heroWords.href} className="btn-primary px-7 py-3.5 text-base">
               {t.home.ctaMenu}
             </Link>
             <Link
@@ -351,6 +353,11 @@ export function SearchBlock({ d, section }: { d: BlockData; section: DesignSecti
 
 export function CategoriesBlock({ d }: { d: BlockData; section: DesignSection }) {
   const { t, lang } = d;
+  // ⚠️ **A shoe shop counted its trainers in dishes.** The bar had already been
+  // taught to say "Katalog", and this line under every category tile still said
+  // "5 ta taom" — the same failure one layer down, and the one a guest reads
+  // while looking at the shoes. See lib/siteWords.ts.
+  const catWords = siteWords(t, d.data?.brand?.businessType);
   const categories = d.menu.filter((g) => g.items.length > 0);
   if (categories.length === 0) return null;
 
@@ -373,7 +380,7 @@ export function CategoriesBlock({ d }: { d: BlockData; section: DesignSection })
           return (
             <Link
               key={g.category.id}
-              href={`/menu#cat-${g.category.slug || g.category.id}`}
+              href={`${catWords.href}#cat-${g.category.slug || g.category.id}`}
               className="group relative overflow-hidden rounded-3xl bg-charcoal shadow-card transition-shadow hover:shadow-card-hover"
             >
               <div className="aspect-[4/3] w-full">
@@ -393,7 +400,7 @@ export function CategoriesBlock({ d }: { d: BlockData; section: DesignSection })
                   {contentName(g.category, lang)}
                 </h3>
                 <p className="text-xs text-white/60">
-                  {t.common.dishes(g.items.length)}
+                  {catWords.items(g.items.length)}
                 </p>
               </div>
             </Link>
@@ -554,7 +561,7 @@ export function HoursAddressBlock({ d, section }: { d: BlockData; section: Desig
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link href="/menu" className="btn-primary px-6 py-3">
+            <Link href={words.href} className="btn-primary px-6 py-3">
               {t.home.orderBtn}
             </Link>
             <Link
@@ -704,7 +711,7 @@ export function CtaBlock({
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link href="/menu" className="btn-primary px-6 py-3">
+          <Link href={ctaWords.href} className="btn-primary px-6 py-3">
             {t.home.orderBtn}
           </Link>
           {booking && (

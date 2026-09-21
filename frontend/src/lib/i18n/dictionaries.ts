@@ -159,6 +159,7 @@ const uz = {
     // of trainers.** Same complaint as "Menyu" one line above: the words were
     // written for a kitchen, and on a shop they say out loud that the site was
     // built for somebody else.
+    items: (n: number) => `${n} ta mahsulot`,
     orderTitle: "Savatga soling — qolganini biz qilamiz",
     orderText:
       "Toshkent bo'ylab yetkazib beramiz. O'lcham to'g'ri kelmasa almashtiramiz.",
@@ -707,6 +708,7 @@ const ru: Dict = {
       `${cats} разделов, ${items} товаров.`,
     empty: "Товаров пока нет. Добавьте их через админ-панель.",
     back: "Вернуться в каталог",
+    items: (n: number) => `${n} товаров`,
     orderTitle: "Положите в корзину — остальное сделаем мы",
     orderText:
       "Доставим по Ташкенту. Не подойдёт размер — обменяем.",
@@ -1225,6 +1227,7 @@ const en: Dict = {
       `${cats} sections, ${items} products.`,
     empty: "No products yet. Add them from the admin panel.",
     back: "Back to the catalogue",
+    items: (n: number) => `${n} items`,
     orderTitle: "Add it to the basket — we do the rest",
     orderText:
       "We deliver across Tashkent. If the size is wrong, we exchange it.",

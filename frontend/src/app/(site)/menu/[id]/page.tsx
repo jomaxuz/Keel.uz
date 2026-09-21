@@ -9,6 +9,7 @@ import AddToCartControl from "@/components/menu/AddToCartControl";
 import Recommendations from "@/components/menu/Recommendations";
 import { getTranslations } from "@/lib/i18n/server";
 import { siteWords } from "@/lib/siteWords";
+import { guardCatalogRoute } from "@/lib/catalogRoute";
 import { contentDescription, contentName } from "@/lib/i18n/content";
 import type { MenuGroup, MenuItem, RestaurantResponse } from "@/lib/types";
 
@@ -43,6 +44,10 @@ export default async function MenuItemPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // ⚠️ The same pair as the catalogue itself: a shop's item lives under
+  // `/catalog/…`, and this address keeps working for everything already written
+  // down. See lib/catalogRoute.
+  await guardCatalogRoute();
   const { id } = await params;
   const { lang, t } = await getTranslations();
 

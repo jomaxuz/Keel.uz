@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { api } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
+import { sellsGoods } from "@/lib/types";
 import { siteOrigin } from "@/lib/seo";
 import { DEFAULT_LANG, LANGS, localePath } from "@/lib/i18n";
 
@@ -52,9 +53,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   });
 
+  // ⚠️ **The catalogue is listed at the address that answers, not the one that
+  // redirects.** A shop's is `/catalog` and `/menu` sends the guest there; a
+  // sitemap full of redirects is a sitemap a crawler spends its budget
+  // following, and the canonical it eventually settles on is the other one
+  // anyway. Read before the fixed list so a failure falls back to `/menu`,
+  // which every site still answers.
+  let catalogue = "/menu";
+  try {
+    const scope = await getSiteScope();
+    const rest = await api.getRestaurant(scope);
+    if (sellsGoods({ businessType: rest?.brand?.businessType })) catalogue = "/catalog";
+  } catch {
+    // The backend is unreachable; `/menu` is right for a restaurant and a
+    // redirect for a shop, which is the safe way round.
+  }
+
   const fixed: MetadataRoute.Sitemap = [
     entry("/", { lastModified: now, changeFrequency: "daily", priority: 1 }),
-    entry("/menu", { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
+    entry(catalogue, { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
     entry("/about", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
     // ⚠️ Listed even for a one-branch restaurant, where the nav hides it: "restoran
     // manzili" is exactly what somebody types into a search engine, and a page kept out
@@ -82,7 +99,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         // would land on a page telling them they cannot have it.
         .filter((it) => it.isAvailable)
         .map((it) =>
-          entry(`/menu/${it.id}`, {
+          entry(`${catalogue}/${it.id}`, {
             lastModified: it.updatedAt ? new Date(it.updatedAt) : now,
             changeFrequency: "weekly" as const,
             priority: 0.7,

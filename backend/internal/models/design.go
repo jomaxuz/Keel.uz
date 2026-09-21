@@ -189,6 +189,9 @@ var elementTypes = map[string]bool{
 var elementLinks = map[string]bool{
 	"": true, "/": true, "/menu": true, "/cart": true, "/checkout": true,
 	"/bron": true, "/about": true, "/profile": true, "/login": true,
+	// ⚠️ A shop's catalogue answers at `/catalog`, and `/menu` redirects there.
+	// Both are real addresses on every site, which is what makes the move safe.
+	"/catalog": true,
 }
 
 var elementFonts = map[string]bool{"": true, "sans": true, "display": true}

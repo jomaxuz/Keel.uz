@@ -24,6 +24,7 @@ import { useMemo, useState } from "react";
 import { imageUrl } from "@/lib/api";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import { useI18n } from "@/lib/i18n/client";
+import { siteWords } from "@/lib/siteWords";
 import { contentName } from "@/lib/i18n/content";
 import {
   activeFilterCount,
@@ -40,11 +41,17 @@ export default function MenuBrowser({
   groups: allItems,
   currency,
   initialQuery = "",
+  businessType,
 }: {
   groups: MenuGroup[];
   currency: string;
   /** What the home page's box was asked for, carried in `?q=`. */
   initialQuery?: string;
+  /** ⚠️ The **type**, not the words: this is a client component, and a
+   *  dictionary's counters are functions — React refuses to serialise those
+   *  across the boundary, and the way it refuses is a band that never resolves.
+   *  The type is a string, and the words are looked up on this side. */
+  businessType?: string;
 }) {
   // ⚠️ **One card per model, before anything else reads the list.** A guest
   // browsing a clothes shop should see shirts, not sizes: twelve cards of one
@@ -58,6 +65,8 @@ export default function MenuBrowser({
     [allItems],
   );
   const { lang, t } = useI18n();
+  // "5 ta mahsulot" in a shop, "5 ta taom" in a restaurant.
+  const words = siteWords(t, businessType);
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<MenuFilters>(NO_FILTERS);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -446,7 +455,7 @@ export default function MenuBrowser({
                       {contentName(g.category, lang)}
                     </h2>
                     <p className="text-sm text-ink-muted">
-                      {t.common.dishes(g.items.length)}
+                      {words.items(g.items.length)}
                     </p>
                   </div>
                 </div>

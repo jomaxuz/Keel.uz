@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { siteWords } from "@/lib/siteWords";
+import { dictionaries as allDicts } from "@/lib/i18n/dictionaries";
 import {
   composes,
   hasKitchen,
@@ -102,5 +104,28 @@ describe("which businesses are offered a postal carrier", () => {
     expect(shipsByPost(null)).toBe(false);
     expect(shipsByPost({ businessType: "" })).toBe(false);
     expect(shipsByPost({ businessType: "spaceport" })).toBe(false);
+  });
+});
+
+describe("the words and the address a business uses", () => {
+  // ⚠️ **Both halves of the same complaint, and the second outlived the first.**
+  // The bar was taught to say "Katalog" months ago; the line under every
+  // category tile still read "5 ta taom" over a rail of trainers, and the
+  // address still read `/menu`. A guest reads both.
+  const t = allDicts.uz;
+
+  it("counts a shop's things in products, not dishes", () => {
+    expect(siteWords(t, "ecommerce").items(5)).toContain("mahsulot");
+    expect(siteWords(t, "restaurant").items(5)).toContain("taom");
+  });
+
+  it("sends a shop to /catalog and a restaurant to /menu", () => {
+    expect(siteWords(t, "ecommerce").href).toBe("/catalog");
+    expect(siteWords(t, "clothing").href).toBe("/catalog");
+    expect(siteWords(t, "restaurant").href).toBe("/menu");
+    // ⚠️ An unknown type reads as a restaurant — the same fallback every
+    // predicate here makes, and the one that keeps an older console's site
+    // saying what it said yesterday.
+    expect(siteWords(t, undefined).href).toBe("/menu");
   });
 });

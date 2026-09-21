@@ -132,7 +132,10 @@ const ICONS = [
   "arrow-left", "plus", "minus",
 ] as const;
 const COLORS = ["", "ink", "soft", "muted", "white", "brand", "surface", "charcoal"];
-const LINKS = ["", "/", "/menu", "/cart", "/checkout", "/bron", "/about", "/profile"];
+// ⚠️ `/catalog` beside `/menu`: a shop's catalogue answers there and `/menu`
+// redirects to it, so either works — but a button written with the shop's own
+// address sends the guest straight there instead of through a redirect.
+const LINKS = ["", "/", "/menu", "/catalog", "/cart", "/checkout", "/bron", "/about", "/profile"];
 
 /** The sections somebody can add, grouped and in the order they are usually
  *  reached for.

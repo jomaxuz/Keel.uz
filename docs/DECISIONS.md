@@ -8742,16 +8742,41 @@ sotmaydi; ikkinchi bandi «Menyu» deb yozilgan navigatsiya paneli — bu sayt
 boshqa birov uchun qurilgani haqidagi eng aniq bayonot. Bu — paneldagi
 «Masalliqlar» shikoyatining aynan o'zi, bir qavat pastda.
 
-⚠️ **So'z, ikkinchi manzil emas.** `/menu` — `/menu` bo'lib qoladi. Dunyodagi
-har bir saqlangan havola, QR kod, sitemap yozuvi, Telegram tugmasi va bosilgan
-kartochka shunga ishora qiladi, va do'kon boshqa manzildan **sinadigan
-havolalar** bahosidan ikki barobar kam narsa yutadi. O'zgaradigani — sahifa
-qanday atalishi, ya'ni mehmon ko'radigan narsaning hammasi.
+⚠️ **Manzil ham o'zgaradi, eskisi esa ishlab turaveradi.** Bu yerda ilgari
+teskarisi yozilgan edi — so'z o'zgaradi, `/menu` qoladi — va sabab
+«sinadigan havolalar» edi. U sabab **havolani sindirish** haqida to'g'ri va
+mehmon **ko'radigan manzil** haqida noto'g'ri: krossovka rayki ustidagi
+`ecom.uz/menu` — bu paneldagi «Menyu» bilan bir xil gap, faqat mehmon eng ko'p
+o'qiydigan va eng ko'p nusxa oladigan joyda. Shuning uchun do'konning katalogi
+`/catalog` da, `/menu` esa **o'sha yerga yo'naltiradi**: yozib qo'yilgan hech
+nima sinmaydi, va yangi hech nima «menyu» demaydi.
+
+⚠️ **Ikki marshrut, bitta sahifa** (`lib/catalogRoute.ts`). Qaysi manzil
+so'ralgani **o'qiladi**, uzatilmaydi: ikkala marshrut bir modulni chizadi, ya'ni
+qattiq yozilgan javob ulardan birini o'zi-o'ziga yo'naltirardi — do'kon
+topiladigan sahifada tsikl. Til prefiksi qo'lda ko'chiriladi (middleware
+`/ru/catalog` ni `/catalog` ga qayta yozadi, ya'ni oddiy `/menu` ruscha
+mehmonni o'zbekchaga tashlardi), va yo'lning qolgani ham: `/menu/abc` →
+`/catalog/abc`.
+
+⚠️ **Backend javob bermasa — yo'naltirish yo'q.** Ikki manzil orasida
+sakraydigan mehmon noto'g'ri so'z yozilgan sahifadan yomonroq.
+
+⚠️ **Sitemap javob beradigan manzilni yozadi**, yo'naltiradiganini emas: krauler
+byudjetini yo'naltirishlarga sarflaydi va oxiri baribir canonical'ga keladi.
 
 ⚠️ **Ikki o'qilish, o'n ikkita emas**: dorixona ham do'kon, butik ham do'kon,
 onlayn do'kon ham do'kon — bitta to'plam uchalasini qoplaydi. Qaysi biri
 ishlatilishini `sellsGoods` hal qiladi (`lib/siteWords.ts`), va u sarlavha,
 futer, katalog sahifasi va «orqaga» havolasida bir xil javob beradi.
+
+⚠️ **«5 ta taom» kategoriya kartochkasining ostida qoldi.** Panel «Katalog»
+deyishni o'rganganidan keyin ham, har bir bo'lim tagidagi hisob krossovkalarni
+**taomda** sanardi — aynan mehmon poyabzalga qarab turib o'qiydigan joyda.
+`SiteWords.items(n)` shu teshikni yopadi. ⚠️ `MenuBrowser` mijoz komponenti,
+shuning uchun unga **biznes turi** (satr) beriladi, so'zlar emas: lug'atning
+sanagichi — funksiya, va React uni chegaradan o'tkazmaydi (qarang `CanvasBlock`
+dagi bir soatlik xato).
 
 ### Konstruktor: jonli sayt ustida tahrirlash
 

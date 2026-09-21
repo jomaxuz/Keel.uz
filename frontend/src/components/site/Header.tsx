@@ -98,7 +98,7 @@ export default function Header({
     { href: "/", label: t.nav.home },
     // ⚠️ "Katalog" in a shop, "Menyu" in a restaurant — see lib/siteWords.ts.
     // The route is the same one; only the word changes.
-    { href: "/menu", label: w.nav },
+    { href: w.href, label: w.nav },
     // ⚠️ Only with more than one. A single-branch restaurant already shows its address,
     // its hours and a map on the about page, so a nav item leading to a list of one is
     // a click that answers nothing — and this product's rule is that a one-branch
@@ -249,7 +249,7 @@ export default function Header({
               control it has no use for. */}
           {c.icons.search && (
             <Link
-              href="/menu"
+              href={w.href}
               aria-label={w.nav}
               className="hidden h-9 w-9 items-center justify-center rounded-full transition-opacity hover:opacity-70 lg:flex"
             >

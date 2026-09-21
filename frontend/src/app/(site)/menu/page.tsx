@@ -5,6 +5,7 @@ import { getSiteScope } from "@/lib/siteBrand.server";
 import MenuBrowser from "@/components/menu/MenuBrowser";
 import { getTranslations } from "@/lib/i18n/server";
 import { siteWords } from "@/lib/siteWords";
+import { guardCatalogRoute } from "@/lib/catalogRoute";
 import type { MenuGroup, RestaurantResponse } from "@/lib/types";
 
 export async function generateMetadata() {
@@ -24,6 +25,9 @@ export default async function MenuPage({
   // `/menu` as the real URL and no search term becomes an indexable duplicate.
   searchParams?: Promise<{ q?: string }>;
 }) {
+  // ⚠️ A shop's catalogue lives at `/catalog`; this address stays for every
+  // link that was ever written down and sends the guest on. See lib/catalogRoute.
+  await guardCatalogRoute();
   const { lang, t } = await getTranslations();
   const initialQuery = ((await searchParams)?.q ?? "").slice(0, 100);
 
@@ -40,8 +44,7 @@ export default async function MenuPage({
   }
 
   const currency = rest?.restaurant.currency ?? "UZS";
-  // ⚠️ "Katalog" in a shop, "Menyu" in a restaurant. The route is unchanged —
-  // see lib/siteWords.ts for why the address stays `/menu`.
+  // ⚠️ "Katalog" in a shop, "Menyu" in a restaurant — see lib/siteWords.ts.
   const w = siteWords(t, rest?.brand?.businessType);
   const nonEmpty = menu.filter((g) => g.items.length > 0);
   const total = nonEmpty.reduce((n, g) => n + g.items.length, 0);
@@ -78,6 +81,7 @@ export default async function MenuPage({
         groups={nonEmpty}
         currency={currency}
         initialQuery={initialQuery}
+        businessType={rest?.brand?.businessType}
       />
     </main>
   );

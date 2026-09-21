@@ -27,7 +27,7 @@ export default function Footer({
   const { lang, t } = useI18n();
   const year = new Date().getFullYear();
   const pages = [
-    { href: "/menu", label: siteWords(t, businessType).nav },
+    { href: siteWords(t, businessType).href, label: siteWords(t, businessType).nav },
     { href: "/about", label: t.nav.about },
     // ⚠️ In the footer, not the navbar. Nobody arrives at a restaurant's site looking for
     // a job, and a nav item spends the one slot a guest scans on the least likely

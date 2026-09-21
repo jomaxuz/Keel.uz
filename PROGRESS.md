@@ -15424,3 +15424,19 @@ yoki doira ustida turadi — bizda esa har bir rasm to'rtburchak fotosurat edi.
 
 Tekshiruv: backend `go test ./internal/models`; control `go test ./...`;
 frontend `tsc` + 319 test; keel-site `tsc`.
+
+**7. Do'konning katalogi `/catalog` da** (taom sotmaydigan biznes turlari uchun),
+`/menu` esa o'sha yerga **yo'naltiradi**. Bu yerda ilgari teskari qaror yozilgan
+edi — «so'z o'zgaradi, manzil qoladi» — va uning sababi (sinadigan havolalar)
+yo'naltirish bilan to'liq saqlanadi: QR kod, Telegram tugmasi, sitemap yozuvi,
+bosilgan kartochka — hammasi ishlayveradi, va yangi hech nima «menyu» demaydi.
+Ikki marshrut bitta sahifani chizadi; qaysi manzil so'ralgani **o'qiladi**
+(`lib/catalogRoute.ts`), aks holda biri o'zini-o'ziga yo'naltirib tsikl hosil
+qilardi. Til prefiksi va yo'lning qolgani ko'chiriladi (`/menu/abc` →
+`/catalog/abc`). Sitemap javob beradigan manzilni yozadi.
+
+⚠️ **«5 ta taom»** — kategoriya kartochkasining ostidagi hisob krossovkalarni
+taomda sanardi. `SiteWords.items(n)` qo'shildi; `MenuBrowser` mijoz komponenti
+bo'lgani uchun unga biznes **turi** beriladi, so'zlar emas (lug'atning sanagichi
+funksiya, React uni chegaradan o'tkazmaydi). Testi ikkalasini ham ushlaydi.
+Frontend **321** test.
