@@ -491,7 +491,7 @@ export function CtaSection({ d, section }: { d: BlockData; section: DesignSectio
             s={s}
             d={d}
             fallback={{
-              primary: { label: d.t.home.orderBtn, href: "/menu" },
+              primary: { label: d.t.home.orderBtn, href: words.href },
               secondary: d.data?.restaurant?.booking?.enabled
                 ? { label: d.t.nav.booking, href: "/bron" }
                 : undefined,

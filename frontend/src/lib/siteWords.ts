@@ -51,6 +51,16 @@ export interface SiteWords {
   orderText: string;
 }
 
+/** Where this business's catalogue answers.
+ *
+ *  ⚠️ Its own function, without the dictionary, because the places that need
+ *  the *address* are not always the places that need the *words*: the QR page
+ *  is in the panel and carries the panel's dictionary, and a printed card still
+ *  has to point at the address that answers. One definition either way. */
+export function catalogHref(businessType?: string): string {
+  return sellsGoods({ businessType }) ? "/catalog" : "/menu";
+}
+
 /** The words this business uses.
  *
  *  ⚠️ An unknown business type reads as a restaurant — the same fallback every
@@ -65,7 +75,7 @@ export function siteWords(t: Dict, businessType?: string): SiteWords {
       subtitle: t.menu.subtitle,
       empty: t.menu.empty,
       back: t.common.backToMenu,
-      href: "/menu",
+      href: catalogHref(businessType),
       items: t.common.dishes,
       orderTitle: t.home.orderTitle,
       orderText: t.home.orderText,
@@ -78,7 +88,7 @@ export function siteWords(t: Dict, businessType?: string): SiteWords {
     subtitle: t.shop.subtitle,
     empty: t.shop.empty,
     back: t.shop.back,
-    href: "/catalog",
+    href: catalogHref(businessType),
     items: t.shop.items,
     orderTitle: t.shop.orderTitle,
     orderText: t.shop.orderText,

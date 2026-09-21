@@ -8765,6 +8765,24 @@ sakraydigan mehmon noto'g'ri so'z yozilgan sahifadan yomonroq.
 ⚠️ **Sitemap javob beradigan manzilni yozadi**, yo'naltiradiganini emas: krauler
 byudjetini yo'naltirishlarga sarflaydi va oxiri baribir canonical'ga keladi.
 
+⚠️ **Yo'naltirish vaqtinchalik (307), doimiy (308) emas** — va bu ataylab.
+Qidiruv tizimi 308 ni afzal ko'radi, lekin brauzer uni xohlaganicha keshlaydi,
+`businessType` esa ega **qaytarib o'zgartira oladigan** sozlama. Bir kun do'kon
+bo'lib keyin restoranga qaytgan mijozning mehmonida brauzer keshida
+`/menu → /catalog`, serverda esa `/catalog → /menu` — mehmonning o'z
+brauzeridagi tsikl, va uni biz tozalay olmaymiz. Yo'qotadigani yo'q: javob
+beradigan manzil o'zini canonical deb e'lon qiladi, sitemap ham o'shani yozadi,
+va ikkinchi manzil **umuman sahifa chizmaydi** — taqqoslanadigan nusxa yo'q.
+
+⚠️ **Query yo'naltirishda ko'chadi.** `sitePath()` faqat yo'lni beradi, query
+esa QR koddagi stolni, mehmon kelgan filialni va qidiruv so'zini olib yuradi.
+Uni tashlab ketish jim xato: stol QR oddiy tashrifga, «lag'mon» qidiruvi esa
+«mana katalog» ga aylanadi, va tushgan sahifa mukammal ko'rinadi.
+
+⚠️ **Yangi QR kod javob beradigan manzilni yozadi** (`catalogHref`). Eskisi
+yo'naltirish bilan ishlaydi, lekin bugun bosilgan kartochka devorda o'n yil
+turadi — unda yo'naltirish emas, manzil bo'lishi kerak.
+
 ⚠️ **Ikki o'qilish, o'n ikkita emas**: dorixona ham do'kon, butik ham do'kon,
 onlayn do'kon ham do'kon — bitta to'plam uchalasini qoplaydi. Qaysi biri
 ishlatilishini `sellsGoods` hal qiladi (`lib/siteWords.ts`), va u sarlavha,

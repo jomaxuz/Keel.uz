@@ -23,13 +23,17 @@ export default async function MenuPage({
   // ⚠️ It does not create a page: canonical is built from the path alone (see
   // lib/seo.ts and the middleware header), so every `/menu?q=…` still declares
   // `/menu` as the real URL and no search term becomes an indexable duplicate.
-  searchParams?: Promise<{ q?: string }>;
+  // ⚠️ Typed loosely because this page is also where a table QR and a branch
+  // link arrive, and the redirect below has to carry all of it across.
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const asked = await searchParams;
   // ⚠️ A shop's catalogue lives at `/catalog`; this address stays for every
-  // link that was ever written down and sends the guest on. See lib/catalogRoute.
-  await guardCatalogRoute();
+  // link that was ever written down and sends the guest on — with the query it
+  // arrived with. See lib/catalogRoute.
+  await guardCatalogRoute(asked);
   const { lang, t } = await getTranslations();
-  const initialQuery = ((await searchParams)?.q ?? "").slice(0, 100);
+  const initialQuery = String(asked?.q ?? "").slice(0, 100);
 
   let menu: MenuGroup[] = [];
   let rest: RestaurantResponse | null = null;

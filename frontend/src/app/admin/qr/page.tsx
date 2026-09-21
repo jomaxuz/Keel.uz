@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { catalogHref } from "@/lib/siteWords";
 import { useAdminScope } from "@/lib/adminScope";
 import QrPoster, {
   drawPoster,
@@ -28,6 +29,9 @@ type Target = { key: string; table: FloorTable | null };
 export default function AdminQrPage() {
   const t = useAdminT();
   const scope = useAdminScope();
+  // Where this business's catalogue lives. `/menu` until the profile answers,
+  // which is the address every site still honours.
+  const [catalogue, setCatalogue] = useState("/menu");
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [styleKey, setStyleKey] = useState<keyof typeof POSTER_STYLES>("cream");
   const [title, setTitle] = useState("");
@@ -54,6 +58,11 @@ export default function AdminQrPage() {
       .getRestaurant({ branchId: scope.branch?.id, brand: scope.brand?.id })
       .then((r) => {
         setRestaurant(r.restaurant);
+        // ⚠️ **What a printed card will say for the next ten years.** A shop's
+        // catalogue answers at /catalog; /menu redirects there, so an old card
+        // still works — but a card printed today should carry the address that
+        // answers, not one that bounces. See lib/catalogRoute.
+        setCatalogue(catalogHref(r.brand?.businessType));
         setTitle((v) => v || r.restaurant.name);
         setSubtitle((v) => v || t.qr.defaultSubtitle);
         setDescription((v) => v || t.qr.defaultDescription);
@@ -101,7 +110,7 @@ export default function AdminQrPage() {
       qs.set("brand", scope.brand.slug || scope.brand.id);
     }
     const suffix = qs.toString() ? `?${qs}` : "";
-    return `${origin}/menu${suffix}`;
+    return `${origin}${catalogue}${suffix}`;
   };
 
   const contentFor = (table: FloorTable | null): PosterContent => ({

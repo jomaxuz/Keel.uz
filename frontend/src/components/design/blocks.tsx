@@ -367,7 +367,7 @@ export function CategoriesBlock({ d }: { d: BlockData; section: DesignSection })
       <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
         <h2 className="section-title">{t.home.catsTitle}</h2>
         <Link
-          href="/menu"
+          href={catWords.href}
           className="text-sm font-semibold text-brand hover:underline"
         >
           {t.home.catsAll}
@@ -461,7 +461,7 @@ export function MenuGridBlock({
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <h2 className="section-title" data-keel-set="heading">{heading}</h2>
           <Link
-            href="/menu"
+            href={siteWords(t, d.data?.brand?.businessType).href}
             className="text-sm font-semibold text-brand hover:underline"
           >
             {t.home.popAll}

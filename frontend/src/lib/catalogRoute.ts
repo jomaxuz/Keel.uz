@@ -28,8 +28,40 @@ import { sitePath } from "@/lib/seo";
 // the same page module, so a hard-coded answer would make one of them send the
 // guest to itself — a redirect loop, on the page a shop is found by.
 
-/** Sends the guest to the other address when this one is not theirs. */
-export async function guardCatalogRoute() {
+/** Everything after the path, rebuilt. ⚠️ `sitePath()` is the path alone, and
+ *  the query is what carries the table a QR code encodes, the branch a guest
+ *  arrived through and the words they typed into the search box. A redirect
+ *  that drops it turns "search for lag'mon" into "here is the catalogue" and a
+ *  table QR into an ordinary visit — silently, because the page it lands on is
+ *  a perfectly good page. */
+function queryOf(params?: Record<string, string | string[] | undefined>): string {
+  if (!params) return "";
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null) continue;
+    for (const one of Array.isArray(value) ? value : [value]) qs.append(key, one);
+  }
+  const out = qs.toString();
+  return out ? `?${out}` : "";
+}
+
+/** Sends the guest to the other address when this one is not theirs.
+ *
+ *  ⚠️ **Temporary (307), not permanent (308), and that is deliberate.** A
+ *  permanent redirect is what a search engine would prefer — but browsers cache
+ *  it for as long as they like, and `businessType` is a setting the owner can
+ *  change back. A restaurant that was briefly a shop would leave guests with
+ *  `/menu → /catalog` cached forever, meeting a fresh `/catalog → /menu` on the
+ *  server: a loop, in the visitor's own browser, that nothing on our side can
+ *  clear.
+ *
+ *  Nothing is lost by it. The address that answers declares itself canonical
+ *  (lib/seo.ts builds it from the path being rendered), the sitemap lists that
+ *  same address and not this one, and the other address never renders a page —
+ *  so there is no second copy for a crawler to weigh against it. */
+export async function guardCatalogRoute(
+  searchParams?: Record<string, string | string[] | undefined>,
+) {
   const { lang } = await getTranslations();
   const here = await sitePath();
   const asked = here.startsWith("/catalog") ? "/catalog" : "/menu";
@@ -48,5 +80,5 @@ export async function guardCatalogRoute() {
   if (right === asked) return;
   // The rest of the address travels with it: `/menu/abc` becomes `/catalog/abc`.
   const tail = here.slice(asked.length);
-  redirect(localePath(lang, right + tail));
+  redirect(localePath(lang, right + tail) + queryOf(searchParams));
 }
