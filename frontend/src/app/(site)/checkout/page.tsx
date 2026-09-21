@@ -16,6 +16,7 @@ import { readBranchCookie, readBrandCookie } from "@/lib/siteBrand";
 import { formatDate, formatPrice, formatTime, formatUzPhone } from "@/lib/format";
 import { PAYMENT_METHODS } from "@/lib/payment";
 import { useI18n } from "@/lib/i18n/client";
+import { useSiteWords } from "@/lib/business";
 import { contentName } from "@/lib/i18n/content";
 import type { Dict } from "@/lib/i18n";
 import { reverseGeocode } from "@/lib/geocode";
@@ -63,6 +64,8 @@ export default function CheckoutPage() {
   // Set when the guest reached the site by scanning a table's QR code.
   const { table } = useTable();
   const { lang, t } = useI18n();
+  // "Mahsulotlar" in a shop, "Taomlar" in a restaurant — see lib/siteWords.ts.
+  const w = useSiteWords();
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   // Which brand's basket this is, and the branches that can serve it. The brand
@@ -282,7 +285,7 @@ export default function CheckoutPage() {
         <h1 className="font-display text-2xl font-bold">
           {t.checkout.emptyTitle}
         </h1>
-        <p className="mt-3 text-ink-muted">{t.checkout.emptyText}</p>
+        <p className="mt-3 text-ink-muted">{w.checkoutEmpty}</p>
         <Link href="/menu" className="btn-primary mt-6 px-6 py-3">
           {t.common.goToMenu}
         </Link>
@@ -805,7 +808,7 @@ export default function CheckoutPage() {
 
           <div className="mt-4 space-y-1 border-t border-line pt-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-ink-muted">{t.checkout.itemsLabel}</span>
+              <span className="text-ink-muted">{w.checkoutItems}</span>
               <span>{formatPrice(subtotal, currency, lang)}</span>
             </div>
             {/* Each discount on its own line: one lump sum is unanswerable when

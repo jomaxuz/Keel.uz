@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart";
 import { useUser } from "@/lib/user";
 import { formatPrice } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/client";
+import { useSiteWords } from "@/lib/business";
 import Recommendations from "@/components/menu/Recommendations";
 import { contentName } from "@/lib/i18n/content";
 
@@ -24,6 +25,8 @@ export default function CartPage() {
   } = useCart();
   const { user, loading } = useUser();
   const { lang, t } = useI18n();
+  // "Mahsulotlar" in a shop, "Taomlar" in a restaurant — see lib/siteWords.ts.
+  const w = useSiteWords();
   const router = useRouter();
 
   // Orders require an account: unauthenticated customers are sent to the login
@@ -46,7 +49,7 @@ export default function CartPage() {
           </p>
         )}
         <h1 className="font-display text-2xl font-bold">{t.cart.emptyTitle}</h1>
-        <p className="mt-3 text-ink-muted">{t.cart.emptyText}</p>
+        <p className="mt-3 text-ink-muted">{w.basketEmpty}</p>
         <Link href="/menu" className="btn-primary mt-6 px-6 py-3">
           {t.common.goToMenu}
         </Link>
@@ -170,7 +173,7 @@ export default function CartPage() {
                   <input
                     className="input w-full text-sm"
                     maxLength={200}
-                    placeholder={t.cart.itemCommentPh}
+                    placeholder={w.comment}
                     value={line.comment ?? ""}
                     onChange={(e) => setComment(line.lineId, e.target.value)}
                   />
@@ -184,7 +187,7 @@ export default function CartPage() {
         <aside className="h-fit rounded-3xl border border-line bg-surface shadow-card p-6">
           <h2 className="font-display text-lg font-bold">{t.cart.summary}</h2>
           <div className="mt-4 flex justify-between text-sm">
-            <span className="text-ink-muted">{t.cart.items(count)}</span>
+            <span className="text-ink-muted">{w.basket(count)}</span>
             <span className="font-medium">{formatPrice(subtotal, undefined, lang)}</span>
           </div>
           <div className="mt-1 flex justify-between gap-4 text-sm">

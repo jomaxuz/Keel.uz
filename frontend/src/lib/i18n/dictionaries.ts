@@ -160,6 +160,12 @@ const uz = {
     // written for a kitchen, and on a shop they say out loud that the site was
     // built for somebody else.
     items: (n: number) => `${n} ta mahsulot`,
+    basket: (n: number) => `Mahsulotlar (${n})`,
+    basketEmpty: "Katalogdan mahsulot tanlab, savatga qo'shing.",
+    // ⚠️ Do'konda izoh — o'lcham va rang haqida, piyoz haqida emas.
+    comment: "Izoh (masalan: o'lcham, rang)",
+    checkoutItems: "Mahsulotlar",
+    checkoutEmpty: "Buyurtma berish uchun avval mahsulot tanlang.",
     orderTitle: "Savatga soling — qolganini biz qilamiz",
     orderText:
       "Toshkent bo'ylab yetkazib beramiz. O'lcham to'g'ri kelmasa almashtiramiz.",
@@ -709,6 +715,11 @@ const ru: Dict = {
     empty: "Товаров пока нет. Добавьте их через админ-панель.",
     back: "Вернуться в каталог",
     items: (n: number) => `${n} товаров`,
+    basket: (n: number) => `Товары (${n})`,
+    basketEmpty: "Выберите товар в каталоге и добавьте в корзину.",
+    comment: "Комментарий (например: размер, цвет)",
+    checkoutItems: "Товары",
+    checkoutEmpty: "Чтобы оформить заказ, сначала выберите товар.",
     orderTitle: "Положите в корзину — остальное сделаем мы",
     orderText:
       "Доставим по Ташкенту. Не подойдёт размер — обменяем.",
@@ -1228,6 +1239,11 @@ const en: Dict = {
     empty: "No products yet. Add them from the admin panel.",
     back: "Back to the catalogue",
     items: (n: number) => `${n} items`,
+    basket: (n: number) => `Items (${n})`,
+    basketEmpty: "Pick something from the catalogue and add it to the basket.",
+    comment: "Note (size, colour…)",
+    checkoutItems: "Items",
+    checkoutEmpty: "Choose something before placing an order.",
     orderTitle: "Add it to the basket — we do the rest",
     orderText:
       "We deliver across Tashkent. If the size is wrong, we exchange it.",

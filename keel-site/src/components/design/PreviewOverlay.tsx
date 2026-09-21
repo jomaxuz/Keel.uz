@@ -74,6 +74,7 @@ export default function PreviewOverlay({
   onPick,
   onBox,
   onCommit,
+  onDragState,
   boxOf,
   textOf,
   onText,
@@ -95,6 +96,11 @@ export default function PreviewOverlay({
   onBox: (index: number, patch: Partial<DesignBox>) => void;
   /** Called when a drag finishes: the moment to save and let the page re-render. */
   onCommit: () => void;
+  /** Whether a drag is in flight. ⚠️ The editor needs this, not just the
+   *  overlay: while it is true the document is changing sixty times a second,
+   *  and the work that is right once per edit — one undo entry, one diff of the
+   *  whole document, one measurement — is wrong once per pixel. */
+  onDragState?: (dragging: boolean) => void;
   /** The element's stored box, needed because a drag is applied to the value in
    *  the document rather than to what happens to be on screen. */
   boxOf: (index: number) => DesignBox | null;
@@ -182,6 +188,10 @@ export default function PreviewOverlay({
    *  The mode goes with it: the bridge only intercepts clicks while editing, so a
    *  reloaded page has to be told again. */
   const remeasure = useCallback(() => {
+    // ⚠️ Not while a drag is in flight: the console is drawing the box itself,
+    // and a measurement that lands mid-drag moves the handles to where the page
+    // last painted rather than where the hand is.
+    if (drag.current) return;
     const win = frame.current?.contentWindow;
     win?.postMessage({ type: "keel:measure" }, "*");
     win?.postMessage({ type: "keel:mode", edit: true }, "*");
@@ -197,6 +207,23 @@ export default function PreviewOverlay({
   }, [remeasure]);
 
   useEffect(() => {
+    // ⚠️ **One update per frame, not one per event.** A mouse reports more often
+    // than a screen redraws, and every extra report costs a React render of the
+    // editor and a message into the page. Coalescing to the frame is invisible
+    // to the hand and is most of the difference between "drags" and "stutters".
+    let queued: PointerEvent | null = null;
+    let frame = 0;
+    function onMove(e: PointerEvent) {
+      if (!drag.current) return;
+      queued = e;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const next = queued;
+        queued = null;
+        if (next) move(next);
+      });
+    }
     function move(e: PointerEvent) {
       const d = drag.current;
       if (!d) return;
@@ -231,20 +258,26 @@ export default function PreviewOverlay({
     function up() {
       if (!drag.current) return;
       drag.current = null;
+      if (frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      queued = null;
+      onDragState?.(false);
       setReadout("");
       // Save and let the real page redraw. ⚠️ On drag **end** only: a save per
       // pointer move would be a page render per pixel, on somebody's live site.
       onCommit();
     }
-    window.addEventListener("pointermove", move);
+    window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
     return () => {
-      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
     };
-  }, [zoom, onBox, onCommit]);
+  }, [zoom, onBox, onCommit, onDragState]);
 
   const frameRect = frame.current?.getBoundingClientRect();
   if (!frameRect) return null;
@@ -293,6 +326,7 @@ export default function PreviewOverlay({
       const box = boxOf(index);
       if (!box || !band) return;
       onSelect(index);
+      onDragState?.(true);
       drag.current = {
         index,
         handle,

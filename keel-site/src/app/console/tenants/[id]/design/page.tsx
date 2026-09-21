@@ -312,9 +312,18 @@ export default function DesignEditorPage() {
   useEffect(() => {
     sectionsRef.current = sections;
   }, [sections]);
-  // True between pointerdown and pointerup on the canvas. One history entry per
-  // drag, not per pixel.
+  // True between pointerdown and pointerup, on **either** surface.
+  //
+  // ⚠️ **It was only ever set by the schematic pane**, and the live page is now
+  // the one people work on — so every pixel of every drag there pushed a copy
+  // of the whole document onto the undo stack, ran a full diff of it
+  // (`JSON.stringify` per band and per element) and asked the site to measure
+  // itself again. That is the stutter: not one slow thing, three cheap things
+  // multiplied by a mouse.
   const dragging = useRef(false);
+  /** Which element the drag is moving, so the watcher can skip the diff: during
+   *  a drag we already know what changed. */
+  const dragTarget = useRef<{ band: number; index: number } | null>(null);
 
   // ---- What a change costs ----
   //
@@ -358,6 +367,11 @@ export default function DesignEditorPage() {
     (
       change: { elements: { band: number; index: number }[]; bands: number[] },
       from: DesignSection[],
+      /** Whether the page should re-measure afterwards. ⚠️ False during a drag:
+       *  the console already knows where the box is — it is the one drawing it —
+       *  and a measurement per pixel is a round trip per pixel for an answer
+       *  nobody reads. */
+      measure = true,
     ) => {
       const win = frame.current?.contentWindow;
       if (!win) return;
@@ -369,7 +383,7 @@ export default function DesignEditorPage() {
         return el ? [{ band, index, el }] : [];
       });
       if (elements.length > 0) {
-        win.postMessage({ type: "keel:patch", items: elements }, "*");
+        win.postMessage({ type: "keel:patch", items: elements, measure }, "*");
       }
       const bands = change.bands.flatMap((band) =>
         from[band] ? [{ band, section: from[band] }] : [],
@@ -422,11 +436,21 @@ export default function DesignEditorPage() {
     band?.canvas?.elements && pick.el != null ? band.canvas.elements[pick.el] : null;
 
   const persist = useCallback(async () => {
+    // ⚠️ **Never in the middle of a drag.** A save scheduled by the edit before
+    // this one comes due while the hand is still moving, and if that edit needed
+    // the page rendered again the iframe reloads **under the cursor** — which is
+    // the "it hard-refreshes while I resize" nobody could place, because the
+    // change that caused it was the one before.
+    if (dragging.current) {
+      window.clearTimeout(saveTimer.current);
+      saveTimer.current = window.setTimeout(() => void persistRef.current(), 400);
+      return;
+    }
     setSaveState("saving");
     try {
       await saveTenantDesign(tenantId, sectionsRef.current, css, presets, nav, theme);
       setSaveState("clean");
-      if (staleView.current) {
+      if (staleView.current && !dragging.current) {
         staleView.current = false;
         reloadPreview();
       }
@@ -461,6 +485,15 @@ export default function DesignEditorPage() {
     // ⚠️ Compared against what the preview is **showing**, not against the
     // previous render: several edits can land between two reloads, and a diff
     // against the last keystroke would call the second one "nothing changed".
+    // ⚠️ **A drag skips the diff entirely.** Comparing two documents means
+    // stringifying every band and every element, and a drag asks for that sixty
+    // times a second while the operator is watching the thing they are dragging.
+    // What changed is not in doubt here — it is the box under the cursor.
+    if (dragging.current && dragTarget.current) {
+      shown.current = sections;
+      pushPatchRef.current({ elements: [dragTarget.current], bands: [] }, sections, false);
+      return;
+    }
     const change = sections === shown.current
       ? ({ kind: "reload" } as const) // the stylesheet, the bar or the palette
       : diffDesign(shown.current, sections);
@@ -531,6 +564,7 @@ export default function DesignEditorPage() {
   const moveBox = useCallback(
     (bandIdx: number, elIdx: number, patch: Partial<DesignBox>) => {
       if (!dragging.current) remember();
+      dragTarget.current = { band: bandIdx, index: elIdx };
       setSections((prev) =>
         prev.map((s, k) => {
           if (k !== bandIdx || !s.canvas?.elements) return s;
@@ -1080,6 +1114,30 @@ export default function DesignEditorPage() {
                       setSide("page");
                     }}
                     onBox={(i, patch) => moveBox(pick.band, i, patch)}
+                    onDragState={(on) => {
+                      // ⚠️ **The undo entry is taken here, at the start.** While
+                      // the flag is up `moveBox` takes none — that is the point
+                      // — so without this a drag would be unundoable rather than
+                      // one step.
+                      if (on && !dragging.current) remember();
+                      dragging.current = on;
+                      if (on) return;
+                      // ⚠️ The end of a drag is where a drag's whole cost is
+                      // paid: one undo entry was taken at the start, and now one
+                      // save and one measurement. Everything in between was a
+                      // box moving under a cursor.
+                      dragTarget.current = null;
+                      setSaveState("dirty");
+                      window.clearTimeout(saveTimer.current);
+                      saveTimer.current = window.setTimeout(
+                        () => void persistRef.current(),
+                        600,
+                      );
+                      frame.current?.contentWindow?.postMessage(
+                        { type: "keel:measure" },
+                        "*",
+                      );
+                    }}
                     // ⚠️ Nothing to do on drag end any more. The draft saves
                     // itself and the page was already told about the box — the
                     // reload this used to trigger is the thing that was fixed.

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import CrashReporter from "@/components/CrashReporter";
 import { api, showWatermark } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
+import { BusinessProvider } from "@/lib/business";
 import { CartProvider } from "@/lib/cart";
 import CookieNotice from "@/components/site/CookieNotice";
 import { FavoritesProvider } from "@/lib/favorites";
@@ -73,6 +74,10 @@ export default async function SiteLayout({
       {/* Inside the cart provider because it needs the same session, and above the
           pages because a dish's heart appears on four different screens — see
           lib/favorites.tsx for why the state cannot live per card. */}
+      {/* What this site sells, for the client pages that are furthest from the
+          server — the basket and the checkout, which are exactly where a shop's
+          guest was being asked not to make it too spicy. */}
+      <BusinessProvider type={businessType}>
       <CartProvider brandId={brandId}>
         <FavoritesProvider>
           {/* `?table=` is read from the URL, so the provider suspends like any
@@ -145,6 +150,7 @@ export default async function SiteLayout({
           </Suspense>
         </FavoritesProvider>
       </CartProvider>
+      </BusinessProvider>
     </UserProvider>
   );
 }

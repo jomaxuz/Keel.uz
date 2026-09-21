@@ -49,6 +49,19 @@ export interface SiteWords {
   /** What the band that asks for the order says. */
   orderTitle: string;
   orderText: string;
+  /** The basket and the checkout, which a client component reads through
+   *  `useSiteWords` (lib/business.tsx).
+   *
+   *  ⚠️ **This is where the wrong word is least excusable.** A guest who has
+   *  reached the basket is buying; being told their trainers are "Taomlar" and
+   *  being offered a box to ask for less onion is the site admitting, at the
+   *  till, that it was built for somebody else. */
+  basket: (n: number) => string;
+  basketEmpty: string;
+  /** The per-item note: "no onions" in a kitchen, a size or a colour in a shop. */
+  comment: string;
+  checkoutItems: string;
+  checkoutEmpty: string;
 }
 
 /** Where this business's catalogue answers.
@@ -79,6 +92,11 @@ export function siteWords(t: Dict, businessType?: string): SiteWords {
       items: t.common.dishes,
       orderTitle: t.home.orderTitle,
       orderText: t.home.orderText,
+      basket: t.cart.items,
+      basketEmpty: t.cart.emptyText,
+      comment: t.cart.itemCommentPh,
+      checkoutItems: t.checkout.itemsLabel,
+      checkoutEmpty: t.checkout.emptyText,
     };
   }
   return {
@@ -92,5 +110,10 @@ export function siteWords(t: Dict, businessType?: string): SiteWords {
     items: t.shop.items,
     orderTitle: t.shop.orderTitle,
     orderText: t.shop.orderText,
+    basket: t.shop.basket,
+    basketEmpty: t.shop.basketEmpty,
+    comment: t.shop.comment,
+    checkoutItems: t.shop.checkoutItems,
+    checkoutEmpty: t.shop.checkoutEmpty,
   };
 }

@@ -8986,6 +8986,31 @@ tilda va ikki repozitoriyada — ularni faqat test ushlay oladi.
 uchun ecom.keel.uz dizaynida «rasm + matn» bandi `canvas` bilan chizildi: sayt
 bugungi image'da ham to'liq ko'rinadi.
 
+### Sudrash: bir pikselga bir marta emas, bir kadrga bir marta
+
+⚠️ **Jonli sahifada sudrash «qotib-qotib» ketardi, va sabab bitta og'ir narsa
+emas edi** — uchta arzon narsa sichqonchaga ko'paytirilgan edi:
+
+1. `dragging` bayrog'ini **faqat chizma paneli** qo'yardi, jonli sahifa esa endi
+   odam ishlaydigan joy. Ya'ni har pikselda `remember()` ishlab, butun hujjatning
+   nusxasi undo stekiga tushardi — va undo bir qadam bo'lish o'rniga yuz qadam.
+2. Har pikselda **butun hujjat solishtirilardi** (`diffDesign` → har band va har
+   element uchun `JSON.stringify`) — holbuki sudrash paytida nima o'zgargani
+   ma'lum: kursor ostidagi quti.
+3. Har pikselda sahifadan **qayta o'lchash** so'ralardi, javobi esa hech kimga
+   kerak emasdi: qutini o'sha paytda konsolning o'zi chizayotgan edi.
+
+Endi: sudrash boshlanganda bitta undo yozuvi olinadi, oraliqda diff **umuman**
+ishlamaydi (patch to'g'ridan-to'g'ri yuboriladi), o'lchash `measure: false`
+bilan o'chiriladi, va `pointermove` **kadrga bir marta** yig'iladi (sichqoncha
+ekran yangilanishidan tez-tez xabar beradi).
+
+⚠️ **«O'lcham o'zgartirsam hard refresh bo'ladi»ning sababi oldingi tahrir
+edi.** Undan qolgan saqlash 900 ms keyin, ya'ni allaqachon sudrash o'rtasida
+ishga tushardi; agar o'sha tahrir sahifani qayta chizishni talab qilgan bo'lsa,
+iframe **kursor ostida** qayta yuklanardi. Endi saqlash sudrash paytida
+kechiktiriladi va qayta yuklash sudrash tugamaguncha kutadi.
+
 ### Panelda belgi bitta bo'ladi
 
 ⚠️ **Katalog sahifasida paneldagi beshta havoladan to'rttasi yonib turardi.**

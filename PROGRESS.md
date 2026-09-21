@@ -15440,3 +15440,31 @@ taomda sanardi. `SiteWords.items(n)` qo'shildi; `MenuBrowser` mijoz komponenti
 bo'lgani uchun unga biznes **turi** beriladi, so'zlar emas (lug'atning sanagichi
 funksiya, React uni chegaradan o'tkazmaydi). Testi ikkalasini ham ushlaydi.
 Frontend **321** test.
+
+---
+
+## 2026-09-21 (5) — Sudrash tez bo'ldi; savat do'kon tilida gapiradi
+
+**1. Konstruktorda sudrash.** Jonli sahifada har piksel uchta ish qildirardi:
+undo stekiga butun hujjat nusxasi, `diffDesign` (har band va elementga
+`JSON.stringify`) va sahifadan qayta o'lchash. Endi bittasi ham sudrash paytida
+bajarilmaydi — undo boshida bir marta, patch to'g'ridan-to'g'ri, o'lchash
+`measure:false` bilan o'chiq, `pointermove` kadrga yig'iladi. ⚠️ «O'lcham
+o'zgartirsam hard refresh» — sababi oldingi tahrirdan qolgan saqlash edi:
+u sudrash o'rtasida ishga tushib, iframe'ni kursor ostida qayta yuklardi. Endi
+saqlash ham, qayta yuklash ham sudrash tugashini kutadi.
+
+**2. Savat va rasmiylashtirish do'kon tilida.** `/cart` da izoh maydoni
+«piyozsiz, achchiq qilmang» deb turardi, jami esa «Taomlar (3)». Bular mijoz
+**sotib olayotgan** paytda o'qiydigan so'zlar, ya'ni noto'g'ri so'z eng qimmat
+turadigan joy. `SiteWords` ga `basket`, `basketEmpty`, `comment`,
+`checkoutItems`, `checkoutEmpty` qo'shildi; ikkala sahifa mijoz komponenti
+bo'lgani uchun biznes turi `BusinessProvider` orqali beriladi (lug'atning
+sanagichi funksiya — React uni chegaradan o'tkazmaydi).
+
+**3. «O'lcham saytda ko'rinmaydi» — takrorlanmadi.** Ikkala yo'l ham ishlaydi:
+variant sifatida (`O'lchamni tanlang` — S / M / …) va «Turlari va qo'shimchalari»
+orqali (`O'lcham · majburiy` — 40 / 41 / 42). Ikkalasi jonli saytda tekshirildi.
+⚠️ Katalog **kartochkasida** o'lcham ko'rinmaydi (ataylab: kartochkadan o'lcham
+tanlash — qaysi o'lchamlar borligini ko'rmay tanlash demak), va modelning o'zi
+(`variantAxes` bor qator) saytda umuman ko'rsatilmaydi.

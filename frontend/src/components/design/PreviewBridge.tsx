@@ -149,6 +149,7 @@ export function startBridge(): () => void {
         type?: string;
         edit?: boolean;
         y?: number;
+        measure?: boolean;
         items?: unknown[];
       };
       if (data?.type === "keel:measure") measure();
@@ -161,7 +162,12 @@ export function startBridge(): () => void {
         }
         // The boxes moved, so the reported geometry is stale — and stale
         // geometry is handles sitting where the element is not.
-        measure();
+        //
+        // ⚠️ **Except while a drag is in flight**, which the console says by
+        // asking for no measurement. It is drawing the box itself at that
+        // moment, so measuring is a full pass over the document and a message
+        // back for an answer nobody reads — sixty times a second.
+        if (data.measure !== false) measure();
       }
       if (data?.type === "keel:band" && Array.isArray(data.items)) {
         for (const item of data.items as BandPatch[]) {
