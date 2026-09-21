@@ -28,6 +28,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DesignBox } from "@/lib/api";
 
+/** What is being dragged in from the palette, if anything. ⚠️ The console owns
+ *  this rather than the browser's own drag data, because the drop has to be
+ *  decided *while* the pointer is over the page — the highlight under the
+ *  cursor is the whole point — and `dataTransfer` cannot be read during
+ *  `dragover`. */
+export interface Incoming {
+  kind: "band" | "element";
+  type: string;
+}
+
 interface Rect {
   x: number;
   y: number;
@@ -67,6 +77,10 @@ export default function PreviewOverlay({
   boxOf,
   textOf,
   onText,
+  incoming,
+  onDropElement,
+  onDropBand,
+  canDrawIn,
 }: {
   frame: React.RefObject<HTMLIFrameElement | null>;
   /** The iframe's CSS scale, so a pixel on screen maps back to a page pixel. */
@@ -89,6 +103,17 @@ export default function PreviewOverlay({
    *  that opens over a word has to hold the word that is on screen. */
   textOf: (index: number) => string | null;
   onText: (index: number, value: string) => void;
+  /** A card being dragged off the palette, or null. */
+  incoming?: Incoming | null;
+  /** Dropped an element: which band, and where inside it, in percent. */
+  onDropElement?: (band: number, x: number, y: number) => void;
+  /** Dropped a section: the index it should be inserted at. */
+  onDropBand?: (index: number) => void;
+  /** Whether a band can hold freely placed elements. ⚠️ Asked rather than
+   *  assumed: dropping a headline into a menu grid has nowhere to go, and an
+   *  editor that accepts the drop and then does nothing is worse than one that
+   *  says no while the card is still in the air. */
+  canDrawIn?: (band: number) => boolean;
 }) {
   const [geo, setGeo] = useState<Geometry>({ bands: [], elements: [] });
   // Which element is being typed into, and what has been typed so far.
@@ -101,6 +126,16 @@ export default function PreviewOverlay({
   // The size readout during a drag: a number, because "a bit wider" is not a
   // thing you can repeat on the next band.
   const [readout, setReadout] = useState<string>("");
+  // Where the card in the air would land: the band under the cursor, and for an
+  // element the point inside it. Drawn, because "it lands where you drop it" is
+  // a promise that has to be visible before the mouse button comes up.
+  const [hover, setHover] = useState<{
+    band: number;
+    x: number;
+    y: number;
+    ok: boolean;
+    after: boolean;
+  } | null>(null);
   const drag = useRef<{
     index: number;
     handle: Handle;
@@ -216,6 +251,40 @@ export default function PreviewOverlay({
 
   const band = geo.bands.find((b) => b.band === activeBand);
   const mine = geo.elements.filter((el) => el.band === activeBand);
+
+  /** The rect the site reported for a band, in page pixels. */
+  function hoverRect(index: number) {
+    return geo.bands.find((b) => b.band === index) ?? null;
+  }
+
+  /** Bands are reported in the framed page's own viewport coordinates, and the
+   *  overlay is positioned from the frame's top-left — so the two agree only
+   *  once the frame's origin is subtracted. It is (0,0) today and named anyway:
+   *  the day the preview gains a gutter, a silently misplaced highlight is the
+   *  hardest kind of bug to see. */
+  const bandOrigin = { x: 0, y: 0 };
+
+  /** Which band a screen point is over, and where inside it. */
+  function locate(clientX: number, clientY: number) {
+    if (!frameRect) return null;
+    const px = (clientX - frameRect.left) / zoom + bandOrigin.x;
+    const py = (clientY - frameRect.top) / zoom + bandOrigin.y;
+    // ⚠️ Last match wins: bands do not overlap, but a `canvas` band with a
+    // bleeding element can extend over the one under it, and the operator means
+    // the one they can see.
+    let found: (Rect & { band: number }) | null = null;
+    for (const b of geo.bands) {
+      if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) found = b;
+    }
+    if (!found) return null;
+    return {
+      band: found.band,
+      x: Math.round(((px - found.x) / found.w) * 100),
+      y: Math.round(((py - found.y) / found.h) * 100),
+      ok: canDrawIn ? canDrawIn(found.band) : true,
+      after: py > found.y + found.h / 2,
+    };
+  }
 
   function start(index: number, handle: Handle) {
     return (e: React.PointerEvent) => {
@@ -364,6 +433,72 @@ export default function PreviewOverlay({
           </div>
         );
       })}
+
+      {/* ⚠️ **The drop layer, and it has to be a layer.** Drag events do not
+          cross into an iframe: the document inside owns them, and it is another
+          origin, so nothing dropped over the preview would ever be heard. A
+          transparent sheet over the frame — mounted only while something is
+          actually being dragged, so it never swallows an ordinary click —
+          receives the drag instead, and the geometry the page already reports
+          says which band is under the cursor. */}
+      {incoming && (
+        <div
+          style={{
+            position: "fixed",
+            left: frameRect.left,
+            top: frameRect.top,
+            width: frameRect.width,
+            height: frameRect.height,
+            zIndex: 90,
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+            setHover(locate(e.clientX, e.clientY));
+          }}
+          onDragLeave={() => setHover(null)}
+          onDrop={(e) => {
+            e.preventDefault();
+            const at = locate(e.clientX, e.clientY);
+            setHover(null);
+            if (!at) return;
+            if (incoming.kind === "band") {
+              onDropBand?.(at.after ? at.band + 1 : at.band);
+              return;
+            }
+            if (!at.ok) return;
+            onDropElement?.(at.band, at.x, at.y);
+          }}
+        >
+          {hover && hoverRect(hover.band) && (
+            <div
+              style={{
+                position: "absolute",
+                left: (hoverRect(hover.band)!.x - bandOrigin.x) * zoom,
+                top: (hoverRect(hover.band)!.y - bandOrigin.y) * zoom,
+                width: hoverRect(hover.band)!.w * zoom,
+                height: hoverRect(hover.band)!.h * zoom,
+              }}
+              className={`pointer-events-none flex items-start justify-center border-2 border-dashed ${
+                incoming.kind === "band"
+                  ? "border-transparent"
+                  : hover.ok
+                    ? "border-signal-500 bg-signal-500/10"
+                    : "border-hot-600 bg-hot-600/10"
+              }`}
+            >
+              {/* A section drops **between** bands, so the mark is a line where
+                  it will land rather than a box around what it is beside. */}
+              {incoming.kind === "band" && (
+                <span
+                  className="absolute left-0 right-0 h-1 rounded-full bg-signal-500"
+                  style={{ [hover.after ? "bottom" : "top"]: -2 }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* What the drag is actually doing, in the numbers the document stores.
           ⚠️ Percent, because that is what is saved — a readout in pixels would

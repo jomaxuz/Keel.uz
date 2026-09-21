@@ -15271,3 +15271,54 @@ Enter saqlaydi va qolgan ikki tilga tegmaydi.
 Shablon shuning uchun rasmsiz ham to'liq ko'rinadigan qilib chizilgan.
 Konsoldan tenantga rasm yuklash — alohida qaror (tenant API'siga proksilash,
 yoki tenantda allaqachon bor rasmlarni ro'yxatdan tanlatish).
+
+---
+
+## 2026-09-21 (2) — Konstruktor: qayta yuklanmaydi, tashlangan joyida quriladi, qobig'i sodda
+
+Uch shikoyat, uchtasi ham bitta ekranda (`/console/tenants/{id}/design`).
+Sabablari — `docs/DECISIONS.md` → «Konstruktor: har harf uchun sahifa qayta
+yuklanmaydi», «…element qayerga qo'yilsa…», «…qobiq qaytadan yozildi».
+
+**1. «Srazu hard refresh bo'lyabdi».** Har o'zgarish `previewUrl` ni
+yangilardi, ya'ni iframe mijozning jonli saytini **to'liq qaytadan** ochardi —
+har harfda. Endi o'zgarishlar ikkiga bo'lindi:
+- **joy va so'z** → sahifaga `keel:patch` bilan *aytiladi*, `PreviewBridge`
+  DOM'ga yozadi, qayta yuklash yo'q;
+- **qolgani** (band, variant, rang) → 900 ms jimlikdan keyin qoralama saqlanadi
+  va **bir marta** yuklanadi, `keel:scrollto` bilan operator o'z joyiga
+  qaytariladi.
+⚠️ Matn elementning tashqi qutisiga yozilmaydi — so'zlar turgan tugun
+`data-keel-text="plain|quote|lines"` bilan belgilangan (aks holda ishlaydigan
+tugma yalang'och so'zga aylanardi). Shartnoma ikki ilova o'rtasida, shuning
+uchun **testi bor**: `frontend/src/components/design/canvasText.test.tsx` —
+har bir so'zli element turi uchun (9 test). Telefonning oqim yuzasi
+`data-keel-flow` bilan belgilandi: so'z u yerda ham o'zgaradi, lekin u
+sudraladigan band bo'lib xabar qilinmaydi.
+⚠️ `PreviewBridge` endi faqat **o'zini iframe'ga solgan oyna**dan keladigan
+xabarni qabul qiladi (`e.source !== window.parent` → chiqadi).
+⚠️ «Saqlash» tugmasi o'rnini avtosaqlash oldi; sarlavhada bitta so'z holatini
+aytadi, va kutilayotgan saqlash unmount'da bekor qilinmaydi.
+
+**2. Drag and drop.** Palitradagi kartochka sahifaga sudraladi va **tushgan
+joyida** quriladi (`clampBox` band chetidan chiqarmaydi). Drag hodisalari
+iframe'ga kirmaganidan sudrash paytida uning ustiga shaffof qatlam qo'yiladi,
+band esa sahifaning o'zi bergan geometriyadan topiladi. Qat'iy bandga element
+tushmasligi kartochka **havoda turganda** aytiladi; band esa bandlar orasiga
+tushadi (chiziq ko'rsatadi). Chizmada ham xuddi shu gesture ishlaydi.
+
+**3. Qobiq soddalashtirildi.** Oltita imzosiz belgi (`▤ ◫ ◐ { } ☰ ▢`) o'rniga
+ikkita nomli tab — «Sahifa» va «Dizayn»; sozlamalar **o'ngda, tanlangan
+narsaning nomi bilan** (ilgari yana bitta bosish ortida); sahifa bitta daraxt
+(bandlar + tanlangan erkin bandning elementlari, nusxalash/o'chirish o'sha
+yerda); qo'shish — guruhlangan kartochkalar, o'n oltita chipdan iborat devor
+emas. Yangi so'zlar uch tilda (`lib/i18n/editor.ts`).
+
+Tekshiruv: `keel-site` `tsc` + `next build` + testlar; `frontend` `tsc` +
+`next build` + **299** test (yangi 9 tasi bilan); `/console/tenants/x/design`
+dev serverda 200.
+
+⏳ Hali qayta yuklanadigan narsalar: band foni/varianti va schema sozlamalari —
+ularni patch bilan ko'rsatish renderer'ni ikkinchi marta yozish demakdir, va
+nusxa ajraydi. Reja: eng ko'p tegiladigan sozlamalar (fon, kenglik) uchun ham
+patch.

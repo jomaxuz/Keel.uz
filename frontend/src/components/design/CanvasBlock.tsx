@@ -254,6 +254,11 @@ export default function CanvasBlock({
         // The fallback: drawn order, full width, generous spacing. A phone
         // showing a squashed desktop composition is the failure this avoids.
         <div
+          // ⚠️ Not `data-keel-band`: this surface is flow, so it must not be
+          // reported as a draggable band. It is marked all the same, because a
+          // word changed in the console has to change here too — see
+          // PreviewBridge's `nodesOf`.
+          data-keel-flow={bandIndex}
           className={`flex w-full flex-col gap-6 px-4 py-10 lg:hidden ${
             TONE_CLASS[canvas?.background ?? ""] ?? ""
           } ${popup ? "" : ""}`}
@@ -406,7 +411,7 @@ function Element({
     if (!text) return null;
     return (
       <div style={position} {...mark} className={`${classes} flex items-center`}>
-        <span className="badge-brand">{text}</span>
+        <span className="badge-brand" data-keel-text="plain">{text}</span>
       </div>
     );
   }
@@ -415,7 +420,9 @@ function Element({
     if (!text) return null;
     return (
       <div style={position} {...mark} className={`${classes} flex flex-col justify-center gap-2`}>
-        <p className="font-display italic leading-snug">“{text}”</p>
+        <p className="font-display italic leading-snug" data-keel-text="quote">
+          {"\u201c" + text + "\u201d"}
+        </p>
         {subtext && <p className="text-sm text-ink-muted">— {subtext}</p>}
       </div>
     );
@@ -441,7 +448,12 @@ function Element({
     if (!text) return null;
     return (
       <div style={position} {...mark} className={`${classes} flex flex-col justify-center`}>
-        <span className="font-display text-4xl font-black leading-none sm:text-5xl">{text}</span>
+        <span
+          className="font-display text-4xl font-black leading-none sm:text-5xl"
+          data-keel-text="plain"
+        >
+          {text}
+        </span>
         {subtext && <span className="mt-1 text-sm text-ink-muted">{subtext}</span>}
       </div>
     );
@@ -454,7 +466,12 @@ function Element({
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) return null;
     return (
-      <ul style={position} {...mark} className={`${classes} space-y-1.5 overflow-auto`}>
+      <ul
+        style={position}
+        {...mark}
+        data-keel-text="lines"
+        className={`${classes} space-y-1.5 overflow-auto`}
+      >
         {lines.map((line, i) => (
           <li key={i} className="flex gap-2">
             <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
@@ -484,11 +501,11 @@ function Element({
             rel="noreferrer noopener"
             className="btn btn-primary w-full"
           >
-            {text}
+            <span data-keel-text="plain">{text}</span>
           </a>
         ) : (
           <LocaleLink href={href} className="btn btn-primary w-full">
-            {text}
+            <span data-keel-text="plain">{text}</span>
           </LocaleLink>
         )}
       </div>
@@ -505,8 +522,14 @@ function Element({
   // those stacked is not that design; it is four buttons. Drawing them as text
   // and leaving them dead is worse — it is a menu the guest cannot use.
   const linked = sanitizedHref(el.link);
+  // ⚠️ The same span whether or not the line is a link, and that is what makes
+  // it findable. The unlinked branch used to render the bare string, so the one
+  // element people type into most had no node to write a changed word into —
+  // and the console had to reload the page to show it.
   const body = (
-    <span className="whitespace-pre-line leading-tight">{text}</span>
+    <span className="whitespace-pre-line leading-tight" data-keel-text="plain">
+      {text}
+    </span>
   );
   return (
     <div style={position} {...mark} className={`${classes} whitespace-pre-line leading-tight`}>
@@ -521,7 +544,7 @@ function Element({
           </LocaleLink>
         )
       ) : (
-        text
+        body
       )}
     </div>
   );

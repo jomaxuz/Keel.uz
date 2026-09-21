@@ -33,6 +33,12 @@ export default defineConfig({
       // Shared till pieces that are a screen in their own right rather than a
       // step in a flow — the on-screen keyboard, which both of the above mount.
       "src/components/till/*.test.ts?(x)",
+      // ⚠️ The console's editor writes changed words straight into these
+      // elements' marked nodes rather than reloading the page, and an element
+      // that renders words without the marker simply cannot be typed into — with
+      // no error anywhere. The contract is between two applications, so nothing
+      // but a test can hold it.
+      "src/components/design/*.test.ts?(x)",
       // ⚠️ Named on its own rather than a glob over src/lib. Printing is not a
       // screen, but it is the one decision on the way out of every screen here
       // — spooler or browser dialog — and it fails silently on the hardware

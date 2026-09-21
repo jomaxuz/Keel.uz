@@ -7,34 +7,50 @@
 // screenshot open beside it. A panel between an invoice list and a container log
 // gets a third of the width and none of the attention.
 //
-// The shape is the one every layout editor converges on, and each half earns its
-// place:
+// ⚠️ **The shell was rebuilt once the tools were all there**, and the reason is
+// the sentence the person who uses it said: *it is hard*. Everything worked —
+// bands, free placement, live editing, a real preview — and it was reached
+// through a rail of six unlabelled glyphs (▤ ◫ ◐ { } ☰ ▢) in front of a column
+// that held every panel at once. Two changes fixed most of it:
+//
+//   • **Two named tabs instead of six glyphs.** «Sahifa» is what the page is
+//     made of; «Dizayn» is everything that applies to the whole site — colours,
+//     the bar, templates, saved styles, CSS. Nobody has to learn which square
+//     means which.
+//   • **The inspector is where the thing is, not where a tab is.** Click
+//     something on the page and its settings open on the right, titled with what
+//     was clicked. The old editor put them behind a second click on an icon —
+//     at the exact moment they were certainly wanted.
+//
+// The rest of the shape is the one every layout editor converges on:
 //
 //   • **Left: what the page is made of.** Bands in order, and inside a freely
-//     drawn band, its elements. Selecting one opens its settings underneath —
-//     rather than in a dialog, because the next thing after changing a setting is
-//     always changing another one.
+//     drawn band, its elements — one tree, so "what is on this page" is one
+//     list rather than three panels.
 //
-//   • **Right: the real site.** ⚠️ An iframe of the tenant's own domain with the
+//   • **Middle: the real site.** ⚠️ An iframe of the tenant's own domain with the
 //     unpublished draft applied, not a schematic. A schematic can show that a band
 //     is 6 columns wide; it cannot answer "does this look like the picture the
-//     customer sent us", and that is the entire job. The fonts, the photographs,
-//     the real dish names and the restaurant's accent are what make a layout look
-//     right or wrong.
+//     customer sent us", and that is the entire job.
 //
 //   • **A phone width beside the desktop one**, switchable. Not decoration:
 //     freely placed elements have a **separate phone layout**, and the whole
 //     failure mode of free placement is a composition nobody checked at 390px.
 //
-// ⚠️ The preview is reloaded on demand rather than on every keystroke. It is a
-// full page render of somebody's real site — reloading it per drag would make the
-// editor unusable and the tenant's container busy for no reason.
+// ⚠️ **Nothing reloads the page any more if it does not have to.** Typing a word
+// and dragging a box are sent into the live preview as a patch (see
+// PreviewBridge) and the draft is saved quietly behind it. Before this, every
+// letter typed and every box dragged re-pointed the iframe at the tenant's real
+// site: a full navigation, with the white flash and the jump to the top of the
+// page that come with it. A reload still happens for changes a patch cannot
+// express — a new band, a different variant — and even then the operator is put
+// back where they were scrolled to.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import EditorCanvas from "@/components/design/EditorCanvas";
-import PreviewOverlay from "@/components/design/PreviewOverlay";
+import PreviewOverlay, { type Incoming } from "@/components/design/PreviewOverlay";
 import NavEditor from "@/components/design/NavEditor";
 import { useT } from "@/lib/i18n/client";
 import {
@@ -92,10 +108,6 @@ const TONES = ["", "surface", "raised", "charcoal", "brand", "accent", "ink"];
  *  templates. Mirrors `designWidths` on the tenant. */
 const WIDTHS = ["", "wide", "full"] as const;
 
-/** Which corners the radius rounds, and how far. ⚠️ The two shapes every shop
- *  reference is built from and the editor could not draw: a panel rounded on
- *  the edge that faces the page, and a rail of words turned a quarter turn.
- *  Mirror `elementCorners` / `elementRotations` / `elementRadii`. */
 /** Which elements have words a double-click can open.
  *
  *  ⚠️ **A list, not "has a text field".** Every element type carries `text` in
@@ -120,6 +132,47 @@ const ICONS = [
 ] as const;
 const COLORS = ["", "ink", "soft", "muted", "white", "brand", "surface", "charcoal"];
 const LINKS = ["", "/", "/menu", "/cart", "/checkout", "/bron", "/about", "/profile"];
+
+/** The sections somebody can add, grouped and in the order they are usually
+ *  reached for.
+ *
+ *  ⚠️ **Grouped rather than a wall of sixteen buttons**, and the groups are the
+ *  question being asked: "the top of the page", "something with words in it",
+ *  "draw it myself", "the bar and the footer". The old list was one flat row of
+ *  chips in which `navbar` sat between `popup` and `categories` — which is how
+ *  an operator ends up adding a second header to a page. */
+const BAND_GROUPS: { key: "basic" | "content" | "free" | "shell"; types: string[] }[] = [
+  { key: "basic", types: ["hero", "menu-grid", "categories", "perks", "search"] },
+  { key: "content", types: ["rich-text", "image-text", "banner", "gallery", "about", "cta", "hours-address"] },
+  { key: "free", types: ["canvas", "popup"] },
+  { key: "shell", types: ["navbar", "footer"] },
+];
+
+/** The elements a free band can hold, in the same shape and for the same
+ *  reason. `widget-*` is last because it is the one group that is not a drawing
+ *  — it is a working part of the site being placed. */
+const ELEMENT_GROUPS: { key: "text" | "media" | "shape" | "widget"; types: string[] }[] = [
+  { key: "text", types: ["text", "button", "badge", "list", "quote", "stat"] },
+  { key: "media", types: ["image", "carousel", "icon", "rating"] },
+  { key: "shape", types: ["box", "divider"] },
+  {
+    key: "widget",
+    types: ["widget-menu", "widget-categories", "widget-hours", "widget-map", "widget-cart", "widget-social"],
+  },
+];
+
+/** One glyph per element type, for the palette cards.
+ *
+ *  ⚠️ **Beside the name, never instead of it.** The glyph makes a grid of cards
+ *  scannable once somebody knows the editor; the word is what makes it usable
+ *  the first time. The rail this screen replaced had the glyph alone. */
+const ELEMENT_GLYPH: Record<string, string> = {
+  text: "T", button: "▭", badge: "◔", list: "≡", quote: "❝", stat: "12",
+  image: "▣", carousel: "▥", icon: "★", rating: "★★",
+  box: "■", divider: "—",
+  "widget-menu": "▤", "widget-categories": "▦", "widget-hours": "◷",
+  "widget-map": "◎", "widget-cart": "▾", "widget-social": "◈",
+};
 
 /** A new element, sized so it is visible the moment it appears. An element added
  *  at 0×0 is an element the operator has to hunt for. */
@@ -150,6 +203,39 @@ function newElement(type: string): DesignElement {
   return { type, box: { ...box, w: 80, h: 60 } };
 }
 
+/** A new band, seeded so that adding it changes the page.
+ *
+ *  ⚠️ An empty section renders nothing, and a band that appears in the list
+ *  while the page does not change reads as the button not working. */
+function newBand(type: string): DesignSection {
+  const seeded: Record<string, Record<string, unknown>> = {
+    hero: { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, height: 80, overlay: 40 },
+    "rich-text": { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, align: "center", tone: "surface" },
+    "image-text": { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, round: "lg" },
+    banner: { heading: { uz: "Aksiya", ru: "Акция", en: "Offer" }, tone: "charcoal", overlay: 55 },
+    "menu-grid": { popularOnly: true, limit: 8 },
+  };
+  return {
+    type,
+    variant: VARIANTS[type]?.[0] ?? "",
+    span: 12,
+    settings: seeded[type],
+    ...(type === "canvas" || type === "popup"
+      ? { canvas: { height: 60, elements: [] } }
+      : {}),
+  };
+}
+
+/** Keeps a box inside the band it was dropped into. A drop near the right edge
+ *  must not put half the element outside the page. */
+function clampBox(box: DesignBox, x: number, y: number): DesignBox {
+  return {
+    ...box,
+    x: Math.max(0, Math.min(100 - box.w, Math.round(x - box.w / 2))),
+    y: Math.max(0, Math.min(100 - box.h, Math.round(y - box.h / 2))),
+  };
+}
+
 export default function DesignEditorPage() {
   const params = useParams<{ id: string }>();
   const tenantId = params.id;
@@ -170,64 +256,54 @@ export default function DesignEditorPage() {
   // different things depending on a toggle somewhere else on screen.
   const [editing, setEditing] = useState<"desktop" | "mobile">("desktop");
   const [previewUrl, setPreviewUrl] = useState("");
-  // ⚠️ **The real page, not the schematic, and it opens on it.**
-  //
-  // The schematic canvas was the default for as long as the constructor
-  // existed, and it is the wrong first screen: it shows grey rectangles where
-  // the customer's photographs, prices and menu are, so the one question the
-  // operator actually has — "does this look like the picture they sent us" —
-  // cannot be asked without finding a tab. The live pane could not answer it
-  // either, because the tenant's `frame-ancestors` refused to be framed by the
-  // console (see control/internal/caddy) and the pane was a grey box with a
-  // broken-image icon. With that fixed, the real page is the default and the
-  // schematic is the thing you switch to.
+  // ⚠️ **The real page, not the schematic, and it opens on it.** The schematic
+  // shows grey rectangles where the customer's photographs and prices are, so
+  // the one question the operator actually has cannot be asked from it.
   const [pane, setPane] = useState<"canvas" | "site">("site");
   const [presets, setPresets] = useState<StylePreset[]>([]);
-  // Which section of the left column the rail is showing. A single scrolling
-  // column worked with five bands and stops working at fifteen: the inspector
-  // ends up below the fold exactly when an element is selected.
-  const [tab, setTab] = useState<
-    "layers" | "element" | "styles" | "css" | "nav" | "templates"
-  >("layers");
+  // ⚠️ **Two tabs, and they answer two different questions.** «Sahifa» is what
+  // this page is made of, band by band; «Dizayn» is what applies to the whole
+  // site — colours, the bar, templates, saved styles, the stylesheet. The six
+  // unlabelled icons this replaced made both questions into a guess.
+  const [side, setSide] = useState<"page" | "design">("page");
+  // Whether the section picker is open. A sheet rather than a permanent row of
+  // chips: sixteen sections is a wall, and it is needed for ten seconds.
+  const [adding, setAdding] = useState(false);
   // The site's navigation bar. ⚠️ Empty is "leave the header alone", never "a
   // bar with no links" — every tenant on the platform has this unset, and the
   // other reading would empty the header of every site at once.
   const [nav, setNav] = useState<NavLink[]>([]);
-  // The palette this design is drawn with.
-  //
-  // ⚠️ **Nobody could set it, and that was two bugs meeting.** The console has
-  // written `page_design.theme` since the constructor shipped and the site read
-  // it from nowhere; publishing a design also sets `designLocked`, which
-  // switches the owner's own theme editor off. So a customer with a drawn
-  // design had no one at all who could change its colours. The site reads it
-  // now (handlers/public.go, mergeTheme) and this is where it is chosen.
+  // The palette this design is drawn with. The site reads it (handlers/public.go,
+  // mergeTheme) and this is where it is chosen.
   const [theme, setTheme] = useState<SiteThemePatch>({});
   const [templates, setTemplates] = useState<DesignTemplate[]>([]);
   const [schema, setSchema] = useState<SectionDef[]>([]);
   // Which repeatable item inside the band is being edited. Separate from the
   // element selection: a band has blocks *or* freely drawn elements, never both.
   const [pickBlock, setPickBlock] = useState<number | null>(null);
-  // ⚠️ The **schematic** canvas's zoom, which the operator sets with the −/+
-  // buttons. The live pane has its own (`siteZoom`) and it is measured rather
-  // than chosen: one number for two surfaces meant the drag handles were placed
-  // at whatever the other pane happened to be set to.
+  // ⚠️ The **schematic** canvas's zoom. The live pane has its own (`siteZoom`)
+  // and it is measured rather than chosen.
   const [zoom, setZoom] = useState(0.7);
   // ⚠️ Editing **on the live preview**: handles drawn over the iframe, using the
-  // geometry the site reports. Off by default — the preview is also the pane
-  // somebody uses to simply look, and invisible drag targets over a page you are
-  // reading is how an element gets moved by accident.
+  // geometry the site reports.
   const [liveEdit, setLiveEdit] = useState(true);
+  // What is being dragged off the palette right now, if anything. Held here
+  // rather than in the browser's drag data because the drop target has to know
+  // *while* the pointer is moving — see PreviewOverlay's `Incoming`.
+  const [incoming, setIncoming] = useState<Incoming | null>(null);
   // ⚠️ Undo is not a nicety in a direct-manipulation editor: the whole way of
   // working is "try it and see", and a drag that cannot be taken back makes
-  // trying it expensive. History holds whole section lists — they are small, and
-  // a diff-based history would be a second model to keep correct.
+  // trying it expensive.
   const history = useRef<DesignSection[][]>([]);
   const future = useRef<DesignSection[][]>([]);
   const [busy, setBusy] = useState("");
   const [note, setNote] = useState("");
+  // What the draft is doing right now, for the one word in the header that says
+  // whether the work is safe. ⚠️ It replaced a «Save» button that had to be
+  // pressed: an editor whose changes are lost by closing the tab is an editor
+  // people do not trust, and the one before this had exactly that shape.
+  const [saveState, setSaveState] = useState<"clean" | "dirty" | "saving" | "error">("clean");
   const frame = useRef<HTMLIFrameElement>(null);
-  // The live value, for callbacks that must not be re-created on every keystroke
-  // (the drag handler subscribes to window events).
   const sectionsRef = useRef<DesignSection[]>([]);
   useEffect(() => {
     sectionsRef.current = sections;
@@ -236,16 +312,72 @@ export default function DesignEditorPage() {
   // drag, not per pixel.
   const dragging = useRef(false);
 
+  // ---- What a change costs ----
+  //
+  // ⚠️ **Two kinds of change, and telling them apart is the whole fix.** Moving
+  // a box and changing a word can be written straight into the rendered page
+  // (PreviewBridge applies them to the DOM); everything else — a new band, a
+  // different variant, a colour — can only be seen by rendering the page again.
+  // The editor used to treat every change as the second kind, so every letter
+  // typed navigated the iframe to the tenant's real site.
+  const loaded = useRef(false);
+  /** Set immediately before a change that the live page can be *told* about. */
+  const patchable = useRef<{ band: number; index: number }[] | null>(null);
+  /** Set by any other change: the preview has to be rendered again. */
+  const staleView = useRef(false);
+  const saveTimer = useRef<number | undefined>(undefined);
+  /** Where the preview was scrolled to, reported by the site itself. Kept so a
+   *  reload can put the operator back rather than at the top of the page. */
+  const scrollY = useRef(0);
+
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      const data = e.data as { type?: string; scrollY?: number };
+      if (data?.type === "keel:geometry" && typeof data.scrollY === "number") {
+        scrollY.current = data.scrollY;
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  /** Tells the live page about boxes and words that changed, without reloading
+   *  it. Silent when the preview is not open — the draft is still saved. */
+  const pushPatch = useCallback(
+    (items: { band: number; index: number }[], from: DesignSection[]) => {
+      const win = frame.current?.contentWindow;
+      if (!win) return;
+      const payload = items.flatMap(({ band, index }) => {
+        const el = from[band]?.canvas?.elements?.[index];
+        if (!el) return [];
+        return [
+          {
+            band,
+            index,
+            box: editing === "mobile" ? (el.mobile ?? el.box) : el.box,
+            // ⚠️ Uzbek: the preview renders the site in its own default
+            // language, so this is the word actually on screen. A `ru` edit is
+            // still saved — it simply has nothing to show here.
+            text: el.text?.uz,
+          },
+        ];
+      });
+      if (payload.length === 0) return;
+      win.postMessage({ type: "keel:patch", items: payload }, "*");
+    },
+    [editing],
+  );
+
   useEffect(() => {
     void (async () => {
       try {
-        const [d, t] = await Promise.all([tenantDesign(tenantId), tenantApi(tenantId)]);
-        setState(d);
-        setSections(d.draft.sections ?? d.live.sections ?? []);
-        setCss(d.draft.customCss ?? "");
-        setPresets(d.draft.stylePresets ?? []);
-        setNav(d.draft.nav ?? d.live.nav ?? []);
-        setTheme(d.draft.theme ?? d.live.theme ?? {});
+        const [des, t] = await Promise.all([tenantDesign(tenantId), tenantApi(tenantId)]);
+        setState(des);
+        setSections(des.draft.sections ?? des.live.sections ?? []);
+        setCss(des.draft.customCss ?? "");
+        setPresets(des.draft.stylePresets ?? []);
+        setNav(des.draft.nav ?? des.live.nav ?? []);
+        setTheme(des.draft.theme ?? des.live.theme ?? {});
         try {
           const [g, sc] = await Promise.all([designTemplates(), designSchema()]);
           setTemplates(g.items);
@@ -255,10 +387,13 @@ export default function DesignEditorPage() {
           // they already have.
         }
         setSlug(t.tenant.slug);
-        // The editor opens on the live page, so the token is minted with the
-        // design rather than on the first click of a tab nobody has to press
-        // any more.
-        void refreshPreview();
+        await refreshPreview();
+        // ⚠️ Last, and after a tick: everything above is a `setState`, and the
+        // autosave watcher must not read the document arriving as a change the
+        // operator made.
+        window.setTimeout(() => {
+          loaded.current = true;
+        }, 0);
       } catch (e) {
         setNote(e instanceof Error ? e.message : "yuklanmadi");
       }
@@ -270,11 +405,54 @@ export default function DesignEditorPage() {
   const element =
     band?.canvas?.elements && pick.el != null ? band.canvas.elements[pick.el] : null;
 
-  /** Records the current state so the next change can be undone.
-   *
-   *  ⚠️ Called on the **start** of a change rather than after it, and skipped
-   *  while a drag is in flight (see `dragging`): a drag fires dozens of updates,
-   *  and one undo per pixel is an undo stack nobody can walk back out of. */
+  const persist = useCallback(async () => {
+    setSaveState("saving");
+    try {
+      await saveTenantDesign(tenantId, sectionsRef.current, css, presets, nav, theme);
+      setSaveState("clean");
+      if (staleView.current) {
+        staleView.current = false;
+        reloadPreview();
+      }
+    } catch (e) {
+      setSaveState("error");
+      setNote(e instanceof Error ? e.message : "saqlanmadi");
+    }
+    // `reloadPreview` is declared below and stable for the life of the page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId, css, presets, nav, theme]);
+
+  // ⚠️ The two callbacks are read through refs so that the watcher below can
+  // depend on the **document** alone. With them in the dependency list, merely
+  // switching between the desktop and the phone layout — which changes
+  // `pushPatch` — counted as an edit, and an edit that changed nothing still
+  // saved the draft and reloaded the page.
+  const persistRef = useRef(persist);
+  persistRef.current = persist;
+  const pushPatchRef = useRef(pushPatch);
+  pushPatchRef.current = pushPatch;
+
+  // The autosave watcher. ⚠️ It decides between a patch and a reload, and it
+  // debounces: a save per keystroke would be a write per keystroke on somebody's
+  // database, and a reload per keystroke is what made this editor painful.
+  //
+  // ⚠️ **The pending save is not cancelled on unmount.** Letting the timer fire
+  // after the operator has navigated away is what saves the last sentence they
+  // typed; cancelling it loses up to a second of work at the one moment nobody
+  // is watching the screen to notice.
+  useEffect(() => {
+    if (!loaded.current) return;
+    const items = patchable.current;
+    patchable.current = null;
+    if (items) pushPatchRef.current(items, sections);
+    else staleView.current = true;
+    setSaveState("dirty");
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => void persistRef.current(), 900);
+  }, [sections, css, presets, nav, theme]);
+
+  /** Records the current state so the next change can be undone. Called on the
+   *  **start** of a change, and skipped while a drag is in flight. */
   const remember = useCallback(() => {
     history.current = [...history.current.slice(-49), sectionsRef.current];
     future.current = [];
@@ -318,10 +496,22 @@ export default function DesignEditorPage() {
     [remember],
   );
 
+  /** A word changed. ⚠️ Its own path because it is the change people make most,
+   *  and the one the live page can be told about — routing it through
+   *  `updateElement` would mark the view stale and reload the site per letter. */
+  const setElementText = useCallback(
+    (bandIdx: number, elIdx: number, value: { uz: string; ru: string; en: string }) => {
+      patchable.current = [{ band: bandIdx, index: elIdx }];
+      updateElement(bandIdx, elIdx, { text: value });
+    },
+    [updateElement],
+  );
+
   /** Moves the box the operator is currently editing — desktop or phone. */
   const moveBox = useCallback(
     (bandIdx: number, elIdx: number, patch: Partial<DesignBox>) => {
       if (!dragging.current) remember();
+      patchable.current = [{ band: bandIdx, index: elIdx }];
       setSections((prev) =>
         prev.map((s, k) => {
           if (k !== bandIdx || !s.canvas?.elements) return s;
@@ -342,35 +532,61 @@ export default function DesignEditorPage() {
     [editing, remember],
   );
 
+  /** Puts a new element into a band, at the point it was dropped. */
+  const placeElement = useCallback(
+    (bandIdx: number, type: string, x: number, y: number) => {
+      const target = sectionsRef.current[bandIdx];
+      if (!target?.canvas) return;
+      const el = newElement(type);
+      const box = clampBox(el.box, x, y);
+      const placed: DesignElement =
+        editing === "mobile" ? { ...el, box, mobile: box } : { ...el, box };
+      remember();
+      setSections((prev) =>
+        prev.map((s, k) =>
+          k === bandIdx && s.canvas
+            ? { ...s, canvas: { ...s.canvas, elements: [...(s.canvas.elements ?? []), placed] } }
+            : s,
+        ),
+      );
+      setPick({ band: bandIdx, el: (target.canvas.elements ?? []).length });
+      setSide("page");
+    },
+    [editing, remember],
+  );
+
+  /** Puts a new band at an index — dropped between two bands on the page, or
+   *  appended when it was clicked rather than dragged. */
+  const placeBand = useCallback(
+    (type: string, at: number) => {
+      remember();
+      const index = Math.max(0, Math.min(sectionsRef.current.length, at));
+      setSections((prev) => {
+        const next = [...prev];
+        next.splice(index, 0, newBand(type));
+        return next;
+      });
+      setPick({ band: index, el: null });
+      setAdding(false);
+      setNote("");
+    },
+    [remember],
+  );
+
   async function save() {
     setBusy("save");
     setNote("");
-    try {
-      await saveTenantDesign(tenantId, sections, css, presets, nav, theme);
-      setNote(d.savedDraft);
-      await refreshPreview();
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : "saqlanmadi");
-    } finally {
-      setBusy("");
-    }
+    window.clearTimeout(saveTimer.current);
+    await persist();
+    setBusy("");
   }
 
-  /** Saves and lets the real page redraw. Called when a drag on the live preview
-   *  finishes — never during one: a save per pointer move is a page render per
-   *  pixel on somebody's live site. */
-  async function commitLive() {
-    try {
-      await saveTenantDesign(tenantId, sectionsRef.current, css, presets, nav, theme);
-      // ⚠️ The token is reused rather than minted again. A new token per drag would
-      // leave a trail of live preview links, each valid for two hours.
-      if (previewUrl) {
-        const base = previewUrl.split("&_=")[0];
-        setPreviewUrl(`${base}&_=${Date.now()}`);
-      }
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : "saqlanmadi");
-    }
+  /** Re-renders the real page, and puts the operator back where they were.
+   *
+   *  ⚠️ **The token is reused rather than minted again.** A new token per reload
+   *  would leave a trail of live preview links, each valid for two hours. */
+  function reloadPreview() {
+    setPreviewUrl((url) => (url ? `${url.split("&_=")[0]}&_=${Date.now()}` : url));
   }
 
   async function refreshPreview() {
@@ -388,7 +604,9 @@ export default function DesignEditorPage() {
   async function publish() {
     setBusy("publish");
     try {
-      await saveTenantDesign(tenantId, sections, css, presets, nav, theme);
+      window.clearTimeout(saveTimer.current);
+      await saveTenantDesign(tenantId, sectionsRef.current, css, presets, nav, theme);
+      setSaveState("clean");
       const res = await publishTenantDesign(tenantId);
       setNote(res.note);
       setState(await tenantDesign(tenantId));
@@ -416,88 +634,96 @@ export default function DesignEditorPage() {
 
   // How big the preview pane actually is, measured.
   //
-  // ⚠️ **The scale used to be the constant 0.62, and the pane had a hole in
-  // it.** A 1280px page at 0.62 is 794px wide whatever the window is, and
-  // `transform` does not change layout — so on any pane wider than that the
-  // site sat in the top-left corner with bare panel showing down the right and
-  // along the bottom. It reads as the preview failing to load rather than as a
-  // scale that happens not to fit, which is the worse of the two.
+  // ⚠️ **The scale used to be a constant, and the pane had a hole in it.** A
+  // 1280px page at 0.62 is 794px wide whatever the window is, and `transform`
+  // does not change layout — so on any wider pane the site sat in the top-left
+  // corner with bare panel down the right.
   const paneRef = useRef<HTMLDivElement>(null);
-  const [pane_, setPaneSize] = useState({ w: 0, h: 0 });
+  const [paneSize, setPaneSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
     const el = paneRef.current;
     if (!el) return;
-    const read = () =>
-      setPaneSize({ w: el.clientWidth, h: el.clientHeight });
+    const read = () => setPaneSize({ w: el.clientWidth, h: el.clientHeight });
     read();
     // ⚠️ A ResizeObserver rather than a window listener: the pane also changes
-    // width when the left column's tab changes, which the window never hears
-    // about — and a stale scale puts the drag handles somewhere the element is
-    // not, which is the one bug that makes an editor feel broken.
+    // width when the inspector opens, which the window never hears about — and a
+    // stale scale puts the drag handles somewhere the element is not.
     const ro = new ResizeObserver(read);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  /** The scale the preview is drawn at.
-   *
-   *  ⚠️ **Never above 1.** Blowing a 390px phone page up to fill a desktop
-   *  pane is a preview of something nobody will ever see, at a blur that hides
-   *  exactly the detail the pane exists to check. */
+  /** The scale the preview is drawn at. ⚠️ Never above 1: blowing a 390px phone
+   *  page up to fill a desktop pane is a preview of something nobody will see. */
   const siteZoom = useMemo(() => {
-    if (!pane_.w) return device === "phone" ? 1 : 0.62;
-    return Math.min(1, pane_.w / previewWidth);
-  }, [pane_.w, previewWidth, device]);
+    if (!paneSize.w) return device === "phone" ? 1 : 0.62;
+    return Math.min(1, paneSize.w / previewWidth);
+  }, [paneSize.w, previewWidth, device]);
 
   const frameStyle = useMemo(
     () => ({
       width: previewWidth,
       transform: `scale(${siteZoom})`,
       transformOrigin: "top left",
-      // ⚠️ Tall enough that the scaled result fills the pane exactly. A fixed
-      // 1400px left a scaled page 868px tall in a pane that might be 900 — the
-      // same hole as the width, one axis along.
-      height: pane_.h ? Math.round(pane_.h / siteZoom) : 1400,
+      height: paneSize.h ? Math.round(paneSize.h / siteZoom) : 1400,
     }),
-    [previewWidth, siteZoom, pane_.h],
+    [previewWidth, siteZoom, paneSize.h],
+  );
+
+  const canDrawIn = useCallback(
+    (i: number) => !!sectionsRef.current[i]?.canvas,
+    [],
   );
 
   return (
     // Fills what the console header leaves, and scrolls inside its own panes: a
     // page-level scrollbar here would move the canvas out from under the cursor.
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
-        <Link href={`/console/tenants/${tenantId}`} className="text-sm text-ink-soft hover:text-ink">
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-surface">
+      <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2.5">
+        <Link
+          href={`/console/tenants/${tenantId}`}
+          className="text-sm font-semibold text-ink-soft hover:text-ink"
+        >
           ← {slug || "mijoz"}
         </Link>
+        <span className="h-4 w-px bg-line" />
         <h1 className="text-sm font-bold text-ink">{d.title}</h1>
         {state?.published && (
           <span className="rounded-full bg-signal-500/15 px-2 py-0.5 text-[11px] font-semibold text-signal-600">
             {d.live}
           </span>
         )}
+        {/* ⚠️ The one word that says whether the work is safe, and it is in the
+            header rather than in a toast: a message that fades is a message
+            somebody was not looking at. */}
+        <SaveState state={saveState} d={d} />
+
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div className="flex overflow-hidden rounded-xl border border-line text-xs">
-            {(["desktop", "phone"] as const).map((dev) => (
-              <button
-                key={dev}
-                type="button"
-                onClick={() => setDevice(dev)}
-                className={`px-3 py-1.5 font-semibold ${
-                  device === dev ? "bg-raised text-ink" : "text-ink-soft"
-                }`}
-              >
-                {dev === "desktop" ? d.desktop : d.phone}
-              </button>
-            ))}
-          </div>
-          {/* The canvas width, stated. ⚠️ Two devices rather than three: the site
-              has one breakpoint that matters (`lg`), so a tablet button would
-              imply a third layout that does not exist and cannot be drawn. The
-              number says which width is on screen, which is the part a tablet
-              button was standing in for. */}
-          <span className="rounded-xl border border-line px-2.5 py-1.5 text-[11px] tabular-nums text-ink-muted">
-            {device === "phone" ? "390" : "1280"} px
+          <Seg
+            value={device}
+            options={[
+              { v: "desktop", label: d.desktop },
+              { v: "phone", label: `${d.phone} · 390` },
+            ]}
+            onChange={(v) => setDevice(v as "desktop" | "phone")}
+          />
+          <span className="flex overflow-hidden rounded-xl border border-line">
+            <button
+              type="button"
+              onClick={undo}
+              title={d.undo}
+              className="px-2.5 py-1.5 text-xs text-ink-soft hover:text-ink"
+            >
+              ↶
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              title={d.redo}
+              className="border-l border-line px-2.5 py-1.5 text-xs text-ink-soft hover:text-ink"
+            >
+              ↷
+            </button>
           </span>
           {/* Opens the draft on the real domain, in a tab. The inline preview is
               for glancing; this is for handing to somebody, or for scrolling the
@@ -506,27 +732,18 @@ export default function DesignEditorPage() {
             type="button"
             onClick={async () => {
               await save();
-              const url = previewUrl || "";
-              if (url) window.open(url, "_blank", "noopener");
+              if (previewUrl) window.open(previewUrl, "_blank", "noopener");
             }}
             title={d.viewHint}
-            className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft"
+            className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft hover:text-ink"
           >
             👁 {d.view}
           </button>
           <button
             type="button"
-            onClick={() => void save()}
-            disabled={busy !== ""}
-            className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-40"
-          >
-            {busy === "save" ? d.saving : d.saveDraft}
-          </button>
-          <button
-            type="button"
             onClick={() => void publish()}
             disabled={busy !== ""}
-            className="rounded-xl bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40"
+            className="rounded-xl bg-ink px-3.5 py-1.5 text-xs font-semibold text-surface disabled:opacity-40"
           >
             {busy === "publish" ? d.publishing : d.publish}
           </button>
@@ -535,7 +752,7 @@ export default function DesignEditorPage() {
               type="button"
               onClick={() => void revert()}
               disabled={busy !== ""}
-              className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft disabled:opacity-40"
+              className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-muted disabled:opacity-40"
             >
               {d.revert}
             </button>
@@ -547,237 +764,178 @@ export default function DesignEditorPage() {
         <p className="border-b border-line bg-raised px-4 py-2 text-xs text-ink-soft">{note}</p>
       )}
 
-      <div className="flex flex-1 flex-col lg:flex-row">
-        {/* Left: the structure. */}
-        {/* The rail: one icon per section of the left column.
-            ⚠️ Not decoration. The column held everything at once — bands,
-            settings, elements, inspector, CSS — and a design with fifteen bands
-            pushed the inspector below the fold at the moment an element was
-            selected. Four groups, one visible, and the canvas switches to the
-            inspector when something is clicked. */}
-        <nav className="flex shrink-0 gap-1 border-b border-line px-2 py-2 lg:flex-col lg:border-b-0 lg:border-r lg:px-2 lg:py-3">
-          {(
-            [
-              { id: "layers", icon: "▤", title: d.tabLayers },
-              { id: "element", icon: "◫", title: d.tabElement },
-              { id: "styles", icon: "◐", title: d.tabStyles },
-              { id: "css", icon: "{ }", title: d.tabCss },
-              // ⚠️ Its own tab rather than a band, because it is not one: the
-              // bar sits above every page of the site, not inside the home
-              // page's list of bands. Put among the bands it would be a band
-              // an operator could drag into the middle of the page.
-              { id: "nav", icon: "☰", title: d.tabNav },
-              { id: "templates", icon: "▢", title: d.tabTemplates },
-            ] as const
-          ).map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              title={s.title}
-              onClick={() => setTab(s.id)}
-              className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm transition ${
-                tab === s.id ? "bg-raised text-ink" : "text-ink-muted hover:text-ink"
-              }`}
-            >
-              {s.icon}
-            </button>
-          ))}
-        </nav>
-
-        <aside className="w-full shrink-0 space-y-3 overflow-auto border-b border-line p-4 lg:w-80 lg:border-b-0 lg:border-r">
-          {tab === "layers" && (
-          <BandList
-            sections={sections}
-            pick={pick}
-            setPick={setPick}
-            setSections={setSections}
-          />
-
-          )}
-
-          {tab === "layers" && band && (
-            <BandSettings
-              band={band}
-              index={pick.band}
-              update={update}
-              setSections={setSections}
-              setPick={setPick}
-              schema={schema}
-              categories={state?.categories}
-            />
-          )}
-
-          {/* Repeatable items: gallery photos, perk cards, slides.
-              ⚠️ Blocks rather than numbered settings (`perk1Title`…): numbered
-              fields fix the count, fill the panel with empty inputs, and cannot be
-              reordered without retyping. */}
-          {tab === "layers" && bandDef?.blocks?.length ? (
-            <BlockList
-              band={band}
-              def={bandDef}
-              index={pick.band}
-              picked={pickBlock}
-              setPicked={setPickBlock}
-              update={update}
-              lang={lang}
-            />
-          ) : null}
-
-          {tab === "layers" && band?.canvas && (
-            <ElementList
-              band={band}
-              bandIndex={pick.band}
-              pick={pick}
-              setPick={setPick}
-              setSections={setSections}
-            />
-          )}
-
-          {tab === "element" && !element && (
-            <p className="text-xs text-ink-muted">
-              {d.pickElement}
-            </p>
-          )}
-
-          {tab === "element" && element && pick.el != null && (
-            <ElementSettings
-              el={element}
-              editing={editing}
-              setEditing={setEditing}
-              onStyle={(patch) =>
-                updateElement(pick.band, pick.el!, {
-                  style: { ...(element.style ?? {}), ...patch },
-                })
-              }
-              onElement={(patch) => updateElement(pick.band, pick.el!, patch)}
-              onBox={(patch) => moveBox(pick.band, pick.el!, patch)}
-              tenantId={tenantId}
-            />
-          )}
-
-          {tab === "templates" && (
-            <div className="space-y-2 rounded-2xl border border-line p-3">
-              <p className="text-xs font-bold text-ink">{d.tabTemplates}</p>
-              <p className="text-[11px] leading-relaxed text-ink-muted">{d.templatesHint}</p>
-              <ul className="space-y-1.5">
-                {templates.map((tpl) => (
-                  <li key={tpl.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // ⚠️ A copy, always. Applying must not link this customer's
-                        // page to a gallery entry — an improved template would
-                        // otherwise redraw sites that were already approved.
-                        remember();
-                        setSections(JSON.parse(JSON.stringify(tpl.sections)));
-                        // ⚠️ **The palette and the bar come with it.** A
-                        // template is a design; copying only the bands landed a
-                        // layout drawn around a yellow panel and a lowercase
-                        // catalogue bar as grey rectangles under the
-                        // restaurant's own header, and left the operator
-                        // retyping per customer what the gallery already knew.
-                        // ⚠️ Only when the template carries them: one that
-                        // chooses no colours must not wipe the ones this
-                        // customer already has.
-                        if (tpl.theme && Object.keys(tpl.theme).length > 0) {
-                          setTheme(JSON.parse(JSON.stringify(tpl.theme)));
-                        }
-                        if (tpl.nav && tpl.nav.length > 0) {
-                          setNav(JSON.parse(JSON.stringify(tpl.nav)));
-                        }
-                        setPick({ band: 0, el: null });
-                        setTab("layers");
-                        setNote(d.templateApplied(tpl.name));
-                      }}
-                      className="w-full rounded-xl border border-line px-3 py-2 text-left hover:border-signal-500"
-                    >
-                      <span className="block text-xs font-bold text-ink">{tpl.name}</span>
-                      {tpl.note && (
-                        <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-muted">
-                          {tpl.note}
-                        </span>
-                      )}
-                      <span className="mt-1 block text-[11px] text-ink-muted">
-                        {tpl.sections.length} band
-                        {tpl.builtin ? "" : ` · ${tpl.createdBy ?? ""}`}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {tab === "styles" && (
-            <ThemePanel theme={theme} setTheme={setTheme} d={d} />
-          )}
-
-          {tab === "styles" && (
-            <PresetPanel
-              presets={presets}
-              setPresets={setPresets}
-              current={element?.style ?? null}
-              onApply={(style: StylePreset["style"]) => {
-                if (pick.el == null) return;
-                // ⚠️ A **copy**, not a reference. Editing this preset next month
-                // must not repaint elements on a page a customer already approved
-                // — the same rule the template gallery follows.
-                updateElement(pick.band, pick.el, { style: { ...style } });
-              }}
-              canApply={pick.el != null}
-            />
-          )}
-
-          {tab === "nav" && <NavEditor nav={nav} setNav={setNav} d={d} />}
-
-          {tab === "css" && (
-          <>
-          {/* ⚠️ The escape hatch, and the reason the constructor can answer a brief
-              it was not designed for. Refused outright by the backend if it
-              contains anything that could close a `<style>` element — so a
-              rejected stylesheet comes back empty rather than half-applied. */}
-          <div className="rounded-2xl border border-line p-3">
-            <p className="text-xs font-bold text-ink">{d.cssTitle}</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
-              {d.cssHint}
-            </p>
-            <textarea
-              value={css}
-              onChange={(e) => setCss(e.target.value)}
-              rows={6}
-              spellCheck={false}
-              className="mt-2 w-full rounded-xl border border-line bg-surface p-2 font-mono text-[11px] text-ink"
-              placeholder=".hero h1 { letter-spacing: -0.02em }"
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* ---- Left: what the page is made of ---- */}
+        <aside className="flex w-full shrink-0 flex-col border-b border-line lg:w-72 lg:border-b-0 lg:border-r">
+          <div className="border-b border-line p-2">
+            <Seg
+              value={side}
+              options={[
+                { v: "page", label: d.tabPage },
+                { v: "design", label: d.tabDesign },
+              ]}
+              onChange={(v) => setSide(v as "page" | "design")}
             />
           </div>
-          </>
-          )}
+
+          <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
+            {side === "page" && (
+              <>
+                <Outline
+                  sections={sections}
+                  pick={pick}
+                  setPick={(p) => {
+                    setPick(p);
+                    setPickBlock(null);
+                  }}
+                  setSections={setSections}
+                  remember={remember}
+                  d={d}
+                  bandLabel={BAND_LABEL}
+                  elementLabel={ELEMENT_LABEL}
+                />
+                <button
+                  type="button"
+                  onClick={() => setAdding((v) => !v)}
+                  className="w-full rounded-2xl border border-dashed border-line-strong py-2.5 text-xs font-bold text-ink-soft hover:border-signal-500 hover:text-ink"
+                >
+                  + {d.addBand}
+                </button>
+                {adding && (
+                  <Palette
+                    title={d.addBand}
+                    hint={d.addDragHint}
+                    groups={BAND_GROUPS.map((g) => ({
+                      title: {
+                        basic: d.groupBasic,
+                        content: d.groupContent,
+                        free: d.groupFree,
+                        shell: d.groupShell,
+                      }[g.key],
+                      items: g.types.map((t) => ({ type: t, label: BAND_LABEL[t] ?? t })),
+                    }))}
+                    onDragStart={(type) => setIncoming({ kind: "band", type })}
+                    onDragEnd={() => setIncoming(null)}
+                    onPick={(type) => placeBand(type, sections.length)}
+                  />
+                )}
+
+                {band?.canvas && (
+                  <Palette
+                    title={d.addElement}
+                    hint={d.addDragHint}
+                    groups={ELEMENT_GROUPS.map((g) => ({
+                      title: {
+                        text: d.elGroupText,
+                        media: d.elGroupMedia,
+                        shape: d.elGroupShape,
+                        widget: d.elGroupWidget,
+                      }[g.key],
+                      items: g.types.map((t) => ({
+                        type: t,
+                        label: ELEMENT_LABEL[t] ?? t,
+                        glyph: ELEMENT_GLYPH[t],
+                      })),
+                    }))}
+                    onDragStart={(type) => setIncoming({ kind: "element", type })}
+                    onDragEnd={() => setIncoming(null)}
+                    // Clicked rather than dragged: the middle of the band, which
+                    // is where somebody looking for it will look.
+                    onPick={(type) => placeElement(pick.band, type, 50, 50)}
+                  />
+                )}
+              </>
+            )}
+
+            {side === "design" && (
+              <>
+                <Fold title={d.designColors} open>
+                  <ThemePanel theme={theme} setTheme={setTheme} d={d} />
+                </Fold>
+                <Fold title={d.designNav}>
+                  <NavEditor nav={nav} setNav={setNav} d={d} />
+                </Fold>
+                <Fold title={d.designTemplatesTitle}>
+                  <TemplateList
+                    templates={templates}
+                    d={d}
+                    onApply={(tpl) => {
+                      // ⚠️ A copy, always. Applying must not link this customer's
+                      // page to a gallery entry — an improved template would
+                      // otherwise redraw sites that were already approved.
+                      remember();
+                      setSections(JSON.parse(JSON.stringify(tpl.sections)));
+                      // ⚠️ **The palette and the bar come with it**, and only when
+                      // the template carries them: one that chooses no colours must
+                      // not wipe the ones this customer already has.
+                      if (tpl.theme && Object.keys(tpl.theme).length > 0) {
+                        setTheme(JSON.parse(JSON.stringify(tpl.theme)));
+                      }
+                      if (tpl.nav && tpl.nav.length > 0) {
+                        setNav(JSON.parse(JSON.stringify(tpl.nav)));
+                      }
+                      setPick({ band: 0, el: null });
+                      setSide("page");
+                      setNote(d.templateApplied(tpl.name));
+                    }}
+                  />
+                </Fold>
+                <Fold title={d.designPresets}>
+                  <PresetPanel
+                    presets={presets}
+                    setPresets={setPresets}
+                    current={element?.style ?? null}
+                    onApply={(style: StylePreset["style"]) => {
+                      if (pick.el == null) return;
+                      // ⚠️ A **copy**, not a reference — the same rule the
+                      // template gallery follows.
+                      updateElement(pick.band, pick.el, { style: { ...style } });
+                    }}
+                    canApply={pick.el != null}
+                  />
+                </Fold>
+                <Fold title={d.designCss}>
+                  {/* ⚠️ The escape hatch, and the reason the constructor can answer
+                      a brief it was not designed for. Refused outright by the
+                      backend if it contains anything that could close a `<style>`
+                      element — so a rejected stylesheet comes back empty rather
+                      than half-applied. */}
+                  <div className="space-y-2">
+                    <p className="text-[11px] leading-relaxed text-ink-muted">{d.cssHint}</p>
+                    <textarea
+                      value={css}
+                      onChange={(e) => setCss(e.target.value)}
+                      rows={8}
+                      spellCheck={false}
+                      className="w-full rounded-xl border border-line bg-surface p-2 font-mono text-[11px] text-ink"
+                      placeholder=".hero h1 { letter-spacing: -0.02em }"
+                    />
+                  </div>
+                </Fold>
+              </>
+            )}
+          </div>
+
+          <p className="border-t border-line px-3 py-2 text-[11px] leading-relaxed text-ink-muted">
+            {d.autosaveHint}
+          </p>
         </aside>
 
-        {/* Middle and right in one pane, switched rather than side by side.
-            ⚠️ Two surfaces of the same page at once is a screen where neither is
-            big enough to work on, and they answer different questions anyway: the
-            canvas is "where is this element", the site is "does it look like the
-            picture". Somebody drags on one and checks on the other. */}
-        <section className="flex min-w-0 flex-1 flex-col bg-raised">
+        {/* ---- Middle: the page itself ---- */}
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-raised">
           <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2">
-            <div className="flex overflow-hidden rounded-xl border border-line text-xs">
-              {(["canvas", "site"] as const).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => {
-                    setPane(p);
-                    if (p === "site" && !previewUrl) void refreshPreview();
-                  }}
-                  className={`px-3 py-1.5 font-semibold ${
-                    pane === p ? "bg-surface text-ink" : "text-ink-soft"
-                  }`}
-                >
-                  {p === "canvas" ? d.canvas : d.site}
-                </button>
-              ))}
-            </div>
+            <Seg
+              value={pane}
+              options={[
+                { v: "site", label: d.site },
+                { v: "canvas", label: d.canvas },
+              ]}
+              onChange={(v) => {
+                const p = v as "canvas" | "site";
+                setPane(p);
+                if (p === "site" && !previewUrl) void refreshPreview();
+              }}
+            />
 
             {pane === "canvas" && (
               <>
@@ -786,22 +944,11 @@ export default function DesignEditorPage() {
                   <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
                   <button type="button" onClick={() => setZoom((z) => Math.min(1, +(z + 0.1).toFixed(2)))} className="rounded-lg border border-line px-2 py-1">+</button>
                 </div>
-                {/* ⚠️ Undo belongs beside the canvas, not in a menu: the way of
-                    working here is "drag it and see", and that only works if
-                    taking it back is as cheap as trying it. */}
-                <button type="button" onClick={undo} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">↶ {d.undo}</button>
-                <button type="button" onClick={redo} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">↷ {d.redo}</button>
-                <span className="text-[11px] text-ink-muted">
-                  Sudrab ko'chiring · burchaklardan o'lchang · strelkalar bilan
-                  suring (Shift — 5%)
-                </span>
+                <span className="text-[11px] text-ink-muted">{d.dragHint}</span>
               </>
             )}
             {pane === "site" && (
               <>
-                <button type="button" onClick={() => void refreshPreview()} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">
-                  {d.refresh}
-                </button>
                 <Seg
                   value={liveEdit ? "on" : "off"}
                   options={[
@@ -810,12 +957,20 @@ export default function DesignEditorPage() {
                   ]}
                   onChange={(v) => setLiveEdit(v === "on")}
                 />
+                <button
+                  type="button"
+                  onClick={() => reloadPreview()}
+                  title={d.refresh}
+                  className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft hover:text-ink"
+                >
+                  ⟳
+                </button>
                 <span className="text-[11px] text-ink-muted">{d.liveEditHint}</span>
               </>
             )}
           </div>
 
-          <div ref={paneRef} className="flex-1 overflow-auto p-4">
+          <div ref={paneRef} className="min-h-0 flex-1 overflow-auto p-4">
             {pane === "canvas" ? (
               band?.canvas ? (
                 <div
@@ -832,14 +987,13 @@ export default function DesignEditorPage() {
                     editing={editing}
                     zoom={zoom}
                     selected={pick.el}
-                    onSelect={(el) => {
-                      setPick({ band: pick.band, el });
-                      // ⚠️ Selecting on the canvas switches the left column to the
-                      // inspector. Without it the settings for the thing just
-                      // clicked sit behind another click, which is the one moment
-                      // they are certainly wanted.
-                      if (el != null) setTab("element");
+                    dropping={incoming?.kind === "element"}
+                    onDropAt={(x, y) => {
+                      if (incoming?.kind !== "element") return;
+                      placeElement(pick.band, incoming.type, x, y);
+                      setIncoming(null);
                     }}
+                    onSelect={(el) => setPick({ band: pick.band, el })}
                     onBox={(i, patch) => moveBox(pick.band, i, patch)}
                   />
                 </div>
@@ -858,7 +1012,7 @@ export default function DesignEditorPage() {
                 className="mx-auto overflow-hidden rounded-2xl border border-line bg-surface"
                 style={{
                   width: Math.round(previewWidth * siteZoom),
-                  height: pane_.h ? pane_.h - 8 : undefined,
+                  height: paneSize.h ? paneSize.h - 8 : undefined,
                 }}
               >
                 <iframe
@@ -867,61 +1021,66 @@ export default function DesignEditorPage() {
                   title={d.site}
                   style={frameStyle}
                   className="block border-0"
+                  onLoad={() => {
+                    // ⚠️ Back to where the operator was. A reload is sometimes
+                    // unavoidable, and the part that hurts is not the wait — it
+                    // is landing at the top of a page you were working halfway
+                    // down.
+                    const win = frame.current?.contentWindow;
+                    if (!win || !scrollY.current) return;
+                    win.postMessage({ type: "keel:scrollto", y: scrollY.current }, "*");
+                  }}
                 />
-                {/* ⚠️ **Mounted whenever live editing is on, not only when the
-                    band that happens to be selected is a freely drawn one.**
-                    The click-on-the-page listener lives inside this component,
-                    and so does the message that puts the site into edit mode —
-                    so gating it on `band?.canvas` meant the page was inert
-                    until the operator had already found the right band in the
-                    left-hand list. That is exactly backwards: clicking the
-                    thing you want to change is *how* you find it, and the
-                    comment inside PreviewOverlay has claimed "the page itself
-                    becomes the navigation" the whole time it could not.
-
-                    Handles still appear only where there is something to drag:
-                    a fixed band reports no elements, so there is nothing to
-                    draw over it. */}
+                {/* ⚠️ **Mounted whenever live editing is on**, not only when the
+                    selected band happens to be a freely drawn one: clicking the
+                    thing you want to change is *how* you find it. Handles still
+                    appear only where there is something to drag. */}
                 {liveEdit && (
                   <PreviewOverlay
                     frame={frame}
-                    // ⚠️ The same number the iframe is drawn at. Two scales
-                    // here is handles that sit where the element is not.
+                    // ⚠️ The same number the iframe is drawn at. Two scales here
+                    // is handles that sit where the element is not.
                     zoom={siteZoom}
                     activeBand={pick.band}
                     selected={pick.el}
-                    onSelect={(el) => {
-                      setPick({ band: pick.band, el });
-                      if (el != null) setTab("element");
+                    incoming={incoming}
+                    canDrawIn={canDrawIn}
+                    onDropElement={(bandIdx, x, y) => {
+                      placeElement(bandIdx, incoming?.type ?? "text", x, y);
+                      setIncoming(null);
                     }}
+                    onDropBand={(at) => {
+                      if (incoming?.kind !== "band") return;
+                      placeBand(incoming.type, at);
+                      setIncoming(null);
+                    }}
+                    onSelect={(el) => setPick({ band: pick.band, el })}
                     onPick={(bandIdx: number, el: number | null) => {
                       setPick({ band: bandIdx, el });
-                      setTab(el != null ? "element" : "layers");
+                      setSide("page");
                     }}
                     onBox={(i, patch) => moveBox(pick.band, i, patch)}
-                    onCommit={() => void commitLive()}
+                    // ⚠️ Nothing to do on drag end any more. The draft saves
+                    // itself and the page was already told about the box — the
+                    // reload this used to trigger is the thing that was fixed.
+                    onCommit={() => {}}
                     boxOf={(i) => {
                       const el = band?.canvas?.elements?.[i];
                       if (!el) return null;
                       return editing === "mobile" ? (el.mobile ?? el.box) : el.box;
                     }}
-                    // ⚠️ **Null for anything without words, and that is what
-                    // decides whether a double-click opens a typing box.** A
-                    // photograph, a coloured panel and a rule have nothing to
-                    // type into, and a caret blinking on a rectangle is an
-                    // editor lying about what it can do.
+                    // ⚠️ **Null for anything without words**, which is what
+                    // decides whether a double-click opens a typing box.
                     textOf={(i) => {
                       const el = band?.canvas?.elements?.[i];
                       if (!el || !TEXTUAL.has(el.type)) return null;
                       return el.text?.uz ?? "";
                     }}
                     onText={(i, value) =>
-                      updateElement(pick.band, i, {
-                        text: {
-                          uz: value,
-                          ru: band?.canvas?.elements?.[i]?.text?.ru ?? "",
-                          en: band?.canvas?.elements?.[i]?.text?.en ?? "",
-                        },
+                      setElementText(pick.band, i, {
+                        uz: value,
+                        ru: band?.canvas?.elements?.[i]?.text?.ru ?? "",
+                        en: band?.canvas?.elements?.[i]?.text?.en ?? "",
                       })
                     }
                   />
@@ -940,133 +1099,463 @@ export default function DesignEditorPage() {
             )}
           </div>
         </section>
+
+        {/* ---- Right: the settings of whatever is selected ---- */}
+        <aside className="w-full shrink-0 space-y-3 overflow-auto border-t border-line p-3 lg:w-80 lg:border-l lg:border-t-0">
+          {!band && <p className="text-xs text-ink-muted">{d.inspectorEmpty}</p>}
+
+          {band && element && pick.el != null ? (
+            <>
+              <InspectorHead
+                title={`${ELEMENT_LABEL[element.type] ?? element.type}`}
+                sub={BAND_LABEL[band.type] ?? band.type}
+                onClose={() => setPick({ band: pick.band, el: null })}
+                d={d}
+              />
+              <ElementSettings
+                el={element}
+                editing={editing}
+                setEditing={setEditing}
+                onStyle={(patch) =>
+                  updateElement(pick.band, pick.el!, {
+                    style: { ...(element.style ?? {}), ...patch },
+                  })
+                }
+                onElement={(patch) => updateElement(pick.band, pick.el!, patch)}
+                onText={(value) => setElementText(pick.band, pick.el!, value)}
+                onBox={(patch) => moveBox(pick.band, pick.el!, patch)}
+                tenantId={tenantId}
+              />
+            </>
+          ) : band ? (
+            <>
+              <InspectorHead
+                title={BAND_LABEL[band.type] ?? band.type}
+                sub={d.sectionSettings}
+                d={d}
+              />
+              <BandSettings
+                band={band}
+                index={pick.band}
+                update={update}
+                setSections={setSections}
+                setPick={setPick}
+                schema={schema}
+                categories={state?.categories}
+              />
+              {/* Repeatable items: gallery photos, perk cards, slides.
+                  ⚠️ Blocks rather than numbered settings (`perk1Title`…):
+                  numbered fields fix the count, fill the panel with empty inputs,
+                  and cannot be reordered without retyping. */}
+              {bandDef?.blocks?.length ? (
+                <BlockList
+                  band={band}
+                  def={bandDef}
+                  index={pick.band}
+                  picked={pickBlock}
+                  setPicked={setPickBlock}
+                  update={update}
+                  lang={lang}
+                />
+              ) : null}
+            </>
+          ) : null}
+        </aside>
       </div>
     </div>
   );
 }
 
-/** Bands the schema knows about, plus the labels for them. Built from the schema so
- *  adding a section server-side puts it in this list with no editor change — which
- *  is the point of the schema. */
-function BandList({
+/** The draft's state, in one word.
+ *
+ *  ⚠️ **A dot and a word, not a spinner.** The question is "is my work safe",
+ *  and a spinner answers "something is happening", which is a different
+ *  question and the one nobody asked. */
+function SaveState({
+  state,
+  d,
+}: {
+  state: "clean" | "dirty" | "saving" | "error";
+  d: EditorDict;
+}) {
+  const look = {
+    clean: { dot: "bg-signal-500", text: d.stateSaved, tone: "text-ink-muted" },
+    dirty: { dot: "bg-ink-muted", text: d.stateDirty, tone: "text-ink-muted" },
+    saving: { dot: "bg-ink-muted animate-pulse", text: d.stateSaving, tone: "text-ink-muted" },
+    error: { dot: "bg-hot-600", text: d.stateDirty, tone: "text-hot-600" },
+  }[state];
+  return (
+    <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${look.tone}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${look.dot}`} />
+      {look.text}
+    </span>
+  );
+}
+
+/** The title above the inspector: what is selected, and what it is part of.
+ *
+ *  ⚠️ **Named rather than implied.** The panel used to open with no heading, so
+ *  a column of X/Y/W/H fields was the only clue about which of forty things on
+ *  the page was about to change. */
+function InspectorHead({
+  title,
+  sub,
+  onClose,
+  d,
+}: {
+  title: string;
+  sub: string;
+  onClose?: () => void;
+  d: EditorDict;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold text-ink">{title}</p>
+        <p className="truncate text-[11px] text-ink-muted">{sub}</p>
+      </div>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          title={d.closeLabel}
+          className="rounded-lg border border-line px-2 py-0.5 text-xs text-ink-muted hover:text-ink"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** A named, collapsible group. ⚠️ The replacement for the icon rail: the tools
+ *  that apply to the whole site are all in one column with their names on, and
+ *  the one being used is the one that is open. */
+function Fold({
+  title,
+  open = false,
+  children,
+}: {
+  title: string;
+  open?: boolean;
+  children: React.ReactNode;
+}) {
+  const [on, setOn] = useState(open);
+  return (
+    <div className="overflow-hidden rounded-2xl border border-line">
+      <button
+        type="button"
+        onClick={() => setOn((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2.5 text-xs font-bold text-ink"
+      >
+        {title}
+        <span className="text-ink-muted">{on ? "−" : "+"}</span>
+      </button>
+      {on && <div className="border-t border-line p-3">{children}</div>}
+    </div>
+  );
+}
+
+/** The page as a tree: bands in order, and the elements inside a free band.
+ *
+ *  ⚠️ **One list, not three panels.** Bands, the band's settings and its
+ *  elements used to be three stacked cards in the same scrolling column, so a
+ *  design with fifteen bands pushed the elements below the fold exactly when one
+ *  was selected. The settings moved to the right; what is left here is the
+ *  answer to one question — what is this page made of, and in what order. */
+function Outline({
   sections,
   pick,
   setPick,
   setSections,
+  remember,
+  d,
+  bandLabel,
+  elementLabel,
 }: {
   sections: DesignSection[];
   pick: { band: number; el: number | null };
   setPick: (p: { band: number; el: number | null }) => void;
   setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
+  remember: () => void;
+  d: EditorDict;
+  bandLabel: Record<string, string>;
+  elementLabel: Record<string, string>;
 }) {
-  const { lang } = useT();
-  const d = editorDict(lang);
-  const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
-  const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
-  function add(type: string) {
-    // ⚠️ A new band starts with sensible text rather than empty.
-    // An empty section renders nothing, and a band that appears in the list while
-    // the page does not change reads as the button not working.
-    const seeded: Record<string, Record<string, unknown>> = {
-      hero: { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, height: 80, overlay: 40 },
-      "rich-text": { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, align: "center", tone: "surface" },
-      "image-text": { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, round: "lg" },
-      banner: { heading: { uz: "Aksiya", ru: "Акция", en: "Offer" }, tone: "charcoal", overlay: 55 },
-      "menu-grid": { popularOnly: true, limit: 8 },
-    };
-    const section: DesignSection = {
-      type,
-      variant: VARIANTS[type]?.[0] ?? "",
-      span: 12,
-      settings: seeded[type],
-      ...(type === "canvas" || type === "popup"
-        ? { canvas: { height: 60, elements: [] } }
-        : {}),
-    };
-    setSections((prev) => [...prev, section]);
-    setPick({ band: sections.length, el: null });
-  }
-
   function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= sections.length) return;
+    remember();
     setSections((prev) => {
       const next = [...prev];
-      const j = i + dir;
-      if (j < 0 || j >= next.length) return prev;
       [next[i], next[j]] = [next[j], next[i]];
       return next;
     });
-    setPick({ band: i + dir, el: null });
+    setPick({ band: j, el: null });
+  }
+
+  if (sections.length === 0) {
+    return <p className="px-1 text-xs leading-relaxed text-ink-muted">{d.emptyPage}</p>;
   }
 
   return (
-    <div className="rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">{d.bands}</p>
-      {/* ⚠️ Dragged, not nudged with arrows.
-          Moving a band from the bottom of a fifteen-band page to the top took
-          fourteen presses, each one re-rendering the list under the cursor. HTML5
-          drag-and-drop rather than a library: the whole gesture is "pick up a row,
-          drop it on another", and a dependency for that is a dependency to keep in
-          step with React for years. */}
-      <ul className="mt-2 space-y-1">
-        {sections.map((s, i) => (
-          <li
-            key={i}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData("text/plain", String(i));
-              e.dataTransfer.effectAllowed = "move";
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const from = Number(e.dataTransfer.getData("text/plain"));
-              if (Number.isNaN(from) || from === i) return;
-              setSections((prev) => {
-                const next = [...prev];
-                const [moved] = next.splice(from, 1);
-                next.splice(i, 0, moved);
-                return next;
-              });
-              // Follow the band that moved: losing the selection mid-reorder means
-              // finding it again in a list that just changed shape.
-              setPick({ band: i, el: null });
-            }}
-            className="flex cursor-grab items-center gap-1 active:cursor-grabbing"
-          >
-            <span className="select-none px-1 text-ink-muted" aria-hidden>⠿</span>
-            <button
-              type="button"
-              onClick={() => setPick({ band: i, el: null })}
-              className={`flex-1 rounded-lg px-2 py-1.5 text-left text-xs font-semibold ${
-                pick.band === i ? "bg-raised text-ink" : "text-ink-soft"
-              } ${s.hidden ? "line-through opacity-50" : ""}`}
+    <ul className="space-y-1">
+      {sections.map((s, i) => {
+        const active = pick.band === i;
+        const elements = s.canvas?.elements ?? [];
+        return (
+          <li key={i}>
+            {/* ⚠️ Dragged, not nudged with arrows. Moving a band from the bottom
+                of a fifteen-band page to the top took fourteen presses, each one
+                re-rendering the list under the cursor. The arrows stay beside the
+                handle: a list that can only be reordered by dragging cannot be
+                reordered with a keyboard. */}
+            <div
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("text/plain", String(i));
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const from = Number(e.dataTransfer.getData("text/plain"));
+                if (Number.isNaN(from) || from === i) return;
+                remember();
+                setSections((prev) => {
+                  const next = [...prev];
+                  const [moved] = next.splice(from, 1);
+                  next.splice(i, 0, moved);
+                  return next;
+                });
+                // Follow the band that moved: losing the selection mid-reorder
+                // means finding it again in a list that just changed shape.
+                setPick({ band: i, el: null });
+              }}
+              className={`group flex items-center gap-1 rounded-xl px-1.5 py-1 ${
+                active ? "bg-raised" : "hover:bg-raised/60"
+              }`}
             >
-              {BAND_LABEL[s.type] ?? s.type}
-              {s.canvas?.elements?.length ? ` · ${s.canvas.elements.length}` : ""}
-            </button>
-            {/* Kept beside the drag handle: a list that can only be reordered by
-                dragging cannot be reordered with a keyboard, and one of the two
-                people who will use this screen works that way. */}
-            <button type="button" onClick={() => move(i, -1)} className="px-1 text-ink-muted" aria-label="↑">↑</button>
-            <button type="button" onClick={() => move(i, 1)} className="px-1 text-ink-muted" aria-label="↓">↓</button>
+              <span className="cursor-grab select-none px-0.5 text-ink-muted active:cursor-grabbing" aria-hidden>
+                ⠿
+              </span>
+              <button
+                type="button"
+                onClick={() => setPick({ band: i, el: null })}
+                className={`min-w-0 flex-1 truncate text-left text-xs font-semibold ${
+                  active ? "text-ink" : "text-ink-soft"
+                } ${s.hidden ? "line-through opacity-50" : ""}`}
+              >
+                {bandLabel[s.type] ?? s.type}
+                {elements.length ? (
+                  <span className="ml-1 font-normal text-ink-muted">· {elements.length}</span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  remember();
+                  setSections((prev) =>
+                    prev.map((x, k) => (k === i ? { ...x, hidden: !x.hidden } : x)),
+                  );
+                }}
+                title={s.hidden ? d.show : d.hide}
+                className="px-1 text-[11px] text-ink-muted opacity-0 transition group-hover:opacity-100"
+              >
+                {s.hidden ? "○" : "●"}
+              </button>
+              <button type="button" onClick={() => move(i, -1)} title={d.bandUp} className="px-0.5 text-[11px] text-ink-muted opacity-0 transition group-hover:opacity-100">↑</button>
+              <button type="button" onClick={() => move(i, 1)} title={d.bandDown} className="px-0.5 text-[11px] text-ink-muted opacity-0 transition group-hover:opacity-100">↓</button>
+            </div>
+
+            {/* The elements of the selected free band, nested under it. Only the
+                selected one: every band's elements at once is the wall of rows
+                this screen was rebuilt to remove. */}
+            {active && s.canvas && (
+              <ul className="ml-5 mt-0.5 space-y-0.5 border-l border-line pl-2">
+                {elements.length === 0 && (
+                  <li className="py-1 text-[11px] leading-relaxed text-ink-muted">
+                    {d.emptyElements}
+                  </li>
+                )}
+                {elements.map((e, j) => (
+                  <li key={j} className="group flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPick({ band: i, el: j })}
+                      className={`min-w-0 flex-1 truncate rounded-lg px-1.5 py-1 text-left text-[11px] ${
+                        pick.el === j ? "bg-raised font-semibold text-ink" : "text-ink-soft"
+                      }`}
+                    >
+                      <span className="mr-1 text-ink-muted">{ELEMENT_GLYPH[e.type] ?? "◦"}</span>
+                      {e.text?.uz ? e.text.uz.slice(0, 20) : (elementLabel[e.type] ?? e.type)}
+                    </button>
+                    <button
+                      type="button"
+                      title={d.duplicate}
+                      onClick={() => {
+                        remember();
+                        setSections((prev) =>
+                          prev.map((x, k) =>
+                            k === i && x.canvas
+                              ? {
+                                  ...x,
+                                  canvas: {
+                                    ...x.canvas,
+                                    elements: [
+                                      ...(x.canvas.elements ?? []),
+                                      // Offset, so the copy is not hidden exactly
+                                      // behind the original.
+                                      {
+                                        ...e,
+                                        box: { ...e.box, x: Math.min(95, e.box.x + 3), y: Math.min(95, e.box.y + 3) },
+                                      },
+                                    ],
+                                  },
+                                }
+                              : x,
+                          ),
+                        );
+                        setPick({ band: i, el: elements.length });
+                      }}
+                      className="px-1 text-[11px] text-ink-muted opacity-0 transition group-hover:opacity-100"
+                    >
+                      ⧉
+                    </button>
+                    <button
+                      type="button"
+                      title={d.remove}
+                      onClick={() => {
+                        remember();
+                        setSections((prev) =>
+                          prev.map((x, k) =>
+                            k === i && x.canvas
+                              ? {
+                                  ...x,
+                                  canvas: {
+                                    ...x.canvas,
+                                    elements: (x.canvas.elements ?? []).filter((_, m) => m !== j),
+                                  },
+                                }
+                              : x,
+                          ),
+                        );
+                        setPick({ band: i, el: null });
+                      }}
+                      className="px-1 text-[11px] text-hot-600 opacity-0 transition group-hover:opacity-100"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
-        ))}
-      </ul>
-      <div className="mt-2 flex flex-wrap gap-1">
-        {["hero", "rich-text", "image-text", "menu-grid", "search", "banner", "gallery", "hours-address", "canvas", "popup", "navbar", "footer", "categories", "perks", "about", "cta"].map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => add(type)}
-            className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft hover:text-ink"
-          >
-            + {BAND_LABEL[type]}
-          </button>
-        ))}
-      </div>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Cards that can be dragged onto the page, grouped and named.
+ *
+ *  ⚠️ **Dragged, and that is the point.** A click appends to the end of the
+ *  band, which is what the editor could do before and what made placing a
+ *  headline a three-step job: add it, find it, drag it to where it was wanted.
+ *  A card dropped on the page lands where it was dropped — the gesture every
+ *  page builder people have used works this way, and its absence was read as
+ *  the editor not being one. */
+function Palette({
+  title,
+  hint,
+  groups,
+  onDragStart,
+  onDragEnd,
+  onPick,
+}: {
+  title: string;
+  hint: string;
+  groups: { title: string; items: { type: string; label: string; glyph?: string }[] }[];
+  onDragStart: (type: string) => void;
+  onDragEnd: () => void;
+  onPick: (type: string) => void;
+}) {
+  return (
+    <div className="space-y-2 rounded-2xl border border-line p-3">
+      <p className="text-xs font-bold text-ink">{title}</p>
+      <p className="text-[11px] leading-relaxed text-ink-muted">{hint}</p>
+      {groups.map((g) => (
+        <div key={g.title} className="space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
+            {g.title}
+          </p>
+          <div className="grid grid-cols-2 gap-1">
+            {g.items.map((it) => (
+              <button
+                key={it.type}
+                type="button"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("text/plain", it.type);
+                  e.dataTransfer.effectAllowed = "copy";
+                  onDragStart(it.type);
+                }}
+                onDragEnd={onDragEnd}
+                onClick={() => onPick(it.type)}
+                className="flex cursor-grab items-center gap-1.5 rounded-xl border border-line px-2 py-1.5 text-left text-[11px] font-semibold text-ink-soft transition hover:border-signal-500 hover:text-ink active:cursor-grabbing"
+              >
+                {it.glyph && (
+                  <span className="w-4 shrink-0 text-center text-ink-muted">{it.glyph}</span>
+                )}
+                <span className="truncate">{it.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
+
+/** The gallery of finished layouts. */
+function TemplateList({
+  templates,
+  d,
+  onApply,
+}: {
+  templates: DesignTemplate[];
+  d: EditorDict;
+  onApply: (tpl: DesignTemplate) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] leading-relaxed text-ink-muted">{d.templatesHint}</p>
+      <ul className="space-y-1.5">
+        {templates.map((tpl) => (
+          <li key={tpl.id}>
+            <button
+              type="button"
+              onClick={() => onApply(tpl)}
+              className="w-full rounded-xl border border-line px-3 py-2 text-left hover:border-signal-500"
+            >
+              <span className="block text-xs font-bold text-ink">{tpl.name}</span>
+              {tpl.note && (
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-muted">
+                  {tpl.note}
+                </span>
+              )}
+              <span className="mt-1 block text-[11px] text-ink-muted">
+                {tpl.sections.length} band
+                {tpl.builtin ? "" : ` · ${tpl.createdBy ?? ""}`}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 
 function BandSettings({
   band,
@@ -1093,8 +1582,7 @@ function BandSettings({
   const canvas = band.canvas;
   const def = defFor(schema, band);
   return (
-    <div className="space-y-2 rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">{BAND_LABEL[band.type] ?? band.type}</p>
+    <div className="space-y-2">
 
       {/* ⚠️ Declared settings first, and the old fixed controls after.
           A section that the schema describes is edited entirely through what it
@@ -1225,92 +1713,6 @@ function BandSettings({
   );
 }
 
-function ElementList({
-  band,
-  bandIndex,
-  pick,
-  setPick,
-  setSections,
-}: {
-  band: DesignSection;
-  bandIndex: number;
-  pick: { band: number; el: number | null };
-  setPick: (p: { band: number; el: number | null }) => void;
-  setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
-}) {
-  const { lang } = useT();
-  const d = editorDict(lang);
-  const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
-  const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
-  const elements = band.canvas?.elements ?? [];
-
-  function add(type: string) {
-    setSections((prev) =>
-      prev.map((s, k) =>
-        k === bandIndex && s.canvas
-          ? { ...s, canvas: { ...s.canvas, elements: [...(s.canvas.elements ?? []), newElement(type)] } }
-          : s,
-      ),
-    );
-    setPick({ band: bandIndex, el: elements.length });
-  }
-
-  return (
-    <div className="rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">{d.elements}</p>
-      <ul className="mt-2 space-y-1">
-        {elements.map((e, i) => (
-          <li key={i} className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setPick({ band: bandIndex, el: i })}
-              className={`flex-1 rounded-lg px-2 py-1.5 text-left text-xs ${
-                pick.el === i ? "bg-raised font-semibold text-ink" : "text-ink-soft"
-              }`}
-            >
-              {ELEMENT_LABEL[e.type] ?? e.type}
-              {e.text?.uz ? ` · ${e.text.uz.slice(0, 18)}` : ""}
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setSections((prev) =>
-                  prev.map((s, k) =>
-                    k === bandIndex && s.canvas
-                      ? {
-                          ...s,
-                          canvas: {
-                            ...s.canvas,
-                            elements: (s.canvas.elements ?? []).filter((_, j) => j !== i),
-                          },
-                        }
-                      : s,
-                  ),
-                )
-              }
-              className="px-1 text-hot-600"
-              aria-label="o'chirish"
-            >
-              ×
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-2 flex flex-wrap gap-1">
-        {Object.keys(ELEMENT_LABEL).map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => add(type)}
-            className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft hover:text-ink"
-          >
-            + {ELEMENT_LABEL[type]}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function ElementSettings({
   el,
@@ -1318,6 +1720,7 @@ function ElementSettings({
   setEditing,
   onStyle,
   onElement,
+  onText,
   onBox,
   tenantId,
 }: {
@@ -1326,6 +1729,11 @@ function ElementSettings({
   setEditing: (v: "desktop" | "mobile") => void;
   onStyle: (patch: Record<string, unknown>) => void;
   onElement: (patch: Partial<DesignElement>) => void;
+  /** ⚠️ Words go through their own path, not through `onElement`. A word is the
+   *  one change the live page can be *told* about, and routing it with the rest
+   *  would reload somebody's real site on every letter — which is exactly what
+   *  this editor used to do. */
+  onText: (value: { uz: string; ru: string; en: string }) => void;
   onBox: (patch: Partial<DesignBox>) => void;
   /** Whose uploads a chosen photograph is written into. */
   tenantId: string;
@@ -1341,8 +1749,7 @@ function ElementSettings({
   const isText = ["text", "button", "badge", "quote", "stat", "list"].includes(el.type);
 
   return (
-    <div className="space-y-2 rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">{ELEMENT_LABEL[el.type] ?? el.type}</p>
+    <div className="space-y-2">
 
       {/* ⚠️ Which layout the numbers below describe. Free placement has exactly one
           failure mode — a composition nobody checked on a phone — and it is
@@ -1443,21 +1850,21 @@ function ElementSettings({
           <Row label="Matn (uz)">
             <input
               value={el.text?.uz ?? ""}
-              onChange={(e) => onElement({ text: { uz: e.target.value, ru: el.text?.ru ?? "", en: el.text?.en ?? "" } })}
+              onChange={(e) => onText({ uz: e.target.value, ru: el.text?.ru ?? "", en: el.text?.en ?? "" })}
               className="input"
             />
           </Row>
           <Row label="ru">
             <input
               value={el.text?.ru ?? ""}
-              onChange={(e) => onElement({ text: { uz: el.text?.uz ?? "", ru: e.target.value, en: el.text?.en ?? "" } })}
+              onChange={(e) => onText({ uz: el.text?.uz ?? "", ru: e.target.value, en: el.text?.en ?? "" })}
               className="input"
             />
           </Row>
           <Row label="en">
             <input
               value={el.text?.en ?? ""}
-              onChange={(e) => onElement({ text: { uz: el.text?.uz ?? "", ru: el.text?.ru ?? "", en: e.target.value } })}
+              onChange={(e) => onText({ uz: el.text?.uz ?? "", ru: el.text?.ru ?? "", en: e.target.value })}
               className="input"
             />
           </Row>
@@ -1859,8 +2266,7 @@ function PresetPanel({
   const [name, setName] = useState("");
 
   return (
-    <div className="space-y-2 rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">{d.presets}</p>
+    <div className="space-y-2">
       <p className="text-[11px] leading-relaxed text-ink-muted">
         {d.presetsHint}
       </p>
@@ -2160,8 +2566,7 @@ function ThemePanel({
   );
 
   return (
-    <div className="space-y-3 rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">{d.themeTitle}</p>
+    <div className="space-y-3">
       <p className="text-[11px] leading-relaxed text-ink-muted">{d.themeHint}</p>
       <Colour k="brand" label={d.themeBrand} hint={d.themeBrandHint} />
       <Colour k="accent" label={d.themeAccent} hint={d.themeAccentHint} />

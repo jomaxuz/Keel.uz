@@ -8801,6 +8801,86 @@ har bir muharrirda bor (Figma, Canva, Shopify), va ularning yo'qligi
 chunki hujjatda foiz saqlanadi; pikseldagi raqamni operator muharrirning hech
 bir joyidan qayta topa olmaydi.
 
+### Konstruktor: har harf uchun sahifa qayta yuklanmaydi
+
+⚠️ **Muharrir har o'zgarishda mijozning jonli saytini qaytadan ochardi.**
+Bitta harf yozilsa ham, bitta quti sudralsa ham `previewUrl` yangilanardi — ya'ni
+iframe **to'liq navigatsiya** qilardi: oq chaqnash, sahifa boshiga qaytish, va
+tenant konteyneri uchun yana bitta render. Operatorning so'zi bilan: «srazu hard
+refresh bo'lyabdi».
+
+**Yechim: o'zgarishlar ikki turga bo'lindi.**
+- **Joyi va so'zi** — sahifaga *aytiladi*. `keel:patch` xabari `PreviewBridge`'ga
+  boradi va u DOM'ga yozadi (`left/top/width/height` foizda, matn esa
+  `data-keel-text` bilan belgilangan tugunga). Qayta yuklash yo'q.
+- **Qolgani** (yangi band, boshqa variant, rang, fon) — faqat qayta render bilan
+  ko'rinadi. U ham **darhol emas**: qoralama 900 ms jimlikdan keyin saqlanadi va
+  shundan keyin bir marta yuklanadi.
+
+⚠️ **Matn elementning o'ziga yozilmaydi.** Element — ichida markup bo'lgan quti:
+tugmada havola, iqtibosda qo'shtirnoq, ro'yxatda har qatorga bitta `li`.
+`textContent = value` tashqi qutiga yozilsa ishlaydigan tugma yalang'och so'zga
+aylanardi. Shuning uchun so'zlar turgan tugun `data-keel-text="plain|quote|lines"`
+bilan belgilanadi, va **buning testi bor** (`design/canvasText.test.tsx`):
+shartnoma ikki ilova o'rtasida, ya'ni compiler uni bog'lay olmaydi. Belgisiz
+element — «yozilaveradi, lekin hech nima o'zgarmaydi» degan jim nosozlik.
+
+⚠️ **Patch — o'zgarishning surati, o'zgarishning o'zi emas.** Qoralama baribir
+saqlanadi va keyingi yuklashda hujjat chiziladi. Ikkisi kelishmasa **yuklash
+g'olib**: haqiqat hujjatda.
+
+⚠️ **Telefonning oqim yuzasi `data-keel-flow`**, `data-keel-band` emas: unda
+element **joylashtirilmagan**, ya'ni u sudraladigan band bo'lib xabar qilinmasligi
+kerak — lekin konsolda o'zgargan so'z u yerda ham o'zgarishi kerak.
+
+⚠️ **Qayta yuklash kerak bo'lganda ham operator o'z joyiga qaytariladi**
+(`keel:scrollto`). Og'rituvchi narsa kutish emas — sahifaning yarmida ishlab
+turib boshiga tashlanish.
+
+⚠️ **Avtosaqlash «Saqlash» tugmasini almashtirdi**, va sarlavhadagi bitta so'z
+holatini aytadi. Kutilayotgan saqlash **unmount'da bekor qilinmaydi**: taymer
+ishlasin — aks holda oxirgi yozilgan gap hech kim ekranga qaramagan paytda
+yo'qoladi.
+
+### Konstruktor: element qayerga qo'yilsa, o'sha yerda paydo bo'ladi
+
+⚠️ **Ilgari element faqat bandning oxiriga qo'shilardi**, keyin uni topib,
+keyin joyiga sudrash kerak edi — sarlavha qo'yish uch qadam. Endi palitradagi
+kartochka **sudralib** sahifaga tashlanadi va tushgan joyida quriladi (kursor
+markazda, band chetidan chiqmaydi — `clampBox`).
+
+⚠️ **Drag hodisalari iframe'ga kirmaydi** — ichidagi hujjat o'ziniki, va u boshqa
+origin. Shuning uchun sudrash boshlanganda iframe ustiga **shaffof qatlam**
+qo'yiladi va tushirishni o'sha qabul qiladi; qaysi band ostida ekani sahifaning
+o'zi bergan geometriyadan hisoblanadi. Qatlam faqat sudrash paytida mavjud — aks
+holda u oddiy bosishni yutardi.
+
+⚠️ **Qat'iy bandga element tushmaydi**, va bu kartochka havoda turganda
+aytiladi (qizil ramka): tushirishni qabul qilib keyin hech nima qilmaydigan
+muharrir yo'q deganidan yomonroq. Band esa **bandlar orasiga** tushadi — chiziq
+qayerga tushishini ko'rsatadi.
+
+### Konstruktor: qobiq qaytadan yozildi (nega)
+
+Hammasi ishlayotgan edi — bandlar, erkin joylashtirish, jonli tahrirlash,
+haqiqiy ko'rinish — va uni ishlatadigan odamning bahosi bitta so'z edi:
+**qiyin**. Sabab vositalarda emas, ularga yetib borishda edi.
+
+- **Oltita imzosiz belgi** (`▤ ◫ ◐ { } ☰ ▢) o'rniga **ikkita nomli tab**:
+  «Sahifa» — bu sahifa nimadan iborat; «Dizayn» — butun saytga tegadigani
+  (ranglar, panel, shablonlar, uslublar, CSS). Haftada bir ochadigan odam uchun
+  belgi — taxmin.
+- **Sozlamalar tanlangan narsaning yonida**, tab ortida emas: sahifada biror
+  narsani bossa, o'ng tomonda **nomi bilan** ochiladi. Ilgari ular aynan
+  kerak bo'lgan paytda yana bitta bosish ortida edi.
+- **Sahifa — bitta daraxt**: bandlar, va tanlangan erkin bandning ichidagi
+  elementlar. Ilgari uchta karta bitta ustunda turardi va o'n beshta bandli
+  dizaynda elementlar ro'yxati aynan element tanlangan paytda ekrandan
+  pastga tushardi.
+- **Qo'shish — guruhlangan kartochkalar**, o'n oltita chipdan iborat devor emas.
+  Ilgari `navbar` `popup` bilan `categories` orasida turardi — sahifaga
+  ikkinchi sarlavha qo'shishning eng oson yo'li.
+
 ### Konsoldan tenantga rasm yuklash
 
 ⚠️ **Konstruktor rasmga faqat allaqachon mavjud yo'lni yozib ko'rsata olardi.**

@@ -54,6 +54,8 @@ export default function EditorCanvas({
   onBox,
   editing,
   zoom,
+  dropping,
+  onDropAt,
 }: {
   band: DesignSection;
   device: "desktop" | "phone";
@@ -63,6 +65,11 @@ export default function EditorCanvas({
   /** Which layout the drag is editing — the desktop composition or the phone one. */
   editing: "desktop" | "mobile";
   zoom: number;
+  /** True while a card is being dragged off the palette. */
+  dropping?: boolean;
+  /** Where it was let go, in percent of the band — the same units the document
+   *  stores, so what the operator saw is what gets written. */
+  onDropAt?: (x: number, y: number) => void;
 }) {
   const surface = useRef<HTMLDivElement>(null);
   const [guides, setGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
@@ -241,9 +248,28 @@ export default function EditorCanvas({
         }}
         // A ring rather than a border: a border would take a pixel off the inside
         // and every percent below would be measured against the wrong box.
-        className="relative shrink-0 overflow-hidden rounded-xl bg-surface ring-1 ring-line"
+        className={`relative shrink-0 overflow-hidden rounded-xl bg-surface ring-1 ${
+          dropping ? "ring-2 ring-signal-500" : "ring-line"
+        }`}
         ref={surface}
         onPointerDown={() => onSelect(null)}
+        // ⚠️ The same gesture as on the live pane, and it has to be: an editor
+        // where a card can be dropped on one surface and only clicked on the
+        // other is an editor whose rules depend on which tab you are in.
+        onDragOver={dropping ? (e) => e.preventDefault() : undefined}
+        onDrop={
+          dropping
+            ? (e) => {
+                e.preventDefault();
+                const rect = surface.current?.getBoundingClientRect();
+                if (!rect) return;
+                onDropAt?.(
+                  Math.round(((e.clientX - rect.left) / rect.width) * 100),
+                  Math.round(((e.clientY - rect.top) / rect.height) * 100),
+                );
+              }
+            : undefined
+        }
       >
         {/* The band's own background, so a composition on a dark band is judged
             against the dark band it will actually sit on. */}

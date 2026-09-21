@@ -20,8 +20,6 @@ const uz = {
   refresh: "Yangilash",
   view: "Ko'rish",
   viewHint: "Qoralamani yangi tabda ochish",
-  saveDraft: "Qoralamani saqlash",
-  saving: "Saqlanmoqda...",
   publish: "Chop etish",
   publishing: "Chop etilmoqda...",
   revert: "Shablonga qaytarish",
@@ -35,18 +33,9 @@ const uz = {
   savedDraft: "Qoralama saqlandi (jonli sayt o'zgarmadi)",
   reverted: "Jonli sayt shablonga qaytdi (chizmangiz saqlanib qoldi)",
 
-  tabLayers: "Bandlar",
-  tabElement: "Element sozlamalari",
-  tabStyles: "Saqlangan uslublar",
-  tabCss: "Umumiy CSS",
-  tabNav: "Navigatsiya paneli",
-  tabTemplates: "Shablonlar",
   templatesHint: "Tayyor maket tanlansa, bandlar shu yerga NUSXA bo'lib ko'chadi — keyin xohlagancha o'zgartirasiz. Shablonning o'zi o'zgarmaydi.",
   templateApplied: (name: string) => `«${name}» qo'llandi — endi tahrirlashingiz mumkin`,
 
-  bands: "Sahifa bandlari",
-  elements: "Blok ichidagi elementlar",
-  pickElement: "Chizmada elementni bosing — sozlamalari shu yerda chiqadi.",
   fixedBand:
     "Bu band ichi qat'iy — uning ko'rinishini chapdagi sozlamalar belgilaydi. Erkin chizish uchun «+ Erkin blok» qo'shing.",
 
@@ -93,7 +82,6 @@ const uz = {
 
   imageChoose: "Rasm tanlash",
   imageUploading: "Yuklanmoqda…",
-  themeTitle: "Ranglar",
   themeHint:
     "Shu yerda tokenlarning ma'nosi belgilanadi. Bandlar va elementlar hech qachon hex rang olmaydi — ular «brend» yoki «accent» deydi, va qorong'i rejimda ham to'g'ri qoladi.",
   themeBrand: "Asosiy rang (sotadigan)",
@@ -113,7 +101,6 @@ const uz = {
   rotate: "Burish",
   rotateNone: "yo'q",
   linkExternal: "Yangi oynada ochilsin",
-  navTitle: "Navigatsiya paneli",
   navHint:
     "Bo'sh qoldirilsa sayt o'zining odatdagi panelini ko'rsatadi (Bosh sahifa, Menyu, Bron, Biz haqimizda). Bitta havola qo'shilsa, panel butunlay shu ro'yxatdan quriladi — onlayn do'kon uchun aynan shu kerak: «Ayollar», «Erkaklar», «Chegirma», «Telegram».",
   navEmpty: "Havola yo'q — sayt odatdagi panelini ko'rsatadi.",
@@ -128,11 +115,9 @@ const uz = {
   navUp: "Yuqoriga",
   navDown: "Pastga",
 
-  cssTitle: "Umumiy CSS",
   cssHint:
     "Faqat shu mijoz sahifasiga qo'llanadi. url(...) faqat /uploads/... ga ruxsat etiladi; <, @import va javascript: bo'lsa butun matn rad etiladi.",
 
-  presets: "Saqlangan uslublar",
   presetsHint:
     "Tanlangan elementning uslubini nom bilan saqlang va boshqa elementlarga bir bosishda qo'llang. Qo'llash nusxa oladi — uslubni keyin o'zgartirsangiz, allaqachon chizilgan elementlar o'zgarmaydi.",
   presetsEmpty: "Hali uslub saqlanmagan.",
@@ -141,6 +126,46 @@ const uz = {
   presetApply: "Tanlangan elementga qo'llash",
   presetNeedElement: "Avval elementni tanlang",
   presetNeedSelection: "Saqlash uchun chizmada elementni tanlang.",
+  // ---- The rebuilt shell: two named tabs, one contextual inspector ----
+  //
+  // ⚠️ **Named, not iconographic.** The column used to be reached through a rail
+  // of ▤ ◫ ◐ { } ☰ ▢, which is six guesses for somebody who opens this screen
+  // once a week — and the operator's own word for the editor was "hard".
+  tabPage: "Sahifa",
+  tabDesign: "Dizayn",
+  addBand: "Bo'lim qo'shish",
+  addElement: "Element qo'shish",
+  addDragHint: "Sahifaga sudrang — qayerga qo'ysangiz, o'sha yerda paydo bo'ladi. Bosilsa oxiriga qo'shiladi.",
+  dropHere: "Shu yerga qo'yiladi",
+  dropNotFree: "Bu bo'lim qat'iy — element faqat erkin blokka qo'yiladi",
+  inspectorEmpty: "Sahifada biror narsani bosing — sozlamalari shu yerda chiqadi.",
+  sectionSettings: "Bo'lim sozlamalari",
+  elementSettingsTitle: "Element",
+  closeLabel: "Yopish",
+  stateSaved: "Saqlandi",
+  stateSaving: "Saqlanmoqda…",
+  stateDirty: "Saqlanmagan",
+  autosaveHint: "O'zgarishlar o'zi saqlanadi · jonli saytga faqat «Chop etish» dan keyin chiqadi",
+  designColors: "Ranglar",
+  designNav: "Navigatsiya paneli",
+  designTemplatesTitle: "Tayyor shablonlar",
+  designPresets: "Saqlangan uslublar",
+  designCss: "CSS (ilg'or)",
+  elementsIn: "Ichidagi elementlar",
+  emptyPage: "Sahifa hali bo'sh — «Bo'lim qo'shish» dan boshlang.",
+  emptyElements: "Bu blok bo'sh — pastdagi kartochkani sahifaga sudrang.",
+  groupBasic: "Asosiy",
+  groupContent: "Kontent",
+  groupFree: "Erkin",
+  groupShell: "Sayt qobig'i",
+  elGroupText: "So'z",
+  elGroupMedia: "Rasm",
+  elGroupShape: "Shakl",
+  elGroupWidget: "Ishlaydigan bloklar",
+  duplicate: "Nusxalash",
+  bandUp: "Yuqoriga",
+  bandDown: "Pastga",
+  moreTools: "Qo'shimcha",
 };
 
 export type EditorDict = typeof uz;
@@ -155,8 +180,6 @@ const ru: EditorDict = {
   refresh: "Обновить",
   view: "Смотреть",
   viewHint: "Открыть черновик в новой вкладке",
-  saveDraft: "Сохранить черновик",
-  saving: "Сохранение...",
   publish: "Опубликовать",
   publishing: "Публикация...",
   revert: "Вернуть шаблон",
@@ -170,18 +193,9 @@ const ru: EditorDict = {
   savedDraft: "Черновик сохранён (живой сайт не изменился)",
   reverted: "Живой сайт вернулся к шаблону (ваша схема сохранена)",
 
-  tabLayers: "Блоки",
-  tabElement: "Настройки элемента",
-  tabStyles: "Сохранённые стили",
-  tabCss: "Общий CSS",
-  tabNav: "Панель навигации",
-  tabTemplates: "Шаблоны",
   templatesHint: "Выбранный макет КОПИРУЕТСЯ сюда — дальше меняйте как угодно. Сам шаблон не меняется.",
   templateApplied: (name: string) => `«${name}» применён — теперь можно править`,
 
-  bands: "Блоки страницы",
-  elements: "Элементы внутри блока",
-  pickElement: "Нажмите на элемент в схеме — его настройки появятся здесь.",
   fixedBand:
     "У этого блока фиксированная внутренняя вёрстка — его вид задают настройки слева. Для свободного рисования добавьте «+ Свободный блок».",
 
@@ -228,7 +242,6 @@ const ru: EditorDict = {
 
   imageChoose: "Выбрать изображение",
   imageUploading: "Загружается…",
-  themeTitle: "Цвета",
   themeHint:
     "Здесь задаётся, что означают токены. Банды и элементы никогда не получают hex — они говорят «бренд» или «accent», и остаются верными в тёмной теме.",
   themeBrand: "Основной цвет (который продаёт)",
@@ -248,7 +261,6 @@ const ru: EditorDict = {
   rotate: "Поворот",
   rotateNone: "нет",
   linkExternal: "Открывать в новой вкладке",
-  navTitle: "Панель навигации",
   navHint:
     "Если оставить пустой, сайт покажет свою обычную панель (Главная, Меню, Бронь, О нас). Как только добавлена хотя бы одна ссылка, панель строится целиком из этого списка — именно это и нужно интернет-магазину: «Женское», «Мужское», «Скидки», «Telegram».",
   navEmpty: "Ссылок нет — сайт показывает обычную панель.",
@@ -263,11 +275,9 @@ const ru: EditorDict = {
   navUp: "Выше",
   navDown: "Ниже",
 
-  cssTitle: "Общий CSS",
   cssHint:
     "Применяется только к страницам этого клиента. url(...) разрешён только для /uploads/...; при <, @import или javascript: весь текст отклоняется.",
 
-  presets: "Сохранённые стили",
   presetsHint:
     "Сохраните стиль выбранного элемента под именем и применяйте к другим одним нажатием. Применение копирует стиль — изменив его позже, вы не измените уже нарисованное.",
   presetsEmpty: "Стили пока не сохранены.",
@@ -276,6 +286,41 @@ const ru: EditorDict = {
   presetApply: "Применить к выбранному элементу",
   presetNeedElement: "Сначала выберите элемент",
   presetNeedSelection: "Чтобы сохранить, выберите элемент в схеме.",
+  tabPage: "Страница",
+  tabDesign: "Дизайн",
+  addBand: "Добавить блок",
+  addElement: "Добавить элемент",
+  addDragHint: "Перетащите на страницу — появится ровно там, куда отпустите. По клику добавится в конец.",
+  dropHere: "Сюда",
+  dropNotFree: "Этот блок фиксированный — элемент кладётся только в свободный блок",
+  inspectorEmpty: "Нажмите что-нибудь на странице — настройки появятся здесь.",
+  sectionSettings: "Настройки блока",
+  elementSettingsTitle: "Элемент",
+  closeLabel: "Закрыть",
+  stateSaved: "Сохранено",
+  stateSaving: "Сохраняется…",
+  stateDirty: "Не сохранено",
+  autosaveHint: "Изменения сохраняются сами · на живом сайте — только после «Опубликовать»",
+  designColors: "Цвета",
+  designNav: "Панель навигации",
+  designTemplatesTitle: "Готовые шаблоны",
+  designPresets: "Сохранённые стили",
+  designCss: "CSS (для продвинутых)",
+  elementsIn: "Элементы внутри",
+  emptyPage: "Страница пока пустая — начните с «Добавить блок».",
+  emptyElements: "Блок пустой — перетащите карточку снизу на страницу.",
+  groupBasic: "Основное",
+  groupContent: "Контент",
+  groupFree: "Свободное",
+  groupShell: "Оболочка сайта",
+  elGroupText: "Слово",
+  elGroupMedia: "Изображение",
+  elGroupShape: "Фигура",
+  elGroupWidget: "Рабочие блоки",
+  duplicate: "Дублировать",
+  bandUp: "Вверх",
+  bandDown: "Вниз",
+  moreTools: "Дополнительно",
 };
 
 const en: EditorDict = {
@@ -288,8 +333,6 @@ const en: EditorDict = {
   refresh: "Refresh",
   view: "View",
   viewHint: "Open the draft in a new tab",
-  saveDraft: "Save draft",
-  saving: "Saving...",
   publish: "Publish",
   publishing: "Publishing...",
   revert: "Back to the template",
@@ -303,18 +346,9 @@ const en: EditorDict = {
   savedDraft: "Draft saved (the live site did not change)",
   reverted: "The live site is back on the template (your drawing is kept)",
 
-  tabLayers: "Bands",
-  tabElement: "Element settings",
-  tabStyles: "Saved styles",
-  tabCss: "Custom CSS",
-  tabNav: "Navigation bar",
-  tabTemplates: "Templates",
   templatesHint: "Choosing a layout COPIES its bands here — edit them freely afterwards. The template itself never changes.",
   templateApplied: (name: string) => `“${name}” applied — yours to edit now`,
 
-  bands: "Page bands",
-  elements: "Elements in this band",
-  pickElement: "Click an element on the canvas — its settings appear here.",
   fixedBand:
     "This band has a fixed inner layout — the settings on the left decide how it looks. For free drawing add “+ Free band”.",
 
@@ -361,7 +395,6 @@ const en: EditorDict = {
 
   imageChoose: "Choose an image",
   imageUploading: "Uploading…",
-  themeTitle: "Colours",
   themeHint:
     "This is where the tokens get their meaning. Bands and elements never carry a hex — they say \"brand\" or \"accent\", which is what keeps them right in dark mode.",
   themeBrand: "Primary (the one that sells)",
@@ -381,7 +414,6 @@ const en: EditorDict = {
   rotate: "Rotation",
   rotateNone: "none",
   linkExternal: "Open in a new tab",
-  navTitle: "Navigation bar",
   navHint:
     "Left empty, the site shows its built-in bar (Home, Menu, Booking, About). Add one link and the bar is built entirely from this list — which is what an online store needs: Women, Men, Sale, Telegram.",
   navEmpty: "No links — the site shows its built-in bar.",
@@ -396,11 +428,9 @@ const en: EditorDict = {
   navUp: "Up",
   navDown: "Down",
 
-  cssTitle: "Custom CSS",
   cssHint:
     "Applies to this customer's pages only. url(...) is allowed for /uploads/... only; anything with <, @import or javascript: is rejected whole.",
 
-  presets: "Saved styles",
   presetsHint:
     "Save the selected element's style under a name and apply it to others in one click. Applying copies it — editing the style later leaves everything already drawn unchanged.",
   presetsEmpty: "No styles saved yet.",
@@ -409,6 +439,41 @@ const en: EditorDict = {
   presetApply: "Apply to the selected element",
   presetNeedElement: "Select an element first",
   presetNeedSelection: "To save, select an element on the canvas.",
+  tabPage: "Page",
+  tabDesign: "Design",
+  addBand: "Add section",
+  addElement: "Add element",
+  addDragHint: "Drag onto the page — it lands where you drop it. A click adds it at the end.",
+  dropHere: "Drop here",
+  dropNotFree: "This section is fixed — elements only go into a free band",
+  inspectorEmpty: "Click anything on the page — its settings open here.",
+  sectionSettings: "Section settings",
+  elementSettingsTitle: "Element",
+  closeLabel: "Close",
+  stateSaved: "Saved",
+  stateSaving: "Saving…",
+  stateDirty: "Not saved",
+  autosaveHint: "Changes save themselves · the live site only changes when you publish",
+  designColors: "Colours",
+  designNav: "Navigation bar",
+  designTemplatesTitle: "Templates",
+  designPresets: "Saved styles",
+  designCss: "CSS (advanced)",
+  elementsIn: "Elements inside",
+  emptyPage: "The page is empty — start with “Add section”.",
+  emptyElements: "This band is empty — drag a card below onto the page.",
+  groupBasic: "Basics",
+  groupContent: "Content",
+  groupFree: "Free",
+  groupShell: "Site shell",
+  elGroupText: "Words",
+  elGroupMedia: "Image",
+  elGroupShape: "Shape",
+  elGroupWidget: "Working blocks",
+  duplicate: "Duplicate",
+  bandUp: "Up",
+  bandDown: "Down",
+  moreTools: "More",
 };
 
 /** Band and element names, per language. Separate maps rather than keys, because

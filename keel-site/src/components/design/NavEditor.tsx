@@ -75,8 +75,10 @@ export default function NavEditor({
   };
 
   return (
-    <div className="rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">{d.navTitle}</p>
+    // ⚠️ No heading and no frame of its own: the collapsible group in the
+    // editor's left column provides both, and a panel that repeats its own name
+    // inside a box with that name on it reads as two panels.
+    <div>
       <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
         {d.navHint}
       </p>
