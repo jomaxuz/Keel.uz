@@ -8903,6 +8903,32 @@ tilda va ikki repozitoriyada — ularni faqat test ushlay oladi.
 uchun ecom.keel.uz dizaynida «rasm + matn» bandi `canvas` bilan chizildi: sayt
 bugungi image'da ham to'liq ko'rinadi.
 
+### Panelda belgi bitta bo'ladi
+
+⚠️ **Katalog sahifasida paneldagi beshta havoladan to'rttasi yonib turardi.**
+Do'kon bitta sahifani bo'limlarga bo'ladi — `Katalog`, `/menu#cat-erkaklar`,
+`/menu#cat-ayollar`, `/menu#cat-sport` — va eski qoida havolaning **faqat
+yo'lini** solishtirardi (`#` va `?` kesib tashlanardi). Restoranda bu to'g'ri:
+u yerda har havola boshqa sahifa. Do'konda esa to'rtta element bir vaqtda
+"shu yerdamiz" deydi, va to'rt joyda yonib turgan belgi — belgi emas: u
+qayerdaligingizni ko'rsatmaydi, ustiga-ustak yashiradi ham.
+
+Qoida `navActiveIndex` ga ko'chdi (`lib/siteChrome.ts`) va **bitta** javob
+qaytaradi:
+- `#` yoki `?` li havola faqat brauzer **o'sha joyni** ko'rsatayotganda faol —
+  u sahifadagi nuqtaga ishora qiladi, va o'sha nuqtaga yetmaguningizcha siz u
+  yerda emassiz;
+- oddiy havola yo'l mos kelganda faol, **lekin** qo'shnilaridan biri joriy
+  fragmentni egallagan bo'lsa — yo'q: o'sha aniqrog'i rost, va ikkita rost
+  javob aynan shu funksiya to'xtatadigan xato.
+
+⚠️ **Fragment `usePathname` ga ko'rinmaydi.** U oynadan o'qiladi, bo'sh holatdan
+boshlanadi (server renderida ham fragment yo'q — aks holda har bo'limli sahifada
+hydration nomuvofiqligi bo'lardi), va `hashchange` yetarli emas: router
+fragmentlar orasida `pushState` bilan yuradi, u esa hech nima chaqirmaydi.
+Shuning uchun panel o'z bosishidan keyin ham o'zini qayta o'qiydi — mehmon u
+yerga aynan shunday boradi.
+
 ### Do'konda «Ochlik kutib turmaydi» yozilmaydi
 
 `siteWords` «Menyu» ni «Katalog» ga aylantirardi, lekin buyurtma chaqirig'i

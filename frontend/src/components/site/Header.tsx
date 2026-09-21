@@ -22,6 +22,7 @@ import {
   CHROME_WIDTH,
   DEFAULT_CHROME,
   type SiteChrome,
+  navActiveIndex,
 } from "@/lib/siteChrome";
 import type { Brand, NavLink } from "@/lib/types";
 
@@ -132,15 +133,39 @@ export default function Header({
   // the whole navbar silently loses its highlight for two of three languages.
   const here = splitLangPath(pathname).path;
   useEffect(() => setMenuOpen(false), [pathname]);
-  const isActive = (n: NavItem) => {
-    // ⚠️ An outside address is never "here", and `startsWith` on one would be
-    // comparing a path to `https://…` — always false, but by accident.
-    if (n.external || !n.href.startsWith("/")) return false;
-    // A drawn link may carry a query ("/menu?cat=ayollar"); the highlight is
-    // about which page the guest is on, not which filter.
-    const path = n.href.split(/[?#]/)[0] || "/";
-    return path === "/" ? here === "/" : here.startsWith(path);
-  };
+
+  // Which section of the page the browser is showing.
+  //
+  // ⚠️ **Read from the window, and re-read after a click in the bar.** A shop's
+  // bar sends the guest to places *inside* the catalogue (`/menu#cat-ayollar`),
+  // and `usePathname` cannot see a fragment at all. It starts empty so the
+  // first client render matches the server's, which has no fragment either —
+  // the alternative is a hydration mismatch on every page with a section link.
+  //
+  // ⚠️ `hashchange` alone is not enough: the router moves between fragments
+  // with `pushState`, which fires nothing. So the bar also re-reads itself
+  // after its own clicks, which is the way a guest actually gets there.
+  const [frag, setFrag] = useState("");
+  useEffect(() => {
+    const read = () => setFrag(window.location.hash);
+    read();
+    window.addEventListener("hashchange", read);
+    window.addEventListener("popstate", read);
+    return () => {
+      window.removeEventListener("hashchange", read);
+      window.removeEventListener("popstate", read);
+    };
+  }, [pathname]);
+  const followFragment = () => window.setTimeout(() => setFrag(window.location.hash), 0);
+
+  // ⚠️ **One item at a time.** Marking every link whose path matches lit four
+  // of the five items on a shop's catalogue page, because four of them are that
+  // page. See navActiveIndex for the rule.
+  const activeIndex = navActiveIndex(nav, here, frag);
+  const isActive = (n: NavItem) =>
+    nav[activeIndex] === n ||
+    // Items outside the bar (the account icon) ask about themselves.
+    (!nav.includes(n) && navActiveIndex([n], here, frag) === 0);
 
   return (
     <header className={`${stick} z-40 ${surface}`} style={CHROME_WIDTH[c.width]}>
@@ -178,6 +203,7 @@ export default function Header({
             <NavItemLink
               key={n.href + n.label}
               item={n}
+              onNavigate={followFragment}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${navCase} ${
                 isActive(n)
                   ? transparent || c.tone
@@ -388,6 +414,7 @@ export default function Header({
               <NavItemLink
                 key={n.href + n.label}
                 item={n}
+                onNavigate={followFragment}
                 // Full-width rows, comfortably tall: this is a one-handed thumb
                 // target, not a desktop pointer.
                 className={`rounded-xl px-3 py-3 text-base font-semibold ${
@@ -440,7 +467,18 @@ type NavItem = { href: string; label: string; external?: boolean };
  *  another origin at all. `rel="noreferrer"` goes with `target="_blank"`: a new
  *  tab opened without it can reach back into this one through `window.opener`.
  */
-function NavItemLink({ item, className }: { item: NavItem; className: string }) {
+function NavItemLink({
+  item,
+  className,
+  onNavigate,
+}: {
+  item: NavItem;
+  className: string;
+  /** Called after the click. ⚠️ The bar has to look at the address again: a
+   *  move between two fragments of the same page is a `pushState`, and nothing
+   *  in React hears about it. */
+  onNavigate?: () => void;
+}) {
   if (item.external || !item.href.startsWith("/")) {
     return (
       <a
@@ -454,7 +492,7 @@ function NavItemLink({ item, className }: { item: NavItem; className: string }) 
     );
   }
   return (
-    <Link href={item.href} className={className}>
+    <Link href={item.href} className={className} onClick={onNavigate}>
       {item.label}
     </Link>
   );

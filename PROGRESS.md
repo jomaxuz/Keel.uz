@@ -15372,3 +15372,10 @@ tartibga soladi), «modern» shrift.
 
 Tekshiruv: backend `go build` + `go test ./internal/models`; frontend `tsc` +
 `next build` + **307** test; keel-site `tsc` + **41** test.
+
+**5. Panelda belgi bitta bo'ldi.** Katalog sahifasida beshta havoladan to'rttasi
+yonib turardi: do'kon bitta sahifani bo'limlarga bo'ladi (`/menu#cat-…`), eski
+qoida esa havolaning faqat yo'lini solishtirardi. `navActiveIndex`
+(`lib/siteChrome.ts`) endi bitta javob qaytaradi va fragmentni kuzatadi
+(`hashchange` + `popstate` + panelning o'z bosishi — router `pushState` bilan
+yuradi). Olti test qo'shildi; frontend **313** test.

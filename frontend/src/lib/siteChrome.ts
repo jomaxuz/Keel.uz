@@ -138,3 +138,49 @@ export const CHROME_WIDTH: Record<string, React.CSSProperties> = {
   wide: { "--band-max": "96rem" } as React.CSSProperties,
   full: { "--band-max": "100%", "--band-pad": "1.5rem" } as React.CSSProperties,
 };
+
+/** Which navigation link is the one the guest is on.
+ *
+ *  ⚠️ **One item, or the highlight means nothing.** The old rule compared the
+ *  path alone, and that is right while every link in the bar is a different
+ *  page. A shop divides one page into sections — «Erkaklar», «Ayollar»,
+ *  «Sport» all point at `/menu` with a fragment — and the path rule lit **four
+ *  of five items** at once on the catalogue page. A marker that is on for four
+ *  items is not a marker; it is noise that also hides where you actually are.
+ *
+ *  So the rule reads the whole address:
+ *
+ *    • a link **with** a fragment or a query is here only when that fragment is
+ *      the one the browser is showing — it points at a place on the page, and
+ *      until you are at that place you are not there;
+ *    • a plain link is here when the path matches, **unless** a sibling link
+ *      claims the current fragment — that is the one that is more precisely
+ *      true, and two true answers is the bug this function exists to stop.
+ *
+ *  ⚠️ An outside address is never "here": `startsWith` on `https://…` would be
+ *  comparing a path to a URL — always false, but by accident rather than on
+ *  purpose. */
+export function navActiveIndex(
+  items: { href: string; external?: boolean }[],
+  here: string,
+  hash = "",
+): number {
+  const frag = hash.startsWith("#") ? hash : hash ? `#${hash}` : "";
+  const parts = items.map((n) => {
+    if (n.external || !n.href.startsWith("/")) return null;
+    const cut = n.href.search(/[?#]/);
+    return {
+      path: (cut === -1 ? n.href : n.href.slice(0, cut)) || "/",
+      suffix: cut === -1 ? "" : n.href.slice(cut),
+    };
+  });
+  const onPath = (path: string) => (path === "/" ? here === "/" : here.startsWith(path));
+
+  // A link to the exact place the browser is showing wins outright.
+  const precise = parts.findIndex(
+    (p) => p && p.suffix !== "" && p.suffix === frag && onPath(p.path),
+  );
+  if (precise !== -1) return precise;
+  // Otherwise the page itself — but only when no sibling owns this fragment.
+  return parts.findIndex((p) => p && p.suffix === "" && onPath(p.path));
+}

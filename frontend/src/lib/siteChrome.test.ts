@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CHROME, siteChrome } from "@/lib/siteChrome";
+import { DEFAULT_CHROME, navActiveIndex, siteChrome } from "@/lib/siteChrome";
 import type { PageDesign } from "@/lib/types";
 
 const design = (sections: unknown[]): PageDesign =>
@@ -124,5 +124,54 @@ describe("the settings the console offers", () => {
       const read = src.includes(`"${f.key}"`) || src.includes(`s.${f.key}`);
       expect(read, `the schema offers "${f.key}" and nothing reads it`).toBe(true);
     }
+  });
+});
+
+describe("which navigation link is marked as the one you are on", () => {
+  // ⚠️ **A live bug on ecom.keel.uz, and the reason this rule exists.** A shop
+  // divides one page into sections, so its bar holds four links to `/menu` —
+  // and the old rule, which compared the path alone, lit all four on the
+  // catalogue page. Every item except "Biz haqimizda" was highlighted, which is
+  // the same as none being highlighted, except it also hides where you are.
+  const shopBar = [
+    { href: "/menu" },
+    { href: "/menu#cat-erkaklar" },
+    { href: "/menu#cat-ayollar" },
+    { href: "/menu#cat-sport" },
+    { href: "/about" },
+  ];
+
+  it("marks exactly one item on the catalogue page", () => {
+    expect(navActiveIndex(shopBar, "/menu", "")).toBe(0);
+  });
+
+  it("moves to the section the guest jumped to", () => {
+    expect(navActiveIndex(shopBar, "/menu", "#cat-ayollar")).toBe(2);
+    // A fragment nobody in the bar owns leaves the page itself marked.
+    expect(navActiveIndex(shopBar, "/menu", "#something-else")).toBe(0);
+  });
+
+  it("marks a deeper page by its own link", () => {
+    expect(navActiveIndex(shopBar, "/about", "")).toBe(4);
+    // A dish page is still "the catalogue" — that is what `startsWith` is for.
+    expect(navActiveIndex(shopBar, "/menu/abc", "")).toBe(0);
+  });
+
+  it("marks nothing where the bar leads nowhere", () => {
+    expect(navActiveIndex(shopBar, "/cart", "")).toBe(-1);
+  });
+
+  it("never marks an address that leaves the site", () => {
+    const bar = [{ href: "https://t.me/spike", external: true }, { href: "/menu" }];
+    expect(navActiveIndex(bar, "/menu", "")).toBe(1);
+    // ⚠️ Not by accident: `startsWith` on "https://…" is false anyway, and a
+    // rule that is right for the wrong reason stops being right when it moves.
+    expect(navActiveIndex(bar, "https://t.me/spike", "")).toBe(-1);
+  });
+
+  it("marks home only at home", () => {
+    const bar = [{ href: "/" }, { href: "/menu" }];
+    expect(navActiveIndex(bar, "/", "")).toBe(0);
+    expect(navActiveIndex(bar, "/menu", "")).toBe(1);
   });
 });
