@@ -8922,12 +8922,25 @@ qaytaradi:
   fragmentni egallagan bo'lsa — yo'q: o'sha aniqrog'i rost, va ikkita rost
   javob aynan shu funksiya to'xtatadigan xato.
 
-⚠️ **Fragment `usePathname` ga ko'rinmaydi.** U oynadan o'qiladi, bo'sh holatdan
-boshlanadi (server renderida ham fragment yo'q — aks holda har bo'limli sahifada
-hydration nomuvofiqligi bo'lardi), va `hashchange` yetarli emas: router
-fragmentlar orasida `pushState` bilan yuradi, u esa hech nima chaqirmaydi.
-Shuning uchun panel o'z bosishidan keyin ham o'zini qayta o'qiydi — mehmon u
-yerga aynan shunday boradi.
+⚠️ **Fragment `usePathname` ga ko'rinmaydi**, va uni kuzatish o'ylanganidan
+qiyinroq bo'lib chiqdi — birinchi urinish **jonli saytda yiqildi**. Panel
+«Erkaklar» ga bosilganda belgini to'g'ri ko'chirardi, keyin «Katalog» bosilganda
+esa **o'sha yerda qolardi**: router manzildan fragmentni `pushState` bilan
+olib tashlaydi, u esa hech qanday hodisa chaqirmaydi, ya'ni React bundan
+xabar topmaydi. Qoida to'g'ri edi; unga berilgan ma'lumot eskirgan edi.
+
+Yechim — `lib/useHash.ts`: `pushState` va `replaceState` **hujjat bo'yicha bir
+marta** o'raladi va o'zgarishni e'lon qiladi (asl metod tegilmay chaqiriladi;
+o'ram faqat bo'lib o'tgan narsani aytadi). `hashchange` va `popstate` joyida
+qoladi — ular o'ram qamramaydigan narsani qoplaydi: orqaga tugmasi va manzil
+qatoriga qo'lda yozilgan fragment. Holat bo'sh boshlanadi, chunki serverda ham
+fragment yo'q — boshqa har qanday birinchi qiymat har bo'limli sahifada
+hydration nomuvofiqligi demakdir.
+
+⚠️ **Bu xatoni bosib ko'rish topdi, o'qib emas.** Serverdan kelgan HTML
+to'g'ri edi (u yerda fragment yo'q), va birinchi bosish ham to'g'ri ishlardi —
+ikkinchisi ishlamasdi. Shuning uchun testi aynan shu ketma-ketlikni takrorlaydi
+(`lib/useHash.test.tsx`).
 
 ### Do'konda «Ochlik kutib turmaydi» yozilmaydi
 

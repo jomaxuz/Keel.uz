@@ -24,6 +24,7 @@ import {
   type SiteChrome,
   navActiveIndex,
 } from "@/lib/siteChrome";
+import { useHash } from "@/lib/useHash";
 import type { Brand, NavLink } from "@/lib/types";
 
 export default function Header({
@@ -134,29 +135,10 @@ export default function Header({
   const here = splitLangPath(pathname).path;
   useEffect(() => setMenuOpen(false), [pathname]);
 
-  // Which section of the page the browser is showing.
-  //
-  // ⚠️ **Read from the window, and re-read after a click in the bar.** A shop's
-  // bar sends the guest to places *inside* the catalogue (`/menu#cat-ayollar`),
-  // and `usePathname` cannot see a fragment at all. It starts empty so the
-  // first client render matches the server's, which has no fragment either —
-  // the alternative is a hydration mismatch on every page with a section link.
-  //
-  // ⚠️ `hashchange` alone is not enough: the router moves between fragments
-  // with `pushState`, which fires nothing. So the bar also re-reads itself
-  // after its own clicks, which is the way a guest actually gets there.
-  const [frag, setFrag] = useState("");
-  useEffect(() => {
-    const read = () => setFrag(window.location.hash);
-    read();
-    window.addEventListener("hashchange", read);
-    window.addEventListener("popstate", read);
-    return () => {
-      window.removeEventListener("hashchange", read);
-      window.removeEventListener("popstate", read);
-    };
-  }, [pathname]);
-  const followFragment = () => window.setTimeout(() => setFrag(window.location.hash), 0);
+  // Which section of the page the browser is showing. ⚠️ See `useHash`: the
+  // router changes the fragment with `pushState`, which announces nothing, so
+  // a bar that reads it once keeps whatever it read.
+  const frag = useHash();
 
   // ⚠️ **One item at a time.** Marking every link whose path matches lit four
   // of the five items on a shop's catalogue page, because four of them are that
@@ -203,7 +185,6 @@ export default function Header({
             <NavItemLink
               key={n.href + n.label}
               item={n}
-              onNavigate={followFragment}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${navCase} ${
                 isActive(n)
                   ? transparent || c.tone
@@ -414,7 +395,6 @@ export default function Header({
               <NavItemLink
                 key={n.href + n.label}
                 item={n}
-                onNavigate={followFragment}
                 // Full-width rows, comfortably tall: this is a one-handed thumb
                 // target, not a desktop pointer.
                 className={`rounded-xl px-3 py-3 text-base font-semibold ${
@@ -467,18 +447,7 @@ type NavItem = { href: string; label: string; external?: boolean };
  *  another origin at all. `rel="noreferrer"` goes with `target="_blank"`: a new
  *  tab opened without it can reach back into this one through `window.opener`.
  */
-function NavItemLink({
-  item,
-  className,
-  onNavigate,
-}: {
-  item: NavItem;
-  className: string;
-  /** Called after the click. ⚠️ The bar has to look at the address again: a
-   *  move between two fragments of the same page is a `pushState`, and nothing
-   *  in React hears about it. */
-  onNavigate?: () => void;
-}) {
+function NavItemLink({ item, className }: { item: NavItem; className: string }) {
   if (item.external || !item.href.startsWith("/")) {
     return (
       <a
@@ -492,7 +461,7 @@ function NavItemLink({
     );
   }
   return (
-    <Link href={item.href} className={className} onClick={onNavigate}>
+    <Link href={item.href} className={className}>
       {item.label}
     </Link>
   );

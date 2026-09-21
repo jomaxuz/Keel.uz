@@ -15379,3 +15379,11 @@ qoida esa havolaning faqat yo'lini solishtirardi. `navActiveIndex`
 (`lib/siteChrome.ts`) endi bitta javob qaytaradi va fragmentni kuzatadi
 (`hashchange` + `popstate` + panelning o'z bosishi — router `pushState` bilan
 yuradi). Olti test qo'shildi; frontend **313** test.
+
+**6. Panel belgisi — ikkinchi yarim.** Birinchi tuzatmadan keyin belgi bitta
+bo'ldi va bosilganda ko'chardi, lekin **«Katalog» ga qaytilganda «Erkaklar» da
+qolib ketardi**: router fragmentni `pushState` bilan tozalaydi va u hech qanday
+hodisa chaqirmaydi. Endi `lib/useHash.ts` `pushState`/`replaceState` ni hujjat
+bo'yicha bir marta o'raydi va o'zgarishni e'lon qiladi (`hashchange` va
+`popstate` ham joyida). Jonli saytda bosib tekshirilgan; testi shu ketma-ketlikni
+takrorlaydi (5 test).
