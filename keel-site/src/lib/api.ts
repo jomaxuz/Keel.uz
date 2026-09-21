@@ -1489,6 +1489,13 @@ export interface DesignCanvas {
   height?: number;
   heightMobile?: number;
   background?: string;
+  /** A photograph behind the whole band. ⚠️ **The tenant has rendered this since
+   *  the canvas shipped and the console had no name for it**, so the one way to
+   *  build a photo band was to place an image element the size of the band and
+   *  fight everything else on top of it for the stacking order. Uploads only,
+   *  like every other picture in a design. */
+  image?: string;
+  /** Percent, applied to the background photograph only. */
   backgroundOpacity?: number;
   elements?: DesignElement[];
 }

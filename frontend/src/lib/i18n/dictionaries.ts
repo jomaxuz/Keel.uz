@@ -155,6 +155,13 @@ const uz = {
       `${cats} ta bo'lim, ${items} ta mahsulot.`,
     empty: "Hozircha mahsulotlar yo'q. Admin panel orqali qo'shing.",
     back: "Katalogga qaytish",
+    // ⚠️ **The call to action, which said "Ochlik kutib turmaydi" over a rail
+    // of trainers.** Same complaint as "Menyu" one line above: the words were
+    // written for a kitchen, and on a shop they say out loud that the site was
+    // built for somebody else.
+    orderTitle: "Savatga soling — qolganini biz qilamiz",
+    orderText:
+      "Toshkent bo'ylab yetkazib beramiz. O'lcham to'g'ri kelmasa almashtiramiz.",
   },
   menu: {
     eyebrow: "Bizning taomlar",
@@ -700,6 +707,9 @@ const ru: Dict = {
       `${cats} разделов, ${items} товаров.`,
     empty: "Товаров пока нет. Добавьте их через админ-панель.",
     back: "Вернуться в каталог",
+    orderTitle: "Положите в корзину — остальное сделаем мы",
+    orderText:
+      "Доставим по Ташкенту. Не подойдёт размер — обменяем.",
   },
   menu: {
     eyebrow: "Наши блюда",
@@ -1215,6 +1225,9 @@ const en: Dict = {
       `${cats} sections, ${items} products.`,
     empty: "No products yet. Add them from the admin panel.",
     back: "Back to the catalogue",
+    orderTitle: "Add it to the basket — we do the rest",
+    orderText:
+      "We deliver across Tashkent. If the size is wrong, we exchange it.",
   },
   menu: {
     eyebrow: "Our dishes",

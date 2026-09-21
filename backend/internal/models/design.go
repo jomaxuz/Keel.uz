@@ -62,6 +62,21 @@ const (
 	BlockAbout   = "about"   // content.aboutTitle + aboutText
 	BlockGallery = "gallery" // uploaded photographs
 	BlockCTA     = "cta"     // order / book buttons
+	// The schema-driven bands: they carry no fixed inner layout of their own and
+	// are configured entirely through `Settings` (see designsettings.go).
+	//
+	// ⚠️ **They were renderable and unreachable, which is the worst of the two.**
+	// The console could store them, its panel drew every setting they declare,
+	// and the site has a component for each — but they were missing from
+	// `blockVariants` below, so `Sanitize` dropped them on the way out of the
+	// database. An operator added «Rasm + matn», filled it in, published, and the
+	// page did not change; nothing failed anywhere. That is the `navbar` bug
+	// exactly, one layer down, and the test in the frontend
+	// (`designBlocks.test.ts`) is what stops it happening a third time.
+	BlockRichText  = "rich-text"  // a heading and a paragraph
+	BlockImageText = "image-text" // a photograph beside words, either way round
+	BlockBanner    = "banner"     // one promotional panel over an image
+	BlockBanners   = "banners"    // the restaurant's own banner strip
 	// The site's own chrome, now drawable. Variants only — the links, the cart
 	// and the language switch inside them are function, not decoration.
 	BlockNavbar = "navbar"
@@ -87,10 +102,18 @@ var blockVariants = map[string][]string{
 	BlockAbout:        {"text", "text-image"},
 	BlockGallery:      {"grid", "strip"},
 	BlockCTA:          {"banner", "buttons"},
-	BlockNavbar:       {"classic", "centered", "minimal", "transparent"},
-	BlockFooter:       {"columns", "compact", "centered"},
-	BlockCanvas:       {"free"},
-	BlockPopup:        {"center", "bottom"},
+	// ⚠️ One variant, and it is the empty string. These bands have no variants:
+	// what they look like is in their settings. An empty list would make
+	// `slices.Contains` false for every value and reset nothing — the check
+	// below needs something to match, and "" is what the console stores.
+	BlockRichText:  {""},
+	BlockImageText: {""},
+	BlockBanner:    {""},
+	BlockBanners:   {"", "carousel"},
+	BlockNavbar:    {"classic", "centered", "minimal", "transparent"},
+	BlockFooter:    {"columns", "compact", "centered"},
+	BlockCanvas:    {"free"},
+	BlockPopup:     {"center", "bottom"},
 }
 
 // Element types inside a canvas. Stored, so never renamed.

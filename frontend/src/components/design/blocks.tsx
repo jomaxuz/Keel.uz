@@ -450,9 +450,9 @@ export function MenuGridBlock({
   return (
     <section className={`border-y border-line ${tone ?? "bg-surface"}`}>
       <div className="container-page py-16 sm:py-20">
-        <p className="eyebrow">{eyebrow}</p>
+        <p className="eyebrow" data-keel-set="eyebrow">{eyebrow}</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <h2 className="section-title">{heading}</h2>
+          <h2 className="section-title" data-keel-set="heading">{heading}</h2>
           <Link
             href="/menu"
             className="text-sm font-semibold text-brand hover:underline"
@@ -472,8 +472,22 @@ export function MenuGridBlock({
 
 // ---- hours-address ----
 
-export function HoursAddressBlock({ d }: { d: BlockData; section: DesignSection }) {
+export function HoursAddressBlock({ d, section }: { d: BlockData; section: DesignSection }) {
   const { t, lang, data } = d;
+  // ⚠️ **The band's own heading, which it ignored.** The console declares a
+  // `heading` setting for this band and draws a field for it; nothing read it,
+  // so an operator typed a title, saved, published and the page kept saying
+  // "Ish vaqti". Empty still means the built-in wording — every site on the
+  // platform has this unset.
+  // ⚠️ A shop is not hungry. See lib/siteWords.ts — the same decision as
+  // «Menyu» / «Katalog», one band further down the page.
+  const words = siteWords(t, data?.brand?.businessType);
+  const titled = (() => {
+    const raw = (section.settings ?? {})["heading"];
+    if (!raw) return "";
+    if (typeof raw === "string") return raw;
+    return localized(raw as never, lang);
+  })();
   const rest = data?.restaurant;
   // Order working hours Monday-first for display.
   const hours = [...(rest?.workingHours ?? [])].sort(
@@ -487,8 +501,8 @@ export function HoursAddressBlock({ d }: { d: BlockData; section: DesignSection 
         {hours.length > 0 && (
           <div className="card p-6 sm:p-8">
             <p className="eyebrow">{t.home.hoursEyebrow}</p>
-            <h2 className="mt-2 font-display text-2xl font-bold">
-              {t.home.hoursTitle}
+            <h2 className="mt-2 font-display text-2xl font-bold" data-keel-set="heading">
+              {titled || t.home.hoursTitle}
             </h2>
             <div className="mt-5 divide-y divide-line">
               {hours.map((h) => (
@@ -519,10 +533,10 @@ export function HoursAddressBlock({ d }: { d: BlockData; section: DesignSection 
               {t.home.orderEyebrow}
             </p>
             <h2 className="mt-2 font-display text-2xl font-bold">
-              {t.home.orderTitle}
+              {words.orderTitle}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-white/60">
-              {t.home.orderText}
+              {words.orderText}
             </p>
 
             <ul className="mt-6 space-y-2 text-sm text-white/70">
@@ -670,6 +684,7 @@ export function CtaBlock({
   const { t, data } = d;
   const booking = data?.restaurant?.booking?.enabled;
   const banner = section.variant !== "buttons";
+  const ctaWords = siteWords(t, data?.brand?.businessType);
 
   return (
     <section className="container-page py-12 sm:py-16">
@@ -679,13 +694,13 @@ export function CtaBlock({
         } sm:flex-row sm:items-center sm:justify-between`}
       >
         <div>
-          <h2 className="font-display text-2xl font-bold">{t.home.orderTitle}</h2>
+          <h2 className="font-display text-2xl font-bold">{ctaWords.orderTitle}</h2>
           <p
             className={`mt-2 text-sm leading-relaxed ${
               banner ? "text-white/60" : "text-ink-muted"
             }`}
           >
-            {t.home.orderText}
+            {ctaWords.orderText}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

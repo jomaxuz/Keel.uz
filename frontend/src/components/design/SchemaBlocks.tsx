@@ -23,6 +23,7 @@
 
 import LocaleLink from "@/components/site/LocaleLink";
 import { imageUrl } from "@/lib/api";
+import { siteWords } from "@/lib/siteWords";
 import { localized } from "@/lib/i18n/site-content";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import BannerCarousel from "@/components/site/BannerCarousel";
@@ -37,6 +38,14 @@ type Bag = Record<string, unknown>;
 
 /** A three-language value, or "". Settings may also hold a plain string — an older
  *  document, or a value typed before the field was localised. */
+// ⚠️ **`data-keel-set` marks where a setting's words are printed.**
+//
+// The console's live preview writes a changed heading straight into the page
+// rather than reloading the customer's site for every letter (see
+// PreviewBridge). It finds the node by the settings key that produced it, so a
+// band whose heading is not marked falls back to a full reload — which works,
+// and is the thing this attribute exists to avoid. Move the text, move the
+// attribute; it is not styling and not a test hook.
 function text(bag: Bag, key: string, lang: Lang): string {
   const v = bag[key];
   if (typeof v === "string") return v;
@@ -106,12 +115,18 @@ export function HeroSection({ d, section }: { d: BlockData; section: DesignSecti
           centred ? "mx-auto text-center" : ""
         } ${image ? "text-white" : ""}`}
       >
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1 className="mt-2 font-display text-4xl font-black leading-tight sm:text-6xl">
+        {eyebrow && <p className="eyebrow" data-keel-set="eyebrow">{eyebrow}</p>}
+        <h1
+          className="mt-2 font-display text-4xl font-black leading-tight sm:text-6xl"
+          data-keel-set="heading"
+        >
           {heading}
         </h1>
         {sub && (
-          <p className={`mt-4 max-w-xl text-base ${centred ? "mx-auto" : ""} ${image ? "text-white/85" : "text-ink-muted"}`}>
+          <p
+            className={`mt-4 max-w-xl text-base ${centred ? "mx-auto" : ""} ${image ? "text-white/85" : "text-ink-muted"}`}
+            data-keel-set="subheading"
+          >
             {sub}
           </p>
         )}
@@ -149,6 +164,7 @@ function Buttons({
         <LocaleLink
           href={str(s, "primaryLink", fallback?.primary?.href ?? "/menu")}
           className="btn btn-primary px-6 py-3"
+          data-keel-set="primaryLabel"
         >
           {one}
         </LocaleLink>
@@ -157,6 +173,7 @@ function Buttons({
         <LocaleLink
           href={str(s, "secondaryLink", fallback?.secondary?.href ?? "/bron")}
           className="btn btn-ghost px-6 py-3"
+          data-keel-set="secondaryLabel"
         >
           {two}
         </LocaleLink>
@@ -184,9 +201,12 @@ export function RichTextSection({ d, section }: { d: BlockData; section: DesignS
   return (
     <section className={`w-full ${TONE[str(s, "tone", "surface")] ?? ""}`}>
       <div className={`container-page py-14 ${centred ? "text-center" : ""}`}>
-        {heading && <h2 className="section-title">{heading}</h2>}
+        {heading && <h2 className="section-title" data-keel-set="heading">{heading}</h2>}
         {body && (
-          <p className={`mt-4 max-w-2xl whitespace-pre-line text-ink-muted ${centred ? "mx-auto" : ""}`}>
+          <p
+            className={`mt-4 max-w-2xl whitespace-pre-line text-ink-muted ${centred ? "mx-auto" : ""}`}
+            data-keel-set="body"
+          >
             {body}
           </p>
         )}
@@ -212,10 +232,18 @@ export function ImageTextSection({ d, section }: { d: BlockData; section: Design
           )}
         </div>
         <div>
-          {heading && <h2 className="section-title">{heading}</h2>}
-          {body && <p className="mt-4 whitespace-pre-line text-ink-muted">{body}</p>}
+          {heading && <h2 className="section-title" data-keel-set="heading">{heading}</h2>}
+          {body && (
+            <p className="mt-4 whitespace-pre-line text-ink-muted" data-keel-set="body">
+              {body}
+            </p>
+          )}
           {text(s, "buttonLabel", d.lang) && (
-            <LocaleLink href={str(s, "buttonLink", "/menu")} className="btn btn-primary mt-6 px-6 py-3">
+            <LocaleLink
+              href={str(s, "buttonLink", "/menu")}
+              className="btn btn-primary mt-6 px-6 py-3"
+              data-keel-set="buttonLabel"
+            >
               {text(s, "buttonLabel", d.lang)}
             </LocaleLink>
           )}
@@ -241,11 +269,27 @@ export function BannerSection({ d, section }: { d: BlockData; section: DesignSec
       )}
       <div className="container-page relative py-16 text-center">
         {heading && (
-          <h2 className="font-display text-3xl font-black leading-tight sm:text-4xl">{heading}</h2>
+          <h2
+            className="font-display text-3xl font-black leading-tight sm:text-4xl"
+            data-keel-set="heading"
+          >
+            {heading}
+          </h2>
         )}
-        {body && <p className="mx-auto mt-3 max-w-xl whitespace-pre-line opacity-85">{body}</p>}
+        {body && (
+          <p
+            className="mx-auto mt-3 max-w-xl whitespace-pre-line opacity-85"
+            data-keel-set="body"
+          >
+            {body}
+          </p>
+        )}
         {text(s, "buttonLabel", d.lang) && (
-          <LocaleLink href={str(s, "buttonLink", "/menu")} className="btn btn-primary mt-7 px-6 py-3">
+          <LocaleLink
+            href={str(s, "buttonLink", "/menu")}
+            className="btn btn-primary mt-7 px-6 py-3"
+            data-keel-set="buttonLabel"
+          >
             {text(s, "buttonLabel", d.lang)}
           </LocaleLink>
         )}
@@ -274,7 +318,7 @@ export function GallerySection({ d, section }: { d: BlockData; section: DesignSe
       <section className={`w-full ${TONE[str(s, "tone")] ?? ""}`}>
         <div className="container-page py-14">
           {text(s, "heading", d.lang) && (
-            <h2 className="section-title mb-6">{text(s, "heading", d.lang)}</h2>
+            <h2 className="section-title mb-6" data-keel-set="heading">{text(s, "heading", d.lang)}</h2>
           )}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {items.map((it) => (
@@ -295,7 +339,7 @@ export function GallerySection({ d, section }: { d: BlockData; section: DesignSe
     <section className={`w-full ${TONE[str(s, "tone")] ?? ""}`}>
       <div className="container-page py-14">
         {text(s, "heading", d.lang) && (
-          <h2 className="section-title mb-6">{text(s, "heading", d.lang)}</h2>
+          <h2 className="section-title mb-6" data-keel-set="heading">{text(s, "heading", d.lang)}</h2>
         )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {shots.map((b, i) => {
@@ -342,7 +386,7 @@ export function PerksSection({ d, section }: { d: BlockData; section: DesignSect
     <section className={`w-full ${TONE[str(s, "tone", "surface")] ?? ""}`}>
       <div className="container-page py-14">
         {text(s, "heading", d.lang) && (
-          <h2 className="section-title mb-8">{text(s, "heading", d.lang)}</h2>
+          <h2 className="section-title mb-8" data-keel-set="heading">{text(s, "heading", d.lang)}</h2>
         )}
         <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
           {cards.map((b, i) => {
@@ -385,7 +429,7 @@ export function CategoriesSection({ d, section }: { d: BlockData; section: Desig
     <section className={`w-full ${TONE[str(s, "tone")] ?? ""}`}>
       <div className="container-page py-14">
         {text(s, "heading", d.lang) && (
-          <h2 className="section-title mb-6">{text(s, "heading", d.lang)}</h2>
+          <h2 className="section-title mb-6" data-keel-set="heading">{text(s, "heading", d.lang)}</h2>
         )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {groups.map((g) => (
@@ -414,16 +458,31 @@ export function CtaSection({ d, section }: { d: BlockData; section: DesignSectio
   // before it became schema-driven. Without it the band rendered **nothing** until
   // somebody typed a heading — and "add a band, see no change" is indistinguishable
   // from a broken editor. It was live that way on a real customer's home page.
-  const heading = text(s, "heading", d.lang) || d.t.home.orderTitle;
-  const body = text(s, "body", d.lang) || d.t.home.orderText;
+  // ⚠️ The fallback follows the business, not the kitchen: on a shop these read
+  // "Savatga soling", not "Ochlik kutib turmaydi" (lib/siteWords.ts).
+  const words = siteWords(d.t, d.data?.brand?.businessType);
+  const heading = text(s, "heading", d.lang) || words.orderTitle;
+  const body = text(s, "body", d.lang) || words.orderText;
   const centred = str(s, "align", "center") === "center";
   return (
     <section className={`w-full ${TONE[str(s, "tone", "brand")] ?? ""}`}>
       <div className={`container-page py-14 ${centred ? "text-center" : ""}`}>
         {heading && (
-          <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl">{heading}</h2>
+          <h2
+            className="font-display text-2xl font-black leading-tight sm:text-3xl"
+            data-keel-set="heading"
+          >
+            {heading}
+          </h2>
         )}
-        {body && <p className={`mt-3 max-w-xl opacity-90 ${centred ? "mx-auto" : ""}`}>{body}</p>}
+        {body && (
+          <p
+            className={`mt-3 max-w-xl opacity-90 ${centred ? "mx-auto" : ""}`}
+            data-keel-set="body"
+          >
+            {body}
+          </p>
+        )}
         <div className={`mt-7 flex flex-wrap gap-3 ${centred ? "justify-center" : ""}`}>
           {/* The second button only when the restaurant takes bookings: offering a
               table to a place that does not seat people is the band actively

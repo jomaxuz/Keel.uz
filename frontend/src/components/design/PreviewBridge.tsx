@@ -38,6 +38,13 @@
 // round: the document is the truth and this is a picture of it.
 
 
+import {
+  applyBand,
+  applyElement,
+  applySettings,
+  type BandPatch,
+  type ElementPatch,
+} from "./previewPatch";
 
 /** What the console receives. Percentages are not computed here — the console
  *  needs the pixel rects anyway to place handles, and one side doing all the
@@ -131,93 +138,6 @@ export function startBridge(): () => void {
       );
     }
 
-    /** Every rendering of one element: the desktop surface, the phone surface,
-     *  and the stacked fallback. ⚠️ All of them, because only one is laid out at
-     *  a time and the console does not know which — patching just the first
-     *  would leave the phone preview showing the previous word. */
-    function nodesOf(band: number, index: number): HTMLElement[] {
-      const out: HTMLElement[] = [];
-      document
-        .querySelectorAll<HTMLElement>(
-          `[data-keel-band="${band}"], [data-keel-flow="${band}"]`,
-        )
-        .forEach((wrap) => {
-          wrap
-            .querySelectorAll<HTMLElement>(`[data-keel-el="${index}"]`)
-            .forEach((n) => out.push(n));
-        });
-      return out;
-    }
-
-    /** Writes the words in.
-     *
-     *  ⚠️ **Into the marked node, never into the element.** An element is a box
-     *  with markup inside it — a button holds a link, a quote holds typographic
-     *  quotes, a list holds one row per line — and `textContent = value` on the
-     *  outer box would delete that markup and replace a working button with a
-     *  bare word. `data-keel-text` says which node holds the words and in what
-     *  shape (CanvasBlock puts it there), so the shapes stay where they are. */
-    function writeText(node: HTMLElement, value: string) {
-      const holder = node.matches("[data-keel-text]")
-        ? node
-        : node.querySelector<HTMLElement>("[data-keel-text]");
-      if (!holder) return;
-      const kind = holder.dataset.keelText || "plain";
-      if (kind === "quote") {
-        holder.textContent = `\u201c${value}\u201d`;
-        return;
-      }
-      if (kind === "lines") {
-        const lines = value.split("\n").map((l) => l.trim()).filter(Boolean);
-        const template = holder.querySelector("li");
-        const rows = lines.map((line) => {
-          const li = template
-            ? (template.cloneNode(true) as HTMLElement)
-            : document.createElement("li");
-          const spans = li.querySelectorAll("span");
-          // The bullet is the first span and the words are the last; a row
-          // cloned and then filled whole would lose the dot.
-          if (spans.length > 1) spans[spans.length - 1].textContent = line;
-          else li.textContent = line;
-          return li;
-        });
-        holder.replaceChildren(...rows);
-        return;
-      }
-      holder.textContent = value;
-    }
-
-    interface Patch {
-      band: number;
-      index: number;
-      box?: { x: number; y: number; w: number; h: number; z?: number };
-      text?: string;
-    }
-
-    function applyPatch(items: Patch[]) {
-      for (const item of items) {
-        if (typeof item?.band !== "number" || typeof item?.index !== "number") continue;
-        for (const node of nodesOf(item.band, item.index)) {
-          if (item.box) {
-            // ⚠️ Only where the site placed the element itself. On a phone with
-            // no drawn layout the band is flow, and writing `left: 40%` onto a
-            // element in a column moves nothing and confuses everything.
-            if (getComputedStyle(node).position === "absolute") {
-              node.style.left = `${item.box.x}%`;
-              node.style.top = `${item.box.y}%`;
-              node.style.width = `${item.box.w}%`;
-              node.style.height = `${item.box.h}%`;
-              if (item.box.z != null) node.style.zIndex = String(item.box.z);
-            }
-          }
-          if (typeof item.text === "string") writeText(node, item.text);
-        }
-      }
-      // The boxes moved, so the reported geometry is stale — and stale geometry
-      // is handles sitting where the element is not.
-      measure();
-    }
-
     function onMessage(e: MessageEvent) {
       // ⚠️ **Only the window that framed this page.** Nothing here can write a
       // design — the worst a forged message could do is move a box or a word in
@@ -229,12 +149,27 @@ export function startBridge(): () => void {
         type?: string;
         edit?: boolean;
         y?: number;
-        items?: Patch[];
+        items?: unknown[];
       };
       if (data?.type === "keel:measure") measure();
       if (data?.type === "keel:mode") editing = !!data.edit;
       if (data?.type === "keel:patch" && Array.isArray(data.items)) {
-        applyPatch(data.items);
+        for (const item of data.items as ElementPatch[]) {
+          if (typeof item?.band === "number" && typeof item?.index === "number") {
+            applyElement(document, item);
+          }
+        }
+        // The boxes moved, so the reported geometry is stale — and stale
+        // geometry is handles sitting where the element is not.
+        measure();
+      }
+      if (data?.type === "keel:band" && Array.isArray(data.items)) {
+        for (const item of data.items as BandPatch[]) {
+          if (typeof item?.band !== "number") continue;
+          applyBand(document, item);
+          applySettings(document, item);
+        }
+        measure();
       }
       // ⚠️ Put back where the operator was. A reload is sometimes unavoidable —
       // a new band, a changed variant — and the part of it that actually hurts

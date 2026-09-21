@@ -22,6 +22,11 @@
 import type { DesignSection, PageDesign } from "@/lib/types";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import CanvasBlock, { type CanvasWidgets } from "./CanvasBlock";
+// ⚠️ How a band looks lives beside how an element looks, and for the same
+// reason: the console's live preview redraws both in the browser when a tone or
+// a width changes, instead of re-pointing the iframe at the customer's real
+// site. One copy, or the copy that is not rendering the page drifts.
+import { bandClass, bandWidthVars } from "./canvasStyle";
 import {
   AboutSection,
   BannersSection,
@@ -106,69 +111,9 @@ const BLOCKS = {
   cta: CtaSection,
 } as const;
 
-/** Column spans, written out because Tailwind cannot see a computed class name.
- *
- *  Interpolating `lg:col-span-${n}` would compile to nothing at all — the class
- *  is not in the source for the compiler to find — and the page would silently
- *  lose every width. The map is the fix and it is also the allowlist: a span
- *  outside 1–12 cannot produce a class. */
-const SPAN_CLASS: Record<number, string> = {
-  1: "lg:col-span-1",
-  2: "lg:col-span-2",
-  3: "lg:col-span-3",
-  4: "lg:col-span-4",
-  5: "lg:col-span-5",
-  6: "lg:col-span-6",
-  7: "lg:col-span-7",
-  8: "lg:col-span-8",
-  9: "lg:col-span-9",
-  10: "lg:col-span-10",
-  11: "lg:col-span-11",
-  12: "lg:col-span-12",
-};
 
-/** Background tones, from the design system's own tokens.
- *
- *  Never a colour: a band painted `#f4f1ea` would stay that colour in dark mode
- *  and would ignore the restaurant's accent. */
-const TONE_CLASS: Record<string, string> = {
-  "": "",
-  surface: "bg-surface",
-  raised: "bg-raised",
-  charcoal: "bg-charcoal text-white",
-  brand: "bg-brand text-white",
-  // The second colour, and the ink that stays readable on it — computed from
-  // its luminance in theme-css.ts rather than chosen. See tailwind.config.ts.
-  accent: "bg-accent text-accent-ink",
-  ink: "bg-ink text-cream",
-};
 
-/** How wide a band's contents may run.
- *
- *  ⚠️ **Applied as CSS variables rather than as a class on the band**, because
- *  the container is not here: every band component draws its own
- *  `container-page` inside itself, and a `max-w-*` on this wrapper would sit
- *  outside it and do nothing. The two variables are the ones `.container-page`
- *  reads (globals.css), so one value set here reaches whichever container the
- *  band happens to use — including the ones inside a band we have not written
- *  yet.
- *
- *  ⚠️ **"full" clears the gutter as well as the cap.** A band asking to run
- *  edge to edge and still holding a 2rem inset is not full width; it is a band
- *  that looks like the setting was ignored, which is worse than not offering
- *  it. */
-const WIDTH_VARS: Record<string, React.CSSProperties> = {
-  "": {},
-  wide: { "--band-max": "96rem" } as React.CSSProperties,
-  full: { "--band-max": "100%", "--band-pad": "0px" } as React.CSSProperties,
-};
 
-const PAD_CLASS: Record<string, string> = {
-  "": "",
-  sm: "py-6",
-  md: "py-12",
-  lg: "py-20",
-};
 
 export default function DesignRenderer({
   design,
@@ -246,21 +191,19 @@ export default function DesignRenderer({
           if (!Block) return null;
 
           const style = section.style ?? {};
-          const wrapper = [
-            SPAN_CLASS[section.span] ?? SPAN_CLASS[12],
-            TONE_CLASS[style.tone ?? ""] ?? "",
-            PAD_CLASS[style.padding ?? ""] ?? "",
-            style.align === "center" ? "text-center" : "",
-            style.rounded ? "overflow-hidden rounded-3xl" : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
 
           return (
             <div
               key={`${section.type}-${i}`}
-              className={wrapper}
-              style={WIDTH_VARS[style.width ?? ""] ?? undefined}
+              // ⚠️ **Marked like a drawn band, although nothing inside it can be
+              // dragged.** The mark is what lets the console's preview answer
+              // "which band did I just click on" — without it a hero was inert
+              // in a preview whose whole promise is that the page is the
+              // navigation — and it is what the browser-side patch finds when a
+              // tone or a width changes.
+              data-keel-band={sections.indexOf(section)}
+              className={bandClass(section)}
+              style={bandWidthVars(style.width)}
             >
               <Block d={data} section={section} />
             </div>

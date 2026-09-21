@@ -19,6 +19,10 @@ export default defineConfig({
       "src/lib/consoleHome.test.ts",
       // Which role may open which console page — the guard behind the tabs.
       "src/lib/consoleAccess.test.ts",
+      // Whether an edit can be drawn into the live preview or needs the page
+      // rendered again — the difference between an editor that flashes on every
+      // click and one that does not.
+      "src/lib/designDiff.test.ts",
     ],
   },
 });

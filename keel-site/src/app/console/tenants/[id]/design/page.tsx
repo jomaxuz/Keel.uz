@@ -53,6 +53,7 @@ import EditorCanvas from "@/components/design/EditorCanvas";
 import PreviewOverlay, { type Incoming } from "@/components/design/PreviewOverlay";
 import NavEditor from "@/components/design/NavEditor";
 import { useT } from "@/lib/i18n/client";
+import { diffDesign } from "@/lib/designDiff";
 import {
   BAND_LABELS,
   ELEMENT_LABELS,
@@ -314,16 +315,23 @@ export default function DesignEditorPage() {
 
   // ---- What a change costs ----
   //
-  // ⚠️ **Two kinds of change, and telling them apart is the whole fix.** Moving
-  // a box and changing a word can be written straight into the rendered page
-  // (PreviewBridge applies them to the DOM); everything else — a new band, a
-  // different variant, a colour — can only be seen by rendering the page again.
-  // The editor used to treat every change as the second kind, so every letter
-  // typed navigated the iframe to the tenant's real site.
+  // ⚠️ **Two kinds of change, and telling them apart is the whole fix.** Most
+  // edits can be written straight into the rendered page — a box that moved, a
+  // colour, a size, a heading — because `canvasStyle` decides what an element
+  // looks like and the site's bridge can run the same code in the browser.
+  // What cannot is structure: a band added, a variant changed, a binding that
+  // decides which dishes are shown. The editor used to treat *every* change as
+  // structure, so a single typed letter navigated the iframe to the customer's
+  // real site.
+  //
+  // ⚠️ **The decision is a diff of the document, not a flag set by whoever made
+  // the change** (`lib/designDiff.ts`). A flag has to be remembered at every
+  // call site, and the one that forgets it is the one that shows the operator a
+  // preview that disagrees with what they are editing.
   const loaded = useRef(false);
-  /** Set immediately before a change that the live page can be *told* about. */
-  const patchable = useRef<{ band: number; index: number }[] | null>(null);
-  /** Set by any other change: the preview has to be rendered again. */
+  /** The sections as the preview currently shows them. */
+  const shown = useRef<DesignSection[]>([]);
+  /** Set by a change the page cannot be told about: it has to be rendered. */
   const staleView = useRef(false);
   const saveTimer = useRef<number | undefined>(undefined);
   /** Where the preview was scrolled to, reported by the site itself. Kept so a
@@ -341,31 +349,33 @@ export default function DesignEditorPage() {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  /** Tells the live page about boxes and words that changed, without reloading
-   *  it. Silent when the preview is not open — the draft is still saved. */
+  /** Tells the live page what changed, without reloading it. Silent when the
+   *  preview is not open — the draft is still saved either way. */
   const pushPatch = useCallback(
-    (items: { band: number; index: number }[], from: DesignSection[]) => {
+    (
+      change: { elements: { band: number; index: number }[]; bands: number[] },
+      from: DesignSection[],
+    ) => {
       const win = frame.current?.contentWindow;
       if (!win) return;
-      const payload = items.flatMap(({ band, index }) => {
+      // ⚠️ The **whole** element, not the fields that changed: only the site
+      // knows which class name a style key produces, and it is the same module
+      // that rendered the page. See PreviewBridge.
+      const elements = change.elements.flatMap(({ band, index }) => {
         const el = from[band]?.canvas?.elements?.[index];
-        if (!el) return [];
-        return [
-          {
-            band,
-            index,
-            box: editing === "mobile" ? (el.mobile ?? el.box) : el.box,
-            // ⚠️ Uzbek: the preview renders the site in its own default
-            // language, so this is the word actually on screen. A `ru` edit is
-            // still saved — it simply has nothing to show here.
-            text: el.text?.uz,
-          },
-        ];
+        return el ? [{ band, index, el }] : [];
       });
-      if (payload.length === 0) return;
-      win.postMessage({ type: "keel:patch", items: payload }, "*");
+      if (elements.length > 0) {
+        win.postMessage({ type: "keel:patch", items: elements }, "*");
+      }
+      const bands = change.bands.flatMap((band) =>
+        from[band] ? [{ band, section: from[band] }] : [],
+      );
+      if (bands.length > 0) {
+        win.postMessage({ type: "keel:band", items: bands }, "*");
+      }
     },
-    [editing],
+    [],
   );
 
   useEffect(() => {
@@ -373,7 +383,10 @@ export default function DesignEditorPage() {
       try {
         const [des, t] = await Promise.all([tenantDesign(tenantId), tenantApi(tenantId)]);
         setState(des);
-        setSections(des.draft.sections ?? des.live.sections ?? []);
+        const opening = des.draft.sections ?? des.live.sections ?? [];
+        setSections(opening);
+        // What the preview will be showing once it loads.
+        shown.current = opening;
         setCss(des.draft.customCss ?? "");
         setPresets(des.draft.stylePresets ?? []);
         setNav(des.draft.nav ?? des.live.nav ?? []);
@@ -442,10 +455,15 @@ export default function DesignEditorPage() {
   // is watching the screen to notice.
   useEffect(() => {
     if (!loaded.current) return;
-    const items = patchable.current;
-    patchable.current = null;
-    if (items) pushPatchRef.current(items, sections);
-    else staleView.current = true;
+    // ⚠️ Compared against what the preview is **showing**, not against the
+    // previous render: several edits can land between two reloads, and a diff
+    // against the last keystroke would call the second one "nothing changed".
+    const change = sections === shown.current
+      ? ({ kind: "reload" } as const) // the stylesheet, the bar or the palette
+      : diffDesign(shown.current, sections);
+    shown.current = sections;
+    if (change.kind === "patch") pushPatchRef.current(change, sections);
+    else if (change.kind === "reload") staleView.current = true;
     setSaveState("dirty");
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => void persistRef.current(), 900);
@@ -501,7 +519,6 @@ export default function DesignEditorPage() {
    *  `updateElement` would mark the view stale and reload the site per letter. */
   const setElementText = useCallback(
     (bandIdx: number, elIdx: number, value: { uz: string; ru: string; en: string }) => {
-      patchable.current = [{ band: bandIdx, index: elIdx }];
       updateElement(bandIdx, elIdx, { text: value });
     },
     [updateElement],
@@ -511,7 +528,6 @@ export default function DesignEditorPage() {
   const moveBox = useCallback(
     (bandIdx: number, elIdx: number, patch: Partial<DesignBox>) => {
       if (!dragging.current) remember();
-      patchable.current = [{ band: bandIdx, index: elIdx }];
       setSections((prev) =>
         prev.map((s, k) => {
           if (k !== bandIdx || !s.canvas?.elements) return s;
@@ -586,6 +602,7 @@ export default function DesignEditorPage() {
    *  ⚠️ **The token is reused rather than minted again.** A new token per reload
    *  would leave a trail of live preview links, each valid for two hours. */
   function reloadPreview() {
+    shown.current = sectionsRef.current;
     setPreviewUrl((url) => (url ? `${url.split("&_=")[0]}&_=${Date.now()}` : url));
   }
 

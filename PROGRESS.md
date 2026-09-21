@@ -15322,3 +15322,53 @@ dev serverda 200.
 ularni patch bilan ko'rsatish renderer'ni ikkinchi marta yozish demakdir, va
 nusxa ajraydi. Reja: eng ko'p tegiladigan sozlamalar (fon, kenglik) uchun ham
 patch.
+
+---
+
+## 2026-09-21 (3) — Konstruktor: qolgan qayta yuklashlar ketdi; ecom.keel.uz «SPIKE» bo'ldi
+
+**1. «Yana qaysidir blokni yoki elementni nimasidir o'zgarsa hard refresh».**
+Birinchi tuzatma faqat so'z va qutini chizardi. Endi qaror **hujjatni
+solishtirishdan** chiqadi (`keel-site/src/lib/designDiff.ts`, 19 test):
+element uslubi/rasmi/havolasi, bandning foni-kengligi-balandligi va sahifada
+so'z bo'lib chiqadigan sozlamalar **jonli chiziladi**; tuzilma (band/element
+qo'shildi-o'chdi, `variant`, `hidden`, `binding`, ikonka, element turi) va
+**bo'shatilgan sarlavha** qayta yuklanadi. Shubha bo'lsa — yuklash.
+
+Buning uchun elementning ko'rinishi bitta joyga chiqarildi
+(`frontend/src/components/design/canvasStyle.ts`) va uni server ham, brauzerdagi
+patch ham (`previewPatch.ts`) o'qiydi — ikkinchi nusxa bo'lsa ajraydigani patch
+bo'lardi. Testi patch natijasini **o'sha elementning qayta renderi** bilan
+solishtiradi (`previewPatch.test.tsx`, 5 test). Qat'iy bandlar ham endi
+`data-keel-band` bilan belgilanadi — ilgari jonli sahifada hero'ni bosish hech
+nimani tanlamasdi.
+
+**2. Sxema bandlari saytda jimgina tashlanardi.** `rich-text`, `image-text`,
+`banner`, `banners` — `models.blockVariants` da yo'q edi, ya'ni `Sanitize`
+ularni hujjatdan o'chirardi (konsol saqlaydi, panel chizadi, sayt o'zgarmaydi).
+Tuzatildi; ikki ro'yxat endi test bilan bog'langan (`designBlocks.test.ts`).
+
+**3. Do'kon so'zlari.** `siteWords` endi `orderTitle`/`orderText` ni ham olib
+yuradi — krossovka do'konida «Ochlik kutib turmaydi» yozilmaydi. `hours-address`
+o'zining `heading` sozlamasini o'qiydigan bo'ldi (ilgari e'tiborsiz qolardi).
+
+**4. ecom.keel.uz noldan chizildi** — referens: Behance «ShoeSpike» (undan hech
+nima ko'chirilmadi; maket qaytadan qurildi, suratlar Pexels'dan, tijoratga
+ruxsat bilan). Do'kon nomi **SPIKE**, monoxrom palitra (qora sotadi, och kulrang
+tartibga soladi), «modern» shrift.
+- **Katalog**: eski 3 kategoriya va 7 tovar o'chirildi; o'rniga Erkaklar /
+  Ayollar / Sport va **12 krossovka** — uch tilda nom va tavsif, 690 000 –
+  1 750 000 so'm, har biriga surat.
+- **19 surat** do'konning o'z `uploads` iga yuklandi (tenantning admin API'si
+  orqali — konsol paroli hech qayerga ko'chirilmadi).
+- **11 band**: navbar (minimal) · hero (12 element: sarlavha, doira, chetda
+  turgan «SPIKE», uchta kichik surat) · bo'limlar · rasm+matn · qora «SPIKE ✱»
+  rayki · «Biz nima beramiz» · **haqiqiy katalog gridi** · CTA · mijozlar fikri
+  (qorong'i surat ustida uchta kartochka) · aloqa · footer. Chop etildi.
+- ⚠️ Telefon joylashuvi **ataylab chizilmagan**: birorta element `mobile` box
+  olmagani uchun har band tartib bo'yicha ustma-ust tushadi, bezak elementlari
+  esa `hiddenMobile` bilan olib tashlanadi — «chiroyli, lekin telefonda buzuq»
+  ni to'xtatadigan standart.
+
+Tekshiruv: backend `go build` + `go test ./internal/models`; frontend `tsc` +
+`next build` + **307** test; keel-site `tsc` + **41** test.

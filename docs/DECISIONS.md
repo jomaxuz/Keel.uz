@@ -8842,6 +8842,79 @@ holatini aytadi. Kutilayotgan saqlash **unmount'da bekor qilinmaydi**: taymer
 ishlasin — aks holda oxirgi yozilgan gap hech kim ekranga qaramagan paytda
 yo'qoladi.
 
+### Konstruktor: nima chiziladi, nima qayta yuklanadi
+
+Birinchi tuzatma faqat **so'z va qutini** jonli sahifaga yozardi; qolgan har bir
+o'zgarish (rang, o'lcham, band foni, sarlavha) baribir iframe'ni qayta ochardi.
+Ya'ni shikoyat yarim qoldi: «yana qaysidir blokni yoki elementni nimasidir
+o'zgarsa hard refresh bo'lyabdi».
+
+⚠️ **Yechim — qaror hujjatni solishtirishdan chiqadi, bayroqdan emas**
+(`keel-site/src/lib/designDiff.ts`). Bayroqni har chaqiruv joyida eslab qolish
+kerak, va uni unutgan joy operatorga **hujjat bilan mos kelmaydigan** sahifa
+ko'rsatadi. Diff esa o'zi ko'radi:
+
+- **Chiziladi**: element qutisi, uslubi, so'zi, rasmi, havolasi; bandning o'z
+  ko'rinishi (fon, kenglik, balandlik, orqa fon rasmi); va sahifada **so'z**
+  bo'lib chiqadigan sozlamalar (`heading`, `subheading`, `eyebrow`, `body`,
+  tugma yozuvlari).
+- **Qayta yuklanadi**: tuzilma — band qo'shildi/o'chdi/o'rin almashdi, element
+  qo'shildi/o'chdi, `variant`, `hidden`, `binding`, ikonka, karusel rasmlari,
+  element **turi**. Va **bo'shatilgan sarlavha**: uning o'rniga nima chiqishini
+  faqat sahifa biladi (restoran nomi yoki ichki matn).
+
+⚠️ **Shubha bo'lsa — qayta yuklash.** Noto'g'ri «chiziladi» deb hisoblangan
+o'zgarish operatorga yolg'on ko'rsatadi va u buni **chop etgandan keyin**
+biladi; noto'g'ri «yuklanadi» esa bitta chaqnashga tushadi.
+
+⚠️ **Sinflarni ikkinchi marta yozish mumkin emas edi.** Elementning ko'rinishi
+endi bitta joyda hisoblanadi — `frontend/src/components/design/canvasStyle.ts` —
+va uni **server ham, brauzerdagi patch ham** o'qiydi
+(`previewPatch.ts`). Ikkinchi nusxa bo'lganda ajraydigani patch bo'lardi, ya'ni
+ko'rinish haqiqatdan jimgina uzoqlashardi. Testi shuni bog'laydi: patch
+qo'llangan element, aynan o'sha element qayta render qilinganida qanday
+bo'lsa, **shunday** bo'lishi kerak (`previewPatch.test.tsx`).
+
+⚠️ **So'zlar element qutisiga emas, belgilangan tugunga yoziladi**
+(`data-keel-text`, `data-keel-sub`, `data-keel-set`). Tashqi qutiga
+`textContent` yozish ishlaydigan tugmani yalang'och so'zga aylantiradi.
+`data-keel-set` — sozlamaning **kaliti** bo'yicha topiladi, matn bo'yicha emas:
+bitta gap sahifada ikki marta uchrashi mumkin.
+
+⚠️ **Qat'iy bandlar endi `data-keel-band` bilan belgilanadi.** Ilgari faqat
+erkin bandlar belgilanardi, ya'ni jonli ko'rinishda hero'ni bosish **hech
+nimani tanlamasdi** — «sahifaning o'zi navigatsiya» degan va'da esa shu
+ekranning asosiy g'oyasi edi.
+
+### Sxema bandlari sayt tomonida tashlanardi (jim)
+
+⚠️ **`rich-text`, `image-text`, `banner`, `banners` — konsol saqlardi, panel
+sozlamalarini chizardi, saytda komponenti bor edi, va `models.blockVariants` da
+yo'q edi.** Ya'ni `Sanitize` ularni hujjatdan **o'chirib tashlardi**: operator
+«Rasm + matn» qo'shadi, to'ldiradi, chop etadi — sahifa o'zgarmaydi, hech qayerda
+xato yo'q. Bu `navbar` xatosining aynan takrori, bir qavat pastda.
+
+Tuzatildi, va ikki ro'yxat endi **test bilan bog'langan**
+(`frontend/src/lib/designBlocks.test.ts`): renderer biladigan bandlar to'plami
+va server o'tkazadigan bandlar to'plami bir xil bo'lishi shart. Ular ikki xil
+tilda va ikki repozitoriyada — ularni faqat test ushlay oladi.
+
+⚠️ **Tuzatma tenantga faqat konteyner yangilangandan keyin yetadi.** Shuning
+uchun ecom.keel.uz dizaynida «rasm + matn» bandi `canvas` bilan chizildi: sayt
+bugungi image'da ham to'liq ko'rinadi.
+
+### Do'konda «Ochlik kutib turmaydi» yozilmaydi
+
+`siteWords` «Menyu» ni «Katalog» ga aylantirardi, lekin buyurtma chaqirig'i
+dictionary'dan to'g'ridan-to'g'ri o'qilardi — va u restoran uchun yozilgan.
+Krossovka do'konining sahifasida «Ochlik kutib turmaydi» — bu sayt boshqa birov
+uchun qurilgani haqidagi eng aniq bayonot, aynan «Menyu» shikoyatining o'zi.
+Endi `SiteWords` `orderTitle`/`orderText` ni ham olib yuradi.
+
+⚠️ **`hours-address` bandi o'z `heading` sozlamasini o'qimasdi** — konsol uni
+e'lon qiladi va maydon chizadi, sayt esa e'tiborsiz qoldirardi. Bo'sh bo'lsa
+baribir ichki matn chiqadi (platformadagi har bir saytda u bo'sh).
+
 ### Konstruktor: element qayerga qo'yilsa, o'sha yerda paydo bo'ladi
 
 ⚠️ **Ilgari element faqat bandning oxiriga qo'shilardi**, keyin uni topib,

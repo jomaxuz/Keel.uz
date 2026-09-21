@@ -30,6 +30,9 @@ export interface SiteWords {
   empty: string;
   /** "Back to the menu" / "Back to the catalogue". */
   back: string;
+  /** What the band that asks for the order says. */
+  orderTitle: string;
+  orderText: string;
 }
 
 /** The words this business uses.
@@ -46,6 +49,8 @@ export function siteWords(t: Dict, businessType?: string): SiteWords {
       subtitle: t.menu.subtitle,
       empty: t.menu.empty,
       back: t.common.backToMenu,
+      orderTitle: t.home.orderTitle,
+      orderText: t.home.orderText,
     };
   }
   return {
@@ -55,5 +60,7 @@ export function siteWords(t: Dict, businessType?: string): SiteWords {
     subtitle: t.shop.subtitle,
     empty: t.shop.empty,
     back: t.shop.back,
+    orderTitle: t.shop.orderTitle,
+    orderText: t.shop.orderText,
   };
 }

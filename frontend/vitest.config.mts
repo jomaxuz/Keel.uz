@@ -39,6 +39,9 @@ export default defineConfig({
       // no error anywhere. The contract is between two applications, so nothing
       // but a test can hold it.
       "src/components/design/*.test.ts?(x)",
+      // The band types the renderer knows against the ones the server lets
+      // through — two lists in two languages that have come apart twice.
+      "src/lib/designBlocks.test.ts",
       // ⚠️ Named on its own rather than a glob over src/lib. Printing is not a
       // screen, but it is the one decision on the way out of every screen here
       // — spooler or browser dialog — and it fails silently on the hardware

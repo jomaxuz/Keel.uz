@@ -50,115 +50,24 @@
 //     take an order.
 
 import LocaleLink from "@/components/site/LocaleLink";
+import {
+  TONE_CLASS,
+  elementClass,
+  elementOpacity,
+  elementPosition,
+  TYPE_CLASS,
+} from "./canvasStyle";
 import { imageUrl } from "@/lib/api";
 import { localized } from "@/lib/i18n/site-content";
 import type { Lang } from "@/lib/i18n/dictionaries";
 import type { DesignBox, DesignCanvas, DesignElement } from "@/lib/types";
 
-const TONE_CLASS: Record<string, string> = {
-  "": "",
-  surface: "bg-surface",
-  raised: "bg-raised",
-  charcoal: "bg-charcoal text-white",
-  brand: "bg-brand text-white",
-  // ⚠️ The ink comes with the surface and is computed from its luminance
-  // (theme-css.ts), never chosen: a yellow panel needs black words and a deep
-  // green one needs white. A designer who picked both by hand would get it
-  // right for the colour in front of them and wrong for the next customer.
-  accent: "bg-accent text-accent-ink",
-  ink: "bg-ink text-cream",
-};
 
-const COLOR_CLASS: Record<string, string> = {
-  "": "",
-  ink: "text-ink",
-  soft: "text-ink-soft",
-  muted: "text-ink-muted",
-  white: "text-white",
-  brand: "text-brand",
-  surface: "text-surface",
-  charcoal: "text-charcoal",
-  accent: "text-accent",
-};
 
-// Font size as a step on the type scale rather than a pixel value: a headline
-// stays proportional when the theme's root size changes, which is a setting the
-// restaurant owns.
-/** Radius as a step. `full` is what makes a circular photograph possible, which
- *  three of the starting templates are built around. */
-const RADIUS_CLASS: Record<string, string> = {
-  "": "",
-  sm: "rounded-lg",
-  md: "rounded-xl",
-  lg: "rounded-3xl",
-  xl: "rounded-[2.5rem]",
-  "2xl": "rounded-[4rem]",
-  full: "rounded-full",
-};
 
-/** The same steps, applied to one side only.
- *
- *  ⚠️ **Written out per corner rather than composed**, because Tailwind can
- *  only see class names that appear literally in the source: a template string
- *  like `rounded-${side}-${step}` compiles to nothing at all, and the page
- *  silently loses every rounded panel while the document looks correct.
- *
- *  ⚠️ **This is the shape a shop reference is actually built from** — a
- *  coloured panel rounded on the edge that faces the page, with a category list
- *  on it. With all-four-corners only, the way to approximate it was to push the
- *  box off the side of the band and hope. */
-const CORNER_CLASS: Record<string, Record<string, string>> = {
-  left: {
-    sm: "rounded-l-lg", md: "rounded-l-xl", lg: "rounded-l-3xl",
-    xl: "rounded-l-[2.5rem]", "2xl": "rounded-l-[4rem]", full: "rounded-l-full",
-  },
-  right: {
-    sm: "rounded-r-lg", md: "rounded-r-xl", lg: "rounded-r-3xl",
-    xl: "rounded-r-[2.5rem]", "2xl": "rounded-r-[4rem]", full: "rounded-r-full",
-  },
-  top: {
-    sm: "rounded-t-lg", md: "rounded-t-xl", lg: "rounded-t-3xl",
-    xl: "rounded-t-[2.5rem]", "2xl": "rounded-t-[4rem]", full: "rounded-t-full",
-  },
-  bottom: {
-    sm: "rounded-b-lg", md: "rounded-b-xl", lg: "rounded-b-3xl",
-    xl: "rounded-b-[2.5rem]", "2xl": "rounded-b-[4rem]", full: "rounded-b-full",
-  },
-};
 
-/** Which class rounds this element, given the step and the side. */
-function radiusClass(radius?: string, corner?: string): string {
-  if (!radius) return "";
-  const step = corner ? CORNER_CLASS[corner]?.[radius] : RADIUS_CLASS[radius];
-  return step ? `overflow-hidden ${step}` : "";
-}
 
-/** A quarter turn, for a rail of words down the edge of the page.
- *
- *  ⚠️ **`origin-center` and nothing else.** A rotated box keeps the width and
- *  height it was drawn with — the turn is painted, not laid out — so the
- *  designer sizes the box for the text lying down and the page turns it in
- *  place. Rotating about a corner instead would move the element somewhere
- *  nobody placed it, which is the failure that makes rotation feel broken. */
-const ROTATE_CLASS: Record<string, string> = {
-  "": "",
-  "90": "rotate-90 origin-center",
-  "-90": "-rotate-90 origin-center",
-};
 
-const SIZE_CLASS: Record<number, string> = {
-  [-2]: "text-[0.7rem]",
-  [-1]: "text-xs",
-  0: "text-base",
-  1: "text-lg",
-  2: "text-xl",
-  3: "text-2xl",
-  4: "text-3xl",
-  5: "text-4xl",
-  6: "text-5xl",
-  7: "text-6xl",
-  8: "text-7xl",
-};
 
 export interface CanvasWidgets {
   /** The functional blocks, handed in rather than imported: this file must not
@@ -306,42 +215,18 @@ function Element({
   // Published on every element, in every branch, so the overlay does not have to
   // know which kind it is looking at.
   const mark = { "data-keel-el": index } as Record<string, unknown>;
-  const style = el.style ?? {};
-  const position: React.CSSProperties = absolute
-    ? {
-        position: "absolute",
-        left: `${box.x}%`,
-        top: `${box.y}%`,
-        width: `${box.w}%`,
-        height: `${box.h}%`,
-        zIndex: box.z ?? 0,
-      }
-    : {};
-
-  const classes = [
-    TONE_CLASS[style.tone ?? ""] ?? "",
-    COLOR_CLASS[style.color ?? ""] ?? "",
-    SIZE_CLASS[style.size ?? 0] ?? "",
-    style.font === "display" ? "font-display" : "",
-    style.weight === "bold" ? "font-bold" : style.weight === "black" ? "font-black" : "",
-    style.align === "center" ? "text-center" : "",
-    style.rounded ? "overflow-hidden rounded-2xl" : "",
-    radiusClass(style.radius, style.corner),
-    ROTATE_CLASS[style.rotate ?? ""] ?? "",
-    style.shadow ? "shadow-card" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  // ⚠️ Opacity is applied to the element's own surface, never to text: half
-  // transparent words are unreadable, and this control exists to dim a photograph
-  // behind a headline.
-  const opacity = style.opacity != null && style.opacity < 100 ? style.opacity / 100 : undefined;
+  // ⚠️ Both come from `canvasStyle`, which the console's live preview also
+  // reads: what an element looks like is decided in one place, so a colour
+  // changed in the editor can be drawn into the page without reloading it and
+  // still match what the server would have rendered.
+  const position = elementPosition(box, absolute);
+  const classes = elementClass(el);
+  const opacity = elementOpacity(el);
 
   if (el.type === "widget-social" || el.type === "widget-menu" || el.type === "widget-categories" ||
       el.type === "widget-hours" || el.type === "widget-map" || el.type === "widget-cart") {
     return (
-      <div style={position} {...mark} className={`${classes} overflow-auto`}>
+      <div style={position} {...mark} className={`${classes} ${TYPE_CLASS[el.type] ?? ""}`}>
         {widgets?.[el.type] ?? null}
       </div>
     );
@@ -363,7 +248,7 @@ function Element({
     const src = el.image ? imageUrl(el.image, 1200) : "";
     if (!src) return null;
     return (
-      <div style={{ ...position, opacity }} {...mark} className={`relative ${classes}`}>
+      <div style={{ ...position, opacity }} {...mark} className={`${classes} ${TYPE_CLASS.image}`}>
         <img
           src={src}
           alt=""
@@ -389,7 +274,7 @@ function Element({
     const shots = (el.images ?? []).filter(Boolean);
     if (shots.length === 0) return null;
     return (
-      <div style={position} {...mark} className={`${classes} flex snap-x snap-mandatory gap-3 overflow-x-auto`}>
+      <div style={position} {...mark} className={`${classes} ${TYPE_CLASS.carousel}`}>
         {shots.map((src, i) => (
           <div key={i} className="relative h-full w-full shrink-0 snap-center overflow-hidden rounded-2xl">
             <img src={imageUrl(src, 1200) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -401,7 +286,7 @@ function Element({
 
   if (el.type === "icon") {
     return (
-      <div style={position} {...mark} className={`${classes} flex items-center justify-center`}>
+      <div style={position} {...mark} className={`${classes} ${TYPE_CLASS.icon}`}>
         <Icon name={el.icon ?? "star"} />
       </div>
     );
@@ -410,7 +295,7 @@ function Element({
   if (el.type === "badge") {
     if (!text) return null;
     return (
-      <div style={position} {...mark} className={`${classes} flex items-center`}>
+      <div style={position} {...mark} className={`${classes} ${TYPE_CLASS.badge}`}>
         <span className="badge-brand" data-keel-text="plain">{text}</span>
       </div>
     );
@@ -419,11 +304,15 @@ function Element({
   if (el.type === "quote") {
     if (!text) return null;
     return (
-      <div style={position} {...mark} className={`${classes} flex flex-col justify-center gap-2`}>
+      <div style={position} {...mark} className={`${classes} ${TYPE_CLASS.quote}`}>
         <p className="font-display italic leading-snug" data-keel-text="quote">
           {"\u201c" + text + "\u201d"}
         </p>
-        {subtext && <p className="text-sm text-ink-muted">— {subtext}</p>}
+        {subtext && (
+          <p className="text-sm text-ink-muted" data-keel-sub="dash">
+            {"\u2014 " + subtext}
+          </p>
+        )}
       </div>
     );
   }
@@ -431,7 +320,7 @@ function Element({
   if (el.type === "rating") {
     const filled = Math.max(0, Math.min(5, el.value ?? 5));
     return (
-      <div style={position} {...mark} className={`${classes} flex items-center gap-1`}>
+      <div style={position} {...mark} className={`${classes} ${TYPE_CLASS.rating}`}>
         {[1, 2, 3, 4, 5].map((i) => (
           <svg key={i} viewBox="0 0 24 24" className="h-full w-auto max-h-8" aria-hidden
             fill={i <= filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
@@ -447,14 +336,18 @@ function Element({
   if (el.type === "stat") {
     if (!text) return null;
     return (
-      <div style={position} {...mark} className={`${classes} flex flex-col justify-center`}>
+      <div style={position} {...mark} className={`${classes} ${TYPE_CLASS.stat}`}>
         <span
           className="font-display text-4xl font-black leading-none sm:text-5xl"
           data-keel-text="plain"
         >
           {text}
         </span>
-        {subtext && <span className="mt-1 text-sm text-ink-muted">{subtext}</span>}
+        {subtext && (
+          <span className="mt-1 text-sm text-ink-muted" data-keel-sub="plain">
+            {subtext}
+          </span>
+        )}
       </div>
     );
   }
@@ -470,7 +363,7 @@ function Element({
         style={position}
         {...mark}
         data-keel-text="lines"
-        className={`${classes} space-y-1.5 overflow-auto`}
+        className={`${classes} ${TYPE_CLASS.list}`}
       >
         {lines.map((line, i) => (
           <li key={i} className="flex gap-2">
@@ -532,7 +425,7 @@ function Element({
     </span>
   );
   return (
-    <div style={position} {...mark} className={`${classes} whitespace-pre-line leading-tight`}>
+    <div style={position} {...mark} className={`${classes} ${TYPE_CLASS.text}`}>
       {linked ? (
         el.linkExternal || !linked.startsWith("/") ? (
           <a href={linked} target="_blank" rel="noreferrer noopener" className="hover:opacity-70">
