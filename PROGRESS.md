@@ -15520,7 +15520,17 @@ tepasiga til tanlagich qo'yildi, va tanlov cookie'da qoladi: shell endi
 `initial="uz"` o'rniga o'sha cookie'ni o'qiydi (ilgari tanlov oyna yopilguncha
 yashardi, kassa esa har kecha yopiladi).
 
-**6. «Zakup» → «Bozorlik».** Ekran ertalab bozorga olib boriladigan ro'yxatni
-yozadi va kodning o'z satrlari uni boshidan «bozorlik ro'yxati» deb ataydi;
-faqat tab ruscha buxgalteriya so'zi bilan turardi. ⏳ UI ni qaytadan chizish —
-keyingi qadam.
+**6. «Zakup» → «Bozorlik», va ekran uch qadam bo'ldi.** Ekran ertalab bozorga
+olib boriladigan ro'yxatni yozadi va kodning o'z satrlari uni boshidan
+«bozorlik ro'yxati» deb ataydi; faqat tab ruscha buxgalteriya so'zi bilan
+turardi. UI esa bitta uzun ustun edi — sana, kam qolganlar, butun katalog,
+qidiruv, miqdorlar va ikki tugma bir vaqtda, ya'ni kechqurun shoshib turgan
+odam uchun oltita raqobatlashadigan qaror. Endi **uch qadam**: nima kerak →
+nechadan → shumi, javob berilgani bosiladi, keyingisi bosilmaydi. Tanlovchi
+ikki ustunli va **bir bosish qo'shadi, ikkinchisi olib tashlaydi** (ilgari
+faqat qo'shardi — kerak bo'lmagan qatorlar shundan kelardi); katalog yozmasdan
+ko'rinadi; «Yuborilganlar» ro'yxat **pastida** emas, tabda, kutayotgan yetkazma
+soni bilan; pastda har doim bitta urg'uli tugma. Testi yozildi
+(`ZakupScreen.test.tsx`, 5 ta): javobsiz qadamdan chiqib bo'lmaydi, ikkinchi
+bosish olib tashlaydi, va «2 qop» serverga `qty: 2, pack: true` bo'lib boradi —
+50 emas. ⚠️ Ekran faqat testda ko'rilgan, monoblokda hali emas.

@@ -1829,6 +1829,21 @@ export const adminUz = {
     // Russian accounting word. A cashier looking for "where do I write what we
     // ran out of" does not look under "Zakup".
     title: "Bozorlik",
+    // ---- Uch qadam ----
+    // ⚠️ Ekran bitta uzun ustun edi: sana, ikki ro'yxat, qidiruv, miqdorlar va
+    // ikki tugma bir vaqtda. Kechqurun shoshib turgan odam uchun qiyini aynan
+    // shu — har qadamda bitta savol so'ralsa, hech biri qolib ketmaydi.
+    tabNew: "Yangi ro'yxat",
+    tabSent: "Yuborilganlar",
+    step1: "Nima kerak",
+    step2: "Nechadan",
+    step3: "Yuborish",
+    next: "Davom etish",
+    shortBadge: "kam qoldi",
+    nothingChosen: "Hech narsa tanlanmagan. Orqaga qaytib, ro'yxatdan tanlang.",
+    pickHint: "Kerakli masalliqni bosing — pastda yig'iladi.",
+    qtyHint: "Har biriga nechadan kerakligini yozing.",
+    noSent: "Hali ro'yxat yuborilmagan.",
     forDate: "Qaysi kunga",
     chosen: (n: number) => `${n} ta tanlandi`,
     listTitle: "Ro'yxat",
@@ -7118,6 +7133,17 @@ export const adminRu: AdminDict = {
   },
   zakup: {
     title: "Закупка",
+    tabNew: "Новый список",
+    tabSent: "Отправленные",
+    step1: "Что нужно",
+    step2: "Сколько",
+    step3: "Отправка",
+    next: "Дальше",
+    shortBadge: "мало",
+    nothingChosen: "Ничего не выбрано. Вернитесь и отметьте нужное.",
+    pickHint: "Нажмите на продукт — он соберётся в список.",
+    qtyHint: "Укажите, сколько нужно каждого.",
+    noSent: "Списки ещё не отправлялись.",
     forDate: "На какой день",
     chosen: (n: number) => `выбрано: ${n}`,
     listTitle: "Список",
@@ -12081,6 +12107,17 @@ export const adminEn: AdminDict = {
   },
   zakup: {
     title: "Shopping",
+    tabNew: "New list",
+    tabSent: "Sent",
+    step1: "What is needed",
+    step2: "How much",
+    step3: "Send",
+    next: "Next",
+    shortBadge: "running low",
+    nothingChosen: "Nothing chosen yet. Go back and pick from the list.",
+    pickHint: "Tap what you need — it collects below.",
+    qtyHint: "Say how much of each.",
+    noSent: "No list has been sent yet.",
     forDate: "For which day",
     chosen: (n: number) => `${n} chosen`,
     listTitle: "The list",

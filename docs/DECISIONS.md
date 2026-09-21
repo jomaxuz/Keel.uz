@@ -1800,6 +1800,41 @@ va oy bor holidan yomonroq ko'rinardi. Bu daftar boshqa savolga javob beradi:
   keldi» va «pulimizni kim ushlab turibdi» bitta nafasda so'raladigan ikki savol,
   va bir qavat naridagi daftarni hech kim solishtirmaydi.
 
+#### Kassadagi ro'yxat uch qadam (`ZakupScreen.tsx`)
+
+Ro'yxat kassada yoziladi, chunki xabar shu yerga keladi: go'sht tugaganini
+ofisdagi ega emas, kechqurun ishlab turgan odam biladi. Lekin ekran bitta uzun
+ustun edi — sana, kam qolganlar, butun katalog, qidiruv, miqdor maydonlari va
+ikki tugma bir vaqtda ko'rinardi, va ularning har biri boshqasi bilan
+raqobatlashadigan qaror edi.
+
+- **Har qadamda bitta savol**: nima kerak → nechadan → shumi. Oldingi qadamning
+  javobi keyingisida ko'rinib turadi, ya'ni «men nimani tanlagan edim?» uchun
+  orqaga qaytish shart emas.
+- ⚠️ **Javob berilgan qadam bosiladi, keyingisi bosilmaydi.** Miqdorni xato
+  yozgan odam ro'yxatni **yuborib** tuzatishi kerak bo'lmasin; oldindagi
+  qadamning javobi esa hozirgisiga bog'liq.
+- ⚠️ **Bitta bosish qo'shadi, ikkinchisi olib tashlaydi** (`aria-pressed`).
+  Ilgari tanlovchi faqat qo'shardi va qaytarib olish uchun o'sha ustunning
+  pastidagi **ikkinchi** ro'yxatdan topish kerak edi — ro'yxatlar hech kimga
+  kerak bo'lmagan qatorlar bilan aynan shundan kelardi.
+- ⚠️ **Yuborilganlar — tab, bo'lim emas.** «Nima yubordim» va «kelganiga
+  imzo qo'yish» boshqa ish, va u yozilayotgan ro'yxatning **pastida** turardi:
+  unga yetish uchun ro'yxat ekrandan chiqib ketardi.
+- ⚠️ **Katalog yozmasdan ko'rinadi.** Ilgari u faqat kimdir yozgandan keyin
+  chiqardi — minimum belgilamagan restoran (ko'pchiligi) ekranni **bo'sh**
+  ochardi va masalliqlar borligini bilmasdi ham. Va hech narsa qisqartirilmaydi:
+  topa olmagan bitta masalliqni odam qo'lda yozadi, bu esa texkarta ko'rsatmaydigan
+  dublikat yaratadi.
+- ⚠️ **Qadoq bayrog'i raqam bilan birga ketadi, konvertatsiya emas** — «2 qop»
+  serverga `qty: 2, pack: true` bo'lib boradi. Brauzerda 50 ga aylantirilsa,
+  xatoning narxi ikki tonna un. Testi shuni ushlaydi
+  (`ZakupScreen.test.tsx`).
+- Testlar ekranning **markup'i** haqida emas: barmoq yetadigan uch narsa —
+  javobsiz qadamdan chiqib bo'lmasligi, ikkinchi bosish olib tashlashi, va
+  qadoq bayrog'i — jonli sinovda aynan shunga o'xshagan nosozliklar chiqqan edi.
+
+
 ### Kassa buyurtmani qabul qildimi (`handlers/posorder.go`)
 - ⚠️ **Yuborish — ko'prikning yarmi.** `SendOrder` POS buyurtmani **qayd
   qilgan** paytda qaytadi, va to'rtta provayderning ikkitasida bu oshxona uni

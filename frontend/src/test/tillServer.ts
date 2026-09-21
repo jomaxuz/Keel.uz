@@ -279,6 +279,15 @@ export function createTillServer(opts: TillServerOptions = {}) {
       userId?: string;
       debtNote?: string;
     }[],
+    /** Tomorrow's shopping, as it left the counter. ⚠️ The quantity and the
+     *  pack flag together: "5" means five sacks or five kilos depending on the
+     *  second field, and the server does that arithmetic — so a test that
+     *  dropped the flag would pass on a screen that sent twenty times too
+     *  much. */
+    buyOrders: [] as {
+      forDate: string;
+      lines: { ingredientId?: string; name: string; qty: number; pack?: boolean }[];
+    }[],
   };
 
   function openShift(float: number) {
@@ -784,6 +793,72 @@ export function createTillServer(opts: TillServerOptions = {}) {
 
     // ---- Fiscal: off, which is the state of every restaurant without a
     // register and the one where these screens must still sell food.
+    // ---- The shopping list ----
+    //
+    // Two ingredients the arithmetic says are short and one it does not: a
+    // restaurant that never set a minimum sees only the catalogue, and that is
+    // the state the picker used to render empty in.
+    staffBuyOrderDraft: async () => ({
+      rows: [
+        {
+          ingredientId: "ing-1",
+          name: "Kartoshka",
+          unit: "kg",
+          qty: 12,
+          onHand: 3,
+          source: "market" as const,
+        },
+        {
+          ingredientId: "ing-2",
+          name: "Un",
+          unit: "kg",
+          qty: 25,
+          onHand: 5,
+          // Sold by the sack, which is the only case where the unit is a
+          // switch rather than a label.
+          packName: "qop",
+          packQty: 25,
+          source: "store" as const,
+        },
+      ],
+      since: null,
+      catalog: [
+        {
+          ingredientId: "ing-1",
+          name: "Kartoshka",
+          unit: "kg",
+          source: "market" as const,
+        },
+        {
+          ingredientId: "ing-2",
+          name: "Un",
+          unit: "kg",
+          packName: "qop",
+          packQty: 25,
+          source: "store" as const,
+        },
+        {
+          ingredientId: "ing-3",
+          name: "Limon",
+          unit: "dona",
+          source: "market" as const,
+        },
+      ],
+    }),
+    staffBuyOrders: async () => ({ orders: [] }),
+    staffCreateBuyOrder: async (body: {
+      forDate: string;
+      lines: {
+        ingredientId?: string;
+        name: string;
+        qty: number;
+        pack?: boolean;
+      }[];
+    }) => {
+      calls.buyOrders.push(body);
+      return { orders: [] };
+    },
+
     tillFiscalStatus: async () => ({ enabled: false }),
     tillUnfiledChecks: async () => ({ checks: [] as Check[] }),
     // No bookings by default: the strip draws nothing at all in that case,
