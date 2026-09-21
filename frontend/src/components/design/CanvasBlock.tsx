@@ -55,6 +55,7 @@ import {
   elementClass,
   elementOpacity,
   elementPosition,
+  imageFit,
   TYPE_CLASS,
 } from "./canvasStyle";
 import { imageUrl } from "@/lib/api";
@@ -252,9 +253,10 @@ function Element({
         <img
           src={src}
           alt=""
-          // The designer chose the box; the picture fills it. `contain` would
-          // leave letterboxing nobody drew.
-          className="absolute inset-0 h-full w-full object-cover"
+          // The designer chose the box, and by default the picture fills it —
+          // `contain` is what a cut-out asks for, and it is a choice now rather
+          // than an assumption. See `imageFit`.
+          className={`absolute inset-0 h-full w-full ${imageFit(el)}`}
         />
       </div>
     );
@@ -277,7 +279,7 @@ function Element({
       <div style={position} {...mark} className={`${classes} ${TYPE_CLASS.carousel}`}>
         {shots.map((src, i) => (
           <div key={i} className="relative h-full w-full shrink-0 snap-center overflow-hidden rounded-2xl">
-            <img src={imageUrl(src, 1200) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={imageUrl(src, 1200) ?? ""} alt="" className={`absolute inset-0 h-full w-full ${imageFit(el)}`} />
           </div>
         ))}
       </div>

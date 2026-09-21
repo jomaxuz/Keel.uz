@@ -81,6 +81,13 @@ const uz = {
   clearMobile: "Telefon joylashuvini tozalash",
 
   imageChoose: "Rasm tanlash",
+  // ⚠️ Fotosurat qutini to'ldiradi; foni olib tashlangan krossovka esa shakl —
+  // kesilsa uchi yo'qoladi. Shu sababli bu tanlov bor.
+  fit: "Rasm qanday joylashadi",
+  fitCover: "To'ldiradi",
+  fitContain: "Sig'adi",
+  fitHint:
+    "\u00abTo'ldiradi\u00bb \u2014 rasm butun qutini egallaydi, chetlari kesiladi (fotosurat uchun). \u00abSig'adi\u00bb \u2014 rasm to'liq ko'rinadi (foni olib tashlangan krossovka uchun).",
   imageUploading: "Yuklanmoqda…",
   themeHint:
     "Shu yerda tokenlarning ma'nosi belgilanadi. Bandlar va elementlar hech qachon hex rang olmaydi — ular «brend» yoki «accent» deydi, va qorong'i rejimda ham to'g'ri qoladi.",
@@ -241,6 +248,11 @@ const ru: EditorDict = {
   clearMobile: "Очистить раскладку телефона",
 
   imageChoose: "Выбрать изображение",
+  fit: "Как лежит изображение",
+  fitCover: "Заполняет",
+  fitContain: "Целиком",
+  fitHint:
+    "\u00abЗаполняет\u00bb \u2014 картинка занимает всю рамку, края обрезаются (для фото). \u00abЦеликом\u00bb \u2014 видно всё изображение (для кроссовка без фона).",
   imageUploading: "Загружается…",
   themeHint:
     "Здесь задаётся, что означают токены. Банды и элементы никогда не получают hex — они говорят «бренд» или «accent», и остаются верными в тёмной теме.",
@@ -394,6 +406,11 @@ const en: EditorDict = {
   clearMobile: "Clear the phone layout",
 
   imageChoose: "Choose an image",
+  fit: "How the picture sits",
+  fitCover: "Fills",
+  fitContain: "Fits",
+  fitHint:
+    "\u201cFills\u201d gives the picture the whole box and crops its edges \u2014 right for a photograph. \u201cFits\u201d shows all of it \u2014 right for a shoe cut out of its backdrop, which cropping takes the toe off.",
   imageUploading: "Uploading…",
   themeHint:
     "This is where the tokens get their meaning. Bands and elements never carry a hex — they say \"brand\" or \"accent\", which is what keeps them right in dark mode.",

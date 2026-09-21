@@ -114,6 +114,27 @@ describe("drawing an edit into a rendered band", () => {
     expect(node.textContent).toContain("— Sardor");
   });
 
+  it("switches a picture between filling its box and fitting inside it", () => {
+    // ⚠️ The setting a cut-out needs: filling the box crops the shoe. It is on
+    // the `<img>`, not on the element's own box, which is why the patch has to
+    // reach inside rather than rewrite the wrapper's classes.
+    const el: DesignElement = {
+      type: "image",
+      box: { x: 0, y: 0, w: 40, h: 40 },
+      image: "/uploads/a.jpg",
+    };
+    const { container } = draw(band([el]));
+    const img = () => desktop(container).querySelector<HTMLImageElement>('[data-keel-el="0"] img')!;
+    expect(img().className).toContain("object-cover");
+
+    applyElement(container, { band: 0, index: 0, el: { ...el, style: { fit: "contain" } } });
+    expect(img().className).toContain("object-contain");
+    expect(img().className).not.toContain("object-cover");
+
+    applyElement(container, { band: 0, index: 0, el });
+    expect(img().className).toContain("object-cover");
+  });
+
   it("repaints a band's tone without stacking the old one", () => {
     const section = band([{ type: "box", box: { x: 0, y: 0, w: 10, h: 10 } }]);
     section.canvas!.background = "surface";

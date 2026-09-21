@@ -540,6 +540,9 @@ export interface DesignElement {
     corner?: string;
     /** A quarter turn: "" · "90" · "-90". For a rail of words down the edge. */
     rotate?: string;
+    /** How a picture sits in its box: "" fills and crops, "contain" fits whole.
+     *  ⚠️ A cut-out is a shape, and cropping it takes the toe off the shoe. */
+    fit?: string;
   };
   binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
 }

@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
+	"os"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -88,4 +90,42 @@ func TestSectionSettingsSurviveDecoding(t *testing.T) {
 	if _, ok := back["blocks"].([]any); !ok {
 		t.Errorf("repeatable blocks did not survive: %s", out)
 	}
+}
+
+// ⚠️ **What the editor sends must come back, or the next save erases it.**
+//
+// The console is a read-modify-write client: it opens the draft, changes one
+// thing and writes the whole document back. So a field this endpoint forgets to
+// return is not merely missing from the screen — it is blanked on the customer's
+// site the next time anybody moves a box, with a 200 and a saved count.
+//
+// It happened to the stylesheet and to the saved styles: both were decoded out
+// of the database and then left out of the response map. This test reads the
+// handler's own source, because the failure is an *absent* line and there is
+// nothing at runtime to assert against without a Mongo.
+func TestDesignResponseReturnsEverythingTheEditorSends(t *testing.T) {
+	src := readSource(t, "design.go")
+	handler := between(t, src, "func (h *Handler) GetTenantDesign", "\n}\n")
+	// ⚠️ The **draft** block, not the whole handler: the live block names some of
+	// the same fields, and a check over the handler as a whole passes while the
+	// draft is missing every one of them. That is not hypothetical — it is what
+	// this test did on its first run, against a copy of the bug.
+	draft := between(t, handler, `"draft": map[string]any{`, "\n\t\t},")
+
+	for _, key := range []string{"sections", "nav", "theme", "customCss", "stylePresets"} {
+		if !strings.Contains(draft, `"`+key+`":`) {
+			t.Fatalf("the draft does not return %q — the editor writes its own blank back over it", key)
+		}
+	}
+}
+
+// readSource reads a file from this package, for the tests that have to assert
+// about code rather than behaviour.
+func readSource(t *testing.T, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(name)
+	if err != nil {
+		t.Fatalf("read %s: %v", name, err)
+	}
+	return string(b)
 }

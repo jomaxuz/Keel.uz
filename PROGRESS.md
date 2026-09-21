@@ -15387,3 +15387,40 @@ hodisa chaqirmaydi. Endi `lib/useHash.ts` `pushState`/`replaceState` ni hujjat
 bo'yicha bir marta o'raydi va o'zgarishni e'lon qiladi (`hashchange` va
 `popstate` ham joyida). Jonli saytda bosib tekshirilgan; testi shu ketma-ketlikni
 takrorlaydi (5 test).
+
+---
+
+## 2026-09-21 (4) — ecom.keel.uz referensga yaqinlashtirildi; ikki teshik yana
+
+Referens (Behance «ShoeSpike») qaytadan o'qildi va farq aniq edi: u butunlay
+**kesib olingan** krossovkalardan qurilgan — foni olib tashlangan buyum panel
+yoki doira ustida turadi — bizda esa har bir rasm to'rtburchak fotosurat edi.
+
+- **Kesib olingan rasmlar**: suratlarning foni skript bilan olib tashlandi
+  (`scratchpad`, flood fill + fon modeli). ⚠️ Fon bir rang emas: studiya oqi
+  kadr bo'ylab o'zgaradi, shuning uchun model ustun bo'yicha yuqori va quyi
+  chiziqlardan o'qiladi. Buyum chetga tegsa (poyabzallar kadrning ikki yonidan
+  chiqib turadi) «chegaraga ulangan» qoidasi yetmaydi — katta mos bo'lak ham fon
+  hisoblanadi. Uchta toza kesim chiqdi; qolgani (oq poyabzal oq fonda) kesilmadi
+  va fotosurat bo'lib qoldi.
+- **Hero qaytadan**: qora doira, uning ustida tik turgan «SPIKE», doira chetiga
+  yotqizilgan kesim, ostida ikkita kichik kesim. Kvadratga to'ldirilgan
+  (transparent padding) — aks holda bir xil qutidagi uch rasm uch xil o'lchamda
+  ko'rinadi.
+- **«SPIKE ✱» rayki** qora fondan oq fonga o'tkazildi, ustiga va ostiga chiziq.
+- **Footer qora** (referensdagidek) — `customCss` orqali, chunki futer bandning
+  emas, sayt qobig'ining qismi.
+- **Katalog kartochkalari**: to'rttasiga kesim qo'yildi.
+
+⚠️ **Ikki platforma teshigi yo'l-yo'lakay topildi va tuzatildi:**
+1. **`element.style.fit`** — rasm qutini to'ldiradimi (`object-cover`, fotosurat
+   uchun to'g'ri) yoki unga sig'adimi (`contain`, kesim uchun yagona to'g'ri).
+   Busiz kesimni joylashtirishning yagona yo'li qo'lda CSS edi.
+2. **`GetTenantDesign` javobida `customCss` va `stylePresets` yo'q edi.**
+   Muharrir read-modify-write mijoz, ya'ni u olmagan maydonni keyingi saqlashda
+   **bo'shatadi** — jonli saytda stil varaqasi shunday yo'qoldi, 200 javob bilan
+   va hech qanday xatosiz. Testi qoralama blokiga qaraydi (butun handler
+   bo'yicha tekshiruv `live` blokidagi takror nomlar tufayli o'tib ketardi).
+
+Tekshiruv: backend `go test ./internal/models`; control `go test ./...`;
+frontend `tsc` + 319 test; keel-site `tsc`.

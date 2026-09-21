@@ -2005,6 +2005,29 @@ function ElementSettings({
         </Row>
       )}
 
+      {(el.type === "image" || el.type === "carousel") && (
+        <>
+          {/* ⚠️ **The setting a whole design language needed.** Every shop
+              reference we are sent is built from shoes cut out of their
+              backdrops, floating on panels and discs — and a cut-out is a
+              shape, so filling the box crops the toe off it. Until this
+              existed the only way to place one was a hand-written stylesheet,
+              which is the console telling a designer to write CSS for the
+              commonest thing they do. */}
+          <Row label={d.fit}>
+            <Seg
+              value={(el.style?.fit ?? "") as string}
+              options={[
+                { v: "", label: d.fitCover },
+                { v: "contain", label: d.fitContain },
+              ]}
+              onChange={(v) => onStyle({ fit: v })}
+            />
+          </Row>
+          <p className="text-[11px] leading-relaxed text-ink-muted">{d.fitHint}</p>
+        </>
+      )}
+
       {(el.type === "box" || el.type === "image") && (
         <Row label={d.opacity}>
           <input

@@ -8842,6 +8842,46 @@ holatini aytadi. Kutilayotgan saqlash **unmount'da bekor qilinmaydi**: taymer
 ishlasin — aks holda oxirgi yozilgan gap hech kim ekranga qaramagan paytda
 yo'qoladi.
 
+### Rasm qutini to'ldiradimi yoki unga sig'adimi
+
+⚠️ **Referensdagi maketlarning hammasi «kesib olingan» buyumlardan qurilgan** —
+foni olib tashlangan krossovka panel yoki doira ustida turadi. Renderer esa
+rasmni **doim qutiga to'ldirib** chizardi (`object-cover`), va bu fotosurat
+uchun to'g'ri: fotosuratning cheti qadrli emas, dizayner qutini chizadi, rasm
+to'ldiradi. Kesib olingan rasm esa **shakl** — to'ldirish uning uchini kesib
+tashlaydi.
+
+Shuning uchun `element.style.fit` qo'shildi: bo'sh — to'ldiradi (bugungi har bir
+dizayn shuni anglatadi), `contain` — butunlay sig'adi. Paneldagi tanlagich
+rasm maydonining yonida.
+
+⚠️ **Busiz yagona yo'l qo'lda CSS yozish edi** — ya'ni konsol dizaynerga
+«eng ko'p qiladigan ishing uchun stil varaqasi yoz» deb aytardi. (ecom.keel.uz
+da aynan shunday qilishga to'g'ri keldi, chunki tuzatma hali deploy qilinmagan.)
+
+⚠️ Sinf **rasmning o'zida**, elementning qutisida emas — shuning uchun jonli
+patch ham `<img>` ichiga kiradi (`previewPatch`), va testi buni ushlaydi.
+
+### Konsol o'zi yubormagan narsani o'chirar edi (`customCss`, `stylePresets`)
+
+⚠️ **`GetTenantDesign` javobida ikki maydon yo'q edi**: stil varaqasi va
+saqlangan uslublar. Ular bazadan `designDoc` ga o'qilardi — struct'da aynan
+«qoralamaning bandlari qanchalik qismi bo'lsa, bular ham shunchalik» deb
+yozilgan — va javob xaritasiga qo'shilmasdan qolardi.
+
+Bu ekranda ko'rinmaydigan maydon emas, bu **200 bilan ma'lumot yo'qotish**:
+muharrir read-modify-write mijoz — qoralamani ochadi, bitta qutini surib, butun
+hujjatni qaytadan yozadi. Ya'ni u olmagan maydonni **keyingi saqlashda
+bo'shatadi**. Jonli saytda aynan shunday bo'ldi: bitta o'zgarishdan keyin
+`customCss` yo'qoldi, hech qayerda xato chiqmadi — saqlash sonini qaytardi va
+sahifa jimgina o'z qoidalarisiz qoldi.
+
+⚠️ Bu `settings` tuzog'ining **teskari yo'nalishi** (u kirishda yo'qotardi, bu
+chiqishda), va testi endi ikkalasini ham yuradi. Test **qoralama blokiga**
+qaraydi, butun handler'ga emas: `live` bloki o'sha nomlarning bir qismini
+takrorlaydi, va handler bo'yicha tekshirish qoralama bo'sh bo'lsa ham
+o'tayverardi — birinchi yozilganda aynan shunday bo'ldi.
+
 ### Konstruktor: nima chiziladi, nima qayta yuklanadi
 
 Birinchi tuzatma faqat **so'z va qutini** jonli sahifaga yozardi; qolgan har bir

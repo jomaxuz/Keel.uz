@@ -262,12 +262,29 @@ func (h *Handler) GetTenantDesign(w http.ResponseWriter, r *http.Request) {
 		// shows a saved selection as a list of blank chips, and an operator's first
 		// reading of that is that their choice was lost.
 		"categories": h.tenantCategories(r, t.DBName()),
+		// ⚠️ **Every field the editor sends must come back out**, and two did
+		// not: the stylesheet and the saved styles were decoded out of the
+		// database into `designDoc` — which says in as many words that they are
+		// "as much part of a draft as the bands are" — and then left out of this
+		// map.
+		//
+		// That is not a field missing from a screen, it is data loss with a 200.
+		// The console is a read-modify-write client: it opens the draft, changes
+		// one box and writes the whole document back — so a field it never
+		// received is a field it blanks on the next save. A live site lost its
+		// corrections mid-session exactly this way, and nothing said so; the save
+		// returned a count and the page quietly stopped having the rules it had.
+		//
+		// The same trap as `settings` on the way *in* (see designSection), one
+		// direction along.
 		"draft": map[string]any{
-			"sections":  draft.Sections,
-			"nav":       draft.Nav,
-			"theme":     draft.Theme,
-			"updatedAt": draft.UpdatedAt,
-			"drawnBy":   draft.DrawnBy,
+			"sections":     draft.Sections,
+			"nav":          draft.Nav,
+			"theme":        draft.Theme,
+			"customCss":    draft.CustomCSS,
+			"stylePresets": draft.StylePresets,
+			"updatedAt":    draft.UpdatedAt,
+			"drawnBy":      draft.DrawnBy,
 		},
 		"live": map[string]any{
 			"sections":    live.Sections,

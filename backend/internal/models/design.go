@@ -224,6 +224,10 @@ var elementCorners = map[string]bool{
 // its own container. 180 is deliberately absent: upside-down text is not a
 // design, it is a mistake nobody would choose.
 var elementRotations = map[string]bool{"": true, "-90": true, "90": true}
+
+// ⚠️ Two values, and the empty one is "fill" — which is what every design drawn
+// before this field means, and what a photograph wants.
+var elementFits = map[string]bool{"": true, "contain": true}
 var elementWeights = map[string]bool{"": true, "normal": true, "bold": true, "black": true}
 var elementColors = map[string]bool{
 	"": true, "ink": true, "soft": true, "muted": true, "white": true,
@@ -389,6 +393,17 @@ type ElementStyle struct {
 	Shadow  bool `bson:"shadow,omitempty" json:"shadow,omitempty"`
 	// "" theme radius · md · lg · full (a circle). See elementRadii.
 	Radius string `bson:"radius,omitempty" json:"radius,omitempty"`
+	// How a picture sits in the box it was given: "" fills it (and is cropped),
+	// "contain" fits inside it whole.
+	//
+	// ⚠️ **Filling is right for a photograph and wrong for a cut-out.** A photo
+	// has no edges worth keeping, so the designer draws the box and the picture
+	// fills it. A shoe cut out of its backdrop is a *shape* — cropping it takes
+	// the toe off — and a whole design language (every shop reference we have
+	// been sent) is built from cut-outs floating on panels. Without this the
+	// only way to place one was a hand-written stylesheet, which is the console
+	// telling a designer to write CSS for the commonest thing they do.
+	Fit string `bson:"fit,omitempty" json:"fit,omitempty"`
 }
 
 // StylePreset is a named style, saved once and applied to other elements.
@@ -879,6 +894,9 @@ func sanitizeElementStyle(st ElementStyle) ElementStyle {
 	}
 	if !elementRotations[st.Rotate] {
 		st.Rotate = ""
+	}
+	if !elementFits[st.Fit] {
+		st.Fit = ""
 	}
 	st.Size = clampInt(st.Size, -2, 8, 0)
 	st.Opacity = clampInt(st.Opacity, 0, 100, 100)

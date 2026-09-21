@@ -32,6 +32,7 @@ import {
   bandWidthVars,
   elementClass,
   elementOpacity,
+  imageFit,
 } from "./canvasStyle";
 
 /** Every class name any tone can contribute, one at a time. */
@@ -180,9 +181,15 @@ export function applyElement(root: ParentNode, item: ElementPatch) {
     if (el.subtext) writeSub(node, localOf(el.subtext));
 
     const img = node.querySelector("img");
-    if (img && el.image) {
-      const next = imageUrl(el.image, 1200) ?? "";
-      if (next && img.getAttribute("src") !== next) img.setAttribute("src", next);
+    if (img) {
+      if (el.image) {
+        const next = imageUrl(el.image, 1200) ?? "";
+        if (next && img.getAttribute("src") !== next) img.setAttribute("src", next);
+      }
+      // ⚠️ Fills or fits — the class lives on the picture, not on the box the
+      // element draws, so the patch has to reach inside.
+      img.classList.remove("object-cover", "object-contain");
+      img.classList.add(imageFit(el));
     }
     const link = node.matches("a") ? node : node.querySelector("a");
     if (link && el.link) link.setAttribute("href", el.link);

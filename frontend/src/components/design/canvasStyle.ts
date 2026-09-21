@@ -254,3 +254,14 @@ export function bandClass(section: DesignSection): string {
 export function bandWidthVars(width?: string): React.CSSProperties | undefined {
   return WIDTH_VARS[width ?? ""] ?? undefined;
 }
+
+/** How a picture sits in its box.
+ *
+ *  ⚠️ **The default fills, and that is right for a photograph**: the designer
+ *  drew the box, and a photo has no edges worth keeping. A cut-out is the other
+ *  case — it is a shape, and cropping it takes the toe off the shoe — so it asks
+ *  to be contained. One helper, because the renderer and the console's live
+ *  patch both put this class on the same `<img>`. */
+export function imageFit(el: DesignElement): string {
+  return el.style?.fit === "contain" ? "object-contain" : "object-cover";
+}
