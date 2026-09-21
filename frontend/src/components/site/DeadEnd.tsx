@@ -15,6 +15,7 @@
 
 import LocaleLink from "@/components/site/LocaleLink";
 import { useI18n } from "@/lib/i18n/client";
+import { useSiteWords } from "@/lib/business";
 
 export default function DeadEnd({
   art,
@@ -33,6 +34,8 @@ export default function DeadEnd({
    *  again, and a button that never works teaches people to stop pressing. */
   onRetry?: () => void;
 }) {
+  // The catalogue's own address — see lib/siteWords.ts.
+  const w = useSiteWords();
   const { t } = useI18n();
 
   return (
@@ -53,7 +56,7 @@ export default function DeadEnd({
         {/* ⚠️ LocaleLink, not next/link: on `/ru/...` a bare href would drop the
             prefix and answer a Russian guest's 404 by switching them to Uzbek. */}
         <LocaleLink
-          href="/menu"
+          href={w.href}
           className={onRetry ? "btn btn-ghost px-6 py-3" : "btn-primary px-6 py-3"}
         >
           {t.errors.menu}

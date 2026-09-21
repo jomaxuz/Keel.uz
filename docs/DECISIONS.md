@@ -8986,6 +8986,34 @@ tilda va ikki repozitoriyada — ularni faqat test ushlay oladi.
 uchun ecom.keel.uz dizaynida «rasm + matn» bandi `canvas` bilan chizildi: sayt
 bugungi image'da ham to'liq ko'rinadi.
 
+### Yo'naltirishga borgan havola — to'liq sahifa yuklanishi
+
+⚠️ **«O'lcham tanlaganda nega hard refresh bo'lyabdi?»** — va sabab `/catalog`
+ko'chishining o'zi emas, **eski manzilda qolgan havolalar** edi. Do'konda
+`/menu` yo'naltiradi, va yo'naltirishga uchragan `<Link>` mijoz tomonidagi
+o'tish bo'lishdan **to'xtaydi**: brauzer ilovani tashlab, hujjatni yangidan
+yuklaydi. Ya'ni har bir o'lcham chipi — bitta to'liq sahifa yuklanishi.
+
+Xuddi shu xato **katalogdagi har bir kartochkada**, bosh sahifadagi asosiy
+tugmada, savat/rasmiylashtirish/bron/buyurtma sahifalaridagi «katalogga
+qaytish» havolalarida va Telegram mini app'ining stol QR yo'lida ham bor edi.
+O'nta joy.
+
+⚠️ **Buni ishlash paytida hech narsa ko'rsatmaydi**: havola ishlaydi, sahifa
+ochiladi, faqat chaqnash qoladi — va chaqnash xatoga o'xshamaydi, sekin
+internetga o'xshaydi. Shuning uchun qoida **manbada** tekshiriladi
+(`lib/catalogLinks.test.ts`): saytning hech bir komponenti mehmonni `/menu` ga
+yubormaydi.
+
+⚠️ **Hujjatdagi havolalar kod bilan tuzatilmaydi.** Chizilgan tugmaning manzili
+— tenantning **ma'lumoti**; ecom.keel.uz da ular alohida `/catalog` ga
+ko'chirildi. Yangi dizaynlarda standart manzil biznes turidan olinadi
+(`catalogHref`), ya'ni bu takrorlanmaydi.
+
+⚠️ **O'lcham tanlash sahifani tepaga sakratmaydi** (`scroll={false}`): o'lcham
+tanlash — boshqa joyga borish emas, va sahifaning yarmida turib qilingan tanlov
+tepaga otilsa, u ham «qayta yuklandi» bo'lib o'qiladi.
+
 ### Sudrash: bir pikselga bir marta emas, bir kadrga bir marta
 
 ⚠️ **Jonli sahifada sudrash «qotib-qotib» ketardi, va sabab bitta og'ir narsa

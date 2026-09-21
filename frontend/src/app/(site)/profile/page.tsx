@@ -19,6 +19,7 @@ import type {
   Reservation,
   ReservationStatus,
 } from "@/lib/types";
+import { useSiteWords } from "@/lib/business";
 
 /**
  * Rows per page on the profile. Five, not the panel's twenty: this is a phone
@@ -39,6 +40,8 @@ const NO_POINTS: LoyaltyInfo["transactions"] = [];
 
 export default function ProfilePage() {
   const { user, loading, logout } = useUser();
+  // The catalogue's own address — see lib/siteWords.ts.
+  const w = useSiteWords();
   const { lang, t } = useI18n();
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -229,7 +232,7 @@ export default function ProfilePage() {
         ) : orders.length === 0 ? (
           <div className="rounded-3xl border border-line bg-surface shadow-card py-10 text-center">
             <p className="text-ink-muted">{t.profile.empty}</p>
-            <Link href="/menu" className="btn-primary mt-4 px-5 py-2.5">
+            <Link href={w.href} className="btn-primary mt-4 px-5 py-2.5">
               {t.common.goToMenu}
             </Link>
           </div>

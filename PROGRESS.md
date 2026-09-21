@@ -15468,3 +15468,15 @@ orqali (`O'lcham · majburiy` — 40 / 41 / 42). Ikkalasi jonli saytda tekshiril
 ⚠️ Katalog **kartochkasida** o'lcham ko'rinmaydi (ataylab: kartochkadan o'lcham
 tanlash — qaysi o'lchamlar borligini ko'rmay tanlash demak), va modelning o'zi
 (`variantAxes` bor qator) saytda umuman ko'rsatilmaydi.
+
+**4. «O'lcham tanlaganda hard refresh».** Sababi `/catalog` ko'chishidan qolgan
+havolalar edi: do'konda `/menu` yo'naltiradi, yo'naltirishga uchragan `<Link>`
+esa mijoz tomonidagi o'tish bo'lishdan to'xtaydi — brauzer hujjatni yangidan
+yuklaydi. O'nta joy topildi: o'lcham chiplari, **katalogdagi har bir
+kartochka**, bosh sahifadagi qidiruv taklifi, savat/checkout/bron/buyurtma/404
+dagi «katalogga qaytish», chizilgan tugmalarning standart manzili va Telegram
+mini app'ining stol QR yo'li. Endi hammasi `siteWords().href` dan oladi, va
+qoida manbada tekshiriladi (`catalogLinks.test.ts`) — ishlash paytida buni hech
+narsa ko'rsatmaydi. O'lcham chipi endi sahifani tepaga ham sakratmaydi.
+ecom.keel.uz ning dizayn hujjatidagi 8 ta havola ham `/catalog` ga ko'chirildi
+(ular ma'lumot, kod emas). Frontend **323** test.

@@ -10,6 +10,7 @@ import LiveMap, { type MapPoint } from "@/components/map/LiveMap";
 import RouteButtons from "@/components/map/RouteButtons";
 import CallLink from "@/components/site/CallLink";
 import { useI18n } from "@/lib/i18n/client";
+import { useSiteWords } from "@/lib/business";
 import type { OrderStatus, OrderTrack, Restaurant } from "@/lib/types";
 
 // Delivery status pipeline (cancelled is handled separately); labels come from
@@ -29,6 +30,8 @@ export default function OrderTrackPage({
 }) {
   const { number } = use(params);
   const { lang, t } = useI18n();
+  // The catalogue's own address — see lib/siteWords.ts.
+  const w = useSiteWords();
   const [order, setOrder] = useState<OrderTrack | null>(null);
   // Only needed for pickup orders — where to drive to.
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -79,7 +82,7 @@ export default function OrderTrackPage({
       <main className="container-page py-24 text-center">
         <h1 className="font-display text-2xl font-bold">{t.order.title(number)}</h1>
         <p className="mt-3 text-ink-muted">{error}</p>
-        <Link href="/menu" className="btn-primary mt-6 px-6 py-3">
+        <Link href={w.href} className="btn-primary mt-6 px-6 py-3">
           {t.common.goToMenu}
         </Link>
       </main>
@@ -305,7 +308,7 @@ export default function OrderTrackPage({
         >
           {t.common.refresh}
         </button>
-        <Link href="/menu" className="text-ink-muted hover:text-brand">
+        <Link href={w.href} className="text-ink-muted hover:text-brand">
           {t.common.backToMenu}
         </Link>
       </div>

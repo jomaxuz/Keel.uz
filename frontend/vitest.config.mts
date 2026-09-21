@@ -45,6 +45,9 @@ export default defineConfig({
       // The fragment the navigation bar marks its place by — and the one way
       // the router moves between fragments that announces nothing.
       "src/lib/useHash.test.tsx",
+      // Links into the catalogue: one written `/menu` is a full page load on a
+      // shop, and nothing at runtime can tell you so.
+      "src/lib/catalogLinks.test.ts",
       // ⚠️ Named on its own rather than a glob over src/lib. Printing is not a
       // screen, but it is the one decision on the way out of every screen here
       // — spooler or browser dialog — and it fails silently on the hardware

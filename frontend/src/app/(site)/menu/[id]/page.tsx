@@ -86,14 +86,20 @@ export default async function MenuItemPage({
     : [];
 
   const currency = rest?.restaurant.currency ?? "UZS";
+  // ⚠️ **The address this shop actually answers at.** Both links below used to
+  // be written `/menu`, which on a shop is the address that *redirects* — and a
+  // `<Link>` that meets a server redirect stops being a client navigation and
+  // becomes a full document load. That is the "it hard-refreshes when I pick a
+  // size": every size chip was a round trip and a repaint.
+  const w = siteWords(t, rest?.brand?.businessType);
   const img = imageUrl(item.imageUrl, 1200);
   const name = contentName(item, lang);
   const description = contentDescription(item, lang);
 
   return (
     <main className="container-page py-10">
-      <Link href="/menu" className="text-sm text-ink-muted hover:text-brand">
-        ← {siteWords(t, rest?.brand?.businessType).back}
+      <Link href={w.href} className="text-sm text-ink-muted hover:text-brand">
+        ← {w.back}
       </Link>
 
       <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
@@ -187,7 +193,12 @@ export default async function MenuItemPage({
                   return (
                     <Link
                       key={v.id}
-                      href={`/menu/${v.id}`}
+                      href={`${w.href}/${v.id}`}
+                      // ⚠️ **Stay where the guest is looking.** Picking a size
+                      // is not going somewhere; the default scroll-to-top makes
+                      // a choice made half way down the page feel like the site
+                      // reloaded under them.
+                      scroll={false}
                       aria-current={on ? "true" : undefined}
                       className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
                         on

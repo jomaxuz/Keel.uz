@@ -60,6 +60,7 @@ import {
 } from "./canvasStyle";
 import { imageUrl } from "@/lib/api";
 import { localized } from "@/lib/i18n/site-content";
+import { catalogHref } from "@/lib/siteWords";
 import type { Lang } from "@/lib/i18n/dictionaries";
 import type { DesignBox, DesignCanvas, DesignElement } from "@/lib/types";
 
@@ -82,6 +83,7 @@ export default function CanvasBlock({
   lang,
   widgets,
   popup = false,
+  businessType,
 }: {
   canvas?: DesignCanvas | null;
   /** Which band this is, published for the console's editing overlay. */
@@ -91,6 +93,10 @@ export default function CanvasBlock({
   lang: Lang;
   widgets?: CanvasWidgets;
   popup?: boolean;
+  /** ⚠️ Only the type, never the words — the same boundary rule the language
+   *  code follows above. It decides where a button with no address of its own
+   *  sends the guest: a shop's catalogue, not a menu that redirects to it. */
+  businessType?: string;
 }) {
   const elements = (canvas?.elements ?? []).filter((e) => !e.hidden);
   if (elements.length === 0) return null;
@@ -134,6 +140,7 @@ export default function CanvasBlock({
             index={indexOf(canvas, el)}
             lang={lang}
             widgets={widgets}
+            businessType={businessType}
             absolute
           />
         ))}
@@ -156,6 +163,7 @@ export default function CanvasBlock({
                 index={indexOf(canvas, el)}
                 lang={lang}
                 widgets={widgets}
+                businessType={businessType}
                 absolute
               />
             ))}
@@ -184,6 +192,7 @@ export default function CanvasBlock({
                 index={indexOf(canvas, el)}
                 lang={lang}
                 widgets={widgets}
+                businessType={businessType}
                 absolute={false}
               />
             ))}
@@ -200,6 +209,7 @@ function Element({
   lang,
   widgets,
   absolute,
+  businessType,
 }: {
   el: DesignElement;
   box: DesignBox;
@@ -212,6 +222,7 @@ function Element({
   lang: Lang;
   widgets?: CanvasWidgets;
   absolute: boolean;
+  businessType?: string;
 }) {
   // Published on every element, in every branch, so the overlay does not have to
   // know which kind it is looking at.
@@ -379,7 +390,10 @@ function Element({
 
   if (el.type === "button") {
     if (!text) return null;
-    const href = el.link || "/menu";
+    // ⚠️ The fallback follows the business: on a shop `/menu` is the address
+    // that redirects, and a button that redirects is a full page load on the
+    // most-clicked link the page has.
+    const href = el.link || catalogHref(businessType);
     // ⚠️ **Two elements, because a button may now leave the site.**
     // `LocaleLink` prefixes `/ru` or `/en` onto an href — right for a page of
     // ours and nonsense on `https://t.me/...` — and Next's client router

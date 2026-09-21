@@ -28,6 +28,7 @@ import type {
   FloorTable,
   Reservation,
 } from "@/lib/types";
+import { useSiteWords } from "@/lib/business";
 
 /** `yyyy-mm-dd` / `hh:mm` in the visitor's own timezone. */
 function todayISO(): string {
@@ -44,6 +45,8 @@ function nextHalfHour(): string {
 export default function BookingPage() {
   const { t } = useI18n();
   const { user, loading: userLoading } = useUser();
+  // The catalogue's own address — see lib/siteWords.ts.
+  const w = useSiteWords();
   const router = useRouter();
 
   const [date, setDate] = useState(todayISO);
@@ -190,7 +193,7 @@ export default function BookingPage() {
             >
               {t.booking.another}
             </button>
-            <Link href="/menu" className="btn-primary px-5 py-2.5">
+            <Link href={w.href} className="btn-primary px-5 py-2.5">
               {t.common.goToMenu}
             </Link>
           </div>

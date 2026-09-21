@@ -50,7 +50,7 @@ export default function CartPage() {
         )}
         <h1 className="font-display text-2xl font-bold">{t.cart.emptyTitle}</h1>
         <p className="mt-3 text-ink-muted">{w.basketEmpty}</p>
-        <Link href="/menu" className="btn-primary mt-6 px-6 py-3">
+        <Link href={w.href} className="btn-primary mt-6 px-6 py-3">
           {t.common.goToMenu}
         </Link>
       </main>
@@ -213,7 +213,7 @@ export default function CartPage() {
             </p>
           )}
           <Link
-            href="/menu"
+            href={w.href}
             className="mt-3 block text-center text-sm text-ink-muted hover:text-brand"
           >
             {t.cart.continue}

@@ -18,6 +18,7 @@ import { TelegramProvider, parseStartParam, useTelegram } from "@/lib/telegram";
 import { useUser } from "@/lib/user";
 import { useCart } from "@/lib/cart";
 import TelegramLangGate from "./TelegramLangGate";
+import { useSiteWords } from "@/lib/business";
 
 export default function TelegramApp({ children }: { children?: React.ReactNode }) {
   const { login } = useUser();
@@ -35,6 +36,10 @@ export default function TelegramApp({ children }: { children?: React.ReactNode }
 
 function TelegramChrome() {
   const { inTelegram, webApp, startParam } = useTelegram();
+  // Where a table QR lands. ⚠️ On a shop `/menu` is the address that redirects,
+  // and a redirect inside Telegram's own browser is a second page load in a
+  // window the guest cannot go back from.
+  const w = useSiteWords();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -54,7 +59,7 @@ function TelegramChrome() {
     routed.current = true;
     const qs = new URLSearchParams({ table });
     if (branch) qs.set("branch", branch);
-    router.replace(`/menu?${qs}`);
+    router.replace(`${w.href}?${qs}`);
   }, [inTelegram, startParam, params, router, pathname]);
 
   // Telegram draws the back button; this makes it mean something.

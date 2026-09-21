@@ -240,7 +240,7 @@ export function ImageTextSection({ d, section }: { d: BlockData; section: Design
           )}
           {text(s, "buttonLabel", d.lang) && (
             <LocaleLink
-              href={str(s, "buttonLink", "/menu")}
+              href={str(s, "buttonLink", siteWords(d.t, d.data?.brand?.businessType).href)}
               className="btn btn-primary mt-6 px-6 py-3"
               data-keel-set="buttonLabel"
             >
@@ -286,7 +286,7 @@ export function BannerSection({ d, section }: { d: BlockData; section: DesignSec
         )}
         {text(s, "buttonLabel", d.lang) && (
           <LocaleLink
-            href={str(s, "buttonLink", "/menu")}
+            href={str(s, "buttonLink", siteWords(d.t, d.data?.brand?.businessType).href)}
             className="btn btn-primary mt-7 px-6 py-3"
             data-keel-set="buttonLabel"
           >
@@ -435,7 +435,7 @@ export function CategoriesSection({ d, section }: { d: BlockData; section: Desig
           {groups.map((g) => (
             <LocaleLink
               key={g.category.id}
-              href={`/menu#cat-${g.category.slug || g.category.id}`}
+              href={`${siteWords(d.t, d.data?.brand?.businessType).href}#cat-${g.category.slug || g.category.id}`}
               className="card flex flex-col items-center gap-2 p-4 text-center"
             >
               {g.category.imageUrl && (

@@ -179,6 +179,7 @@ export default function DesignRenderer({
                   canvas={section.canvas}
                   bandIndex={sections.indexOf(section)}
                   lang={lang}
+                  businessType={data.data?.brand?.businessType}
                   widgets={canvasWidgets(data, section)}
                 />
               </div>

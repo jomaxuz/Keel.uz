@@ -8,6 +8,7 @@ import { imageUrl } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/client";
+import { useSiteWords } from "@/lib/business";
 import { contentDescription, contentName } from "@/lib/i18n/content";
 import type { MenuItem } from "@/lib/types";
 
@@ -20,6 +21,10 @@ export default function MenuItemCard({
 }) {
   const { add, lines, setQty } = useCart();
   const { lang, t } = useI18n();
+  // ⚠️ Where a product lives on this site. Written `/menu/…` it was the address
+  // that redirects on a shop, and a `<Link>` that meets a redirect is a full
+  // page load — on every card in the catalogue.
+  const w = useSiteWords();
   const img = imageUrl(item.imageUrl, 600);
   // Dishes with option groups cannot be added in one tap — the customer picks
   // the variant on the dish page. Without options the line id is just the id.
@@ -64,7 +69,7 @@ export default function MenuItemCard({
           inside the link, and anything inside it takes the navigation with it however
           many clicks are stopped. The card is the positioning context. */}
       <FavoriteButton id={item.id} />
-      <Link href={`/menu/${item.id}`} className="block">
+      <Link href={`${w.href}/${item.id}`} className="block">
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-ink/5">
           {img ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -104,7 +109,7 @@ export default function MenuItemCard({
       </Link>
 
       <div className="flex flex-1 flex-col p-3 sm:p-5">
-        <Link href={`/menu/${item.id}`}>
+        <Link href={`${w.href}/${item.id}`}>
           <h3 className="font-display text-base font-bold leading-snug transition-colors group-hover:text-brand sm:text-lg">
             {name}
           </h3>
@@ -182,7 +187,7 @@ export default function MenuItemCard({
           {/* Once in the cart the button turns into a −/qty/+ stepper. */}
           {hasOptions ? (
             <Link
-              href={`/menu/${item.id}`}
+              href={`${w.href}/${item.id}`}
               aria-disabled={!orderable}
               className={`btn-primary ml-auto shrink-0 px-3.5 py-2 ${
                 orderable ? "" : "pointer-events-none opacity-50"

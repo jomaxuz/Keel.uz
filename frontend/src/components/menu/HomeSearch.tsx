@@ -22,6 +22,7 @@ import { imageUrl } from "@/lib/api";
 import { localePath } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/client";
+import { useSiteWords } from "@/lib/business";
 import { contentName } from "@/lib/i18n/content";
 import { buildIndex, NO_FILTERS, runSearch } from "@/lib/search";
 import type { MenuGroup } from "@/lib/types";
@@ -39,6 +40,10 @@ export default function HomeSearch({
   big?: boolean;
 }) {
   const { lang, t } = useI18n();
+  // ⚠️ Where a product lives on this site. Written `/menu/…` it was the address
+  // that redirects on a shop, and a `<Link>` that meets a redirect is a full
+  // page load — on every card in the catalogue.
+  const w = useSiteWords();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -140,7 +145,7 @@ export default function HomeSearch({
                 return (
                   <li key={item.id}>
                     <Link
-                      href={`/menu/${item.id}`}
+                      href={`${w.href}/${item.id}`}
                       className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-ink/5"
                     >
                       <span className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-ink/5">

@@ -286,7 +286,7 @@ export default function CheckoutPage() {
           {t.checkout.emptyTitle}
         </h1>
         <p className="mt-3 text-ink-muted">{w.checkoutEmpty}</p>
-        <Link href="/menu" className="btn-primary mt-6 px-6 py-3">
+        <Link href={w.href} className="btn-primary mt-6 px-6 py-3">
           {t.common.goToMenu}
         </Link>
       </main>
