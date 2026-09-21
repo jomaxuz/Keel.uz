@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { LuBuilding2, LuChevronRight } from "react-icons/lu";
 import KeelMark from "@/components/till/KeelMark";
+import { useAdminT } from "@/lib/i18n/admin";
+import { useI18n } from "@/lib/i18n/client";
+import { LANGS, type Lang } from "@/lib/i18n";
 import { bridge, type BranchView } from "./bridge";
 
 // The first screen a monoblock ever shows, and ideally the only time anybody
@@ -17,6 +20,13 @@ import { bridge, type BranchView } from "./bridge";
 // as a different program, on the one occasion somebody is deciding whether to
 // trust it with the restaurant's money.
 export default function Setup({ onPaired }: { onPaired: () => void }) {
+  // ⚠️ **Three languages on the first screen too.** Every other screen in the
+  // till has had them all along; this one was written inside the shell, where
+  // the dictionary was out of reach, and stayed Uzbek. It is the screen a
+  // machine is set up on — often by whoever delivers it, who may not read
+  // Uzbek — and the one where somebody decides whether to trust this program
+  // with the restaurant's money.
+  const t = useAdminT().till.setup;
   const [address, setAddress] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -85,6 +95,12 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
         {/* ⚠️ Our colour and our type, not the restaurant's — the same reasoning
             as the lock screen: `text-brand` and the theme fonts would draw a
             different Keel in every install. */}
+        {/* ⚠️ **Above the mark, not in a settings screen.** Whoever is
+            standing here has no account yet and nowhere else to go: a language
+            they cannot read is the whole screen, and a switch they have to
+            find first is a switch that is not there. */}
+        <LanguagePicker label={t.language} />
+
         <div className="mb-7 flex items-center justify-center gap-3">
           <KeelMark className="h-11 w-11 text-keel-deep" />
           <span className="font-poppins text-3xl font-semibold tracking-tight text-ink">
@@ -95,14 +111,11 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
         <div className="till-panel p-6">
           {branches === null ? (
             <form onSubmit={connect}>
-              <h1 className="text-base font-semibold">Kassani ulash</h1>
-              <p className="mt-1 text-sm text-ink-muted">
-                Bu kompyuter qaysi restoranga tegishli? Bir marta ulanadi — keyin
-                faqat PIN so‘raladi.
-              </p>
+              <h1 className="text-base font-semibold">{t.title}</h1>
+              <p className="mt-1 text-sm text-ink-muted">{t.lead}</p>
 
               <label className="till-label mt-6 block" htmlFor="address">
-                Restoran manzili
+                {t.address}
               </label>
               <input
                 id="address"
@@ -116,13 +129,13 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
               {/* The one thing somebody might get subtly wrong, answered before
                   it is asked rather than in a support call. */}
               <p className="mt-1.5 text-xs text-ink-muted">
-                Saytingiz manzili. Faqat nomni yozsangiz yetarli:{" "}
+                {t.addressHint}{" "}
                 <span className="till-num">osh</span> →{" "}
                 <span className="till-num">osh.keel.uz</span>
               </p>
 
               <label className="till-label mt-5 block" htmlFor="username">
-                Login
+                {t.login}
               </label>
               <input
                 id="username"
@@ -133,7 +146,7 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
               />
 
               <label className="till-label mt-4 block" htmlFor="password">
-                Parol
+                {t.password}
               </label>
               <input
                 id="password"
@@ -152,12 +165,12 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
               {/* ⚠️ Exactly one accent control per screen (globals.css): it is
                   always the thing that moves the setup forward. */}
               <button className="till-btn-accent mt-6 w-full" disabled={busy}>
-                {busy ? "Ulanmoqda…" : "Davom etish"}
+                {busy ? t.connecting : t.connect}
               </button>
             </form>
           ) : pairedTo ? (
             <div>
-              <h1 className="text-base font-semibold">Bu qanday ekran?</h1>
+              <h1 className="text-base font-semibold">{t.whatTitle}</h1>
               <p className="mt-1 text-sm text-ink-muted">
                 Keyin ham o'zgartirish mumkin (Ctrl+Shift+M).
               </p>
@@ -175,29 +188,23 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
                   disabled={busy}
                   onClick={() => void chooseMode("kassa")}
                 >
-                  <span className="block font-medium">Kassa</span>
-                  <span className="block text-xs text-ink-muted">
-                    Peshtaxtada turadi: pul, chek, smena
-                  </span>
+                  <span className="block font-medium">{t.kassa}</span>
+                  <span className="block text-xs text-ink-muted">{t.kassaHint}</span>
                 </button>
                 <button
                   className="till-btn-quiet w-full px-4 py-3 text-left"
                   disabled={busy}
                   onClick={() => void chooseMode("zal")}
                 >
-                  <span className="block font-medium">Zal</span>
-                  <span className="block text-xs text-ink-muted">
-                    Ofitsiant ekrani: stollar, buyurtma, oshxonaga yuborish
-                  </span>
+                  <span className="block font-medium">{t.zal}</span>
+                  <span className="block text-xs text-ink-muted">{t.zalHint}</span>
                 </button>
               </div>
             </div>
           ) : (
             <div>
-              <h1 className="text-base font-semibold">Filialni tanlang</h1>
-              <p className="mt-1 text-sm text-ink-muted">
-                Bu qurilma qaysi filialda turibdi?
-              </p>
+              <h1 className="text-base font-semibold">{t.branchTitle}</h1>
+              <p className="mt-1 text-sm text-ink-muted">{t.branchHint}</p>
 
               {error && <Problem text={error} />}
 
@@ -253,5 +260,35 @@ function Problem({ text }: { text: string }) {
     >
       {text}
     </p>
+  );
+}
+
+
+/** Three letters, on the one screen that has no other way to change them.
+ *
+ *  ⚠️ The choice is kept by `setLang` in the provider's own cookie, which is
+ *  what the shell reads when it starts — so a till set up in Russian opens in
+ *  Russian tomorrow, rather than asking again every morning. */
+function LanguagePicker({ label }: { label: string }) {
+  const { lang, setLang } = useI18n();
+  return (
+    <div className="mb-4 flex items-center justify-center gap-2">
+      <span className="sr-only">{label}</span>
+      {LANGS.map((l: Lang) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLang(l)}
+          aria-pressed={l === lang}
+          className={`rounded-full px-3 py-1 text-xs font-semibold uppercase transition ${
+            l === lang
+              ? "bg-ink text-cream"
+              : "text-ink-muted hover:text-ink"
+          }`}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
   );
 }

@@ -286,9 +286,16 @@ export default function FloorPage() {
       setChecks(res.checks);
       // Keep the open check in step with the server without replacing what the
       // waiter is looking at: the id is the same row, the numbers are fresher.
-      setActive((cur) =>
-        cur ? (res.checks.find((c) => c.id === cur.id) ?? cur) : cur,
-      );
+      setActive((cur) => {
+        if (!cur) return cur;
+        const found = res.checks.find((c) => c.id === cur.id);
+        if (!found) return cur;
+        // ⚠️ **The same object when nothing changed.** The poll runs while a
+        // waiter is typing a comment; handing back an identical check with a
+        // new identity re-renders the panel under them — the line they are
+        // editing, the dialog they are in — for no change at all.
+        return JSON.stringify(found) === JSON.stringify(cur) ? cur : found;
+      });
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) setError(err.message);
     }
@@ -738,7 +745,16 @@ export default function FloorPage() {
                   onAddDish={() => setView("menu")}
                   onChange={(next) => {
                     setActive(next);
-                    void refresh();
+                    // ⚠️ **No second request.** The call that changed the line
+                    // already answered with the whole check, so asking the
+                    // server for every check again is a network round trip and
+                    // three more renders per key press — and the qty stepper is
+                    // pressed in bursts. The room's totals stay fresh by
+                    // replacing the one row that changed; the 30-second poll is
+                    // still what reconciles what other waiters did.
+                    setChecks((cur) =>
+                      cur.map((c) => (c.id === next.id ? next : c)),
+                    );
                   }}
                   onBack={() => {
                     release();

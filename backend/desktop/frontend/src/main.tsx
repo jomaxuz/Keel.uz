@@ -15,6 +15,7 @@ import "./app.css";
 import TillShell from "@/components/till/TillShell";
 import { setTillDeviceToken } from "@/lib/api";
 import { LangProvider } from "@/lib/i18n/client";
+import { LANGS, type Lang } from "@/lib/i18n";
 import KassaScreen from "@/app/kassa/page";
 import ZalScreen from "@/app/zal/page";
 
@@ -163,7 +164,7 @@ function App() {
   // and the hotkey would open a screen whose every control is inert.
   if (printer && bridge()) {
     return (
-      <LangProvider initial="uz">
+      <LangProvider initial={startLang()}>
         <Printer
           doneLabel={printer === "setup" ? "Kassaga o'tish" : "Yopish"}
           onDone={() => {
@@ -176,7 +177,7 @@ function App() {
   }
 
   return (
-    <LangProvider initial="uz">
+    <LangProvider initial={startLang()}>
       {swapping && (
         <ModeSwap
           current={status.mode === "zal" ? "zal" : "kassa"}
@@ -297,3 +298,21 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
+
+/** Which language this monoblock was set up in.
+ *
+ *  ⚠️ **Read once, at start.** The shell used to hard-code Uzbek in all three
+ *  places it mounts a provider, so the switch on the setup screen lasted until
+ *  the window was closed — and a till is closed every night. The provider
+ *  writes the choice to its own cookie when it changes; this reads the same
+ *  cookie back.
+ *
+ *  ⚠️ Anything unrecognised is Uzbek, which is what every till has been running
+ *  and what a machine with no choice recorded should still open in.
+ */
+function startLang(): Lang {
+  if (typeof document === "undefined") return "uz";
+  const m = document.cookie.match(/(?:^|;\s*)lang=([a-z]{2})/);
+  const found = m?.[1];
+  return (LANGS as readonly string[]).includes(found ?? "") ? (found as Lang) : "uz";
+}

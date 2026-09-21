@@ -175,16 +175,12 @@ export default function TillFloorPlan({
               <>
                 {/* The two numbers worth knowing without walking over: what
                     they owe, and how long nobody has looked at them. */}
-                <text
+                <Money
                   x={cx}
                   y={moneyY}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  className="fill-ink"
-                  style={{ fontSize: 15, fontWeight: 700 }}
-                >
-                  {formatPrice(check!.total, currency, lang)}
-                </text>
+                  width={tb.w}
+                  text={formatPrice(check!.total, currency, lang)}
+                />
                 <text
                   x={cx}
                   y={timeY}
@@ -262,5 +258,56 @@ function Chairs({ table: tb, state }: { table: FloorTable; state: TableState }) 
       {row(top, tb.y - h - 4)}
       {row(bottom, tb.y + tb.h + 4)}
     </>
+  );
+}
+
+/** What a table owes, written so that it stays on the table.
+ *
+ *  ⚠️ **SVG text neither wraps nor clips.** At a fixed size a long total simply
+ *  runs out past the table and across its neighbours — and "long" here is not
+ *  exotic: 1 250 000 so'm is a normal evening for four people, and the number
+ *  grows by a digit exactly when the room is busiest and the plan is most
+ *  crowded.
+ *
+ *  So the size is chosen from the space there is. It steps down to a floor
+ *  rather than shrinking without limit — past that the number is unreadable
+ *  from standing height, which is the only distance this screen is read from —
+ *  and below the floor the glyphs are squeezed instead (`textLength`), because
+ *  a compressed number that is still on its table beats a comfortable one that
+ *  is on somebody else's. */
+function Money({
+  x,
+  y,
+  width,
+  text,
+}: {
+  x: number;
+  y: number;
+  /** The table's own width, in plan units. */
+  width: number;
+  text: string;
+}) {
+  // The plan's rounded corners and stroke take the edges; leave them alone.
+  const inner = Math.max(24, width - 14);
+  // ⚠️ A digit's advance is about 0.58 of the font size in this face, and the
+  // spaces in "1 250 000" are narrower — measuring properly would mean a DOM
+  // read per table per render, on the screen that has to stay smooth during
+  // service.
+  const natural = text.length * 0.58 * 15;
+  const size = natural <= inner ? 15 : Math.max(10, (inner / (text.length * 0.58)));
+  const squeezed = text.length * 0.58 * size > inner;
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      dominantBaseline="central"
+      className="fill-ink"
+      style={{ fontSize: size, fontWeight: 700 }}
+      textLength={squeezed ? inner : undefined}
+      lengthAdjust={squeezed ? "spacingAndGlyphs" : undefined}
+    >
+      {text}
+    </text>
   );
 }

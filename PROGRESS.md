@@ -15480,3 +15480,47 @@ qoida manbada tekshiriladi (`catalogLinks.test.ts`) — ishlash paytida buni hec
 narsa ko'rsatmaydi. O'lcham chipi endi sahifani tepaga ham sakratmaydi.
 ecom.keel.uz ning dizayn hujjatidagi 8 ta havola ham `/catalog` ga ko'chirildi
 (ular ma'lumot, kod emas). Frontend **323** test.
+
+---
+
+## 2026-09-22 — Kassa: versiya, zal sxemasi, qayta render, birinchi ekran tili
+
+**1. Auto-update ishlamagani — diagnoz.** Konsoldagi versiya tugmasi
+**platformani** relizga chiqaradi, Windows kassasini emas: kassa `/till/release`
+dan `latest.json` ni so'raydi, u esa serverda **yo'q** (konsolning o'zi ham shuni
+aytadi: «latest.json o'qilmadi»). Ya'ni birorta kassa hech qachon yangilanmagan.
+⚠️ Bu kod xatosi emas — reliz qadami bajarilmagan: o'rnatgichni `TILL_RELEASE_DIR`
+ga qo'yib, yoniga `latest.json` yozish kerak.
+
+**2. «Sozlamalarda hali v0.2.0» — kod xatosi va tuzatildi.** Sozlamalar
+ekrani **sayt bundle'ining** `VERSION` ini ko'rsatardi, ya'ni restoran serveri
+bergan raqamni — kassa ilovasining o'zinikini emas. Ikki dastur, ikki xil kunda
+yangilanadi: monoblok yangilangan, sayt esa eski. Endi ikkalasi ham ko'rinadi
+(«Kassa ilovasi» va «Versiya (sayt)»), va kassaniki `TillVersion()` dan olinadi —
+yangilagich ham aynan shu raqamni solishtiradi.
+
+**3. Zal sxemasida summa stoldan chiqib ketardi.** SVG matni o'ralmaydi ham,
+kesilmaydi ham — 15px qat'iy o'lchamda uzun summa qo'shni stollar ustiga
+yozilardi, va raqam aynan zal to'la bo'lgan kechqurun uzayadi. Endi o'lcham stol
+enidan hisoblanadi, pastki chegarasi bor (undan kichigi tik turgan odamga
+o'qilmaydi), undan keyin esa harflar siqiladi — siqilgan raqam o'z stolida
+turgani, qulay raqam birovning stolida turganidan yaxshiroq.
+
+**4. Izoh yozilganda / son o'zgarganda UI qayta-qayta render bo'lardi.** Zal
+ekranida har o'zgarish ikki so'rov qilardi: mutatsiya (butun chekni qaytaradi)
+va ustiga **butun ro'yxatni** qayta yuklash — ya'ni har bosishda uch render.
+Endi javob kelgan chek ro'yxatdagi o'z qatorini almashtiradi, ikkinchi so'rov
+yo'q. ⚠️ Va 30 soniyalik so'rov endi o'zgarmagan chekni **o'sha obyekt** bilan
+qaytaradi: aks holda u izoh yozayotgan odamning tagidan panelni qayta chizardi.
+
+**5. Birinchi ekran (kassani ulash) uch tilda.** U shell ichida yozilgani uchun
+lug'atdan tashqarida qolgan va faqat o'zbekcha edi — holbuki mashinani ko'pincha
+yetkazib bergan odam sozlaydi. Matnlar `till.setup` ga ko'chdi, ekranning
+tepasiga til tanlagich qo'yildi, va tanlov cookie'da qoladi: shell endi
+`initial="uz"` o'rniga o'sha cookie'ni o'qiydi (ilgari tanlov oyna yopilguncha
+yashardi, kassa esa har kecha yopiladi).
+
+**6. «Zakup» → «Bozorlik».** Ekran ertalab bozorga olib boriladigan ro'yxatni
+yozadi va kodning o'z satrlari uni boshidan «bozorlik ro'yxati» deb ataydi;
+faqat tab ruscha buxgalteriya so'zi bilan turardi. ⏳ UI ni qaytadan chizish —
+keyingi qadam.

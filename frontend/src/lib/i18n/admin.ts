@@ -1823,7 +1823,12 @@ export const adminUz = {
   // savolga javob beradi — «bu hozir menyudan chiqdi» va «buni ertaga ol» —
   // va kechqurun biriga qo'l cho'zgan odam ikkinchisiga tushmasligi kerak.
   zakup: {
-    title: "Zakup",
+    // ⚠️ **«Bozorlik», not «Zakup».** The screen writes the list somebody takes
+    // to the market in the morning, and the code's own strings have called it
+    // that from the beginning — "bozorlik ro'yxati" — while the tab said a
+    // Russian accounting word. A cashier looking for "where do I write what we
+    // ran out of" does not look under "Zakup".
+    title: "Bozorlik",
     forDate: "Qaysi kunga",
     chosen: (n: number) => `${n} ta tanlandi`,
     listTitle: "Ro'yxat",
@@ -2744,6 +2749,31 @@ export const adminUz = {
     // derived from it, so a key missing in ru/en is a compile error rather than
     // an English word appearing on a Russian screen mid-service.
     title: "Kassa",
+    // ⚠️ **The first screen a monoblock shows, and it was Uzbek only.** Every
+    // other screen in the till has three languages; this one was written
+    // straight into the shell, where the dictionary was not in reach. It is the
+    // screen a machine is set up on — often by whoever delivers it — and the
+    // one moment somebody decides whether to trust it with the restaurant's
+    // money.
+    setup: {
+      title: "Kassani ulash",
+      lead: "Bu kompyuter qaysi restoranga tegishli? Bir marta ulanadi — keyin faqat PIN so'raladi.",
+      address: "Restoran manzili",
+      addressHint: "Saytingiz manzili. Faqat nomni yozsangiz yetarli:",
+      login: "Login",
+      password: "Parol",
+      connect: "Davom etish",
+      connecting: "Ulanmoqda…",
+      whatTitle: "Bu qanday ekran?",
+      whatLead: "Bu kompyuter nima uchun ishlatiladi?",
+      kassa: "Kassa",
+      kassaHint: "To'lov qabul qilinadi, chek chiqadi.",
+      zal: "Zal",
+      zalHint: "Ofitsiant stol ochadi, taom uradi.",
+      branchTitle: "Filialni tanlang",
+      branchHint: "Bu kassa qaysi filialga biriktiriladi?",
+      language: "Til",
+    },
     weighRead: "Tarozidan o'qish",
     barcodeStale: (price: number) =>
       `Tarozidagi narx bazadagidan farq qiladi (${price} so'm). Tarozini yangilang yoki qo'lda kiriting.`,
@@ -3011,7 +3041,8 @@ export const adminUz = {
         title: "Bu qurilma",
         branch: "Filial",
         server: "Server",
-        version: "Versiya",
+        version: "Versiya (sayt)",
+        tillVersion: "Kassa ilovasi",
         agent: "Chek chiqarish xizmati",
         agentOn: "ishlayapti",
         agentOff: "ishlamayapti",
@@ -7086,7 +7117,7 @@ export const adminRu: AdminDict = {
     noIngredients: "Сначала заполните раздел «Ингредиенты».",
   },
   zakup: {
-    title: "Закуп",
+    title: "Закупка",
     forDate: "На какой день",
     chosen: (n: number) => `выбрано: ${n}`,
     listTitle: "Список",
@@ -7937,6 +7968,25 @@ export const adminRu: AdminDict = {
   },
   till: {
     title: "Касса",
+    setup: {
+      title: "Подключение кассы",
+      lead: "К какому ресторану относится этот компьютер? Подключение один раз — дальше только PIN.",
+      address: "Адрес ресторана",
+      addressHint: "Адрес вашего сайта. Достаточно одного названия:",
+      login: "Логин",
+      password: "Пароль",
+      connect: "Продолжить",
+      connecting: "Подключение…",
+      whatTitle: "Что это за экран?",
+      whatLead: "Для чего будет использоваться этот компьютер?",
+      kassa: "Касса",
+      kassaHint: "Принимает оплату, печатает чек.",
+      zal: "Зал",
+      zalHint: "Официант открывает стол и добавляет блюда.",
+      branchTitle: "Выберите филиал",
+      branchHint: "К какому филиалу привязать эту кассу?",
+      language: "Язык",
+    },
     weighRead: "Считать с весов",
     barcodeStale: (price: number) =>
       `Цена на весах отличается от базы (${price} сум). Обновите весы или введите вручную.`,
@@ -8137,7 +8187,8 @@ export const adminRu: AdminDict = {
         title: "Это устройство",
         branch: "Филиал",
         server: "Сервер",
-        version: "Версия",
+        version: "Версия (сайт)",
+        tillVersion: "Программа кассы",
         agent: "Служба печати чеков",
         agentOn: "работает",
         agentOff: "не работает",
@@ -12879,6 +12930,25 @@ export const adminEn: AdminDict = {
   },
   till: {
     title: "Till",
+    setup: {
+      title: "Connect this till",
+      lead: "Which restaurant does this computer belong to? Connected once — after that it only asks for a PIN.",
+      address: "Restaurant address",
+      addressHint: "Your site's address. The name alone is enough:",
+      login: "Login",
+      password: "Password",
+      connect: "Continue",
+      connecting: "Connecting…",
+      whatTitle: "What is this screen?",
+      whatLead: "What will this computer be used for?",
+      kassa: "Till",
+      kassaHint: "Takes payment and prints the receipt.",
+      zal: "Floor",
+      zalHint: "A waiter opens a table and adds dishes.",
+      branchTitle: "Choose the branch",
+      branchHint: "Which branch is this till bound to?",
+      language: "Language",
+    },
     weighRead: "Read the scale",
     barcodeStale: (price: number) =>
       `The scale's price differs from the catalogue (${price}). Update the scale, or enter it by hand.`,
@@ -13080,7 +13150,8 @@ export const adminEn: AdminDict = {
         title: "This device",
         branch: "Branch",
         server: "Server",
-        version: "Version",
+        version: "Version (site)",
+        tillVersion: "Till app",
         agent: "Receipt printing service",
         agentOn: "running",
         agentOff: "not running",

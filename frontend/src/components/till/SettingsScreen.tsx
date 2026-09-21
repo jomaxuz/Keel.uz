@@ -43,11 +43,23 @@ export default function SettingsScreen({
 }) {
   const t = useAdminT();
   const [status, setStatus] = useState<Status | null>(null);
+  // ⚠️ Empty in a browser, which is correct: there is no till build there to
+  // report, and an empty row is better than a number that describes something
+  // else.
+  const [tillVersion, setTillVersion] = useState("");
 
   useEffect(() => {
     const b = bridge();
     if (!b) return;
     void (async () => {
+      try {
+        // ⚠️ Asked for separately from the status: an older shell has no
+        // `TillVersion` binding, and one missing method must not take the
+        // branch and the server rows down with it.
+        setTillVersion(await b.TillVersion());
+      } catch {
+        // An older build of the shell. The row simply does not appear.
+      }
       try {
         setStatus(await b.Status());
       } catch {
@@ -91,6 +103,18 @@ export default function SettingsScreen({
             <dl className="space-y-2 text-sm">
               <Row label={t.till.settings.device.branch} value={status.branchName} />
               <Row label={t.till.settings.device.server} value={status.server} />
+              {/* ⚠️ **The build on this counter, not the one the server is
+                  serving.** These are two different programs updated on two
+                  different days: the screen comes from the restaurant's own
+                  server, the shell is an installer somebody ran here. This row
+                  used to print the first while everybody read it as the second,
+                  so a monoblock that had just been updated reported the version
+                  it had before — and the update looked as if it had not
+                  happened. Both are shown now, because a support call needs
+                  both and neither can be derived from the other. */}
+              {tillVersion && (
+                <Row label={t.till.settings.device.tillVersion} value={tillVersion} />
+              )}
               {version && (
                 <Row label={t.till.settings.device.version} value={version} />
               )}

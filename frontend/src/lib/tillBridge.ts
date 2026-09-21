@@ -76,6 +76,15 @@ type Bridge = {
   PrintLines: (lines: string[], o: PrintOptions) => Promise<void>;
   Quit: () => Promise<void>;
   Status: () => Promise<Status>;
+  /** What build of the till is running on this counter.
+   *
+   *  ⚠️ **Not the same number as the web bundle's `VERSION`**, and the
+   *  difference is the whole reason this exists: the screen is served by the
+   *  restaurant's own server and the shell is an installer somebody ran on a
+   *  monoblock. They move on different days, and the settings screen was
+   *  printing the first while being asked about the second — so a counter that
+   *  had just been updated reported the version it had before. */
+  TillVersion: () => Promise<string>;
   DeviceToken: () => Promise<string>;
   ShowKeyboard: () => Promise<void>;
   Connect: (
