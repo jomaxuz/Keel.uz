@@ -81,8 +81,29 @@ export function needsMet(need: Needs | undefined, brand: BrandLike): boolean {
  */
 export function navLabel(key: string, t: AdminDict, brand: BrandLike): string {
   const words = t.nav as unknown as Record<string, string>;
-  if (key === "ingredients" && sellsGoods(brand)) return words.goodsList;
+  if (!sellsGoods(brand)) return words[key];
+  if (key === "ingredients") return words.goodsList;
+  // ⚠️ **And the catalogue itself.** The row a shop opens most often was still
+  // called "Menyu" — the same word the guest's own navigation bar stopped
+  // saying when `/catalog` was added, left behind on the screen where the owner
+  // edits what the guest reads.
+  if (key === "menu") return t.goods.catalog;
   return words[key];
+}
+
+/** What a sidebar *group* heading is called.
+ *
+ *  ⚠️ The heading and the row under it carry the same word, and fixing one and
+ *  not the other leaves "Menyu › Katalog" in a shop's sidebar — which reads as
+ *  two different sections rather than one renamed. */
+export function navGroupLabel(
+  key: string,
+  t: AdminDict,
+  brand: BrandLike,
+): string {
+  const groups = t.nav.groups as unknown as Record<string, string>;
+  if (key === "menu" && sellsGoods(brand)) return t.goods.catalog;
+  return groups[key];
 }
 
 /** The store section, in the order a **shop** walks through it.

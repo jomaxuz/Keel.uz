@@ -63,6 +63,88 @@ export const adminUz = {
     pageOf: (page: number, pages: number) => `${page} / ${pages}`,
   },
 
+  // ---- Do'kon so'zlari ----
+  //
+  // ⚠️ **Panelning o'zi ham «taom» deb turardi.** Yon menyu allaqachon
+  // tuzatilgan edi («Masalliqlar» → «Tovarlar»), lekin ekranlarning ichi
+  // emas: dorixona katalogni ochib «+ Yangi taom» tugmasini, kategoriya
+  // tagida «5 ta taom» ni, hisobotda «Taom» ustunini ko'rardi. Bitta so'z
+  // noto'g'ri bo'lsa odam uni kechiradi; har ekranda takrorlansa — bu panel
+  // boshqa birov uchun yozilgani haqidagi gap.
+  //
+  // ⚠️ **Ikki o'qish, o'n ikkitasi emas** — `siteWords` bilan bir xil qoida:
+  // dorixona ham, butik ham, gulchi ham do'kon, va har biznes turiga alohida
+  // lug'at — ko'rinmaydigan foyda uchun o'n ikki nusxa satr.
+  //
+  // ⚠️ **Faqat so'z, ekran emas.** Hamma joyda bitta komponent qoladi: ikki
+  // ekran — ikki marta tuzatiladigan xato, va ular orasidagi farq bir so'z.
+  goods: {
+    // Katalog ekranining o'zi
+    catalog: "Katalog",
+    item: "Tovar",
+    items: "Tovarlar",
+    count: (n: number) => `${n} ta tovar`,
+    add: "+ Tovar",
+    addNew: "+ Yangi tovar",
+    newTitle: "Yangi tovar",
+    editTitle: "Tovarni tahrirlash",
+    confirmDelete: (name: string) => `"${name}" tovarini o'chirasizmi?`,
+    noItems: "Tovarlar yo'q",
+    empty: "Katalog bo'sh",
+    needCategoryNotice:
+      "Tovar qo'shishdan oldin kamida bitta kategoriya yarating.",
+    categoryDeleteFull: (name: string) =>
+      `"${name}" kategoriyasini o'chirasizmi? Uning ichidagi tovarlar ham o'chadi.`,
+    search: "Tovar nomi bo'yicha qidirish",
+    uncostedCount: (n: number) => `${n} ta tovarda tannarx yo'q — ko'rsatish`,
+    uncostedShowAll: "Hamma tovarni ko'rsatish",
+    costHint:
+      "Bu tovar do'konga qancha turgan. Ixtiyoriy; hisobotlarda yalpi foyda shundan hisoblanadi. Saytda hech qachon ko'rinmaydi.",
+    topSelling: "Ko'p sotilgan tovarlar",
+    // Stop list — javonda yo'q, lekin katalogdan o'chirilmagan
+    stopLead:
+      "Hozir sotuvda bo'lmagan tovarlar. Faqat shu filialda va faqat bugunga — katalogdan olib tashlamaydi.",
+    stopNoItems: "Katalogda tovar yo'q.",
+    stopSynced: (n: number) => `${n} ta tovar to'xtatildi`,
+    stopPosSynced: (n: number) =>
+      `O'qildi — kassada ${n} ta tovar stop listda`,
+    stopPosLocked:
+      "Bu tovar kassa tizimida stop listda. Uni kassadan qaytaring — bu yerdan bo'lmaydi.",
+    // To'plam — do'konda ham bor (sovg'a to'plami, aksiya)
+    comboHint:
+      "To'plamga kiradigan tovarlarni va sonini tanlang. Narx yuqorida — to'plamning o'z narxi.",
+    comboAdd: "+ Tovar qo'shish",
+    comboMissing: "Tovar katalogdan olib tashlangan",
+    comboNothingToAdd:
+      "Qo'shiladigan tovar yo'q. Majburiy tanlovli tovarlar va boshqa to'plamlar qo'shilmaydi.",
+    comboEmpty: "To'plamga kamida bitta tovar qo'shing.",
+    // Buyurtmalar
+    cancelReasonPh: "Masalan: tovar qolmagan, mijoz o'zi bekor qildi...",
+    cancelPresetOut: "Tovar qolmagan",
+    // Tavsiyalar
+    recommendTitle: "Bunga tavsiya qilinadigan tovarlar",
+    recommendSearch: "Tovar nomini yozing",
+    // Tanlovlar
+    optionsLead:
+      "Bitta tovarning bir nechta turi bo'lsa, ularni alohida tovar qilib qo'shish shart emas. Mijozdan nima so'rashni shu yerda yozing.",
+    optionsEmpty: "Hozircha yo'q — tovar bitta narxda sotiladi.",
+    // Hisobotlar
+    reportItem: "Tovar",
+    reportCount: "Tovar soni",
+    // Kassa
+    tillSearch: "Tovar qidirish",
+    tillEmptyCheck: "Chek bo'sh — katalogdan tovar tanlang",
+    tillAdd: "Tovar qo'shish",
+    tillTotalLabel: "Tovarlar",
+    tillNeedLines: "Avval tovar qo'shing — to'lash uchun chek bo'sh",
+    tillComment: "Tovarga izoh",
+    tillMoveHint:
+      "Ko'chiriladigan tovarlarni belgilang va qaysi chekka o'tishini tanlang.",
+    tillStopSearch: "Tovarni qidirish",
+    tillStopEmpty: "Katalogda tovar yo'q",
+    tillStopOffCount: (n: number) => `${n} ta tovar tugagan`,
+    tillStopConfirmOff: "Tovarni to'xtatasizmi?",
+  },
   nav: {
     panel: "Admin panel",
     groups: {
@@ -5551,6 +5633,66 @@ export const adminRu: AdminDict = {
       `${from}–${to} из ${total}`,
     pageOf: (page: number, pages: number) => `${page} / ${pages}`,
   },
+  // Слова магазина — см. комментарий в adminUz.
+  goods: {
+    catalog: "Каталог",
+    item: "Товар",
+    items: "Товары",
+    count: (n: number) => `${n} товаров`,
+    add: "+ Товар",
+    addNew: "+ Новый товар",
+    newTitle: "Новый товар",
+    editTitle: "Редактировать товар",
+    confirmDelete: (name: string) => `Удалить товар "${name}"?`,
+    noItems: "Товаров нет",
+    empty: "Каталог пуст",
+    needCategoryNotice:
+      "Перед добавлением товара создайте хотя бы одну категорию.",
+    categoryDeleteFull: (name: string) =>
+      `Удалить категорию "${name}"? Товары внутри неё тоже удалятся.`,
+    search: "Поиск по названию товара",
+    uncostedCount: (n: number) =>
+      `У ${n} товаров нет себестоимости — показать`,
+    uncostedShowAll: "Показать все товары",
+    costHint:
+      "Во сколько этот товар обошёлся магазину. Необязательно; из этого считается валовая прибыль в отчётах. На сайте никогда не видно.",
+    topSelling: "Самые продаваемые товары",
+    stopLead:
+      "Товары, которых сейчас нет в продаже. Только в этом филиале и только на сегодня — из каталога не удаляет.",
+    stopNoItems: "В каталоге нет товаров.",
+    stopSynced: (n: number) => `Остановлено товаров: ${n}`,
+    stopPosSynced: (n: number) => `Прочитано — на кассе ${n} товаров в стоп-листе`,
+    stopPosLocked:
+      "Этот товар в стоп-листе кассовой системы. Вернуть его можно только с кассы, не отсюда.",
+    comboHint:
+      "Выберите товары и их количество. Цена выше — это цена самого набора.",
+    comboAdd: "+ Добавить товар",
+    comboMissing: "Товар убран из каталога",
+    comboNothingToAdd:
+      "Добавить нечего. Товары с обязательным выбором и другие наборы не добавляются.",
+    comboEmpty: "Добавьте в набор хотя бы один товар.",
+    cancelReasonPh: "Например: товар закончился, клиент отменил сам...",
+    cancelPresetOut: "Товар закончился",
+    recommendTitle: "Рекомендуемые к этому товары",
+    recommendSearch: "Введите название товара",
+    optionsLead:
+      "Если у товара несколько видов, их не нужно заводить отдельными товарами. Напишите здесь, что спросить у клиента.",
+    optionsEmpty: "Пока нет — товар продаётся по одной цене.",
+    reportItem: "Товар",
+    reportCount: "Кол-во товаров",
+    tillSearch: "Поиск товара",
+    tillEmptyCheck: "Чек пуст — выберите товар из каталога",
+    tillAdd: "Добавить товар",
+    tillTotalLabel: "Товары",
+    tillNeedLines: "Сначала добавьте товар — чек пуст",
+    tillComment: "Комментарий к товару",
+    tillMoveHint:
+      "Отметьте товары для переноса и выберите, в какой чек их перенести.",
+    tillStopSearch: "Найти товар",
+    tillStopEmpty: "В каталоге нет товаров",
+    tillStopOffCount: (n: number) => `${n} товаров закончилось`,
+    tillStopConfirmOff: "Остановить товар?",
+  },
   nav: {
     panel: "Админ-панель",
     groups: {
@@ -10535,6 +10677,63 @@ export const adminEn: AdminDict = {
     pagerRange: (from: number, to: number, total: number) =>
       `${from}–${to} of ${total}`,
     pageOf: (page: number, pages: number) => `${page} / ${pages}`,
+  },
+  // A shop's words — see the note in adminUz.
+  goods: {
+    catalog: "Catalogue",
+    item: "Product",
+    items: "Products",
+    count: (n: number) => `${n} products`,
+    add: "+ Product",
+    addNew: "+ New product",
+    newTitle: "New product",
+    editTitle: "Edit product",
+    confirmDelete: (name: string) => `Delete "${name}"?`,
+    noItems: "No products",
+    empty: "The catalogue is empty",
+    needCategoryNotice: "Create at least one category before adding a product.",
+    categoryDeleteFull: (name: string) =>
+      `Delete the "${name}" category? The products in it will go too.`,
+    search: "Search by product name",
+    uncostedCount: (n: number) => `${n} products have no cost — show`,
+    uncostedShowAll: "Show every product",
+    costHint:
+      "What this product cost the shop. Optional; gross profit in the reports is figured from it. Never shown on the site.",
+    topSelling: "Best sellers",
+    stopLead:
+      "Products that are not on sale right now. This branch only and today only — it does not remove them from the catalogue.",
+    stopNoItems: "No products in the catalogue.",
+    stopSynced: (n: number) => `${n} products stopped`,
+    stopPosSynced: (n: number) => `Read — ${n} products on the till's stop list`,
+    stopPosLocked:
+      "This product is on the till system's stop list. Put it back from the till, not from here.",
+    comboHint:
+      "Pick the products in the set and how many of each. The price above is the set's own.",
+    comboAdd: "+ Add product",
+    comboMissing: "Product removed from the catalogue",
+    comboNothingToAdd:
+      "Nothing to add. Products with a required choice and other sets are left out.",
+    comboEmpty: "Add at least one product to the set.",
+    cancelReasonPh: "For example: out of stock, the customer cancelled...",
+    cancelPresetOut: "Out of stock",
+    recommendTitle: "Recommended with this",
+    recommendSearch: "Type a product name",
+    optionsLead:
+      "If a product comes in several kinds, they do not need to be separate products. Write here what to ask the customer.",
+    optionsEmpty: "None yet — the product is sold at one price.",
+    reportItem: "Product",
+    reportCount: "Products",
+    tillSearch: "Find a product",
+    tillEmptyCheck: "The check is empty — pick a product from the catalogue",
+    tillAdd: "Add product",
+    tillTotalLabel: "Products",
+    tillNeedLines: "Add a product first — the check is empty",
+    tillComment: "Note on the product",
+    tillMoveHint: "Tick the products to move and choose which check they go to.",
+    tillStopSearch: "Find a product",
+    tillStopEmpty: "No products in the catalogue",
+    tillStopOffCount: (n: number) => `${n} products out of stock`,
+    tillStopConfirmOff: "Stop this product?",
   },
   nav: {
     panel: "Admin panel",

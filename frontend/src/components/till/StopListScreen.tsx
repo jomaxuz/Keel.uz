@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, ApiError, imageUrl } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useTillWords } from "@/lib/tillWords";
 import {
   holdLeft,
   stopHoldBody,
@@ -43,6 +44,7 @@ export default function StopListScreen({
   onError: (msg: string) => void;
 }) {
   const t = useAdminT();
+  const w = useTillWords();
   const [items, setItems] = useState<StopListItem[]>([]);
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("");
@@ -244,14 +246,14 @@ export default function StopListScreen({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t.till.stopSearch}
+            placeholder={w.tillStopSearch}
             className="till-input h-11 min-w-0 flex-1"
           />
           {/* The answer to "is anything off tonight", so it does not require
               reading the grid. */}
           <span className="shrink-0 text-sm font-semibold text-ink-muted">
             {offCount > 0
-              ? t.till.stopOffCount(offCount)
+              ? w.tillStopOffCount(offCount)
               : t.till.stopNothingOff}
           </span>
         </div>
@@ -295,7 +297,7 @@ export default function StopListScreen({
         {loading ? (
           <p className="px-2 py-6 text-sm text-ink-muted">{t.till.loading}</p>
         ) : shown.length === 0 ? (
-          <p className="px-2 py-6 text-sm text-ink-muted">{t.till.stopEmpty}</p>
+          <p className="px-2 py-6 text-sm text-ink-muted">{w.tillStopEmpty}</p>
         ) : (
           <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
             {shown.map((row) => {
@@ -473,6 +475,7 @@ function ConfirmStop({
   onLimit: (limit: number) => void;
 }) {
   const t = useAdminT();
+  const w = useTillWords();
   const stopping = !row.manual;
   const [limit, setLimitValue] = useState(row.limit ? String(row.limit) : "");
   /** How long the stop should hold. ⚠️ **Open-ended is the default and stays
@@ -501,7 +504,7 @@ function ConfirmStop({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
       <div className="till-dialog w-full max-w-sm p-4">
         <h2 className="font-display text-lg font-bold">
-          {stopping ? t.till.stopConfirmOffTitle : t.till.stopConfirmOnTitle}
+          {stopping ? w.tillStopConfirmOff : t.till.stopConfirmOnTitle}
         </h2>
         <p className="mt-2 text-sm text-ink-soft">
           {stopping

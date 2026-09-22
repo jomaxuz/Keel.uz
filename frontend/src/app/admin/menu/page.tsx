@@ -9,6 +9,7 @@ import ImageUpload from "@/components/admin/ImageUpload";
 import Modal from "@/components/admin/Modal";
 import { ListScroll } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords, type PanelWords } from "@/lib/panelWords";
 import { useAdminScope } from "@/lib/adminScope";
 import MenuImport from "@/components/admin/MenuImport";
 import OptionsEditor, {
@@ -160,6 +161,7 @@ export default function AdminMenuPage() {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const t = useAdminT();
+  const w = usePanelWords();
   const scope = useAdminScope();
   // What has run out **at this branch** today. The menu itself belongs to the
   // brand, so this is the one thing on this page that is not shared.
@@ -266,7 +268,7 @@ export default function AdminMenuPage() {
     // form has closed and the item looks saved, which it is, as the wrong kind
     // of thing.
     if (draft.kind === "combo" && draft.comboItems.length === 0) {
-      void tell({ title: t.menu.comboEmpty });
+      void tell({ title: w.comboEmpty });
       return;
     }
     // ⚠️ **Refused rather than quietly dropped.** `fromOptionDrafts` throws away
@@ -345,7 +347,7 @@ export default function AdminMenuPage() {
   }
 
   async function remove(m: MenuItem) {
-    if (!(await ask({ title: t.menu.confirmDelete(m.name), danger: true })))
+    if (!(await ask({ title: w.confirmDelete(m.name), danger: true })))
       return;
     try {
       await api.deleteMenuItem(m.id);
@@ -409,7 +411,7 @@ export default function AdminMenuPage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.menu.title}</h1>
+        <h1 className="text-2xl font-bold">{w.catalog}</h1>
         <div className="flex gap-2">
           {/* ⚠️ **No category needed, unlike "add a dish".** Import creates the
               sections it finds — a restaurant that has just signed up has an
@@ -431,7 +433,7 @@ export default function AdminMenuPage() {
             className="btn-primary px-4 py-2 disabled:opacity-60"
             title={cats.length === 0 ? t.menu.needCategory : ""}
           >
-            {t.menu.addNew}
+            {w.addNew}
           </button>
         </div>
       </div>
@@ -459,14 +461,14 @@ export default function AdminMenuPage() {
           }`}
         >
           {uncostedOnly
-            ? t.menu.uncostedShowAll
-            : t.menu.uncostedCount(uncosted.length)}
+            ? w.uncostedShowAll
+            : w.uncostedCount(uncosted.length)}
         </button>
       )}
 
       {cats.length === 0 && !loading && (
         <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          {t.menu.needCategoryNotice}
+          {w.needCategoryNotice}
         </p>
       )}
 
@@ -485,7 +487,7 @@ export default function AdminMenuPage() {
                 </span>
               </h2>
               {list.length === 0 ? (
-                <p className="text-sm text-ink-muted/70">{t.menu.noItems}</p>
+                <p className="text-sm text-ink-muted/70">{w.noItems}</p>
               ) : (
                 <ListScroll
                   className="divide-y divide-line rounded-3xl border border-line bg-surface shadow-card"
@@ -503,6 +505,7 @@ export default function AdminMenuPage() {
                       onEdit={() => setDraft(toDraft(m))}
                       onDelete={() => remove(m)}
                       t={t}
+                      w={w}
                     />
                   ))}
                 </ListScroll>
@@ -531,6 +534,7 @@ export default function AdminMenuPage() {
                     onEdit={() => setDraft(toDraft(m))}
                     onDelete={() => remove(m)}
                     t={t}
+                    w={w}
                   />
                 ))}
               </ListScroll>
@@ -542,7 +546,7 @@ export default function AdminMenuPage() {
       {draft && (
         <Modal wide onClose={() => setDraft(null)}>
           <h2 className="text-lg font-bold">
-            {draft.id ? t.menu.editTitle : t.menu.newTitle}
+            {draft.id ? w.editTitle : w.newTitle}
           </h2>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -647,7 +651,7 @@ export default function AdminMenuPage() {
                       : "border-line-strong text-ink-soft hover:border-brand"
                   }`}
                 >
-                  {t.menu.kindDish}
+                  {w.item}
                 </button>
                 <button
                   type="button"
@@ -767,7 +771,7 @@ export default function AdminMenuPage() {
                 onChange={(e) => setDraft({ ...draft, cost: e.target.value })}
               />
               <span className="mt-1 block text-xs text-ink-muted">
-                {t.menu.costHint}
+                {w.costHint}
               </span>
             </label>
 
@@ -1131,6 +1135,7 @@ function MenuRow({
   onEdit,
   onDelete,
   t,
+  w,
 }: {
   item: MenuItem;
   soldOut: boolean;
@@ -1142,6 +1147,8 @@ function MenuRow({
   onEdit: () => void;
   onDelete: () => void;
   t: ReturnType<typeof useAdminT>;
+  /** What this business calls what it sells — see lib/panelWords.ts. */
+  w: PanelWords;
 }) {
   return (
     <div className="flex items-center gap-3 p-3">
@@ -1223,7 +1230,7 @@ function MenuRow({
       </div>
       {onToggleSoldOut && item.isAvailable && posLocked && (
         <span
-          title={t.stopList.posLocked}
+          title={w.stopPosLocked}
           className="text-xs text-ink-muted/70"
         >
           {t.stopList.posBadge}

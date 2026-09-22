@@ -2413,6 +2413,13 @@ export interface TillSession {
   /** The brand this monoblock belongs to, for the lock screen's own label. */
   brandName: string;
   branchName: string;
+  /** What this brand sells, so the till can use its words.
+   *
+   *  ⚠️ **Sent, not guessed.** The till has no panel and no brand list; without
+   *  this field every screen on a grocery's counter says "taom", which is the
+   *  sidebar's old complaint on the one screen somebody stands at all day.
+   *  Empty is a restaurant, as everywhere else. */
+  businessType?: string;
   /** The pictures the restaurant chose for this screen, in the owner's order. */
   banners: string[];
   /** The subscription countdown, or absent on almost every day. */

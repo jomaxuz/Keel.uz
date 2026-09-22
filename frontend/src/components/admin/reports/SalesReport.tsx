@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, downloadReport } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import { ListScroll } from "@/components/admin/PagedList";
 import { TrendChart, HoursChart } from "@/components/admin/Charts";
 import type { SalesGroup, SalesHour, SalesReportResponse, SalesTotals } from "@/lib/types";
@@ -56,6 +57,7 @@ export default function SalesReport({ range }: { range: Range }) {
   }
 
   const s = t.reports.sales;
+  const w = usePanelWords();
   const buckets = data?.buckets ?? [];
 
   return (
@@ -127,7 +129,7 @@ export default function SalesReport({ range }: { range: Range }) {
                   <th className="px-3 py-2 text-right">{s.revenue}</th>
                   <th className="px-3 py-2 text-right">{s.avgCheck}</th>
                   <th className="px-3 py-2 text-right">{s.pending}</th>
-                  <th className="px-3 py-2 text-right">{s.items}</th>
+                  <th className="px-3 py-2 text-right">{w.reportCount}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -196,6 +198,7 @@ export default function SalesReport({ range }: { range: Range }) {
 function BusiestHours({ hours }: { hours: SalesHour[] }) {
   const t = useAdminT();
   const s = t.reports.sales;
+  const w = usePanelWords();
 
   const first = hours.findIndex((h) => h.orders > 0);
   if (first < 0) return null;
@@ -234,6 +237,7 @@ function BusiestHours({ hours }: { hours: SalesHour[] }) {
 function Headline({ data }: { data: SalesReportResponse }) {
   const t = useAdminT();
   const s = t.reports.sales;
+  const w = usePanelWords();
   const pct = data.compare?.percent ?? {};
 
   return (
@@ -246,7 +250,7 @@ function Headline({ data }: { data: SalesReportResponse }) {
           value={formatPrice(data.totals.avgCheck)}
           change={pct.avgCheck}
         />
-        <Tile label={s.items} value={String(data.totals.items)} change={pct.items} />
+        <Tile label={w.reportCount} value={String(data.totals.items)} change={pct.items} />
       </div>
 
       <p className="text-xs text-ink-muted">

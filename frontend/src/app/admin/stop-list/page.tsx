@@ -18,6 +18,7 @@ import { api } from "@/lib/api";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { ListScroll } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords, type PanelWords } from "@/lib/panelWords";
 import { useAdminScope } from "@/lib/adminScope";
 import type { StopList, StopListItem } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
@@ -32,6 +33,7 @@ import {
 
 export default function AdminStopListPage() {
   const t = useAdminT();
+  const w = usePanelWords();
   const { tell } = useAsk();
   const scope = useAdminScope();
   const branch = scope.branch;
@@ -157,7 +159,7 @@ export default function AdminStopListPage() {
       const res = await api.syncPOSStopList();
       if (!res.ok) void tell({ title: res.message ?? t.common.saveFailed });
       else if (typeof res.stopped === "number")
-        void tell({ title: t.stopList.posSynced(res.stopped) });
+        void tell({ title: w.stopPosSynced(res.stopped) });
       load();
       scope.reload();
     } catch (e: unknown) {
@@ -178,7 +180,7 @@ export default function AdminStopListPage() {
       const res = await api.syncStockStopList();
       if (!res.ok) void tell({ title: res.message ?? t.common.saveFailed });
       else if (typeof res.stopped === "number")
-        void tell({ title: t.stopList.stockSynced(res.stopped) });
+        void tell({ title: w.stopSynced(res.stopped) });
       load();
       scope.reload();
     } catch (e: unknown) {
@@ -236,7 +238,7 @@ export default function AdminStopListPage() {
         <div>
           <h1 className="text-2xl font-bold">{t.stopList.title}</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            {t.stopList.subtitle}
+            {w.stopLead}
           </p>
         </div>
         <span className="rounded-full bg-amber-500/15 px-3 py-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
@@ -257,7 +259,7 @@ export default function AdminStopListPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={t.stopList.search}
+          placeholder={w.search}
           className="min-w-56 flex-1 rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
         />
         {/* Two buttons rather than a dropdown: "what is off right now" is the
@@ -283,7 +285,7 @@ export default function AdminStopListPage() {
       ) : shown.length === 0 ? (
         <p className="mt-6 rounded-2xl border border-line bg-surface px-4 py-6 text-center text-sm text-ink-muted">
           {items.length === 0
-            ? t.stopList.noItems
+            ? w.stopNoItems
             : offOnly
               ? t.stopList.nothingOff
               : t.common.notFound}
@@ -301,6 +303,7 @@ export default function AdminStopListPage() {
               onToggle={() => press(row)}
               onExpired={load}
               t={t}
+              w={w}
             />
           ))}
         </ListScroll>
@@ -648,6 +651,7 @@ function Row({
   onToggle,
   onExpired,
   t,
+  w,
 }: {
   row: StopListItem;
   busy: boolean;
@@ -657,6 +661,8 @@ function Row({
    *  would be a second opinion about whether a dish is on sale. */
   onExpired: () => void;
   t: ReturnType<typeof useAdminT>;
+  /** What this business calls what it sells — see lib/panelWords.ts. */
+  w: PanelWords;
 }) {
   const off = row.manual || row.pos || row.stock;
   return (
@@ -711,10 +717,10 @@ function Row({
         // till — and a toggle that worked and then sprang back within minutes
         // would be worse than either.
         <span
-          title={row.pos ? t.stopList.posLocked : t.stopList.stockLocked}
+          title={row.pos ? w.stopPosLocked : t.stopList.stockLocked}
           className="max-w-56 text-right text-xs text-ink-muted"
         >
-          {row.pos ? t.stopList.posLocked : t.stopList.stockLocked}
+          {row.pos ? w.stopPosLocked : t.stopList.stockLocked}
         </span>
       ) : (
         <button

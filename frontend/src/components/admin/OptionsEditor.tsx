@@ -9,6 +9,7 @@ import { useState } from "react";
 
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import RecipeEditor from "@/components/admin/RecipeEditor";
 import type { Ingredient, MenuOption, RecipeLine } from "@/lib/types";
 
@@ -138,6 +139,7 @@ export default function OptionsEditor({
   ingredients?: Ingredient[];
 }) {
   const t = useAdminT();
+  const w = usePanelWords();
   // Which choice has its card open. ⚠️ One at a time, and closed by default:
   // most choices are only a price, and a card unfolded under every row would
   // bury the fields this editor is actually for.
@@ -212,7 +214,7 @@ export default function OptionsEditor({
       {groups.length === 0 && (
         <div className="mt-3 rounded-xl border border-dashed border-line-strong p-3">
           <p className="text-sm leading-relaxed text-ink-soft">
-            {t.options.lead}
+            {w.optionsLead}
           </p>
           <p className="mt-1.5 text-sm text-ink-muted">{t.options.example}</p>
         </div>

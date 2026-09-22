@@ -14,6 +14,7 @@
 
 import { useMemo, useState } from "react";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import type { MenuItem } from "@/lib/types";
 
 export default function RecommendEditor({
@@ -29,6 +30,7 @@ export default function RecommendEditor({
   onChange: (ids: string[]) => void;
 }) {
   const t = useAdminT();
+  const w = usePanelWords();
   const [q, setQ] = useState("");
 
   const byId = useMemo(() => new Map(menu.map((m) => [m.id, m])), [menu]);
@@ -46,7 +48,7 @@ export default function RecommendEditor({
 
   return (
     <div className="rounded-2xl border border-line p-3">
-      <p className="text-sm font-medium">{r.title}</p>
+      <p className="text-sm font-medium">{w.recommendTitle}</p>
       <p className="mt-0.5 text-xs text-ink-muted">{r.hint}</p>
 
       {picked.length > 0 && (
@@ -96,7 +98,7 @@ export default function RecommendEditor({
       <input
         className="input mt-3"
         value={q}
-        placeholder={r.searchPh}
+        placeholder={w.recommendSearch}
         onChange={(e) => setQ(e.target.value)}
       />
       {matches.length > 0 && (

@@ -22,6 +22,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, downloadReport } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import { ListScroll } from "@/components/admin/PagedList";
 import type { AbcXyzResponse, AbcXyzRow } from "@/lib/types";
 
@@ -48,6 +49,7 @@ export default function MenuAnalysis({
   shortPeriod: boolean;
 }) {
   const t = useAdminT();
+  const w = usePanelWords();
   const [data, setData] = useState<AbcXyzResponse | null>(null);
   const [abcFilter, setAbcFilter] = useState("");
   const [xyzFilter, setXyzFilter] = useState("");
@@ -169,7 +171,7 @@ export default function MenuAnalysis({
             <table className="w-full min-w-[820px] text-sm">
               <thead className="sticky top-0 bg-raised text-left text-xs uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="px-3 py-2">{t.reports.dish}</th>
+                  <th className="px-3 py-2">{w.reportItem}</th>
                   <th className="px-3 py-2 text-right">{t.reports.sold}</th>
                   <th className="px-3 py-2 text-right">{t.reports.revenue}</th>
                   {/* ⚠️ The two columns exist only when the menu carries any

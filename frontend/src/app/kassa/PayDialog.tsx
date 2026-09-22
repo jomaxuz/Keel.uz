@@ -16,6 +16,7 @@ import {
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useTillWords } from "@/lib/tillWords";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
 import { runFiscalJob } from "@/lib/fiscal";
@@ -83,6 +84,7 @@ export default function PayDialog({
   onSeen: (ok: boolean) => void;
 }) {
   const t = useAdminT();
+  const w = useTillWords();
   const { lang } = useI18n();
   // Which tile is pressed: one of the owner's buttons by id, or a rail by name.
   const [choice, setChoice] = useState<string>(initialChoice);
@@ -579,7 +581,7 @@ export default function PayDialog({
               </p>
               <dl className="mt-3 space-y-1.5 border-t border-line pt-3 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-[rgb(var(--till-mid))]">{t.till.dishesTotal}</dt>
+                  <dt className="text-[rgb(var(--till-mid))]">{w.tillTotalLabel}</dt>
                   <dd className="font-semibold tabular-nums">
                     {formatPrice(check.subtotal, currency, lang)}
                   </dd>

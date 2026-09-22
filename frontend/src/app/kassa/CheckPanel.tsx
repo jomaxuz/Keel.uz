@@ -14,6 +14,7 @@ import {
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useTillWords } from "@/lib/tillWords";
 import { useI18n } from "@/lib/i18n/client";
 import { timeAgo } from "@/lib/orderFlow";
 import { formatPrice } from "@/lib/format";
@@ -104,6 +105,7 @@ export default function CheckPanel({
   onLocalRemove: (lineId: string) => Promise<void>;
 }) {
   const t = useAdminT();
+  const w = useTillWords();
   const { lang } = useI18n();
   const [busy, setBusy] = useState(false);
   // ⚠️ The reason is held across the code pad. A person re-typing "mehmon ketib
@@ -138,7 +140,7 @@ export default function CheckPanel({
               cashier who has just unlocked the screen is looking for what to
               press, not for a description of nothing. */}
           <p className="max-w-[14rem] text-center text-[15px] leading-relaxed text-[rgb(var(--till-dim))]">
-            {t.till.emptyCheck}
+            {w.tillEmptyCheck}
           </p>
         </div>
       </div>
@@ -281,7 +283,7 @@ export default function CheckPanel({
       <ul className="min-h-0 flex-1 overflow-y-auto px-2 py-1">
         {live.length === 0 && (
           <li className="px-3 py-8 text-center text-sm text-ink-muted">
-            {t.till.emptyCheck}
+            {w.tillEmptyCheck}
           </li>
         )}
         {shownLines.map((line, i) => (
@@ -460,8 +462,8 @@ export default function CheckPanel({
                 <button
                   className="till-btn h-9 w-9 shrink-0 px-0"
                   disabled={busy}
-                  aria-label={`${t.till.commentTitle}: ${line.name}`}
-                  title={t.till.commentTitle}
+                  aria-label={`${w.tillComment}: ${line.name}`}
+                  title={w.tillComment}
                   onClick={() => setCommenting(line)}
                 >
                   <LuMessageSquare className="h-4 w-4" aria-hidden />
@@ -635,7 +637,7 @@ export default function CheckPanel({
                 it was on screen the whole time, waiting for a dish. */}
             {live.length === 0 && (
               <p className="mt-1.5 text-center text-[12px] text-[rgb(var(--till-dim))]">
-                {t.till.payNeedsLines}
+                {w.tillNeedLines}
               </p>
             )}
           </>

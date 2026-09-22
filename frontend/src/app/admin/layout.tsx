@@ -66,6 +66,7 @@ import Link from "next/link";
 import { api, clearToken, getToken } from "@/lib/api";
 import { useAdminT, type AdminDict } from "@/lib/i18n/admin";
 import {
+  navGroupLabel,
   navLabel,
   needsMet,
   orderedFor,
@@ -903,7 +904,7 @@ function SidebarGroups({
                 <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
               )}
               <span className="flex-1 text-left">
-                {t.nav.groups[group.key]}
+                {navGroupLabel(group.key, t, brand)}
               </span>
               {/* Points down when open. A caret that never moves is
                           decoration; this one is the only thing saying the
@@ -1009,7 +1010,7 @@ function NavLinks({
         return (
           <div key={group.key} className="mb-4">
             <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted/70">
-              {t.nav.groups[group.key]}
+              {navGroupLabel(group.key, t, brand)}
             </div>
             {items.map((item) => {
               const active =

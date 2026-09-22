@@ -15,6 +15,7 @@
 import { useMemo, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import type { ComboLine, MenuItem } from "@/lib/types";
 
 export default function ComboEditor({
@@ -31,6 +32,7 @@ export default function ComboEditor({
   onChange: (next: ComboLine[]) => void;
 }) {
   const t = useAdminT();
+  const w = usePanelWords();
   const [picking, setPicking] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -69,7 +71,7 @@ export default function ComboEditor({
 
   return (
     <div>
-      <p className="text-sm text-ink-muted">{t.menu.comboHint}</p>
+      <p className="text-sm text-ink-muted">{w.comboHint}</p>
 
       {value.length > 0 && (
         <ul className="mt-3 divide-y divide-line rounded-2xl border border-line">
@@ -83,7 +85,7 @@ export default function ComboEditor({
                 <span className="min-w-0 flex-1 truncate">
                   {/* A dish deleted from the menu still has to be visible here —
                       it is why the combo stopped working. */}
-                  {dish?.name ?? t.menu.comboMissingDish}
+                  {dish?.name ?? w.comboMissing}
                 </span>
                 <span className="tabular-nums text-ink-muted">
                   {dish ? formatPrice(dish.price) : "—"}
@@ -145,7 +147,7 @@ export default function ComboEditor({
         <div className="mt-3 rounded-2xl border border-line p-3">
           <input
             className="input w-full text-sm"
-            placeholder={t.menu.comboSearch}
+            placeholder={w.search}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -171,7 +173,7 @@ export default function ComboEditor({
             ))}
             {selectable.length === 0 && (
               <li className="px-2 py-3 text-sm text-ink-muted/70">
-                {t.menu.comboNothingToAdd}
+                {w.comboNothingToAdd}
               </li>
             )}
           </ul>
@@ -192,7 +194,7 @@ export default function ComboEditor({
           onClick={() => setPicking(true)}
           className="btn-ghost mt-3 px-4 py-2 text-sm"
         >
-          {t.menu.comboAddDish}
+          {w.comboAdd}
         </button>
       )}
     </div>

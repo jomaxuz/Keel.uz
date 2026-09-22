@@ -27,6 +27,7 @@ import { formatPrice } from "@/lib/format";
 import { LuArrowRight } from "react-icons/lu";
 
 import { useAdminT } from "@/lib/i18n/admin";
+import { useTillWords } from "@/lib/tillWords";
 import { useI18n } from "@/lib/i18n/client";
 import type { Check } from "@/lib/types";
 
@@ -53,6 +54,7 @@ export default function MoveLinesDialog({
   onMove: (lineIds: string[], toCheckId: string, pin?: string) => Promise<void> | void;
 }) {
   const t = useAdminT();
+  const w = useTillWords();
   const { lang } = useI18n();
   const [picked, setPicked] = useState<string[]>([]);
   // "new" rather than "" so that nothing is chosen by default: a destination
@@ -106,7 +108,7 @@ export default function MoveLinesDialog({
           <h2 className="flex items-center gap-2 text-lg font-bold">
           <LuArrowRight className="text-ink-muted" aria-hidden />{t.till.moveLines}</h2>
           <p className="mt-0.5 text-[13px] text-ink-muted">
-            {t.till.moveLinesHint}
+            {w.tillMoveHint}
           </p>
         </header>
 

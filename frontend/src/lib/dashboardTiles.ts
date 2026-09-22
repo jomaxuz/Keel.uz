@@ -10,6 +10,7 @@
 // stored on the admin's account, so renaming one silently un-hides whatever the
 // old id named, on every account that had hidden it.
 
+import type { PanelWords } from "@/lib/panelWords";
 import type { AdminStats } from "@/lib/types";
 import type { useAdminT } from "@/lib/i18n/admin";
 
@@ -25,7 +26,11 @@ export const TILE_GROUPS: TileGroup[] = ["orders", "money", "people", "menu"];
 export interface TileSpec {
   id: string;
   group: TileGroup;
-  label: (t: T) => string;
+  /** ⚠️ **The words, as well as the dictionary.** One tile counts the thing
+   *  this business sells, and a chemist's front page headed "Taomlar" is the
+   *  sidebar's old complaint on the first screen anybody opens. Every other
+   *  tile ignores the second argument. See lib/panelWords.ts. */
+  label: (t: T, w: PanelWords) => string;
   /** The figure. `null`/`undefined` means "not loaded", which the caller
    *  renders as "…" rather than as 0 — a dashboard that shows 0 while loading
    *  tells the reader something false for as long as the request takes. */
@@ -173,7 +178,7 @@ export const DASHBOARD_TILES: TileSpec[] = [
   {
     id: "menu.dishes",
     group: "menu",
-    label: (t) => t.dashboard.menuDishes,
+    label: (_t, w) => w.items,
     value: (s) => s.menu.dishes,
   },
   {

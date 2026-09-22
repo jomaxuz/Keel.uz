@@ -6,6 +6,7 @@ import ImageUpload from "@/components/admin/ImageUpload";
 import Modal from "@/components/admin/Modal";
 import { ListScroll } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import type { Category } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
 
@@ -35,6 +36,7 @@ export default function AdminCategoriesPage() {
   const [editing, setEditing] = useState<Category | null>(null);
   const [saving, setSaving] = useState(false);
   const t = useAdminT();
+  const w = usePanelWords();
 
   function load() {
     setLoading(true);
@@ -72,7 +74,7 @@ export default function AdminCategoriesPage() {
   async function remove(c: Category) {
     if (
       !(await ask({
-        title: t.categories.confirmDeleteFull(c.name),
+        title: w.categoryDeleteFull(c.name),
         danger: true,
       }))
     )

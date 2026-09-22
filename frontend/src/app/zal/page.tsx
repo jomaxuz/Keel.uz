@@ -29,6 +29,7 @@ import {
 import { contentName } from "@/lib/i18n/content";
 import { roleLabelOf } from "@/lib/roleName";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useTillWords } from "@/lib/tillWords";
 import { useI18n } from "@/lib/i18n/client";
 import { useStaff } from "@/lib/staff";
 import PinPad from "@/components/till/PinPad";
@@ -65,6 +66,7 @@ const IDLE_LOCK_MS = 3 * 60 * 1000;
 
 export default function FloorPage() {
   const t = useAdminT();
+  const w = useTillWords();
   const { ask } = useAsk();
   const { lang } = useI18n();
   const router = useRouter();
@@ -614,7 +616,7 @@ export default function FloorPage() {
                 </button>
                 <input
                   className="till-input h-11 flex-1"
-                  placeholder={t.till.search}
+                  placeholder={w.tillSearch}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />

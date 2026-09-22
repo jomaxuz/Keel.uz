@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { ORDER_STATUSES, STATUS_BADGE } from "@/lib/orderStatus";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import { ListScroll } from "@/components/admin/PagedList";
 import {
   BreakdownChart,
@@ -43,6 +44,10 @@ function daysAgo(n: number): string {
 
 export default function AdminDashboard() {
   const t = useAdminT();
+  // What this business calls the thing it sells — "Ko'p sotilgan taomlar" over
+  // a chemist's best-selling paracetamol is the sidebar's old complaint one
+  // screen in. See lib/panelWords.ts.
+  const w = usePanelWords();
   // Opens on the week, not on today: the day-by-day chart needs at least two
   // points, so a dashboard that opens on "today" opens with its chart section
   // missing — which reads as a broken chart, not as an empty period.
@@ -213,7 +218,7 @@ export default function AdminDashboard() {
             {tiles.map((tile) => (
               <Tile
                 key={tile.id}
-                label={tile.label(t)}
+                label={tile.label(t, w)}
                 value={
                   !stats
                     ? "…"
@@ -380,7 +385,7 @@ export default function AdminDashboard() {
 
         {/* ---- best sellers ---- */}
         <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
-          <h2 className="text-lg font-bold">{t.dashboard.topDishes}</h2>
+          <h2 className="text-lg font-bold">{w.topSelling}</h2>
           {stats && stats.top.length === 0 ? (
             <p className="mt-3 text-sm text-ink-muted/70">
               {t.dashboard.topEmpty}

@@ -13,6 +13,7 @@ import { useState } from "react";
 import { LuMessageSquare } from "react-icons/lu";
 
 import { useAdminT } from "@/lib/i18n/admin";
+import { useTillWords } from "@/lib/tillWords";
 import type { CheckLine } from "@/lib/types";
 
 export default function CommentDialog({
@@ -25,13 +26,14 @@ export default function CommentDialog({
   onSave: (comment: string) => void | Promise<void>;
 }) {
   const t = useAdminT();
+  const w = useTillWords();
   const [text, setText] = useState(line.comment ?? "");
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
       <div className="till-dialog w-full max-w-sm p-4">
         <h2 className="flex items-center gap-2 font-display text-lg font-bold">
           <LuMessageSquare className="text-ink-muted" aria-hidden />
-          {t.till.commentTitle}
+          {w.tillComment}
         </h2>
         <p className="mt-1 text-sm text-ink-soft">{line.name}</p>
         <input

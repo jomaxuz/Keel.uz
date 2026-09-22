@@ -15534,3 +15534,5 @@ soni bilan; pastda har doim bitta urg'uli tugma. Testi yozildi
 (`ZakupScreen.test.tsx`, 5 ta): javobsiz qadamdan chiqib bo'lmaydi, ikkinchi
 bosish olib tashlaydi, va «2 qop» serverga `qty: 2, pack: true` bo'lib boradi —
 50 emas. ⚠️ Ekran faqat testda ko'rilgan, monoblokda hali emas.
+
+**7. Admin panel va kassa (Till) do'kon tilida gapiradi.** Kassa va admin panelda barcha bizneslar uchun narsalar statik tarzda "Taom" va "Menyu" deb atalardi. Endi ekranlar matnlarni `usePanelWords` va `useTillWords` orqali so'raydi. Do'konlar (goods) uchun "Tovar" va "Katalog" matnlari chiqadi. Backenddagi `StaffTillSession` javobida kassa uchun `businessType` ulab berildi, chunki kassa faqat login bo'lgan qurilmadir (va paneldek kengaytirilgan muhitda ishlamaydi).

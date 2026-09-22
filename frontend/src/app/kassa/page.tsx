@@ -44,6 +44,7 @@ import { unpair } from "@/lib/tillBridge";
 import { VERSION } from "@/lib/version";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useTillWords } from "@/lib/tillWords";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
 import { contentName } from "@/lib/i18n/content";
@@ -139,6 +140,7 @@ export default function TillPage() {
   const { staff, loading: authLoading, logout } = useStaff();
 
   const t = useAdminT();
+  const w = useTillWords();
 
   // ⚠️ **Retiring the screen, which is not logging out of it.**
   //
@@ -1351,7 +1353,7 @@ export default function TillPage() {
               <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
                 <input
                   className="till-input h-11 flex-1"
-                  placeholder={t.till.search}
+                  placeholder={w.tillSearch}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />

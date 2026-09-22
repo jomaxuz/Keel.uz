@@ -608,7 +608,13 @@ func (h *Handler) StaffTillSession(w http.ResponseWriter, r *http.Request) {
 	// ⚠️ **Named from the branch's own brand**, not from the first active one.
 	// A two-brand company has two sets of monoblocks and the wrong name on a
 	// lock screen is the kind of error nobody reports and everybody notices.
-	brandName, branchName := "", ""
+	//
+	// ⚠️ **And what this business sells**, which the till had no way to ask.
+	// Every word on the screen is a kitchen's — "Taom qidirish", "Chek bo'sh —
+	// menyudan taom tanlang" — and a grocery's cashier reads them all day. The
+	// brand is already being loaded here for its name, so the type rides along
+	// rather than costing a request of its own.
+	brandName, branchName, businessType := "", "", ""
 	banners := []models.Banner{}
 	if br, err := h.branchByID(r, branchID); err == nil {
 		branchName = br.Name
@@ -618,6 +624,7 @@ func (h *Handler) StaffTillSession(w http.ResponseWriter, r *http.Request) {
 			r.Context(), bson.M{"_id": br.BrandID},
 		).Decode(&brand); err == nil {
 			brandName = brand.Name
+			businessType = string(brand.BusinessType)
 		}
 	}
 	// ⚠️ Falls back to the company name, and only when the brand has none: a
@@ -647,6 +654,10 @@ func (h *Handler) StaffTillSession(w http.ResponseWriter, r *http.Request) {
 		"pinsUsed":     n > 0,
 		"brandName":    brandName,
 		"branchName":   branchName,
+		// ⚠️ Empty for a restaurant and for every brand written before the
+		// field existed, which the screens read as a kitchen — the same
+		// fallback every predicate makes on both sides.
+		"businessType": businessType,
 		"banners":      images,
 		"subscription": h.subscriptionNotice(r.Context()),
 	})

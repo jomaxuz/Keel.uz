@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import { DASHBOARD_TILES, TILE_GROUPS, tileById } from "@/lib/dashboardTiles";
 import type { DashboardPrefs } from "@/lib/types";
 
@@ -29,6 +30,7 @@ export default function DashboardCustomiser({
   onSaved: (next: DashboardPrefs) => void;
 }) {
   const t = useAdminT();
+  const w = usePanelWords();
   // Edited locally and sent on save, rather than a request per checkbox: an
   // owner tidying the page toggles six things in ten seconds, and six requests
   // racing each other decide the layout by whichever the network delivers last.
@@ -132,7 +134,7 @@ export default function DashboardCustomiser({
                           className="h-4 w-4 accent-brand"
                         />
                         <span className={`text-sm ${off ? "text-ink-muted line-through" : "text-ink"}`}>
-                          {tile!.label(t)}
+                          {tile!.label(t, w)}
                         </span>
                       </label>
                       {/* Arrows rather than drag-and-drop: no library, works

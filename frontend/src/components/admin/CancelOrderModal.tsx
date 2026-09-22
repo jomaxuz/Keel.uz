@@ -7,6 +7,7 @@
 import { useState } from "react";
 import Modal from "@/components/admin/Modal";
 import { useAdminT } from "@/lib/i18n/admin";
+import { usePanelWords } from "@/lib/panelWords";
 import type { Order } from "@/lib/types";
 
 export default function CancelOrderModal({
@@ -20,6 +21,7 @@ export default function CancelOrderModal({
   onConfirm: (reason: string) => Promise<void> | void;
 }) {
   const t = useAdminT();
+  const w = usePanelWords();
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const trimmed = reason.trim();
@@ -45,7 +47,12 @@ export default function CancelOrderModal({
       {/* The four reasons that cover almost every cancellation — one tap, then
           edit if the case is unusual. */}
       <div className="mt-4 flex flex-wrap gap-2">
-        {t.orders.cancelPresets.map((preset) => (
+        {/* ⚠️ The second preset is the one that names what was sold — "Taom
+            qolmagan" in a kitchen, "Tovar qolmagan" in a shop. The other three
+            are about the customer and read the same either way. */}
+        {t.orders.cancelPresets
+          .map((preset, i) => (i === 1 ? w.cancelPresetOut : preset))
+          .map((preset) => (
           <button
             key={preset}
             type="button"
@@ -68,7 +75,7 @@ export default function CancelOrderModal({
           rows={3}
           maxLength={300}
           autoFocus
-          placeholder={t.orders.cancelReasonPh}
+          placeholder={w.cancelReasonPh}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />

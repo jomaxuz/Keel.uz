@@ -20,6 +20,7 @@ import { timeAgo } from "@/lib/orderFlow";
 import { formatPrice } from "@/lib/format";
 import { printReceipt } from "@/lib/print";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useTillWords } from "@/lib/tillWords";
 import { useI18n } from "@/lib/i18n/client";
 import GuestTabs from "@/components/till/GuestTabs";
 import MoveTableDialog from "@/components/till/MoveTableDialog";
@@ -80,6 +81,7 @@ export default function OrderPanel({
   onError: (msg: string) => void;
 }) {
   const t = useAdminT();
+  const w = useTillWords();
   const { lang } = useI18n();
   const [busy, setBusy] = useState(false);
   const [voiding, setVoiding] = useState<CheckLine | null>(null);
@@ -186,7 +188,7 @@ export default function OrderPanel({
       <div className="min-h-0 flex-1 overflow-y-auto px-3">
         {live.length === 0 && (
           <p className="py-8 text-center text-sm text-ink-muted">
-            {t.till.emptyCheck}
+            {w.tillEmptyCheck}
           </p>
         )}
         <ul className="py-1">
@@ -342,8 +344,8 @@ export default function OrderPanel({
                     <button
                       className="till-btn-ghost h-10 w-10 shrink-0 px-0"
                       disabled={busy}
-                      aria-label={t.till.commentTitle}
-                      title={t.till.commentTitle}
+                      aria-label={w.tillComment}
+                      title={w.tillComment}
                       onClick={() => setCommenting(l)}
                     >
                       <LuPencil className="h-4 w-4" aria-hidden />
@@ -483,7 +485,7 @@ export default function OrderPanel({
           ) : (
             <>
               <LuPlus className="h-[1.15rem] w-[1.15rem]" aria-hidden />
-              {t.till.addDish}
+              {w.tillAdd}
             </>
           )}
         </button>
