@@ -5456,7 +5456,7 @@ ma'lumotni qayerda saqlash savoli ularning shartnomasiniki. Kod —
 - Imzo misollari (Node, Python, PHP) test vektori bilan **ishga tushirib**
   tekshirilgan — hujjatdagi xato kod tashqi dasturchining birinchi soatini
   yeydi.
-- **Faqat footer'da**, header'da emas: header sotib olishni o'ylayotgan odam
+- **Hozircha hech qayerdan havola yo'q** (2026-09-24, egasining qarori) — sahifa jonli va sitemapda, dasturchi manzilni egadan oladi. Ilgari: **faqat footer'da**, header'da emas: header sotib olishni o'ylayotgan odam
   uchun (8 bo'limli landing qoidasi), dasturchi esa bu yerga ega yuborgan
   havola bilan keladi. Sitemapda 0.5.
 - ⚠️ Manba haqiqati hali ham `docs/open-api.md` — API o'zgarsa ikkalasi.
