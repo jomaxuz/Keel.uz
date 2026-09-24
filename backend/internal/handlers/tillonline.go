@@ -270,9 +270,21 @@ func (h *Handler) StaffTakeOnlinePayment(w http.ResponseWriter, r *http.Request)
 	// an entry for it would make the courier's balance drop twice.
 	if o.Type == "delivery" && !o.CourierID.IsZero() &&
 		o.PaymentMethod == models.ProviderCash {
+		// ⚠️ **Never more than the courier still has** — see courierOwes. The
+		// panel may already have closed this courier's whole balance, this
+		// order's money with it; then the order is paid and nothing more is
+		// handed over.
+		amount := o.Total
+		if owes, err := h.courierOwes(r.Context(), o.CourierID); err == nil {
+			amount = handoverAmount(o.Total, owes)
+		}
+		if amount == 0 {
+			httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "paidAt": now})
+			return
+		}
 		entry := models.CourierSettlement{
 			CourierID: o.CourierID,
-			Amount:    o.Total,
+			Amount:    amount,
 			TakenBy:   s.Name,
 			// The order number, because a settlement row with only a sum is a
 			// row nobody can check against anything a week later.
@@ -288,8 +300,14 @@ func (h *Handler) StaffTakeOnlinePayment(w http.ResponseWriter, r *http.Request)
 		}
 		// Their own screen shows what they still owe; a number that drops with
 		// no explanation is one they come back and ask about.
-		h.courierCashTaken(o.CourierID, o.Total)
+		h.courierCashTaken(o.CourierID, amount)
 	}
 
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "paidAt": now})
+}
+
+// handoverAmount is what one order's handover may record: its total, but never
+// more than the courier still owes — see courierOwes.
+func handoverAmount(total, owes int) int {
+	return max(min(total, owes), 0)
 }

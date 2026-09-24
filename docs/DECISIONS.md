@@ -7586,6 +7586,20 @@ Endi kassa ekranining **Onlayn** ro'yxatidagi har qatorda tugma bor
   guard qilingan, ya'ni panel va kassa bir vaqtda bosса ham pul bir marta
   yoziladi.
 
+- ⚠️ **Topshirma kuryerning haqiqiy qarzidan oshmaydi** (`courierOwes`,
+  2026-09-24, b5somsa'da topilgan). Panel kuryerning **butun** qoldig'ini
+  bitta summa bilan yopadi va hech bir buyurtmani to'langan deb belgilamaydi;
+  kassa esa faqat «bu buyurtma to'langanmi?» deb so'raydi. Natijada 19:13 da
+  panelda yopilgan qoldiq 21:46 da kassada buyurtma-buyurtma **yana** yopildi —
+  8 373 000 so'm ikki marta topshirildi va «Kuryerlar qo'lida» −8 373 000
+  bo'ldi. Kuryer kartochkasi va kassa hisobidagi clamp buni **nol** qilib
+  yashirardi; faqat «Pul qayerda» va ochiq API'ning `/balances` i ko'rsatdi.
+  Endi: kassa `handoverAmount(total, owes)` — ko'pi bilan qarzicha yozadi,
+  qarz 0 bo'lsa buyurtma to'langan bo'ladi-yu topshirma yozilmaydi; panel
+  qarzdan katta summani **rad etadi** (kesmaydi: pulni ushlab turgan odam
+  qayta sanashi kerak bo'lgan raqamni ko'rsin). Live test ketma-ketlikni
+  takrorlaydi.
+
 ### Keel Team'ga bildirishnoma kelmasligi: kanal
 ⚠️ **Ilova o'zini boshqa ilova deb ro'yxatdan o'tkazsa, hech nima kelmaydi va
 hech nima aytmaydi.** Ikkala telefon ilovasi ham `staff` bo'lib kiradi, server

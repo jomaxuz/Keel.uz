@@ -15627,3 +15627,13 @@ tekkanda yopilib, dialog barmoq ostida sakrardi.
   production build'da Playwright bilan (1024×768, touch) sinaldi.
 - ⚠️ Monoblokka yetishi uchun **yangi kassa installer'i** kerak (ekranlar
   ilovaning ichiga yig'iladi); brauzerdagi kassa esa oddiy deploy bilan oladi.
+
+## 2026-09-24 (5) — «Kuryerlar qo'lida» manfiy: ikki marta topshirma
+
+b5somsa'da `/balances` «Kuryerlar qo'lida» −8 373 000 ko'rsatdi. Pul daftari
+va buyurtmalar orqali tekshirildi: 1-sentabr 19:13 da panelda kuryerning butun
+qoldig'i (11 802 000) yopilgan, 21:46–21:48 da kassada o'sha kungi 8 ta naqd
+buyurtma bittalab yana «pul qaytdi» qilingan — jami aynan 8 373 000.
+Tuzatish: topshirma kuryerning haqiqiy qarzidan (`courierOwes`) oshmaydi —
+kassa kesadi, panel rad etadi. Testlar: toza funksiya + live ketma-ketlik.
+b5somsa'dagi ortiqcha 8 ta topshirma o'chirildi (pastda).
