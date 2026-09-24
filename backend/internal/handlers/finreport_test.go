@@ -38,8 +38,13 @@ func TestFinanceSeparatesInPendingAndRefunded(t *testing.T) {
 	}
 	// ⚠️ A cancelled order that was never paid contributes nothing anywhere.
 	// The 999 000 above must not appear in any of the three figures.
-	if out != 30_000 {
-		t.Errorf("out = %d, want only the 30 000 refund", out)
+	//
+	// ⚠️ **Nor does the refund, and this test used to say the opposite** (out =
+	// 30 000). The refunded sale is not in the takings, so subtracting its
+	// refund took it off twice — "in − out" read 120 000 with 150 000 in the
+	// drawer. It is shown as its own info line instead.
+	if out != 0 {
+		t.Errorf("out = %d, want 0 — the refund is already outside the takings", out)
 	}
 }
 
@@ -228,5 +233,16 @@ func TestTheWarningStopsClaimingThereAreNoCosts(t *testing.T) {
 		if !strings.Contains(n, "foyda hisoboti EMAS") {
 			t.Fatalf("a version of the note dropped the warning: %q", n)
 		}
+	}
+}
+
+// A refunded sale is out of the takings, so it must not also be an outgoing:
+// the drawer holds the 100, not 60.
+func TestFinanceRefundIsNotSubtractedTwice(t *testing.T) {
+	sold := models.Order{Status: models.StatusDelivered, PaymentStatus: models.PayPaid, Total: 100, PaymentMethod: "cash", Type: "dinein"}
+	refunded := models.Order{Status: models.StatusDelivered, PaymentStatus: models.PayRefunded, Total: 40, PaymentMethod: "cash", Type: "dinein"}
+	_, in, out, _, _ := financeLines([]models.Order{sold, refunded}, "uz", nil)
+	if in-out != 100 {
+		t.Fatalf("in=%d out=%d: net %d, the drawer holds 100", in, out, in-out)
 	}
 }

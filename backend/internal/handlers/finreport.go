@@ -379,11 +379,17 @@ func financeLines(
 	}
 	in = revenue
 
+	// ⚠️ **Shown, and not subtracted.** A refunded sale is already left out of
+	// the takings above (`continue` in the loop), so subtracting it here as
+	// well took the same money off twice: a 100 sale and a refunded 40 one read
+	// as 60 in the drawer instead of 100. Nothing flagged it — the line was
+	// right, the total was wrong by exactly the refunds, and a month with few
+	// refunds looked almost correct. Found while building the money ledger for
+	// the open API, which has to agree with this report.
 	if refunded > 0 {
 		lines = append(lines, finLine{
 			Label:  tr{"Qaytarilgan to'lovlar", "Возвраты", "Refunds"}.in(lang),
-			Amount: refunded, Count: nRefunded, Kind: "out"})
-		out += refunded
+			Amount: refunded, Count: nRefunded, Kind: "info"})
 	}
 	// ⚠️ Discounts and points are **not** outgoings. No money left the till —
 	// it never arrived. Listing them as costs would double-count against the
