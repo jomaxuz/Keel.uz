@@ -19,6 +19,7 @@ export const uz = {
     calc: "Kalkulyator",
     faq: "Savollar",
     help: "Qo'llanma",
+    developers: "Dasturchilar uchun (API)",
     start: "Boshlash",
   },
   hero: {
@@ -1348,6 +1349,7 @@ export const ru: Dict = {
     calc: "Калькулятор",
     faq: "Вопросы",
     help: "Инструкции",
+    developers: "Разработчикам (API)",
     start: "Начать",
   },
   hero: {
@@ -2608,6 +2610,7 @@ export const en: Dict = {
     calc: "Calculator",
     faq: "FAQ",
     help: "Guide",
+    developers: "Developers (API)",
     start: "Get started",
   },
   hero: {

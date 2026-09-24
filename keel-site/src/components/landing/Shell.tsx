@@ -157,6 +157,10 @@ export function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang:
                 page because they did not find what they needed above it —
                 which is the same person, one minute later and less patient. */}
             <li><Link href={localePath(lang, "/help")} className="hover:text-ink">{t.nav.help}</Link></li>
+            {/* The API manual. Footer only, never the header: the header is
+                for somebody deciding whether to buy, and a developer arrives
+                here because an owner sent them — with the link. */}
+            <li><Link href={localePath(lang, "/developers")} className="hover:text-ink">{t.nav.developers}</Link></li>
             {/* ⚠️ A real page, so a real Link with the locale prefix — a bare
                 href drops it and sends a Russian visitor to the Uzbek page. */}
             <li><Link href={localePath(lang, "/download")} className="hover:text-ink">{t.download.eyebrow}</Link></li>

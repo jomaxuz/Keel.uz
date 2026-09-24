@@ -3,6 +3,8 @@
 > Tashqi dasturchilar uchun e'lon qilingan shartnoma. Inglizcha, chunki uni
 > boshqa kompaniyaning dasturchisi o'qiydi. Qarorlar va "nega shunday" —
 > `docs/DECISIONS.md` → «Ochiq API: kalitlar va webhook'lar».
+> **E'lon qilingan nusxasi: `keel.uz/developers`** (uch tilda,
+> `keel-site/src/lib/developers/`). API o'zgarsa — **ikkalasi ham** yangilanadi.
 > ⚠️ Bu yerda yozilgan har nom (yo'l, maydon, header, xato kodi, hodisa) —
 > **va'da**: o'zgartirish kerak bo'lsa `/v2` yoniga qo'yiladi, `/v1` ostida
 > o'zgarmaydi.

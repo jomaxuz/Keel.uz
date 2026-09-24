@@ -5441,6 +5441,26 @@ ma'lumotni qayerda saqlash savoli ularning shartnomasiniki. Kod —
   restoranlarga narxi nol. Live test bor (`TestMoneyWatchLive`: baseline →
   xarajat → 1 hodisa → jimlik → o'chirish → 2).
 
+### keel.uz/developers — API hujjati sahifasi
+
+`keel-site/src/app/developers/page.tsx`, mazmuni `src/lib/developers/`
+(`index.ts` — uch tildagi matn, `code.ts` — kod misollari bir nusxada).
+
+- ⚠️ **Har restoranning domenida emas, keel.uz da.** API har tenantda alohida,
+  lekin shartnoma bitta: o'ninchi Keel restoranini ulayotgan dasturchi bitta
+  sahifani o'qishi, «keel api» qidiruvi esa uni topishi kerak.
+- ⚠️ **Matn tarjima qilinadi, shartnoma emas.** Maydon, yo'l, header, xato kodi
+  va har kod misoli uchala tilda inglizcha — tarjima qilingan maydon nomi
+  mavjud bo'lmagan maydon. Bo'lim id'lari ham umumiy (`#money`), ya'ni ruscha
+  havola o'zbekchada o'sha sarlavhaga tushadi.
+- Imzo misollari (Node, Python, PHP) test vektori bilan **ishga tushirib**
+  tekshirilgan — hujjatdagi xato kod tashqi dasturchining birinchi soatini
+  yeydi.
+- **Faqat footer'da**, header'da emas: header sotib olishni o'ylayotgan odam
+  uchun (8 bo'limli landing qoidasi), dasturchi esa bu yerga ega yuborgan
+  havola bilan keladi. Sitemapda 0.5.
+- ⚠️ Manba haqiqati hali ham `docs/open-api.md` — API o'zgarsa ikkalasi.
+
 ### Status sahifasi: rang va qisqa uzilishlar (`keel.uz/status`)
 
 Control har daqiqada o'zini tekshiradi (o'z bazasiga ping + ishlashi kerak

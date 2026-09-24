@@ -15596,3 +15596,14 @@ Finze'ga beriladi: restoran domeni + `finance:read` kaliti + `docs/open-api.md`.
   webhook `money.day_changed` (10 daqiqada bir 35 kunlik hash kuzatuvchisi,
   faqat obuna bo'lsa ishlaydi). Live testlar: kuzatuvchi va refund so'rovi
   haqiqiy Mongo'da.
+
+## 2026-09-24 (3) — keel.uz/developers
+
+API hujjati keel.uz'da e'lon qilindi: `/developers` (+ `/ru`, `/en`),
+server-render, chap tomonda mundarija (telefonda — matn ustida), kod
+misollarida «Nusxa» tugmasi, footer'da havola, sitemapda. Mazmun
+`docs/open-api.md` bilan bir xil: kalitlar, menyu, buyurtmalar, pul daftari
+(class jadvali bilan), kunlik yig'indi, qoldiqlar, fiskal, webhook'lar, imzo
+(Node / Python / PHP — test vektori bilan tekshirilgan). Tekshirildi: `tsc`,
+`vitest`, `npm run build`, Playwright — 1280 / 360 px, uz / ru / en, yorug' va
+qorong'i; gorizontal toshish yo'q, konsolda xato yo'q.

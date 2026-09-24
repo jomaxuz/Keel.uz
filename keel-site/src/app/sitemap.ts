@@ -115,6 +115,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     }),
+    // The API manual. Found by exactly one kind of reader — a developer an
+    // owner sent here, or one searching "keel api" — and it has to be there
+    // when they look.
+    ...inEveryLanguage("/developers", {
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    }),
     // ⚠️ **Every article, individually.** This is the one part of the site with
     // real long-tail search value: nobody looks for "Keel", a great many people
     // look for "техкарта как составить" or "chek chiqmayapti". Listing only
