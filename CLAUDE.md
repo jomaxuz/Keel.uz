@@ -588,7 +588,7 @@ yoki frontend Vercel'da + backend VPS'da).
 - `Stage` raqamdan **alohida** va raqam nimani anglatishini aytadi. "v0.1"
   yolg'iz mehmonni taxmin qilishga undaydi, va restoranining buyurtmalarini
   tutib turgan platforma haqida odam **saxiy** taxmin qiladi — shuning uchun
-  halol so'z hali rost bo'lib turganda yonida yozilади.
+  halol so'z hali rost bo'lib turganda yonida yoziladi.
 - Ko'rinadigan joyi — `/status`: bu sahifa nimadir buzuqqa o'xshaganda ochiladi,
   va "qaysi versiya?" — "ishlayaptimi?" dan keyingi birinchi savol.
 
