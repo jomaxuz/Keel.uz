@@ -179,17 +179,17 @@ export default function OnScreenKeyboard() {
   }, [giveBack]);
 
   // ---- Which field is being typed into ----
-  useEffect(() => {
-    function onFocus(e: FocusEvent) {
-      const el = e.target as Element | null;
+  const take = useCallback(
+    (el: Element | null) => {
       if (!isEditable(el)) return;
       // An opt-out for anything that must keep the OS pad — a barcode field
       // driven by a scanner, say. Nothing uses it yet; it exists so that the
       // answer to "this one field needs the real keyboard" is an attribute
       // rather than a fork of this component.
       if (el.closest("[data-osk='off']")) return;
+      if (held.current === el) return;
       // The field we were on, before we take the next one — see `held`.
-      if (held.current && held.current !== el) giveBack(held.current);
+      if (held.current) giveBack(held.current);
       held.current = el;
       original.current = el.getAttribute("inputmode");
       setPad(padFor(el, original.current));
@@ -197,10 +197,31 @@ export default function OnScreenKeyboard() {
       setTarget(el);
       setShift(false);
       setSymbols(false);
-    }
+    },
+    [giveBack],
+  );
+
+  useEffect(() => {
+    const onFocus = (e: FocusEvent) => take(e.target as Element | null);
+    // ⚠️ **A field that already has the focus never says so again.** Two
+    // ways to get there, both real: `autoFocus` focuses during the commit,
+    // before this listener exists (the Windows till's setup screen opens that
+    // way, and its keyboard never appeared at all); and a field whose pad was
+    // put away with "hide" is still focused, so tapping it again fires no
+    // `focusin`. So the field focused at mount is taken, and a tap on the
+    // focused field brings the pad back.
+    take(document.activeElement);
+    const onTapField = (e: PointerEvent) => {
+      const el = e.target as Element | null;
+      if (el && el === document.activeElement) take(el);
+    };
     document.addEventListener("focusin", onFocus);
-    return () => document.removeEventListener("focusin", onFocus);
-  }, [giveBack]);
+    document.addEventListener("pointerup", onTapField);
+    return () => {
+      document.removeEventListener("focusin", onFocus);
+      document.removeEventListener("pointerup", onTapField);
+    };
+  }, [take]);
 
   // ---- Putting it away ----
   //
@@ -209,15 +230,28 @@ export default function OnScreenKeyboard() {
   // keyboard to be gone. Tying it to `blur` alone would not do it — a tap on a
   // plain `<div>` does not move focus in Safari, so the pad would sit over the
   // total until something focusable was pressed.
+  //
+  // ⚠️ **When the finger lifts, not when it lands — and landing was a bug
+  // filmed on a monoblock.** An open dialog is lifted by the pad's height
+  // (`html.osk-open .till-dialog`), so putting the pad away drops the dialog
+  // back down. Done on contact, that happened *under a finger still pressing
+  // "Back"*: by the time it lifted, the button had moved out from under it, the
+  // press landed on nothing, and the cashier saw the keyboard vanish and the
+  // dialog stay. On release the press has already been decided by then.
   useEffect(() => {
     if (!target) return;
-    function onDown(e: PointerEvent) {
+    function onUp(e: PointerEvent) {
       const n = e.target as Node | null;
       if (!n) return;
       if (board.current?.contains(n)) return;
-      if (target?.contains(n) || n === target) return;
+      // ⚠️ `held`, not `target`: focus moves on contact, and this effect is
+      // only re-subscribed after the next paint — reading the state here would
+      // compare against the field the finger just left.
+      const now = held.current;
+      if (now && (now === n || now.contains(n))) return;
       // Moving straight to another field: that field's own focus handler takes
-      // over on the next tick, so the pad stays up and simply re-aims.
+      // over, so the pad stays up and simply re-aims.
+      if (n instanceof Element && isEditable(n)) return;
       release();
     }
     function onKey(e: KeyboardEvent) {
@@ -225,10 +259,10 @@ export default function OnScreenKeyboard() {
     }
     // Capture, so a button that stops propagation still puts the pad away: the
     // dish grid's tiles do exactly that.
-    document.addEventListener("pointerdown", onDown, true);
+    document.addEventListener("pointerup", onUp, true);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("pointerup", onUp, true);
       document.removeEventListener("keydown", onKey);
     };
   }, [target, release]);

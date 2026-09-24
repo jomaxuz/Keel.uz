@@ -5793,6 +5793,39 @@ Uch kafolat, uchtasi uch xil sababdan yiqiladi:
   (`activate`), va buning testi bor. Xuddi shu tuzoq yetkazish zonasi kabi har
   qanday SVG ustiga bosiladigan sirtni kutib turgan edi.
 
+- ⚠️ **Aks-sado element bo'yicha emas, joy bo'yicha ushlanadi** (2026-09-24,
+  monoblokda videoga olingan). Brauzerning `click` i **kelgan paytda**
+  hit-test qilinadi, bizning faollashtirish esa undan oldin ishlagan. «Новый
+  счёт» oynasining «Назад» tugmasi oynani yopadi — va o'sha bosishning asl
+  click'i zal sxemasiga, tugma ortida chizilgan stolga tushib, oynani **boshqa
+  stol bilan** qayta ochardi. Ekranda bu «oyna o'chib-yonadi, lag» bo'lib
+  ko'rinardi. Element bo'yicha qo'riqchi o'zi turgan narsani yopadigan **har**
+  tugmaning aks-sadosini o'tkazib yuborardi. Endi: barmoq ko'tarilgan nuqtadan
+  ±24px ichidagi click yutiladi, **bir marta**, va keyingi touch boshlanishi
+  bilan qo'riqchi o'chadi (aks-sado bo'lmagan click hech qachon yutilmasin).
+  `tapProps` (pointerdown'da ishlaydigan) tugmalar uchun ham — klaviaturani
+  yopadigan klaviatura tugmasi xuddi shu tushib ketish.
+- ⚠️ **Ekran klaviaturasi barmoq ko'tarilganda yopiladi, tekkanda emas.**
+  Ochiq klaviatura dialogni o'z balandligicha ko'taradi (`html.osk-open
+  .till-dialog`); tekkanda yopilsa dialog **bosib turilgan barmoq ostida**
+  pastga sakraydi, tugma barmoq ostidan chiqib ketadi va bosish hech narsaga
+  tushmaydi — videoda birinchi «Назад» shunday yo'qolgan. Tekshiruv
+  `held` ref bo'yicha (focus pointerdown'da ko'chadi, effekt esa paint'dan
+  keyin qayta ulanadi).
+- ⚠️ **Allaqachon fokusdagi maydon `focusin` bermaydi.** `autoFocus` (Windows
+  kassaning ulash sahifasi) klaviatura tinglovchisidan oldin fokuslanadi, va
+  «Yopish» dan keyin o'sha maydonni qayta bosish ham `focusin` bermaydi —
+  ikkalasida klaviatura umuman chiqmasdi. Endi mount paytida
+  `document.activeElement` olinadi va fokusdagi maydonga bosish klaviaturani
+  qaytaradi.
+- **Windows kassaning ulash sahifasi (`backend/desktop/frontend/src/Setup.tsx`)
+  `TillShell` dan tashqarida** — hali xodim sessiyasi yo'q — va shuning uchun
+  unda na `OnScreenKeyboard`, na `TillAppliance` bor edi, Windows klaviaturasi
+  esa ataylab o'chirilgan: uchta maydonni sensor bilan umuman to'ldirib
+  bo'lmasdi. Endi ikkalasi shu sahifada ham. Til tanlash — o'ng yuqori
+  burchakdagi tugma + popup ro'yxat (har til o'z nomi bilan); ilgari logotip
+  ustidagi uchta harf formaning bir qismidek o'qilardi.
+
 ### Kassa ekranlari ro'yxati: limit va qaysi mashina
 
 Tarif **kassa ekranlari soni** bilan sotiladi, va cheklov faqat **eshikda**

@@ -9,7 +9,7 @@
  * Neither shows up as an error, and both are only visible on the machine.
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 
@@ -111,7 +111,13 @@ describe("the till keyboard", () => {
     // ⚠️ A plain button, not another field: pressing one of these does not
     // move focus in every browser, so a pad tied to `blur` alone would sit over
     // the total for the rest of the sale.
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Boshqa tugma" }));
+    const other = screen.getByRole("button", { name: "Boshqa tugma" });
+    // ⚠️ **Not on contact.** Closing the pad drops a dialog it had lifted; done
+    // while the finger is still down, the button being pressed moves out from
+    // under it and the press lands on nothing.
+    fireEvent.pointerDown(other);
+    expect(screen.getByRole("group", { name: t.till.keyboard })).toBeTruthy();
+    fireEvent.pointerUp(other);
 
     expect(screen.queryByRole("group", { name: t.till.keyboard })).toBeNull();
     // …and the field is handed back exactly as it was found.
@@ -146,5 +152,31 @@ describe("the till keyboard", () => {
     fireEvent.focusIn(screen.getByLabelText("izoh"));
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("group", { name: t.till.keyboard })).toBeNull();
+  });
+
+  // ⚠️ **The Windows till's setup screen.** Its first field is `autoFocus`,
+  // which focuses before the pad is listening — so the pad never came up, and
+  // tapping the field again fired no `focusin` because it already had focus.
+  it("comes up for a field that was focused before it was mounted", () => {
+    render(
+      <LangProvider initial="uz">
+        <input aria-label="manzil" autoFocus />
+        <OnScreenKeyboard />
+      </LangProvider>,
+    );
+    expect(screen.getByRole("group", { name: t.till.keyboard })).toBeTruthy();
+  });
+
+  it("comes back when the focused field is tapped after hiding it", () => {
+    draw();
+    const field = screen.getByLabelText("izoh");
+    act(() => field.focus());
+    expect(screen.getByRole("group", { name: t.till.keyboard })).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("group", { name: t.till.keyboard })).toBeNull();
+
+    // Still focused, so no `focusin` — only the tap can say it.
+    fireEvent.pointerUp(field);
+    expect(screen.getByRole("group", { name: t.till.keyboard })).toBeTruthy();
   });
 });
