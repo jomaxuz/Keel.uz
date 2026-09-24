@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { LuBuilding2, LuChevronRight } from "react-icons/lu";
+import { useEffect, useState } from "react";
+import { LuBuilding2, LuCheck, LuChevronDown, LuChevronRight, LuGlobe } from "react-icons/lu";
 import KeelMark from "@/components/till/KeelMark";
+import OnScreenKeyboard from "@/components/till/OnScreenKeyboard";
+import TillAppliance from "@/components/till/TillAppliance";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { LANGS, type Lang } from "@/lib/i18n";
@@ -89,17 +91,27 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
     // the side of the till. The scroll lives here rather than on the page so a
     // short screen can still reach the button, without the window ever growing
     // taller than itself.
-    <div className="till h-dvh overflow-y-auto bg-cream">
-      <div className="grid min-h-full place-items-center p-6">
+    //
+    // ⚠️ **`appliance`, and the till's own keyboard and tap layer, here too.**
+    // This screen is drawn outside TillShell — nothing is paired yet, so there
+    // is no staff session for the shell to hold — and it had neither: the
+    // Windows keyboard is deliberately switched off (main.tsx), so the three
+    // fields that bind the machine could not be typed into by touch at all.
+    <div className="till appliance h-dvh overflow-y-auto bg-cream">
+      <TillAppliance />
+      {/* ⚠️ **In the corner, as a button that opens a list — not a strip over
+          the mark.** It is on the screen before anybody has an account, so it
+          cannot be hidden in a menu; but a row of three letters above the logo
+          read as part of the form, and was pressed by whoever was reaching
+          for the first field. */}
+      <LanguageMenu label={t.language} />
+      {/* The bottom padding is the keyboard's height while it is up, so the
+          last field and the button can still be scrolled above it. */}
+      <div className="grid min-h-full place-items-center p-6" style={{ paddingBottom: "calc(1.5rem + var(--osk-h))" }}>
         <div className="w-full max-w-[26rem]">
         {/* ⚠️ Our colour and our type, not the restaurant's — the same reasoning
             as the lock screen: `text-brand` and the theme fonts would draw a
             different Keel in every install. */}
-        {/* ⚠️ **Above the mark, not in a settings screen.** Whoever is
-            standing here has no account yet and nowhere else to go: a language
-            they cannot read is the whole screen, and a switch they have to
-            find first is a switch that is not there. */}
-        <LanguagePicker label={t.language} />
 
         <div className="mb-7 flex items-center justify-center gap-3">
           <KeelMark className="h-11 w-11 text-keel-deep" />
@@ -245,6 +257,7 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
           </div>
         </div>
       </div>
+      <OnScreenKeyboard />
     </div>
   );
 }
@@ -264,31 +277,87 @@ function Problem({ text }: { text: string }) {
 }
 
 
-/** Three letters, on the one screen that has no other way to change them.
+/** Each language in its own words: somebody who cannot read the current one
+ *  must still be able to find theirs. */
+const LANG_NAMES: Record<Lang, string> = {
+  uz: "O'zbekcha",
+  ru: "Русский",
+  en: "English",
+};
+
+/** The language, from the top-right corner, on the one screen that has no
+ *  other way to change it.
  *
  *  ⚠️ The choice is kept by `setLang` in the provider's own cookie, which is
  *  what the shell reads when it starts — so a till set up in Russian opens in
- *  Russian tomorrow, rather than asking again every morning. */
-function LanguagePicker({ label }: { label: string }) {
+ *  Russian tomorrow, rather than asking again every morning.
+ *
+ *  ⚠️ **Touch-sized rows, and the list closes itself.** A choice that has to
+ *  be confirmed and then dismissed is three presses for one decision on a
+ *  screen somebody is standing at. */
+function LanguageMenu({ label }: { label: string }) {
   const { lang, setLang } = useI18n();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
-    <div className="mb-4 flex items-center justify-center gap-2">
-      <span className="sr-only">{label}</span>
-      {LANGS.map((l: Lang) => (
-        <button
-          key={l}
-          type="button"
-          onClick={() => setLang(l)}
-          aria-pressed={l === lang}
-          className={`rounded-full px-3 py-1 text-xs font-semibold uppercase transition ${
-            l === lang
-              ? "bg-ink text-cream"
-              : "text-ink-muted hover:text-ink"
-          }`}
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={label}
+        className="fixed right-4 top-4 z-40 flex h-11 items-center gap-2 rounded-full border border-line bg-surface px-3.5 text-sm font-semibold text-ink shadow-card"
+      >
+        <LuGlobe className="h-4 w-4 text-ink-muted" aria-hidden />
+        <span className="uppercase">{lang}</span>
+        <LuChevronDown className="h-4 w-4 text-ink-muted" aria-hidden />
+      </button>
+
+      {open && (
+        // The backdrop closes it: a list that can only be left by choosing is
+        // a trap for whoever opened it by mistake.
+        <div
+          className="fixed inset-0 z-50 bg-ink/30"
+          onClick={() => setOpen(false)}
         >
-          {l}
-        </button>
-      ))}
-    </div>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={label}
+            onClick={(e) => e.stopPropagation()}
+            className="till-dialog absolute right-4 top-[4.25rem] w-64 p-2"
+          >
+            <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+              {label}
+            </p>
+            {LANGS.map((l: Lang) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => {
+                  setLang(l);
+                  setOpen(false);
+                }}
+                aria-pressed={l === lang}
+                className={`flex h-12 w-full items-center justify-between rounded-[11px] px-3 text-left text-[15px] ${
+                  l === lang ? "bg-[rgb(var(--till-accent-tint))] font-semibold text-ink" : "text-ink hover:bg-[rgb(var(--till-quiet))]"
+                }`}
+              >
+                <span>{LANG_NAMES[l]}</span>
+                {l === lang && <LuCheck className="h-4 w-4" aria-hidden />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

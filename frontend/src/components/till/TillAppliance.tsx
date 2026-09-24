@@ -61,6 +61,13 @@ export default function TillAppliance() {
     // The element whose next native click is ours to swallow, and until when.
     let echoEl: Element | null = null;
     let echoUntil = 0;
+    // …and **where** the finger was lifted. See `onClickCapture`.
+    let echoX = 0;
+    let echoY = 0;
+    // The press began on a component that handles its own pointers
+    // (`tapProps`, which fires on contact). Left alone — but its echo is
+    // still ours to catch, see `onUp`.
+    let ownStart = false;
     // True while we are dispatching a click ourselves, so the capture listener
     // below can tell our own event from the browser's echo of it.
     let dispatching = false;
@@ -118,24 +125,56 @@ export default function TillAppliance() {
 
     const onDown = (e: PointerEvent) => {
       startEl = null;
+      ownStart = false;
       // ⚠️ Mouse is left entirely alone. A click from a mouse is already
       // instant and already lands where it was aimed — the whole problem here
       // is a fingertip on a panel — and intercepting it would break the drag,
       // the context menu and the double-click that a desk machine still has.
       if (e.pointerType === "mouse" || !e.isPrimary || e.button !== 0) return;
-      if (e.defaultPrevented) return;
-      const el = pressable(e.target);
-      if (!el) return;
-      startEl = el;
+      // A new touch: whatever echo the last one owed has long arrived. A guard
+      // left armed past this point could only eat a click that is not an echo.
+      echoEl = null;
+      echoUntil = 0;
       startX = e.clientX;
       startY = e.clientY;
       startAt = Date.now();
+      if (e.defaultPrevented) {
+        ownStart = true;
+        return;
+      }
+      const el = pressable(e.target);
+      if (!el) return;
+      startEl = el;
+    };
+
+    /** Swallow the browser's click from this touch — on this element, or
+     *  anywhere near where the finger came off. */
+    const arm = (el: Element | null, e: PointerEvent) => {
+      echoEl = el;
+      echoUntil = Date.now() + ECHO_MS;
+      echoX = e.clientX;
+      echoY = e.clientY;
     };
 
     const onUp = (e: PointerEvent) => {
       const el = startEl;
       startEl = null;
-      if (!el || e.pointerType === "mouse" || !e.isPrimary) return;
+      if (e.pointerType === "mouse" || !e.isPrimary) return;
+      // ⚠️ **A `tapProps` control already answered on contact — and its echo
+      // is the same fall-through as ours.** Pressing a keypad key that closes
+      // the keypad leaves the browser's click to land on whatever was drawn
+      // underneath it. Caught here by position, and nothing is activated.
+      if (ownStart) {
+        ownStart = false;
+        if (
+          Math.abs(e.clientX - startX) <= SLOP &&
+          Math.abs(e.clientY - startY) <= SLOP
+        ) {
+          arm(null, e);
+        }
+        return;
+      }
+      if (!el) return;
       // Scrolled, not tapped. ⚠️ The check this whole design turns on: without
       // it, flicking a list of open checks opens whichever row the flick began
       // on, which is a worse fault than the one being fixed.
@@ -154,8 +193,7 @@ export default function TillAppliance() {
       // ⚠️ **Armed before the dispatch, not after.** The click below runs
       // synchronously and bubbles all the way out; a flag set afterwards would
       // arrive too late to tell our own event from the browser's echo.
-      echoEl = el;
-      echoUntil = Date.now() + ECHO_MS;
+      arm(el, e);
       dispatching = true;
       try {
         activate(el);
@@ -172,14 +210,36 @@ export default function TillAppliance() {
     // document — so a bubble-phase listener here would run *after* the handler
     // it is trying to stop, and every button would fire twice. A dish added
     // twice, a digit entered twice, a void confirmed twice.
+    //
+    // ⚠️ **Matched by position as well as by element, and that is a fix from a
+    // restaurant's floor.** The echo is hit-tested when it arrives, not when
+    // the finger landed — and our activation has run by then. A "Back" button
+    // that closes the new-check dialog is gone before its own click comes, so
+    // the click lands on the floor plan underneath, on whichever table was
+    // drawn behind the button, and opens the dialog again for *that* table.
+    // Filmed: the dialog flickered shut and back open with a different table
+    // chosen, and it looked like lag. Matching only the element let every such
+    // echo through — which is every button that closes the thing it sits on.
+    //
+    // Once, and only until the next touch starts (`onDown`): a click that is
+    // not an echo is never ours to eat.
     const onClickCapture = (e: MouseEvent) => {
       if (dispatching) return;
-      if (!echoEl || Date.now() > echoUntil) {
+      if (Date.now() > echoUntil) {
         echoEl = null;
+        echoUntil = 0;
         return;
       }
-      if (e.target instanceof Node && (echoEl === e.target || echoEl.contains(e.target))) {
+      const onElement =
+        echoEl !== null &&
+        e.target instanceof Node &&
+        (echoEl === e.target || echoEl.contains(e.target));
+      const nearLift =
+        Math.abs(e.clientX - echoX) <= SLOP * 2 &&
+        Math.abs(e.clientY - echoY) <= SLOP * 2;
+      if (onElement || nearLift) {
         echoEl = null;
+        echoUntil = 0;
         e.stopPropagation();
         e.preventDefault();
       }
@@ -187,6 +247,7 @@ export default function TillAppliance() {
 
     const onCancel = () => {
       startEl = null;
+      ownStart = false;
     };
 
     // ---- 3. Nothing leaves the screen ----

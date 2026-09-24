@@ -15607,3 +15607,23 @@ misollarida «Nusxa» tugmasi, footer'da havola, sitemapda. Mazmun
 (Node / Python / PHP — test vektori bilan tekshirilgan). Tekshirildi: `tsc`,
 `vitest`, `npm run build`, Playwright — 1280 / 360 px, uz / ru / en, yorug' va
 qorong'i; gorizontal toshish yo'q, konsolda xato yo'q.
+## 2026-09-24 (4) — Kassa: zal sxemasida bosish tushib ketishi; Windows ulash sahifasi
+
+Monoblokdagi video (`poskeel.MOV`) kadrma-kadr ko'rildi: zal sxemasida stol →
+«Новый счёт» → «Назад» bosilganda oyna yopilib, **o'sha bosish ostidagi boshqa
+stol bilan qayta ochilardi** (3.8→4.1 s va 7.5→7.6 s) — «boshqa joy bosilib
+ketadi, lag» shikoyati shu. Birinchi «Назад» esa umuman o'tmasdi: klaviatura
+tekkanda yopilib, dialog barmoq ostida sakrardi.
+
+- `TillAppliance`: aks-sado click endi barmoq ko'tarilgan **joy** bo'yicha
+  ushlanadi (element bo'yicha emas), `tapProps` tugmalari uchun ham.
+- `OnScreenKeyboard`: pointerup'da yopiladi; `autoFocus` va fokusdagi maydonni
+  qayta bosish klaviaturani chiqaradi.
+- Windows kassa ulash sahifasi: virtual klaviatura va bosish qatlami ulandi;
+  til tanlash o'ng yuqoriga, popup ro'yxat.
+- Testlar: videodagi holat (yopilgan dialog ostiga tushish), tapProps
+  aks-sadosi, aks-sado bo'lmagan click yutilmasligi, autoFocus, «Yopish» dan
+  keyin qaytish. Eski kodda ikkitasi yiqilishi tekshirildi. Setup sahifasi
+  production build'da Playwright bilan (1024×768, touch) sinaldi.
+- ⚠️ Monoblokka yetishi uchun **yangi kassa installer'i** kerak (ekranlar
+  ilovaning ichiga yig'iladi); brauzerdagi kassa esa oddiy deploy bilan oladi.

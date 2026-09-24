@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
@@ -71,6 +72,66 @@ describe("the till's global tap layer", () => {
     touch(el, [10, 10]);
     fireEvent.click(el);
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  // ⚠️ **Filmed on a monoblock.** "Back" closes the new-check dialog, so by the
+  // time the browser's own click arrives the button is gone and the click is
+  // hit-tested onto the floor plan underneath — opening the dialog again, for
+  // whichever table was drawn behind the button.
+  it("does not let the echo fall through to what was under a closed dialog", () => {
+    const openTable = vi.fn();
+    function Floor() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button onClick={openTable}>table 10</button>
+          {open && <button onClick={() => setOpen(false)}>back</button>}
+        </>
+      );
+    }
+    render(
+      <>
+        <TillAppliance />
+        <Floor />
+      </>,
+    );
+    touch(screen.getByText("back"), [300, 500]);
+    expect(screen.queryByText("back")).toBeNull();
+    // The browser's click from the same touch, landing on the table beneath.
+    fireEvent.click(screen.getByText("table 10"), { clientX: 301, clientY: 502 });
+    expect(openTable).not.toHaveBeenCalled();
+  });
+
+  // The same fall-through from a control that answers on contact: a keypad key
+  // that closes the keypad.
+  it("catches the echo of a tapProps control too", () => {
+    const underneath = vi.fn();
+    render(
+      <>
+        <TillAppliance />
+        <button {...tapProps(() => {})}>done</button>
+        <button onClick={underneath}>under</button>
+      </>,
+    );
+    touch(screen.getByText("done"), [40, 700]);
+    fireEvent.click(screen.getByText("under"), { clientX: 40, clientY: 700 });
+    expect(underneath).not.toHaveBeenCalled();
+  });
+
+  // ⚠️ And only the echo: a real press somewhere else, or the next touch, is
+  // never eaten by a guard left over from the last one.
+  it("does not swallow a click that is not the echo", () => {
+    const other = vi.fn();
+    render(
+      <>
+        <TillAppliance />
+        <button onClick={() => {}}>first</button>
+        <button onClick={other}>second</button>
+      </>,
+    );
+    touch(screen.getByText("first"), [10, 10]);
+    fireEvent.click(screen.getByText("second"), { clientX: 600, clientY: 400 });
+    expect(other).toHaveBeenCalledTimes(1);
   });
 
   // ⚠️ **The check this whole design turns on.** A till is full of scrolling
