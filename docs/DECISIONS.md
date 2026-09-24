@@ -5413,7 +5413,33 @@ ma'lumotni qayerda saqlash savoli ularning shartnomasiniki. Kod —
 - Kuryer topshirmasi (`courier_settlement`) filialsiz — faqat butun kompaniya
   so'ralganda chiqadi, taxminiy filialga yozilmaydi.
 - Davr ≤ 31 kun: gavjum restoranning bir oyi ~10 ming sotuv; undan kattasi
-  ikki so'rov bo'lishi kerak edi.
+  ikki so'rov bo'lishi kerak edi. Daftar buyurtmaning qatorlarini, mijozini va
+  cheklarini **bazada** tashlab o'qiydi (projection) — oyning buyurtmalari
+  aks holda asosan shulardan iborat.
+
+**Qo'shimchalar** (`handlers/openfinance.go`, hammasi `finance:read`):
+- `/money/daily` — daftarning kun × filial yig'indisi, **daftar yozuvlaridan
+  yig'iladi**, alohida so'rov emas: o'z so'rovi bo'lgan kunlik yig'indi o'zi
+  yig'ayotgan yozuvlar bilan kelishmay qoladi. ≤ 93 kun (chorak).
+- `/balances` — panelning «Pul qayerda» ekrani: `AdminMoney` dan
+  `moneyPosition(r, scope)` ajratildi va ikkalasi shuni o'qiydi — "pul qayerda"
+  savolining bitta javobi. ⚠️ **Umumiy jami yo'q, ataylab** (naqd / bank /
+  yo'ldagi). Qo'shimcha: `payables.suppliers` (to'lanmagan kirimlar),
+  `receivables.guestDebt` (to'lanmagan qarzlar).
+- `/fiscal` — davr sotuvlarining fiskal cheklari **har holatda** (pending va
+  failed — oy yopilishidan oldin quvib yurish kerak bo'lganlari) + Z-hisobotlar.
+- ⚠️ **`money.day_changed` — chaqiruv joylarida emas, kuzatuvchida.** Pul o'nlab
+  handlerda yoziladi va o'chiriladi; buyurtma webhook'i o'z o'n ikkitasini test
+  bilan ushlaydi, bu yerda ikki baravar ko'p bo'lardi va unutilgani —
+  buxgalteriyasi jimgina noto'g'ri qabul qiluvchi. Uning o'rniga har 10 daqiqada
+  oxirgi 35 kunning daftari olinadi, har (kun, filial) ga hash qo'yiladi
+  (`money_watch`) va o'zgarganlari xabar qilinadi — o'zgarish qayerda
+  qilinganidan qat'i nazar, o'chirish ham. Hodisa — **ishora, pul emas**:
+  "shu kunni qayta o'qing". Id kontentdan (`…_<hash>`), ya'ni bir o'zgarish ikki
+  marta — bitta hodisa. ⚠️ **Birinchi qarash — baza nuqtasi, xabar emas**; va
+  kuzatuvchi **hech kim obuna bo'lmagan bo'lsa umuman o'qimaydi** — boshqa
+  restoranlarga narxi nol. Live test bor (`TestMoneyWatchLive`: baseline →
+  xarajat → 1 hodisa → jimlik → o'chirish → 2).
 
 ### Status sahifasi: rang va qisqa uzilishlar (`keel.uz/status`)
 

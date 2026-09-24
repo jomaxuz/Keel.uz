@@ -38,6 +38,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
@@ -419,8 +420,8 @@ func (h *Handler) loadMoneySources(ctx context.Context, branch bson.M, from, to 
 		return f
 	}
 	src := &moneySources{}
-	load := func(c *mongo.Collection, filter bson.M, into any) error {
-		cur, err := c.Find(ctx, filter)
+	load := func(c *mongo.Collection, filter bson.M, into any, opts ...*options.FindOptions) error {
+		cur, err := c.Find(ctx, filter, opts...)
 		if err != nil {
 			return err
 		}
@@ -435,10 +436,17 @@ func (h *Handler) loadMoneySources(ctx context.Context, branch bson.M, from, to 
 	for k, v := range branch {
 		refunds[k] = v
 	}
+	// ⚠️ The ledger never reads a line, a guest or a table — and a month of
+	// orders with their lines is most of what this function would otherwise
+	// carry. Left out at the database, not after decoding.
+	lean := options.Find().SetProjection(bson.M{
+		"items": 0, "statusHistory": 0, "check": 0, "customer": 0,
+		"address": 0, "appliedOps": 0, "pos": 0, "fiscal": 0, "fiscalRefund": 0,
+	})
 	var refunded []models.Order
 	steps := []error{
-		load(h.Store.Orders, in("createdAt"), &src.Orders),
-		load(h.Store.Orders, refunds, &refunded),
+		load(h.Store.Orders, in("createdAt"), &src.Orders, lean),
+		load(h.Store.Orders, refunds, &refunded, lean),
 		load(h.Store.Purchases, in("at"), &src.Purchases),
 		load(h.Store.Expenses, in("at"), &src.Expenses),
 		load(h.Store.StaffPayments, in("at"), &src.StaffPays),

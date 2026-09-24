@@ -4627,6 +4627,7 @@ export const adminUz = {
     event: {
       "order.created": "Yangi buyurtma",
       "order.status_changed": "Buyurtma holati o'zgardi",
+      "money.day_changed": "Kunning pul harakati o'zgardi",
     } as Record<string, string>,
     addWebhook: "Manzil qo'shish",
     secretOnce:
@@ -9807,6 +9808,7 @@ export const adminRu: AdminDict = {
     event: {
       "order.created": "Новый заказ",
       "order.status_changed": "Изменился статус заказа",
+      "money.day_changed": "Изменилось движение денег за день",
     } as Record<string, string>,
     addWebhook: "Добавить адрес",
     secretOnce:
@@ -14917,6 +14919,7 @@ export const adminEn: AdminDict = {
     event: {
       "order.created": "New order",
       "order.status_changed": "Order status changed",
+      "money.day_changed": "A day's money movements changed",
     } as Record<string, string>,
     addWebhook: "Add address",
     secretOnce:

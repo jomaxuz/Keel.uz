@@ -15589,3 +15589,10 @@ panelda yangi **`finance:read`** kalitini yaratadi (mijoz ma'lumotisiz).
   «Pul daftari».
 
 Finze'ga beriladi: restoran domeni + `finance:read` kaliti + `docs/open-api.md`.
+- **Qo'shimchalar (shu kuni)**: `/money/daily` (kun × filial, daftardan
+  yig'iladi, ≤93 kun), `/balances` (panelning «Pul qayerda» hisobi —
+  `moneyPosition` ajratildi; + yetkazib beruvchilarga qarz, mijozlar qarzi;
+  umumiy jami yo'q), `/fiscal` (fiskal cheklar har holatda + Z-hisobotlar),
+  webhook `money.day_changed` (10 daqiqada bir 35 kunlik hash kuzatuvchisi,
+  faqat obuna bo'lsa ishlaydi). Live testlar: kuzatuvchi va refund so'rovi
+  haqiqiy Mongo'da.

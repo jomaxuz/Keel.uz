@@ -322,7 +322,9 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   versiyasi bilan**: bu birovning kodiga va'da, e'lon qilingan shartnoma
   `docs/open-api.md`): `ping`, `branches`, `branches/{id}/menu`, `orders`,
   `orders/{ref}`, `money` (pul daftari, `finance:read` — ⚠️ har yozuvda
-  `class`/`pnl`, P&L yig'indisi panel hisoboti bilan teng, mijoz ma'lumotisiz). Kalit bilan (`Bearer keel_…`), faqat o'qiydi; javob — o'z
+  `class`/`pnl`, P&L yig'indisi panel hisoboti bilan teng, mijoz ma'lumotisiz)
+  + `money/daily`, `balances` (⚠️ umumiy jami yo'q), `fiscal`; webhook
+  `money.day_changed` — kuzatuvchidan (hash), chaqiruv joylaridan emas. Kalit bilan (`Bearer keel_…`), faqat o'qiydi; javob — o'z
   structlari, model emas; xato inglizcha + `code`. ⚠️ Buyurtma statusini
   o'zgartiradigan **har** yozuv `h.orderEvent()` ni chaqiradi — webhook shundan
   chiqadi, va buni test sanaydi.

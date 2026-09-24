@@ -32,7 +32,7 @@ Keys carry scopes:
 |---|---|
 | `menu:read` | `GET /branches/{id}/menu` |
 | `orders:read` | `GET /orders`, `GET /orders/{ref}` — includes customer name and phone |
-| `finance:read` | `GET /money` — every movement of money, **no customer data** |
+| `finance:read` | `GET /money`, `/money/daily`, `/balances`, `/fiscal` — money, **no customer data** |
 
 `/ping` and `/branches` need any valid key. A revoked key stops working on the
 next request.
@@ -256,6 +256,75 @@ is fixed, a debt is repaid, a refund is given a week later. So:
   after the month has closed.
 - `id` is stable: the same document always gives the same id.
 
+## Daily totals — `GET /money/daily` (`finance:read`)
+
+The ledger summed per day and branch — the same entries as `/money`, added up
+here, so the two never disagree. Same query as `/money`, up to **93 days**.
+
+```json
+{ "currency": "UZS", "from": "…", "to": "…",
+  "days": [
+    { "day": "2026-09-24", "branchId": "6ab5…",
+      "byClass": { "revenue": { "in": 4200000, "out": 0, "count": 61 },
+                   "cost":    { "in": 0, "out": 5000000, "count": 1 } },
+      "revenueByMethod": { "cash": 2600000, "payme": 1600000 },
+      "pnlNet": -800000 } ] }
+```
+
+## Where the money is — `GET /balances` (`finance:read`)
+
+Right now, optionally for one `branchId`. The same figures as the owner's
+"Where is the money" screen.
+
+```json
+{ "asOf": "…", "currency": "UZS", "branchId": "",
+  "cash":      [ { "kind": "safe", "name": "Seyf", "amount": 1200000, "counted": false },
+                 { "kind": "drawer", "name": "…", "amount": 350000, "counted": false, "at": "…" },
+                 { "kind": "courier", … }, { "kind": "advance", … } ],
+  "cashTotal": 1550000,
+  "bank":      [ { "kind": "bank", "name": "Kapitalbank", "amount": 48000000, "counted": true, "at": "…" } ],
+  "bankTotal": 48000000,
+  "inTransit": [ { "kind": "rail", "name": "Uzum", "amount": 3100000 } ],
+  "inTransitTotal": 3100000,
+  "cashLimit": 5000000, "overCashLimit": false,
+  "payables":    { "suppliers": { "amount": 7400000, "count": 5 } },
+  "receivables": { "guestDebt": { "amount": 260000, "count": 3 } } }
+```
+
+- ⚠️ **There is deliberately no grand total.** Cash can be spent tonight, the
+  bank this week, and money an aggregator still holds when they decide.
+  Adding them gives a number that is true of nothing.
+- `counted: true` — somebody counted it (a bank balance read off the bank's
+  app); it goes stale, check `at`. `counted: false` — added up from documents;
+  it is wrong when a document is missing.
+- The bank figure is the **last counted balance**, never derived from
+  movements: money reaches the account from places this system does not see.
+- `name` is the restaurant's own wording; decide by `kind`
+  (`safe`, `drawer`, `courier`, `advance`, `bank`, `rail`).
+- `payables.suppliers` — deliveries not yet paid for; `receivables.guestDebt` —
+  meals on the slate not yet paid.
+
+## Fiscal receipts — `GET /fiscal` (`finance:read`)
+
+Receipts filed with the tax committee for sales made in the period (≤ 31
+days), **in every status** — a pending or refused receipt is exactly what has
+to be chased before the month closes — and the Z-reports of shifts closed in
+it.
+
+```json
+{ "from": "…", "to": "…",
+  "receipts": [ { "orderId": "…", "orderNumber": "QVUU-R97U", "branchId": "…",
+                  "kind": "sale", "total": 90000, "method": "cash",
+                  "status": "filed", "provider": "multikassa",
+                  "fiscalSign": "…", "receiptId": "…", "qrText": "…",
+                  "filedAt": "…", "soldAt": "…" } ],
+  "zReports": [ { "shiftId": "…", "branchId": "…", "number": "142",
+                  "saleCash": 2600000, "saleCard": 1600000, "saleTotal": 4200000,
+                  "saleCount": 61, "refundTotal": 0, "closedAt": "…" } ] }
+```
+
+`kind` is `sale` or `refund`; `status` is `pending`, `filed` or `failed`, and `error` says why a filing failed.
+
 ## Webhooks
 
 The owner registers an `https://` address in the panel and picks events. They
@@ -267,7 +336,25 @@ receive a **signing secret** (`whsec_…`, shown once) to give to you.
 |---|---|
 | `order.created` | an order is placed — site, app, phone operator, till, Uzum Tezkor |
 | `order.status_changed` | its status changes |
+| `money.day_changed` | a day's money changed — see below |
 | `ping` | the owner pressed "Test" in the panel |
+
+### `money.day_changed`
+
+```json
+{ "id": "evt_money_2026-09-24_6ab5…_1f3a9c0e2b7d", "type": "money.day_changed",
+  "createdAt": "…",
+  "data": { "day": "2026-09-24", "branchId": "6ab5…", "pnlNet": -800000, "entries": 62 } }
+```
+
+**A hint, not the money: re-read that day** (`GET /money?from=<day>&to=<day>`)
+and replace what you stored for it. It is raised for anything that changes the
+day's figures — a new sale, an edited purchase, a deleted expense — within the
+last 35 days, checked every 10 minutes. `entries: 0` means every entry of the
+day was deleted.
+
+Nothing is sent for the days before the address was registered: read those
+periods yourself once.
 
 ### Request
 

@@ -163,3 +163,51 @@ func TestMoneyDayIsLocal(t *testing.T) {
 		t.Fatalf("day %s, want 2026-09-10", got)
 	}
 }
+
+// A day's summary is the sum of that day's entries — never its own query.
+func TestMoneyDaysSumTheirEntries(t *testing.T) {
+	a, b := mOrder(100_000, models.PayPaid, models.StatusDelivered), mOrder(50_000, models.PayPaid, models.StatusDelivered)
+	b.PaymentMethod = "payme"
+	b.CreatedAt = mDay.AddDate(0, 0, 1)
+	src := &moneySources{
+		Orders:   []models.Order{a, b},
+		Expenses: []models.Expense{{ID: primitive.NewObjectID(), At: mDay, Amount: 30_000}},
+	}
+	days := moneyDays(moneyEntries(src, mFrom, mTo))
+	if len(days) != 2 {
+		t.Fatalf("%d days", len(days))
+	}
+	if days[0].PnLNet != 70_000 || days[0].RevenueByMethod["cash"] != 100_000 {
+		t.Errorf("first day: %+v", days[0])
+	}
+	if days[1].RevenueByMethod["payme"] != 50_000 || days[0].Day >= days[1].Day {
+		t.Errorf("second day: %+v", days[1])
+	}
+}
+
+// The watcher notices an edit, a deletion and a new entry — and nothing else.
+func TestMoneyFingerprintsSeeEveryChange(t *testing.T) {
+	x := models.Expense{ID: primitive.NewObjectID(), At: mDay, Amount: 30_000}
+	y := models.Expense{ID: primitive.NewObjectID(), At: mDay.AddDate(0, 0, 1), Amount: 10_000}
+	base := moneyFingerprints(moneyEntries(&moneySources{Expenses: []models.Expense{x, y}}, mFrom, mTo))
+	same := moneyFingerprints(moneyEntries(&moneySources{Expenses: []models.Expense{y, x}}, mFrom, mTo))
+	if got := changedDays(base, same, ""); len(got) != 0 {
+		t.Fatalf("nothing changed, but %v", got)
+	}
+	edited := x
+	edited.Amount = 31_000
+	if got := changedDays(base, moneyFingerprints(moneyEntries(
+		&moneySources{Expenses: []models.Expense{edited, y}}, mFrom, mTo)), ""); len(got) != 1 {
+		t.Errorf("an edit: %v", got)
+	}
+	// Every entry of a day deleted: the day disappears from the prints, and
+	// that is a change too.
+	if got := changedDays(base, moneyFingerprints(moneyEntries(
+		&moneySources{Expenses: []models.Expense{x}}, mFrom, mTo)), ""); len(got) != 1 {
+		t.Errorf("a deletion: %v", got)
+	}
+	// …unless it only slid out of the watched window.
+	if got := changedDays(base, map[string]string{}, "2099-01-01"); len(got) != 0 {
+		t.Errorf("a day older than the window was reported: %v", got)
+	}
+}

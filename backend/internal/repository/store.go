@@ -117,6 +117,8 @@ type Store struct {
 	APIKeys           *mongo.Collection
 	WebhookEndpoints  *mongo.Collection
 	WebhookDeliveries *mongo.Collection
+	// The money watcher\'s fingerprints — see handlers/openfinance.go.
+	MoneyWatch *mongo.Collection
 	// The till the restaurant already runs: one connection per branch, and the
 	// map from our dishes to its products.
 	POSSettings *mongo.Collection
@@ -280,6 +282,7 @@ func New(db *mongo.Database) *Store {
 		APIKeys:            db.Collection("api_key"),
 		WebhookEndpoints:   db.Collection("webhook_endpoint"),
 		WebhookDeliveries:  db.Collection("webhook_delivery"),
+		MoneyWatch:         db.Collection("money_watch"),
 
 		POSSettings:    db.Collection("pos_settings"),
 		POSMappings:    db.Collection("pos_mapping"),

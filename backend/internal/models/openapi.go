@@ -69,10 +69,14 @@ func (k *APIKey) Has(scope string) bool {
 const (
 	EventOrderCreated       = "order.created"
 	EventOrderStatusChanged = "order.status_changed"
+	// A day's money changed — re-read that day of the ledger. ⚠️ A hint, not
+	// the money: the ledger is computed on read (handlers/openmoney.go), and a
+	// receiver that re-reads the day gets every correction, deletion included.
+	EventMoneyDayChanged = "money.day_changed"
 )
 
 // WebhookEvents is every event, in the order the panel lists them.
-var WebhookEvents = []string{EventOrderCreated, EventOrderStatusChanged}
+var WebhookEvents = []string{EventOrderCreated, EventOrderStatusChanged, EventMoneyDayChanged}
 
 // WebhookEndpoint is an address we call when something happens.
 type WebhookEndpoint struct {
@@ -105,6 +109,15 @@ func (e *WebhookEndpoint) Subscribes(event string) bool {
 		}
 	}
 	return false
+}
+
+// MoneyWatch is the money watcher's memory: a fingerprint of each recent
+// (day, branch) of the ledger, so it can tell which ones changed since it last
+// looked. A singleton. See handlers/openfinance.go.
+type MoneyWatch struct {
+	ID   string            `bson:"_id"`
+	Days map[string]string `bson:"days"`
+	At   time.Time         `bson:"at"`
 }
 
 // Delivery states.

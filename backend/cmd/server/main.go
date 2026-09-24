@@ -215,6 +215,9 @@ func main() {
 	// with no endpoint registered — the queue is empty, and one indexed read
 	// every fifteen seconds is all it costs. See handlers/webhooks.go.
 	h.StartWebhookSender(syncCtx)
+	// money.day_changed — idle unless an endpoint subscribes to it. See
+	// handlers/openfinance.go.
+	h.StartMoneyWatch(syncCtx)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

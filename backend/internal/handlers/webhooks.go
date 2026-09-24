@@ -66,10 +66,10 @@ func kickWebhooks() {
 
 // webhookEnvelope is the body of every delivery. ⚠️ Published.
 type webhookEnvelope struct {
-	ID        string         `json:"id"`
-	Type      string         `json:"type"`
-	CreatedAt time.Time      `json:"createdAt"`
-	Data      webhookEnvData `json:"data"`
+	ID        string    `json:"id"`
+	Type      string    `json:"type"`
+	CreatedAt time.Time `json:"createdAt"`
+	Data      any       `json:"data"`
 }
 
 type webhookEnvData struct {
@@ -160,28 +160,40 @@ func (h *Handler) orderEvent(ctx context.Context, orderID primitive.ObjectID) {
 					Status: string(o.StatusHistory[i].Status), PreviousStatus: prev, Order: snapshot,
 				},
 			}
-			body, err := json.Marshal(env)
-			if err != nil {
-				continue
-			}
-			_, err = h.Store.WebhookDeliveries.InsertOne(ctx, models.WebhookDelivery{
-				EndpointID: ep.ID, EventID: env.ID, Event: kind, Payload: string(body),
-				OrderNumber: o.Number, Status: models.DeliveryPending,
-				NextAttemptAt: now, CreatedAt: now,
-			})
-			switch {
-			case err == nil:
+			if h.queueDelivery(ctx, &ep, env, o.Number, now) {
 				queued = true
-			case mongo.IsDuplicateKeyError(err):
-				// Already queued by an earlier call — the index doing its job.
-			default:
-				log.Printf("webhook queue %s → %s: %v", env.ID, ep.URL, err)
 			}
 		}
 	}
 	if queued {
 		kickWebhooks()
 	}
+}
+
+// queueDelivery puts one event on its way to one endpoint, and reports whether
+// it is new. `label` is what the panel's list shows beside it (an order
+// number, a day).
+func (h *Handler) queueDelivery(
+	ctx context.Context, ep *models.WebhookEndpoint, env webhookEnvelope, label string, now time.Time,
+) bool {
+	body, err := json.Marshal(env)
+	if err != nil {
+		return false
+	}
+	_, err = h.Store.WebhookDeliveries.InsertOne(ctx, models.WebhookDelivery{
+		EndpointID: ep.ID, EventID: env.ID, Event: env.Type, Payload: string(body),
+		OrderNumber: label, Status: models.DeliveryPending,
+		NextAttemptAt: now, CreatedAt: now,
+	})
+	switch {
+	case err == nil:
+		return true
+	case mongo.IsDuplicateKeyError(err):
+		// Already queued by an earlier call — the index doing its job.
+	default:
+		log.Printf("webhook queue %s → %s: %v", env.ID, ep.URL, err)
+	}
+	return false
 }
 
 func (h *Handler) liveWebhookEndpoints(ctx context.Context) ([]models.WebhookEndpoint, error) {

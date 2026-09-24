@@ -36,6 +36,13 @@ func (h *Handler) AdminMoney(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	httpx.JSON(w, http.StatusOK, h.moneyPosition(r, scope))
+}
+
+// moneyPosition is the position for a branch scope — the panel's screen and
+// the open API's `/balances` both read it, so "where is the money" has one
+// answer.
+func (h *Handler) moneyPosition(r *http.Request, scope bson.M) models.MoneyPosition {
 	ctx := r.Context()
 	pos := models.MoneyPosition{
 		Cash: []models.MoneyPlace{}, Bank: []models.MoneyPlace{},
@@ -105,8 +112,7 @@ func (h *Handler) AdminMoney(w http.ResponseWriter, r *http.Request) {
 	pos.BranchID = limitBranch
 
 	pos.OverLimit = pos.CashLimit > 0 && pos.CashTotal > pos.CashLimit
-
-	httpx.JSON(w, http.StatusOK, pos)
+	return pos
 }
 
 // drawerCash is what the open tills are holding right now.
