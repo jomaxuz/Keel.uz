@@ -133,6 +133,7 @@ func (h *Handler) StaffMergeChecks(w http.ResponseWriter, r *http.Request) {
 	// be taken off the shelf twice.
 	from.Status = models.StatusCancelled
 	from.MergedIntoID = to.ID
+	h.orderEvent(r.Context(), from.ID)
 	h.syncOrderStock(r.Context(), from)
 	h.syncOrderStock(r.Context(), &to)
 	httpx.JSON(w, http.StatusOK, viewCheck(&to, now, s.ID))

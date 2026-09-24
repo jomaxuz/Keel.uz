@@ -154,6 +154,17 @@ const (
 	ActAdsRules      = "ads.rules"
 	ActAdsCreate     = "ads.campaign.create"
 	ActAdsUpdate     = "ads.campaign.update"
+
+	// ---- The open API ----
+	//
+	// ⚠️ **A key with orders:read and a webhook are both a copy of the
+	// customer list leaving the building** — names and phone numbers, order by
+	// order. Which is why creating either is on the sensitive list below.
+	ActAPIKeyCreate  = "apikey.create"
+	ActAPIKeyRevoke  = "apikey.revoke"
+	ActWebhookCreate = "webhook.create"
+	ActWebhookUpdate = "webhook.update"
+	ActWebhookDelete = "webhook.delete"
 )
 
 // logAction records what the acting admin just did. Never fails the request:
@@ -231,6 +242,10 @@ var sensitiveActions = map[string]string{
 	ActAdminCreate:      "Yangi panel hisobi ochildi",
 	ActAdminCredentials: "Panel hisobining paroli o'zgartirildi",
 	ActAdminDelete:      "Panel hisobi o'chirildi",
+
+	// Another program given a way to read orders — see ActAPIKeyCreate.
+	ActAPIKeyCreate:  "Ochiq API kaliti yaratildi",
+	ActWebhookCreate: "Webhook manzili qo'shildi",
 
 	// ⚠️ **Customer deletion is deliberately absent**, and that is a finding
 	// rather than an omission: nothing in the panel logs it under its own

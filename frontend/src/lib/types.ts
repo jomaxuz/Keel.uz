@@ -2894,6 +2894,50 @@ export interface UzumTezkorSettings {
   stores: { id: string; name: string }[];
 }
 
+/** A key another program reads this restaurant with. The key itself is shown
+ *  once, in the create answer; the server keeps only its hash. */
+export interface APIKey {
+  id: string;
+  name: string;
+  /** The first characters, to tell keys apart — not enough to use. */
+  prefix: string;
+  scopes: string[];
+  createdAt: string;
+  createdBy?: string;
+  lastUsedAt?: string | null;
+  revokedAt?: string | null;
+}
+
+/** An address we call when an order moves. The signing secret is never in
+ *  this shape — only in the create and rotate answers. */
+export interface WebhookEndpoint {
+  id: string;
+  url: string;
+  events: string[];
+  enabled: boolean;
+  createdAt: string;
+  lastSuccessAt?: string | null;
+  lastFailureAt?: string | null;
+  lastError?: string;
+  consecutiveFailures: number;
+  /** Queued and not yet delivered. */
+  pending: number;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  eventId: string;
+  event: string;
+  orderNumber?: string;
+  status: "pending" | "delivered" | "failed" | "skipped";
+  attempts: number;
+  nextAttemptAt: string;
+  lastStatus?: number;
+  lastError?: string;
+  createdAt: string;
+  deliveredAt?: string | null;
+}
+
 export interface PaymentSettings {
   returnUrl: string;
   payme: {

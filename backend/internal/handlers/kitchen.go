@@ -303,6 +303,9 @@ func (h *Handler) StaffKitchenAction(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusConflict, "bu buyurtma o'zgargan — ro'yxat yangilandi")
 		return
 	}
+	if req.Action == "start" {
+		h.orderEvent(r.Context(), id)
+	}
 	if req.Action == "ready" {
 		// ⚠️ **After the write, and never in front of it.** The ticket is
 		// already marked ready; if telling somebody fails, the kitchen's work

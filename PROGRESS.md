@@ -15536,3 +15536,37 @@ bosish olib tashlaydi, va «2 qop» serverga `qty: 2, pack: true` bo'lib boradi 
 50 emas. ⚠️ Ekran faqat testda ko'rilgan, monoblokda hali emas.
 
 **7. Admin panel va kassa (Till) do'kon tilida gapiradi.** Kassa va admin panelda barcha bizneslar uchun narsalar statik tarzda "Taom" va "Menyu" deb atalardi. Endi ekranlar matnlarni `usePanelWords` va `useTillWords` orqali so'raydi. Do'konlar (goods) uchun "Tovar" va "Katalog" matnlari chiqadi. Backenddagi `StaffTillSession` javobida kassa uchun `businessType` ulab berildi, chunki kassa faqat login bo'lgan qurilmadir (va paneldek kengaytirilgan muhitda ishlamaydi).
+
+## 2026-09-24 — Ochiq API: kalitlar va webhook'lar (v1)
+
+Boshqa dasturlar Keel'ga ulanishi uchun birinchi qadam — **hammaga ochiq API
+emas**, balki ikki poydevor: API kalitlar va webhook'lar. Qarorlar:
+`docs/DECISIONS.md` → «Ochiq API: kalitlar va webhook'lar»; tashqi dasturchi
+uchun shartnoma: `docs/open-api.md` (inglizcha).
+
+- **`/api/open/v1`** — `/api/v1` dan tashqarida, o'z versiyasi bilan. Faqat
+  o'qiydi: `ping`, `branches`, `branches/{id}/menu` (`menu:read`), `orders` +
+  `orders/{ref}` (`orders:read`, kursor bilan sahifalash). Javoblar o'z
+  structlari (`OpenOrder` va h.k.) — model emas; xato inglizcha + `code`.
+- **Kalitlar**: `keel_` + 64 hex, faqat SHA-256 saqlanadi, bir marta
+  ko'rsatiladi, bekor qilinadi (o'chirilmaydi). Yaratish — sezgir amal.
+- **Webhook'lar**: `order.created`, `order.status_changed`. `h.orderEvent()`
+  statusni o'zgartiradigan har yozuvga qo'shildi (sayt, admin, oshxona, kuryer,
+  kassa ×5, Uzum ×2) va `TestEveryStatusChangeRaisesAWebhook` ularni sanaydi —
+  bitta chaqiruvni olib tashlab tekshirildi, yiqiladi. Navbat
+  `webhook_delivery`, HMAC imzo (vaqt ichida), ~2 kun qayta urinish.
+- **SSRF himoyasi**: yangi `internal/netguard` (menyu importi ham endi shundan
+  o'qiydi) — faqat https, ulanish paytida IP tekshiruvi, redirect yo'q, javob
+  body'si saqlanmaydi.
+- **Panel**: Sozlamalar → Integratsiyalar → «API va webhook'lar» (faqat ega),
+  uch tilda; amallar jurnaliga beshta yangi amal.
+
+Tekshirildi: `go test ./...`, `vitest` (328), `tsc`; jonli — alohida
+`openapi_smoke` bazada to'liq zanjir (keyin o'chirildi), panel 1280/360 px da.
+⚠️ **Muvaffaqiyatli (2xx) yetkazish jonli sinalmagan** — ochiq https qabul
+qiluvchi kerak (unit testda bor). ⚠️ 360 px da admin panelining **yuqori
+paneli** sahifani 423–532 px ga kengaytiradi — bu yangi bo'limdan emas, oldindan
+bor muammo, alohida ish.
+
+Keyingi qadam (so'ralganda): birinchi haqiqiy iste'molchi bilan buyurtma
+**yozish** (`orders:write`), va `keel.uz/developers` da hujjatni e'lon qilish.

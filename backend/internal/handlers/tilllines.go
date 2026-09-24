@@ -425,6 +425,7 @@ func (h *Handler) StaffFireCheck(w http.ResponseWriter, r *http.Request) {
 	// so a printer nobody plugged in cannot be the reason an order fails to
 	// reach the kitchen — the screen has it either way.
 	h.queueKitchenTicket(r.Context(), s.BranchID, o, now)
+	h.orderEvent(r.Context(), o.ID)
 	// Firing takes nothing extra off the shelf — the row was written when the
 	// line was rung up. What it changes is whether removing the line later can
 	// put anything back, which is the question `cookedLine` answers.

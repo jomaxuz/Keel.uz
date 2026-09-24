@@ -147,6 +147,10 @@ func (h *Handler) StaffSplitCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	split.ID = res.InsertedID.(primitive.ObjectID)
+	// ⚠️ Raised before the second write can undo it only because a failed split
+	// deletes the new check — and a receiver then asks for an order that is not
+	// there, which is the honest answer. Raised after, it could be forgotten.
+	h.orderEvent(r.Context(), split.ID)
 
 	from.Items = kept
 	set := bson.M{"items": kept, "updatedAt": now}

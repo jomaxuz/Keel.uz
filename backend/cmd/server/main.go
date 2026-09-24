@@ -211,6 +211,11 @@ func main() {
 	h.StartAdsEvents(syncCtx)
 	h.StartAdsRules(syncCtx)
 
+	// Outgoing webhooks: the queue orderEvent fills. ⚠️ Idle on every install
+	// with no endpoint registered — the queue is empty, and one indexed read
+	// every fifteen seconds is all it costs. See handlers/webhooks.go.
+	h.StartWebhookSender(syncCtx)
+
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,

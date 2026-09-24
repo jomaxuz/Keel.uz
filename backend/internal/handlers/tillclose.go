@@ -387,6 +387,7 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	o.Status = models.StatusDelivered
 	o.Check.ClosedAt = &now
 	o.Check.ClosedBy = s.Name
+	h.orderEvent(r.Context(), o.ID)
 	// Nothing new leaves the shelf at payment — every line was written when it
 	// was rung up. This is the last moment anybody touches the check, so it is
 	// where a row lost to a blip earlier in the evening gets written.
@@ -533,6 +534,7 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	o.Status = models.StatusCancelled
 	o.Check.ClosedAt = &now
+	h.orderEvent(r.Context(), o.ID)
 	// ⚠️ **Line by line, on the same test the alert above uses.** A table opened
 	// by mistake cooked nothing and puts everything back; a cancelled check with
 	// food on the pass leaves its rows standing, marked as waste. `cookedValue`

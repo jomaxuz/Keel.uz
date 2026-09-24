@@ -368,6 +368,10 @@ var messages = map[string]pair{
 		"Нет открытой смены — сначала отметьте приход",
 		"No shift is open — clock in first",
 	},
+	"bu manzil ochiq internetda emas": {
+		"этот адрес не находится в открытом интернете",
+		"this address is not on the public internet",
+	},
 	"bu reklama akkaunti Meta tomonidan faol emas": {
 		"этот рекламный аккаунт неактивен в Meta",
 		"this ad account is not active at Meta",
@@ -388,6 +392,10 @@ var messages = map[string]pair{
 		"предел превышает общий предел в настройках",
 		"the cap is above the overall cap in the settings",
 	},
+	"faol kalitlar juda ko'p — keraksizlarini bekor qiling": {
+		"слишком много активных ключей — отзовите ненужные",
+		"too many active keys — revoke the ones you no longer need",
+	},
 	"faqat JPG, PNG rasm yoki MP4, MOV video": {
 		"только изображение JPG, PNG или видео MP4, MOV",
 		"only a JPG or PNG picture, or an MP4 or MOV video",
@@ -403,6 +411,22 @@ var messages = map[string]pair{
 	"filial xaritada belgilanmagan — reklama hududi shundan o'lchanadi": {
 		"филиал не отмечен на карте — от неё считается зона рекламы",
 		"the branch is not marked on the map — the advertising area is measured from it",
+	},
+	"kalit topilmadi": {
+		"ключ не найден",
+		"key not found",
+	},
+	"kalitga nom bering — qaysi dastur uchun ekanini keyin shu aytadi": {
+		"дайте ключу название — потом по нему будет понятно, для какой программы он",
+		"give the key a name — later it is what tells you which program it is for",
+	},
+	"kamida bitta hodisani tanlang": {
+		"выберите хотя бы одно событие",
+		"choose at least one event",
+	},
+	"kamida bitta ruxsatni tanlang": {
+		"выберите хотя бы одно разрешение",
+		"choose at least one permission",
 	},
 	"kassada kamida bitta to'lov usuli yoqilgan bo'lishi kerak": {
 		"На кассе должен быть включён хотя бы один способ оплаты",
@@ -420,6 +444,26 @@ var messages = map[string]pair{
 		"дневной бюджет превышает установленный вами предел",
 		"the daily budget is above the cap you set",
 	},
+	"manzil https:// bilan boshlanishi kerak": {
+		"адрес должен начинаться с https://",
+		"the address must start with https://",
+	},
+	"manzil ichida login va parol bo'lmasligi kerak": {
+		"в адресе не должно быть логина и пароля",
+		"the address must not contain a login and password",
+	},
+	"manzil noto'g'ri": {
+		"неверный адрес",
+		"the address is not valid",
+	},
+	"manzil topilmadi": {
+		"адрес не найден",
+		"address not found",
+	},
+	"manzillar juda ko'p — keraksizlarini o'chiring": {
+		"слишком много адресов — удалите ненужные",
+		"too many addresses — delete the ones you no longer need",
+	},
 	"noma'lum amal": {
 		"неизвестное действие",
 		"unknown action",
@@ -431,6 +475,10 @@ var messages = map[string]pair{
 	"qaysi taom reklama qilinishi tanlanmagan": {
 		"не выбрано, какое блюдо рекламировать",
 		"no dish was chosen to advertise",
+	},
+	"qayta yuboriladigan yetkazma topilmadi": {
+		"доставка для повторной отправки не найдена",
+		"no delivery to resend was found",
 	},
 	"reklama akkaunti tanlanmagan": {
 		"рекламный аккаунт не выбран",

@@ -37,6 +37,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"restaurant-backend/internal/netguard"
 	"strings"
 	"time"
 )
@@ -188,33 +189,10 @@ func checkPublic(u *url.URL) error {
 	return nil
 }
 
-func publicIP(ip net.IP) bool {
-	if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() ||
-		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
-		ip.IsInterfaceLocalMulticast() || ip.IsMulticast() {
-		return false
-	}
-	// ⚠️ Named explicitly because `IsPrivate` does not cover them and one of
-	// them is the cloud metadata service — the single most valuable thing an
-	// SSRF can reach on a rented server.
-	for _, cidr := range []string{
-		"169.254.0.0/16", // link-local, and 169.254.169.254 with it
-		"100.64.0.0/10",  // carrier-grade NAT
-		"192.0.0.0/24",   // IETF protocol assignments
-		"198.18.0.0/15",  // benchmarking
-		// ⚠️ **No `::ffff:0:0/96` here, though it looks like it belongs.** Go
-		// normalises that prefix to `0.0.0.0/0`, so adding it blocks every
-		// address on the internet — the check passes its own review and refuses
-		// the entire feature. IPv4-mapped addresses are already handled: net.IP
-		// stores them in a form the v4 checks above read correctly.
-	} {
-		_, n, err := net.ParseCIDR(cidr)
-		if err == nil && n.Contains(ip) {
-			return false
-		}
-	}
-	return true
-}
+// publicIP is the one rule, kept in netguard so the webhook sender reads the
+// same list — two copies of a block list drift, and the one that drifts is the
+// one nobody is looking at.
+func publicIP(ip net.IP) bool { return netguard.PublicIP(ip) }
 
 // Image size caps. A dish photograph is a photograph; anything past this is a
 // page that pointed us at a video or a poster.

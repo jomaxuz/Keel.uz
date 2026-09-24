@@ -224,6 +224,10 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
 - **Brauzer bildirishnomalari**: `push_subscription` — bir brauzer, bir hujjat.
   ⚠️ `endpoint` **unique**: service worker brauzer yangilanganidan keyin jimgina
   qayta ro'yxatdan o'tadi, indekssiz mijoz har kampaniyani ikki marta olardi.
+- **Ochiq API**: `api_key` (⚠️ **faqat hash**, bekor qilinadi — o'chirilmaydi),
+  `webhook_endpoint` (imzo siri ochiq — biz imzolaymiz — lekin brauzerga faqat
+  bir marta), `webhook_delivery` (navbat; ⚠️ `(endpointId, eventId)` unique —
+  dedup shu). Qarang `docs/DECISIONS.md` → «Ochiq API».
 - **Boshqa**: `phone_code`, `delivery_provider`, `call`, `campaign`,
   `export_grant`, `design_preview`.
 
@@ -314,6 +318,13 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   (`GET /api/v1/ads/connect`, public) va u kodni tenantga uzatadi: Meta faqat
   oq ro'yxatdagi manzilga qaytaradi, har mijozga bittadan manzil esa har
   sotuvda Meta sozlamasini tahrirlash demakdir.
+- **Ochiq API** (`/api/open/v1/*` — ⚠️ **`/api/v1` dan tashqarida, o'z
+  versiyasi bilan**: bu birovning kodiga va'da, e'lon qilingan shartnoma
+  `docs/open-api.md`): `ping`, `branches`, `branches/{id}/menu`, `orders`,
+  `orders/{ref}`. Kalit bilan (`Bearer keel_…`), faqat o'qiydi; javob — o'z
+  structlari, model emas; xato inglizcha + `code`. ⚠️ Buyurtma statusini
+  o'zgartiradigan **har** yozuv `h.orderEvent()` ni chaqiradi — webhook shundan
+  chiqadi, va buni test sanaydi.
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
   `/admin/push` (ega telefonining tokeni va tili — loss alertlar shu orqali
   ham boradi, Telegram bilan yonma-yon),

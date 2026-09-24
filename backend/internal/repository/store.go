@@ -112,6 +112,11 @@ type Store struct {
 	// The credentials Uzum Tezkor calls us with. Its own collection for the
 	// same reason as PaymentSettings — see models/uzumtezkor.go.
 	UzumTezkorSettings *mongo.Collection
+	// The open API: keys other programs read us with, the addresses we call,
+	// and the queue in between — see models/openapi.go.
+	APIKeys           *mongo.Collection
+	WebhookEndpoints  *mongo.Collection
+	WebhookDeliveries *mongo.Collection
 	// The till the restaurant already runs: one connection per branch, and the
 	// map from our dishes to its products.
 	POSSettings *mongo.Collection
@@ -272,6 +277,9 @@ func New(db *mongo.Database) *Store {
 		PaymentSettings:    db.Collection("payment_settings"),
 		Payments:           db.Collection("payment"),
 		UzumTezkorSettings: db.Collection("uzum_tezkor_settings"),
+		APIKeys:            db.Collection("api_key"),
+		WebhookEndpoints:   db.Collection("webhook_endpoint"),
+		WebhookDeliveries:  db.Collection("webhook_delivery"),
 
 		POSSettings:    db.Collection("pos_settings"),
 		POSMappings:    db.Collection("pos_mapping"),

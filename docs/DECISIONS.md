@@ -5260,6 +5260,108 @@ integratsiyasi deyarli shu kontrakt bo'ladi.
   control yo'naltirishi kerak bo'ladi; hozirgi yozuv har restoranning **o'z
   domeni** bilan ishlaydi.
 
+### Ochiq API: kalitlar va webhook'lar
+
+Boshqa dasturlar (CRM, buxgalteriya, restoranning o'z ilovasi) restoranni
+**o'qiydi** va buyurtma o'zgarganda **xabar oladi**. E'lon qilingan shartnoma —
+`docs/open-api.md`; kod — `handlers/openapi.go`, `handlers/webhooks.go`,
+`internal/webhook`, `internal/netguard`; panel — Sozlamalar → Integratsiyalar →
+«API va webhook'lar» (`OpenApiCard.tsx`, faqat ega).
+
+**Nega hammaga ochiq API emas, balki shu ikkitasi.** Agregatorlar (Uzum, Yandex,
+Wolt) bizning API'ni ishlatmaydi — ular o'z shartnomasini beradi va biz uni
+bajaramiz (Uzum Tezkor shunday bo'ldi). Iste'molchisi hali yo'q API'ni keng
+yozish — hech kim so'ramagan va'dalar. Kalit infratuzilmasi va webhook navbati
+esa arzon va keyingi hamma narsaning poydevori; v1 faqat **o'qiydi**. Buyurtma
+yozish birinchi haqiqiy iste'molchi paydo bo'lganda, uning ehtiyojiga qarab.
+
+- ⚠️ **Alohida prefiks va o'z versiyasi: `/api/open/v1`**, `/api/v1` ostida
+  emas. Ichki API har hafta ekranlar bilan o'zgaradi; bu esa birovning kodiga
+  berilgan va'da — o'zgarsa yoniga `/v2` qo'yiladi. Chekka (Caddy, nginx)
+  allaqachon har `/api/*` ni backendga yuboradi, u yerda hech nima o'zgarmadi.
+- ⚠️ **Javob — faqat shu fayldagi structlar, hech qachon model.** Model
+  to'g'ridan-to'g'ri chiqsa ikkala Go odati (§10) begona dasturchiga ketadi:
+  bo'sh id `"000…"` (truthy) va bo'sh ro'yxat `null`. Buning testi bor
+  (`TestOpenOrderHasNoZeroIDsOrNulls`) va u ma'lumotni **API qaytaradigan
+  ko'rinishda** beradi.
+- ⚠️ **Xato — inglizcha matn + barqaror `code`**, `httpx.Error` emas. Uzum
+  Tezkor bilan bir sabab: o'quvchi — boshqa kompaniyaning dasturchisi, va ular
+  hech qachon qo'ymaydigan cookie'ga qarab ruscha yoki o'zbekcha chiqadigan
+  xabarni qidirib bo'lmaydi. Panel endpointlari esa odatdagidek o'zbekcha +
+  `i18n`.
+- **Kalit**: `keel_` + 64 hex. ⚠️ **Hex, base64 emas** — base64url'da `-` bor,
+  va terminal yoki emailda ikki marta bosish chiziqchagacha belgilaydi: ega
+  hamkorga yarim kalit yuboradi. Birinchi versiya shunday edi va sinovda
+  `keel__QR9…` bo'lib chiqdi. Saqlanadi **faqat SHA-256** (unique indeks);
+  bcrypt kerak emas — 256 bitli tasodifiy kalitda lug'at yo'q, qidiruv esa har
+  so'rovda. Bir marta ko'rsatiladi. **Bekor qilinadi, o'chirilmaydi** — qator
+  "u qaysi dastur edi, kim kiritgan edi" savoliga javob.
+- `lastUsedAt` **ko'pi bilan 5 daqiqada bir** yoziladi va shartli — har
+  soniyada so'raydigan dastur har so'rovda yozuv bo'lmasin.
+- Ruxsatlar (`menu:read`, `orders:read`) va hodisalar (`order.created`,
+  `order.status_changed`) — **e'lon qilingan satrlar**: nomini o'zgartirish
+  shu kalitni ushlab turgan har dasturni jimgina qulflaydi.
+- ⚠️ **Kalit yaratish va webhook qo'shish — sezgir amal** (`sensitiveActions`,
+  egaga xabar ketadi). `orders:read` — mijozlar ro'yxati: ism va telefon,
+  buyurtma-buyurtma. Webhook ham xuddi shu nusxa. Eksport shu sababli ro'yxatda.
+
+**Webhook'lar.**
+- ⚠️ **Hodisa har statusHistory o'sadigan joyda chiqariladi, va ro'yxatni test
+  ushlab turadi** (`TestEveryStatusChangeRaisesAWebhook`). Bunday joy o'nga
+  yaqin — sayt, kassa, oshxona, kuryer, Uzum, oflayn sinxron, birlashtirish,
+  bo'lish — va bittasini unutish qabul qiluvchi zal cheklari haqida hech qachon
+  eshitmasligi demak. Test har faylda `Store.Orders.InsertOne(` +
+  `{"statusHistory":` sonini `h.orderEvent(` soni bilan solishtiradi. Change
+  stream buni o'zi qilardi, lekin replica set kerak — har install bitta mongod.
+- ⚠️ **`orderEvent(id)` buyurtmani o'zi qayta o'qiydi** va endpoint
+  yaratilganidan beri bo'lgan **har** tarix yozuvini navbatga qo'yadi, faqat
+  oxirgisini emas: ikki tez o'zgarishni ikki chaqiruvchi ikkinchisi bilan
+  birga o'qishi mumkin, "oxirgisi" esa birinchisini hech qachon aytmasdi.
+  Takror `(endpointId, eventId)` unique indeksida qaytadi; `eventId` =
+  buyurtma + tarixdagi o'rni, ya'ni barqaror.
+- Bir xil statusni ikki marta bosish (panel bunga ruxsat beradi) — **bitta**
+  hodisa: «confirmed → confirmed» hech nima demaydi.
+- ⚠️ **So'rov vaqtida hech qachon HTTP yo'q.** `orderEvent` = endpointlarni bir
+  o'qish (yo'q bo'lsa — shu bilan tamom) + har biriga insert; yuborish
+  `StartWebhookSender` niki. Qabul qiluvchi 10 soniya javob bermasa, bu kassa
+  chekni 10 soniya yopa olmasligi bo'lmasligi kerak.
+- Navbat `webhook_delivery`: body **hodisa paytidagi surat** (retry ikki soatdan
+  keyin ham o'sha paytdagi haqiqatni aytadi), `FindOneAndUpdate` bilan 2
+  daqiqalik lease, qayta urinish 1m→5m→30m→2h→6h→12h→24h (~2 kun), keyin
+  `failed`. TTL — 14 kun. Ketma-ket xato **sanaladi, lekin endpoint o'zi
+  o'chirilmaydi**: tunda yotgan qabul qiluvchi to'xtash qarori emas, qaror
+  egasiniki. O'chirilgan endpointning navbati `skipped` bo'ladi, yuborilmaydi —
+  qayta yoqish bir kunlik to'plamni birdan to'kmasin.
+- **Imzo**: `Keel-Signature: t=…,v1=hex(HMAC-SHA256(secret, t + "." + body))`.
+  ⚠️ **Vaqt imzo ichida**: faqat body'ni imzolash bir marta ko'rilgan
+  yetkazmani abadiy qayta o'ynashga ruxsat beradi. Test vektori Python'da
+  hisoblangan (`TestSignKnownVector`) va hujjatdagi Node/Python misollari shu
+  vektor bilan tekshirilgan. Sir `whsec_` + hex; **ochiq saqlanadi** (har
+  yetkazmada imzolaymiz), lekin brauzerga faqat yaratish/almashtirish javobida
+  boradi.
+- ⚠️ **SSRF: ega yozgan manzil — bizning tarmoqqa eshik.** Bitta VPS'da `mongo`,
+  konsolning control API'si, qo'shni tenant konteynerlari va cloud metadata
+  turadi. Himoya uch qatlam: ro'yxatda **faqat https**, nomsiz/ichki host
+  (`localhost`, nuqtasiz Docker nomi, `.internal`) rad etiladi; **ulanish
+  paytida** IP tekshiriladi (`netguard.Control` — DNS rebinding'ga qarshi:
+  alohida resolve + tekshiruv poyga bo'lardi); **redirect kuzatilmaydi**
+  (`302 → http://mongo:27017` — bir marta tekshiruvni aylanib o'tishning
+  klassik yo'li). Javob body'si **saqlanmaydi**: qabul qiluvchi aslida biz
+  yetmasligimiz kerak bo'lgan ichki xizmat bo'lsa, u sirlarini bizning bazaga
+  va panelga chop etardi.
+- `netguard` menyu importi bilan **bitta ro'yxat** (`menuimport.publicIP`
+  endi unga murojaat qiladi): ikki nusxa blok-ro'yxat ajraydi, va ajragani —
+  hech kim qaramaydigani.
+- «Sinab ko'rish» — navbatdan tashqari `ping`, qayta urinishsiz va yetkazma
+  sifatida yozilmaydi: bu savol, hodisa emas.
+
+**Tekshirilgan** (2026-09-24, alohida `openapi_smoke` bazada): kalit → ping →
+ruxsatsiz 403 → bekor qilish → 401; ichki manzillar rad etildi; buyurtma →
+uchta hodisa navbatga tushdi, imzolanib yuborildi, xato va keyingi urinish
+yozildi; panel 1280 va 360 pxda. ⚠️ **Muvaffaqiyatli (2xx) yetkazish jonli
+sinalmagan** — ochiq https qabul qiluvchi kerak; `Send` ning muvaffaqiyat yo'li
+unit testda.
+
 ### Status sahifasi: rang va qisqa uzilishlar (`keel.uz/status`)
 
 Control har daqiqada o'zini tekshiradi (o'z bazasiga ping + ishlashi kerak

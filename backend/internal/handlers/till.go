@@ -420,6 +420,7 @@ func (h *Handler) StaffOpenCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	order.ID = res.InsertedID.(primitive.ObjectID)
+	h.orderEvent(r.Context(), order.ID)
 	httpx.JSON(w, http.StatusCreated, viewCheck(&order, now, s.ID))
 }
 

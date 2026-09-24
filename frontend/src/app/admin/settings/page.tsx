@@ -25,6 +25,7 @@ import ReceiptEditor from "@/components/admin/ReceiptEditor";
 import AlertSettings from "@/components/admin/AlertSettings";
 import PaymentsEditor from "@/components/admin/PaymentsEditor";
 import UzumTezkorCard from "@/components/admin/UzumTezkorCard";
+import OpenApiCard from "@/components/admin/OpenApiCard";
 import SmsEditor from "@/components/admin/SmsEditor";
 import TelegramEditor from "@/components/admin/TelegramEditor";
 import DataExport from "@/components/admin/DataExport";
@@ -1124,6 +1125,15 @@ export default function AdminSettingsPage() {
         {scope.isOwner && (
           <Section title={t.pbx.title} group="integrations">
             <PBXEditor />
+          </Section>
+        )}
+
+        {/* The open API: keys other programs read us with, and the addresses
+          we call when an order moves. Owner-only: a key with orders:read is
+          the customer list, and so is a webhook. See handlers/webhooks.go. */}
+        {scope.isOwner && (
+          <Section title={t.openApi.title} group="integrations">
+            <OpenApiCard />
           </Section>
         )}
 

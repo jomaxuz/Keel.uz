@@ -326,6 +326,9 @@ func (h *Handler) acceptOfflineCheck(
 		return primitive.NilObjectID, "", false, err
 	}
 	o.ID = oidOf(res.InsertedID)
+	// ⚠️ Every event of a check synced late is dated when it happened, not now
+	// — a receiver sees a week of sales arrive with a week of timestamps.
+	h.orderEvent(r.Context(), o.ID)
 	// ⚠️ **A week of checks can arrive in one request**, and each row is stamped
 	// with the check's own time rather than this moment — otherwise the whole
 	// backlog would land on the afternoon the till reconnected and the

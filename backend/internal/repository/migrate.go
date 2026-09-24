@@ -642,6 +642,44 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ---- The open API (models/openapi.go) ----
+	//
+	// ⚠️ **The key's hash is unique**: it is the whole lookup, on every request
+	// another program makes, and two rows for one hash would be two answers to
+	// "whose key is this".
+	if _, err := s.APIKeys.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "hash", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// ⚠️ **One delivery per event per endpoint, enforced rather than assumed** —
+	// see models.WebhookDelivery. The queue relies on this refusing a repeat.
+	if _, err := s.WebhookDeliveries.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "endpointId", Value: 1}, {Key: "eventId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// The sender's poll ("what is due?") and the panel's list ("what went to
+	// this address lately?").
+	for _, keys := range []bson.D{
+		{{Key: "status", Value: 1}, {Key: "nextAttemptAt", Value: 1}},
+		{{Key: "endpointId", Value: 1}, {Key: "createdAt", Value: -1}},
+	} {
+		if _, err := s.WebhookDeliveries.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: keys}); err != nil {
+			log.Printf("index setup: webhook_delivery %v: %v", keys, err)
+		}
+	}
+	// A record, not an archive: a fortnight answers "did they get it?", and a
+	// busy restaurant raises thousands of events a week.
+	if _, err := s.WebhookDeliveries.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "createdAt", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(14 * 24 * 3600),
+	}); err != nil {
+		log.Printf("index setup: webhook_delivery ttl: %v", err)
+	}
+
 	// The campaign list, newest first, inside one branch's lens.
 	if _, err := s.AdsCampaigns.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}},

@@ -213,6 +213,9 @@ import type {
   Printer,
   UzumTezkorSettings,
   TillPayOption,
+  APIKey,
+  WebhookEndpoint,
+  WebhookDelivery,
 } from "./types";
 import {
   apiOverride,
@@ -3516,6 +3519,63 @@ export const api = {
     request<{ enabled: boolean }>("/admin/uzum-tezkor", {
       method: "PUT",
       body: { enabled },
+      auth: true,
+    }),
+  // ---- Open API: keys and webhooks (owner only) ----
+  adminAPIKeys: () =>
+    request<{ keys: APIKey[]; scopes: string[]; basePath: string }>(
+      "/admin/api-keys",
+      { auth: true, cache: "no-store" },
+    ),
+  // ⚠️ `secret` is in this answer and nowhere else, ever.
+  createAPIKey: (body: { name: string; scopes: string[] }) =>
+    request<{ key: APIKey; secret: string }>("/admin/api-keys", {
+      method: "POST",
+      body,
+      auth: true,
+    }),
+  revokeAPIKey: (id: string) =>
+    request<APIKey>(`/admin/api-keys/${id}`, { method: "DELETE", auth: true }),
+  adminWebhooks: () =>
+    request<{ endpoints: WebhookEndpoint[]; events: string[] }>(
+      "/admin/webhooks",
+      { auth: true, cache: "no-store" },
+    ),
+  createWebhook: (body: { url: string; events: string[] }) =>
+    request<{ endpoint: WebhookEndpoint; secret: string }>("/admin/webhooks", {
+      method: "POST",
+      body,
+      auth: true,
+    }),
+  updateWebhook: (
+    id: string,
+    body: { url: string; events: string[]; enabled: boolean },
+  ) =>
+    request<WebhookEndpoint>(`/admin/webhooks/${id}`, {
+      method: "PUT",
+      body,
+      auth: true,
+    }),
+  deleteWebhook: (id: string) =>
+    request<void>(`/admin/webhooks/${id}`, { method: "DELETE", auth: true }),
+  rotateWebhookSecret: (id: string) =>
+    request<{ secret: string }>(`/admin/webhooks/${id}/rotate`, {
+      method: "POST",
+      auth: true,
+    }),
+  testWebhook: (id: string) =>
+    request<{ ok: boolean; status: number; error: string; ms: number }>(
+      `/admin/webhooks/${id}/test`,
+      { method: "POST", auth: true },
+    ),
+  webhookDeliveries: (id: string) =>
+    request<{ deliveries: WebhookDelivery[] }>(
+      `/admin/webhooks/${id}/deliveries`,
+      { auth: true, cache: "no-store" },
+    ),
+  retryWebhookDelivery: (id: string) =>
+    request<void>(`/admin/webhook-deliveries/${id}/retry`, {
+      method: "POST",
       auth: true,
     }),
   // ---- SMS gateway (admin) ----

@@ -360,6 +360,7 @@ func (h *Handler) composeOrder(
 	// their order here on purpose, and the shelf is one more thing they must not
 	// each remember to do. See handlers/stocksale.go.
 	h.syncOrderStock(r.Context(), &order)
+	h.orderEvent(r.Context(), order.ID)
 	// Count the redemptions only once the order exists — a code must not be
 	// burned by an attempt that failed on the line above.
 	h.redeem(r.Context(), price.Discounts)

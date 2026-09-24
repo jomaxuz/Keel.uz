@@ -442,6 +442,7 @@ func (h *Handler) TezkorCreateOrder(w http.ResponseWriter, r *http.Request) {
 	// The same after-sale steps as every other order path — see CreateOrder.
 	h.syncOrderStock(ctx, &order)
 	h.applyDailyLimits(ctx, order.BranchID)
+	h.orderEvent(ctx, order.ID)
 	h.notifyAdmins(order.BranchID, false, adminText("Yangi buyurtma",
 		fmt.Sprintf("#%s · %d so'm", order.Number, order.Total)),
 		map[string]any{"type": "order", "orderId": order.ID.Hex()})
@@ -587,6 +588,7 @@ func (h *Handler) TezkorCancelOrder(w http.ResponseWriter, r *http.Request) {
 			// The shelf follows the cancellation exactly as it does for an admin
 			// cancel — see UpdateOrderStatus.
 			h.syncOrderStock(r.Context(), &fresh)
+			h.orderEvent(r.Context(), fresh.ID)
 			// ⚠️ **Told, not merely recorded**: the kitchen may be cooking it.
 			h.notifyAdmins(fresh.BranchID, false, adminText("Uzum Tezkor",
 				fmt.Sprintf("#%s buyurtma bekor qilindi: %s", fresh.Number, fresh.CancelReason)),

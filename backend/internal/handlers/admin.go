@@ -831,6 +831,8 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	// ⚠️ **Beside it, not instead of it.** The bot and the restaurant's own app
 	// reach different people — see pushOrderStatus.
 	h.pushOrderStatus(&order)
+	// And any program the owner connected (handlers/webhooks.go).
+	h.orderEvent(r.Context(), order.ID)
 
 	if req.Status == models.StatusCancelled {
 		// ⚠️ The courier is told before anybody else has to think of it. A

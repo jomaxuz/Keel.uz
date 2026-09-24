@@ -7,6 +7,7 @@ import (
 	"restaurant-backend/internal/config"
 	"restaurant-backend/internal/handlers"
 	appmw "restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/version"
 
 	"github.com/go-chi/chi/v5"
@@ -1227,6 +1228,20 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/uzum-tezkor", h.AdminUzumTezkor)
 			r.Put("/admin/uzum-tezkor", h.AdminUzumTezkorEnable)
 			r.Post("/admin/uzum-tezkor/credentials", h.AdminUzumTezkorCredentials)
+			// The open API: keys other programs read us with, and the addresses
+			// we call when an order moves. Owner only, inside the handlers — a
+			// key with orders:read is the customer list. See handlers/webhooks.go.
+			r.Get("/admin/api-keys", h.AdminAPIKeys)
+			r.Post("/admin/api-keys", h.AdminCreateAPIKey)
+			r.Delete("/admin/api-keys/{id}", h.AdminRevokeAPIKey)
+			r.Get("/admin/webhooks", h.AdminWebhooks)
+			r.Post("/admin/webhooks", h.AdminCreateWebhook)
+			r.Put("/admin/webhooks/{id}", h.AdminUpdateWebhook)
+			r.Delete("/admin/webhooks/{id}", h.AdminDeleteWebhook)
+			r.Post("/admin/webhooks/{id}/rotate", h.AdminRotateWebhookSecret)
+			r.Post("/admin/webhooks/{id}/test", h.AdminTestWebhook)
+			r.Get("/admin/webhooks/{id}/deliveries", h.AdminWebhookDeliveries)
+			r.Post("/admin/webhook-deliveries/{id}/retry", h.AdminRetryWebhookDelivery)
 			r.Put("/admin/orders/{id}/courier", h.AdminAssignCourier)
 			r.Put("/admin/orders/{id}/address", h.AdminUpdateOrderAddress)
 
@@ -1445,5 +1460,25 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		})
 	})
 
+	// ---- The open API: other programs, with a key the owner made ----
+	//
+	// ⚠️ **Outside APIBase, with its own version in the path.** `/api/v1` is
+	// the internal API and changes with the screens every week; this one is a
+	// promise to somebody else's code, and gets a `/v2` beside it rather than a
+	// change under it. The edge already sends every `/api/*` here (Caddy,
+	// nginx), so nothing there changes. See handlers/openapi.go and
+	// docs/open-api.md.
+	//
+	// Per address, like the Uzum gate: a program that polls is one machine,
+	// and 120 a minute is a poll every half second.
+	openGate := appmw.NewRateLimit(120, time.Minute)
+	r.Route(handlers.OpenAPIBasePath, func(r chi.Router) {
+		r.Use(openGate)
+		r.Get("/ping", h.OpenAuth("")(h.OpenPing))
+		r.Get("/branches", h.OpenAuth("")(h.OpenBranches))
+		r.Get("/branches/{branchId}/menu", h.OpenAuth(models.ScopeMenuRead)(h.OpenMenu))
+		r.Get("/orders", h.OpenAuth(models.ScopeOrdersRead)(h.OpenListOrders))
+		r.Get("/orders/{ref}", h.OpenAuth(models.ScopeOrdersRead)(h.OpenGetOrder))
+	})
 	return r
 }

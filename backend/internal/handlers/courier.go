@@ -260,6 +260,7 @@ func (h *Handler) CourierAdvanceOrder(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	h.orderEvent(r.Context(), id)
 	// Delivering frees the courier up again, unless they still hold others.
 	if req.Status == models.StatusDelivered {
 		h.syncCourierBusy(r, c.ID)
