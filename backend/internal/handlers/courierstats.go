@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -250,6 +252,33 @@ func (h *Handler) settledCash(r *http.Request, courierID primitive.ObjectID) int
 	return sum
 }
 
+// courierOwes is the cash a courier collected on delivered orders and has not
+// handed over yet — unclamped, so an over-settlement shows as negative here.
+//
+// ⚠️ **Every handover is capped by this, and that is a fix from b5somsa.** The
+// panel settles a courier's whole balance as one sum and marks no order paid;
+// the till settles one order at a time and only asks "is this order paid
+// yet?". So a balance closed in the panel at 19:13 was closed again, order by
+// order, at the till at 21:46 — 8 373 000 so'm handed over twice, and "cash
+// with couriers" went to minus that. The clamps on the courier card and the
+// drawer hid it as a zero. A handover can only ever be of money the courier
+// still has.
+func (h *Handler) courierOwes(ctx context.Context, courierID primitive.ObjectID) (int, error) {
+	collected, _, err := h.sumField(ctx, h.Store.Orders, bson.M{
+		"courierId":     courierID,
+		"status":        models.StatusDelivered,
+		"paymentMethod": models.ProviderCash,
+	}, "$total")
+	if err != nil {
+		return 0, err
+	}
+	handed, _, err := h.sumField(ctx, h.Store.Settlements, bson.M{"courierId": courierID}, "$amount")
+	if err != nil {
+		return 0, err
+	}
+	return collected - handed, nil
+}
+
 // withSettlements fills in the two cash figures that need the ledger.
 func (h *Handler) withSettlements(r *http.Request, courierID primitive.ObjectID, st CourierStats) CourierStats {
 	st.CashSettled = h.settledCash(r, courierID)
@@ -303,6 +332,22 @@ func (h *Handler) AdminSettleCourierCash(w http.ResponseWriter, r *http.Request)
 	var c models.Courier
 	if err := h.Store.Couriers.FindOne(r.Context(), bson.M{"_id": id}).Decode(&c); err != nil {
 		httpx.Error(w, http.StatusNotFound, "kuryer topilmadi")
+		return
+	}
+	// ⚠️ Refused rather than trimmed: the person typing the sum is holding the
+	// notes, and the number they see is the one they need to recount.
+	owes, err := h.courierOwes(r.Context(), id)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if req.Amount > owes {
+		if owes <= 0 {
+			httpx.Error(w, http.StatusBadRequest, "bu kuryerda topshiriladigan naqd pul yo'q")
+			return
+		}
+		httpx.Error(w, http.StatusBadRequest,
+			fmt.Sprintf("kuryerda bundan kam pul bor: %d so'm", owes))
 		return
 	}
 

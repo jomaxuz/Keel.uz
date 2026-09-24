@@ -368,6 +368,10 @@ var messages = map[string]pair{
 		"Нет открытой смены — сначала отметьте приход",
 		"No shift is open — clock in first",
 	},
+	"bu kuryerda topshiriladigan naqd pul yo'q": {
+		"у этого курьера нет наличных к сдаче",
+		"this courier has no cash left to hand over",
+	},
 	"bu manzil ochiq internetda emas": {
 		"этот адрес не находится в открытом интернете",
 		"this address is not on the public internet",
@@ -443,6 +447,10 @@ var messages = map[string]pair{
 	"kunlik byudjet o'zingiz qo'ygan chegaradan oshib ketdi": {
 		"дневной бюджет превышает установленный вами предел",
 		"the daily budget is above the cap you set",
+	},
+	"kuryerda bundan kam pul bor: %d so'm": {
+		"у курьера меньше денег: %d сум",
+		"the courier has less than that: %d so'm",
 	},
 	"manzil https:// bilan boshlanishi kerak": {
 		"адрес должен начинаться с https://",
