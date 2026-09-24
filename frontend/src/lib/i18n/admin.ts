@@ -4604,6 +4604,8 @@ export const adminUz = {
     scope: {
       "menu:read": "Menyu va nima sotuvda borligi",
       "orders:read": "Buyurtmalar (mijoz ismi va telefoni bilan)",
+      "finance:read":
+        "Pul harakati — buxgalteriya uchun (mijoz ma'lumotisiz)",
     } as Record<string, string>,
     createKey: "Kalit yaratish",
     newKey: "Yangi kalit",
@@ -9783,6 +9785,7 @@ export const adminRu: AdminDict = {
     scope: {
       "menu:read": "Меню и что сейчас в продаже",
       "orders:read": "Заказы (с именем и телефоном клиента)",
+      "finance:read": "Движение денег — для бухгалтерии (без данных клиентов)",
     } as Record<string, string>,
     createKey: "Создать ключ",
     newKey: "Новый ключ",
@@ -14892,6 +14895,7 @@ export const adminEn: AdminDict = {
     scope: {
       "menu:read": "The menu and what is on sale right now",
       "orders:read": "Orders (with the customer's name and phone)",
+      "finance:read": "Money movements — for accounting (no customer data)",
     } as Record<string, string>,
     createKey: "Create key",
     newKey: "New key",

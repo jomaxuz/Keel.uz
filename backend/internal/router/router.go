@@ -1479,6 +1479,8 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		r.Get("/branches/{branchId}/menu", h.OpenAuth(models.ScopeMenuRead)(h.OpenMenu))
 		r.Get("/orders", h.OpenAuth(models.ScopeOrdersRead)(h.OpenListOrders))
 		r.Get("/orders/{ref}", h.OpenAuth(models.ScopeOrdersRead)(h.OpenGetOrder))
+		// Every so'm that moved, classified — see handlers/openmoney.go.
+		r.Get("/money", h.OpenAuth(models.ScopeFinanceRead)(h.OpenMoney))
 	})
 	return r
 }

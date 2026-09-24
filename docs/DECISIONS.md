@@ -5362,6 +5362,59 @@ yozildi; panel 1280 va 360 pxda. ⚠️ **Muvaffaqiyatli (2xx) yetkazish jonli
 sinalmagan** — ochiq https qabul qiluvchi kerak; `Send` ning muvaffaqiyat yo'li
 unit testda.
 
+### Pul daftari (`/money`) — buxgalteriya xizmatlari uchun
+
+Birinchi iste'molchi — **Finze AI** (AI buxgalter). ⚠️ **Shartnoma restoran
+bilan Finze o'rtasida**, Keel bilan emas: biz faqat restoran nomidan API
+beramiz. Shuning uchun hamkor qatlami, konsoldagi ro'yxat yoki «ulash» tugmasi
+**yo'q** — ega panelda `finance:read` kalitini yaratib o'zi beradi, va
+ma'lumotni qayerda saqlash savoli ularning shartnomasiniki. Kod —
+`handlers/openmoney.go`; e'lon qilingan shartnoma — `docs/open-api.md`.
+
+- ⚠️ **12 ta endpoint emas, bitta daftar.** Har pul harakati bir xil
+  ko'rinishdagi yozuv, va **`class` + `pnl`** — mahsulotning o'zi. Xom
+  hujjatlarni olgan model inkassatsiyani xarajat, podotchetni xarajat,
+  agregator o'tkazmasini ikkinchi marta tushum deb yozadi — har biri CLAUDE.md
+  da "bir marta bo'lgan xato" sifatida turgan qoida. Klasslar: P&L —
+  `revenue`, `refund`, `cost`, `payroll`, `commission`; P&L emas — `transfer`,
+  `advance`, `manual`, `variance`.
+- ⚠️ **P&L yozuvlarining yig'indisi panel hisobotining «Kirim − chiqim» i bilan
+  bir xil, va buni test ushlab turadi** (`TestMoneyLedgerAgreesWithFinanceReport`,
+  jonli ham tekshirildi: ikkalasi −4 910 000). Buxgalterning raqami egasining
+  ekranidagidan farq qilsa — hal qilib bo'lmaydigan bahs.
+- ⚠️ **Shu test yozilayotganda hisobotdagi xato topildi**: qaytarilgan sotuv
+  tushumdan chiqarilgan (`continue`) va **yana** chiqimga qo'shilgan edi — 100
+  sotuv + 40 refund 100 o'rniga 60 bo'lib o'qilardi. Mavjud test aynan shu
+  natijani kutardi. Endi refund `info` qatori (ko'rinadi, ayirilmaydi).
+  Daftarda esa refund ikki yozuv: sotuv o'z kunida (`revenue`) + qaytarish o'z
+  kunida (`refund`) — keyingi oyda qaytarilgan pul keyingi oyniki.
+- ⚠️ **O'qishda hisoblanadi, saqlanmaydi.** Pulning ikkinchi nusxasi yo'q —
+  ajrab ketadigan narsa yo'q; backfill yo'q; kecha o'chirilgan xarajat bugungi
+  javobda shunchaki yo'q. Narxi: davr oqim emas, **qayta o'qiladi** —
+  shartnomada yozilgan: "davrni qayta oling va almashtiring (id bo'yicha)".
+  Alternativa — har yozuv joyida outbox (webhook'dagidek) — o'chirish va tahrir
+  uchun `void` yozuvlari, eski hujjatlar uchun backfill va o'nlab chaqiruv
+  joyini talab qilardi; buxgalteriya xizmati uchun kunlik qayta o'qish yetadi.
+- Qoidalar hisobotnikiga **aynan** mos: sotuv — `received()` (qarz to'lanmaguncha
+  sotuv emas), `createdAt` kuni; kirim — `at` kuni (to'langani `paid` da
+  alohida); agregator — komissiya (`cost`) + `net` (`transfer`), `net` hech
+  qachon `gross − commission` dan hisoblanmaydi; podotchet — `advance`
+  (xarajat u sotib olgan kirimda); qo'lda kassa/seyf yozuvi — `manual`
+  (kategoriya kassirning so'zi, va "mahsulot" odatda kirim hujjatidagi o'sha
+  ovqat); **`refKind` li seyf yozuvi umuman chiqmaydi** — u boshqa hujjatning
+  (oylik, xarajat, inkassatsiya) ikkinchi yarmi; kuryer topshirgan naqd —
+  `transfer`; smena farqi — `variance`. Spisaniya — pul emas, chiqmaydi.
+- ⚠️ **`day` server hisoblaydi** — `occurredAt` UTC, va uni kesish 19:00 dan
+  keyingi hammasini oldingi kunga qo'yadi (§10). Jonli sinovda aynan shunday
+  chiqdi: `2026-09-23T19:00:00Z` → `day: "2026-09-24"`.
+- ⚠️ **Mijoz ma'lumoti yo'q** — ism ham, telefon ham (test bor). Shuning uchun
+  alohida `finance:read`: ega buxgalterga mijozlar ro'yxatini bermasdan kalit
+  bera oladi.
+- Kuryer topshirmasi (`courier_settlement`) filialsiz — faqat butun kompaniya
+  so'ralganda chiqadi, taxminiy filialga yozilmaydi.
+- Davr ≤ 31 kun: gavjum restoranning bir oyi ~10 ming sotuv; undan kattasi
+  ikki so'rov bo'lishi kerak edi.
+
 ### Status sahifasi: rang va qisqa uzilishlar (`keel.uz/status`)
 
 Control har daqiqada o'zini tekshiradi (o'z bazasiga ping + ishlashi kerak

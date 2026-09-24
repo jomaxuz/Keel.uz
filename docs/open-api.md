@@ -32,6 +32,7 @@ Keys carry scopes:
 |---|---|
 | `menu:read` | `GET /branches/{id}/menu` |
 | `orders:read` | `GET /orders`, `GET /orders/{ref}` — includes customer name and phone |
+| `finance:read` | `GET /money` — every movement of money, **no customer data** |
 
 `/ping` and `/branches` need any valid key. A revoked key stops working on the
 next request.
@@ -159,6 +160,101 @@ an order while new ones arrive.
 - `address` is present only when the order has one.
 - `cancelReason`, `tableNumber`, `scheduledAt`, `comment` are omitted when empty.
 - `price` is per unit and already includes the options.
+
+## The money ledger — `GET /money` (`finance:read`)
+
+Every movement of money in the restaurant, one entry each, **already
+classified**. Built for accounting services: you get amounts, methods,
+suppliers and staff names — never a guest's name or phone.
+
+| Query | |
+|---|---|
+| `from`, `to` | required. The restaurant's calendar days, both inclusive (`2026-09-01`), or RFC 3339 instants. At most 31 days. |
+| `branchId` | only this branch |
+
+```json
+{
+  "from": "2026-08-31T19:00:00Z", "to": "2026-09-30T19:00:00Z", "currency": "UZS",
+  "entries": [ MoneyEntry, … ],
+  "totals": {
+    "byClass": { "revenue": { "in": 90000, "out": 0, "count": 1 }, "cost": { … } },
+    "pnlNet": -4910000
+  }
+}
+```
+
+### Read `class` and `pnl` before anything else
+
+Not every movement of money is income or an expense. Money moves between the
+till, the safe and the bank; cash goes to a buyer before it becomes food; an
+aggregator passes on money the restaurant already earned. Adding those up as
+income or costs counts the same money twice. **Every entry says what it is:**
+
+| `class` | `pnl` | What it is |
+|---|---|---|
+| `revenue` | ✅ | A paid sale, on the day it was made. `sale` has the breakdown. |
+| `refund` | ✅ | A sale's money handed back, on the day it was handed back. |
+| `cost` | ✅ | A purchase from a supplier, an expense (rent, utilities, tax, repairs), or an outside delivery service. |
+| `payroll` | ✅ | Wages paid — staff and couriers. |
+| `commission` | ✅ | What an aggregator or acquirer kept. |
+| `transfer` | ❌ | The same money in another place: till → bank (collection), aggregator → bank (payout), courier → till. **Not income.** |
+| `advance` | ❌ | Cash handed to an employee to spend (typically the market run). It becomes a cost when it buys something — **that purchase is already a `cost` entry**. |
+| `manual` | ❌ | Cash put into or taken out of a drawer or the safe by hand, with the cashier's own `category`. Often the same money a purchase or expense already records — shown, not booked. |
+| `variance` | ❌ | A drawer counted over (`in`) or under (`out`) at closing. Missing money, not money spent. |
+
+**The restaurant's own money report** (in the Keel panel) is the sum of the
+`pnl: true` entries: `pnlNet`. If your figure for a period differs from
+`pnlNet`, something is counted twice.
+
+Discounts and loyalty points are **not** entries: no money moved. They are
+inside a sale (`sale.discountTotal`, `sale.pointsSpent`); `amount` is what was
+actually charged.
+
+### MoneyEntry
+
+```json
+{
+  "id": "expense_6ab5235b666e66387034a534",
+  "source": "expense",
+  "class": "cost", "pnl": true,
+  "direction": "out", "amount": 5000000,
+  "occurredAt": "2026-09-23T19:00:00Z", "day": "2026-09-24",
+  "branchId": "6ab52356666e66387034a523",
+  "method": "transfer", "category": "ijara",
+  "ref": { "type": "expense", "id": "6ab5235b666e66387034a534" }
+}
+```
+
+- `amount` is always positive; `direction` (`in` / `out`, from the restaurant's
+  side) gives the sign.
+- `day` is the restaurant's calendar day (Asia/Tashkent). **Use it for daily
+  and monthly grouping** — cutting `occurredAt` (UTC) to a date puts everything
+  after 19:00 local on the previous day.
+- `source`: `sale`, `refund`, `delivery_service`, `purchase`, `expense`,
+  `salary`, `courier_pay`, `payout`, `collection`, `advance`, `cash_entry`,
+  `safe_entry`, `courier_settlement`, `shift_variance`. New sources may be
+  added; **always decide by `class`**.
+- Optional: `method` (cash, card, transfer, payme, click, uzum, …),
+  `methodName` (the till button's name), `category` (the restaurant's own
+  word, free text), `counterparty` (supplier, employee or aggregator),
+  `from` / `to` (for transfers: till, safe, bank, aggregator, courier, staff),
+  `note`.
+- `sale` (revenue only): `type`, `channel`, `subtotal`, `discountTotal`,
+  `pointsSpent`, `deliveryFee`, `serviceCharge`.
+- `paid` (purchases only): `{ "paid": false }` — booked when the goods
+  arrived; `paidAt` once the supplier was paid.
+
+### A period is never final — re-read and replace
+
+The ledger is computed from the restaurant's documents at the moment you ask.
+Documents get corrected: an expense typed twice is deleted, a purchase's price
+is fixed, a debt is repaid, a refund is given a week later. So:
+
+- **Fetch a period again and replace what you stored for it** — match by `id`,
+  and delete the ids that are gone. Do not append.
+- Re-read at least the last 7 days every day, and the whole previous month
+  after the month has closed.
+- `id` is stable: the same document always gives the same id.
 
 ## Webhooks
 

@@ -18,10 +18,15 @@ import (
 const (
 	ScopeMenuRead   = "menu:read"
 	ScopeOrdersRead = "orders:read"
+	// Every movement of money, classified — for an accounting service the
+	// restaurant contracts with. ⚠️ **Carries no customer data**: an
+	// accountant needs amounts, not guests, and this is the scope an owner can
+	// hand out without handing over the customer list.
+	ScopeFinanceRead = "finance:read"
 )
 
 // APIScopes is every scope, in the order the panel lists them.
-var APIScopes = []string{ScopeMenuRead, ScopeOrdersRead}
+var APIScopes = []string{ScopeMenuRead, ScopeOrdersRead, ScopeFinanceRead}
 
 // APIKey is a credential the owner hands to another program.
 //

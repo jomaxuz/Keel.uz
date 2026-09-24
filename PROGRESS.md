@@ -15570,3 +15570,22 @@ bor muammo, alohida ish.
 
 Keyingi qadam (so'ralganda): birinchi haqiqiy iste'molchi bilan buyurtma
 **yozish** (`orders:write`), va `keel.uz/developers` da hujjatni e'lon qilish.
+
+## 2026-09-24 (2) — Pul daftari (`/money`) — Finze AI uchun; hisobotdagi refund xatosi
+
+Finze AI (AI buxgalter) restoranlar bilan o'zi shartnoma tuzadi va restoranda
+bo'ladigan **har** pul harakati kerak. Biz restoran nomidan API beramiz: ega
+panelda yangi **`finance:read`** kalitini yaratadi (mijoz ma'lumotisiz).
+
+- `GET /api/open/v1/money?from&to[&branchId]` — ≤31 kun, o'qishda
+  hisoblanadi. Manbalar: sotuv, refund, tashqi yetkazish, kirim, xarajat,
+  oylik, kuryer puli, agregator o'tkazmasi (komissiya + net), inkassatsiya,
+  podotchet, qo'lda kassa/seyf yozuvlari, kuryer topshirmasi, smena farqi.
+  Har yozuvda `class` + `pnl`; `totals.pnlNet` = panel hisobotining
+  «Kirim − chiqim» i (test + jonli tekshiruv).
+- ⚠️ **Hisobotdagi xato tuzatildi**: qaytarilgan sotuv chiqimdan ikkinchi marta
+  ayirilardi (100 + 40 refund → 60). Mavjud test shu xatoni kutardi — o'zgartirildi.
+- Hujjat: `docs/open-api.md` → «The money ledger»; qarorlar: DECISIONS →
+  «Pul daftari».
+
+Finze'ga beriladi: restoran domeni + `finance:read` kaliti + `docs/open-api.md`.
