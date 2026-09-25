@@ -48,6 +48,8 @@ import uz.keel.design.LocalNotice
 import uz.keel.design.LocalWords
 import uz.keel.design.Note
 import uz.keel.design.NoticeHost
+import uz.keel.design.NoticeKind
+import uz.keel.courier.data.ApiError
 import uz.keel.design.TabItem
 import uz.keel.courier.location.LocationService
 import uz.keel.courier.push.rememberPushRegistration
@@ -126,6 +128,8 @@ private fun Root(app: KeelCourierApp, pendingTab: String?, onConsumed: () -> Uni
     val c = KeelTheme.colors
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    val notice = LocalNotice.current
+    val statusFailed = t.orders.failed
 
     val vm: SessionViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -204,7 +208,20 @@ private fun Root(app: KeelCourierApp, pendingTab: String?, onConsumed: () -> Uni
                         name = s.courier.name,
                         status = s.courier.status,
                         bottomInset = tabsInset,
-                        onStatus = { next -> scope.launch { runCatching { vm.setStatus(next) } } },
+                        onStatus = { next ->
+                            // ⚠️ Said, not swallowed: a refused switch left the
+                            // card on the old status with nothing to explain why,
+                            // and the courier pressed it again, and again.
+                            scope.launch {
+                                runCatching { vm.setStatus(next) }.onFailure { e ->
+                                    notice.value = Note(
+                                        NoticeKind.Error,
+                                        statusFailed,
+                                        (e as? ApiError)?.message,
+                                    )
+                                }
+                            }
+                        },
                         onRefreshCourier = vm::refresh,
                     )
 

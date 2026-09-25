@@ -57,6 +57,19 @@ class BrandTest {
         assertTrue("deep brand lost its white ink", !deep.onAccent.luminanceIsDark())
     }
 
+    /** ⚠️ **The mid-tones were the real failure.** A warm #F5A623 orange or a
+     *  saffron sits under the old 0.55 luminance cut-off, so it got white
+     *  text at under 2:1 — readable on no phone in daylight. Keel's own
+     *  orange must still keep white: every staff app and printed receipt
+     *  shows it that way. */
+    @Test
+    fun `a mid-tone brand gets dark text and Keel orange keeps white`() {
+        assertTrue(LightColors.branded(Color(0xFFF5A623)).onAccent.luminanceIsDark())
+        assertTrue(LightColors.branded(Color(0xFFFFC107)).onAccent.luminanceIsDark())
+        assertTrue(!LightColors.branded(Color(0xFFE2590D)).onAccent.luminanceIsDark())
+        assertTrue(!LightColors.branded(Color(0xFFC62828)).onAccent.luminanceIsDark())
+    }
+
     /** ⚠️ **Null is Keel's own scheme, untouched.** The five staff applications
      *  pass nothing, and the day this returns a modified copy for them is the
      *  day a till stops matching a printed receipt. */

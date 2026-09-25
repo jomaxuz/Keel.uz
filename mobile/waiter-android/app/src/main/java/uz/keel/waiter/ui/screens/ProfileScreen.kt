@@ -1,15 +1,5 @@
 package uz.keel.waiter.ui.screens
 
-import android.Manifest
-import kotlinx.coroutines.tasks.await
-import com.google.android.gms.location.LocationSettingsRequest
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.common.api.ResolvableApiException
-import androidx.activity.result.IntentSenderRequest
-import android.app.Activity
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -47,12 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 import uz.keel.waiter.data.ApiError
 import uz.keel.waiter.data.KeelApi
 import uz.keel.waiter.data.Staff
@@ -290,103 +275,46 @@ private fun StatLine(label: String, value: String, tone: Color? = null) {
 private fun ClockButton(api: KeelApi, open: Boolean, onChanged: () -> Unit) {
     val c = KeelTheme.colors
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val lang = LocalLangHost.current.current
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
-    val needPermission = t.clock.needLocation
-    val needLocationOn = t.clock.needLocationOn
     val failed = t.clock.failed
 
-    suspend fun punch() {
-        busy = true
-        error = ""
-        try {
-            val client = LocationServices.getFusedLocationProviderClient(ctx)
-            // ⚠️ **Balanced accuracy, not the highest.** The branch's radius is
-            // 50 metres — chosen because a phone's GPS is 10–30 outdoors and
-            // worse inside — so the extra seconds the highest setting spends do
-            // not change the answer, and they are spent with somebody standing
-            // at a door.
-            val loc = suspendCancellableCoroutine { cont ->
-                @Suppress("MissingPermission")
-                client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
-                    .addOnSuccessListener { cont.resume(it) }
-                    .addOnFailureListener { cont.resume(null) }
-            }
-            if (loc == null) {
-                // Everything is switched on and it still has no fix — indoors,
-                // usually. Said as itself rather than as a failure.
-                error = needLocationOn
-                return
-            }
-            api.staffClock(
-                if (open) "out" else "in",
-                loc.latitude, loc.longitude, loc.accuracy.toDouble(),
-            )
-            onChanged()
-        } catch (e: Throwable) {
-            // The server's own words: "you are 400 m from the branch" is a
-            // sentence somebody can act on, and it is the one refusal that is
-            // not a fault.
-            error = if (e is ApiError) e.message else failed
-        } finally { busy = false }
-    }
-
-    // Android's own "turn on location" dialog, raised in place.
-    //
-    // ⚠️ **A resolution, not a trip to the settings app.** Sending somebody to
-    // Settings mid-shift means finding the right page, coming back, and pressing
-    // the button again; this switches it on where they are standing. Google Play
-    // services hands us the intent — all this does is show it and try again.
-    val resolve = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { res ->
-        if (res.resultCode == Activity.RESULT_OK) scope.launch { punch() }
-        else error = needLocationOn
-    }
-
-    /** Is location switched on for the phone at all? Raises Android's dialog if
-     *  not, and answers false — the retry happens in the launcher above. */
-    suspend fun locationOn(): Boolean {
-        val req = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 0L).build()
-        val settings = LocationSettingsRequest.Builder().addLocationRequest(req).build()
-        return try {
-            LocationServices.getSettingsClient(ctx).checkLocationSettings(settings).await()
-            true
-        } catch (e: ResolvableApiException) {
-            resolve.launch(IntentSenderRequest.Builder(e.resolution).build())
-            false
-        } catch (e: Throwable) {
-            // No Play services to ask. The fix is the phone's own settings, and
-            // saying so is better than a dialog that will not come.
-            error = needLocationOn
-            false
-        }
-    }
-
-    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        // ⚠️ Named plainly rather than as a failure: refusing is a choice, and
-        // the way back is the system settings, which is what the sentence says.
-        if (granted) scope.launch { if (locationOn()) punch() } else error = needPermission
-    }
+    // Permission (FINE *and* COARSE — FINE alone is silently dropped by Android
+    // 12+), the phone's location switch, and precise rather than approximate.
+    // See LocationGate.
+    val gate = rememberLocationGate(precise = true) { error = it.message(lang) }
+    LaunchedEffect(error) { if (error.isNotEmpty()) busy = false }
 
     fun press() {
+        if (busy) return
         error = ""
-        val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
-        if (!granted) {
-            ask.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            return
+        busy = true
+        gate.request {
+            try {
+                val loc = currentFix(ctx)
+                if (loc == null) {
+                    error = LocationProblem.NoFix.message(lang)
+                    return@request
+                }
+                api.staffClock(
+                    if (open) "out" else "in",
+                    loc.latitude, loc.longitude, loc.accuracy.toDouble(),
+                )
+                onChanged()
+            } catch (e: Throwable) {
+                // The server's own words: "you are 400 m from the branch" is a
+                // sentence somebody can act on, and it is the one refusal that is
+                // not a fault.
+                error = if (e is ApiError) e.message else failed
+            } finally { busy = false }
         }
-        scope.launch { if (locationOn()) punch() }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (open) {
             GhostButton(
-                t.clock.end, Modifier.fillMaxWidth(),
+                if (busy) t.common.loading else t.clock.end, Modifier.fillMaxWidth(),
                 icon = Icons.Rounded.Logout, enabled = !busy,
             ) { press() }
         } else {

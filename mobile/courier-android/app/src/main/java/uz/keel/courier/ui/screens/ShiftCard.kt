@@ -1,8 +1,5 @@
 package uz.keel.courier.ui.screens
 
-import android.Manifest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,11 +31,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import uz.keel.design.KeelTheme
+import uz.keel.design.LocalLangHost
+import uz.keel.design.LocationProblem
+import uz.keel.design.message
+import uz.keel.design.rememberLocationGate
 import uz.keel.design.glass
 import uz.keel.courier.location.LocationService
 import uz.keel.courier.location.TrackingState
@@ -114,6 +116,11 @@ private fun ShiftOption(
     onClick: () -> Unit,
 ) {
     val c = KeelTheme.colors
+    // ⚠️ **Ink chosen from the fill, not assumed white.** In the dark scheme
+    // `warn` and `ready` are lifted to bright amber and mint so they read on a
+    // near-black ground — and white on those was the selected option nobody
+    // could read. Same luminance rule as `branded()`.
+    val onTint = if (tint.luminance() > 0.45f) Color(0xFF1A1614) else Color.White
     Column(
         modifier
             .clip(RoundedCornerShape(16.dp))
@@ -127,17 +134,17 @@ private fun ShiftOption(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
-        Icon(icon, null, tint = if (on) c.onAccent else c.muted, modifier = Modifier.size(19.dp))
+        Icon(icon, null, tint = if (on) onTint else c.muted, modifier = Modifier.size(19.dp))
         Text(
             label,
             style = MaterialTheme.typography.titleMedium,
-            color = if (on) c.onAccent else c.ink,
+            color = if (on) onTint else c.ink,
             textAlign = TextAlign.Center,
         )
         Text(
             hint,
             style = MaterialTheme.typography.labelSmall,
-            color = if (on) c.onAccent.copy(alpha = 0.85f) else c.muted,
+            color = if (on) onTint.copy(alpha = 0.85f) else c.muted,
             textAlign = TextAlign.Center,
         )
     }
@@ -148,69 +155,56 @@ private fun ShiftOption(
 private fun LocationRow(tracking: TrackingState) {
     val c = KeelTheme.colors
     val ctx = LocalContext.current
+    val lang = LocalLangHost.current.current
     var granted by remember { mutableStateOf(LocationService.hasLocationPermission(ctx)) }
-    var asked by remember { mutableStateOf(false) }
+    var problem by remember { mutableStateOf<LocationProblem?>(null) }
 
     // ⚠️ **Android asks by itself, the moment the shift opens.** The Expo build
     // put a button here and waited to be pressed — so a courier could open a
     // shift, ride out, and discover at a door that nothing had ever been sent.
-    // The permission is not a setting: it is the thing the shift *is*, and the
-    // one moment it can be explained is while somebody is looking at the switch
-    // they have just pressed.
-    val ask = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { result ->
-        granted = result.values.any { it }
-        // ⚠️ Started here as well as by the effect below: the effect's condition
-        // is already false by the time this callback runs on some devices, and a
-        // shift that was granted permission and never started is the failure
-        // this whole card exists to make visible.
-        if (granted) LocationService.start(ctx)
-    }
-
-    LaunchedEffect(granted) {
-        if (granted) {
+    //
+    // ⚠️ **Through the gate, not a bare permission request.** A granted
+    // permission with GPS switched off on the phone started the service, which
+    // then received nothing, and the card sat on "waiting" all evening with no
+    // hint of why. The gate raises Android's own "turn on location" dialog.
+    // Approximate is accepted here (`precise = false`): a rough track is still
+    // worth more than none, and the dispatcher sees the accuracy.
+    val gate = rememberLocationGate(precise = false) { problem = it }
+    fun begin() {
+        problem = null
+        gate.request {
+            granted = true
             LocationService.start(ctx)
-        } else if (!asked) {
-            asked = true
-            // ⚠️ **Both, in one dialog.** Android 12 lets somebody grant
-            // "approximate only", and asking for fine alone means that answer
-            // arrives as a refusal — a hundred-metre fix is worth more than
-            // none, and the courier can widen it later from the settings.
-            ask.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                ),
-            )
         }
     }
+    LaunchedEffect(Unit) { begin() }
 
-    if (!granted) {
-        // ⚠️ **Only reached once the dialog has been refused**, which on Android
-        // means the second refusal is permanent and no dialog can be raised
-        // again. So this says where to go rather than offering a button that
-        // would do nothing.
+    problem?.let { p ->
         Row(
             Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
                 .background(c.accentSoft, RoundedCornerShape(16.dp))
+                // A tap tries again: after the courier has flipped the switch,
+                // or granted the permission in the settings page it opened.
+                .clickable { begin() }
                 .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(Icons.Rounded.MyLocation, null, tint = c.warn, modifier = Modifier.size(18.dp))
-            Column(Modifier.weight(1f)) {
-                Text(t.geo.denied, style = MaterialTheme.typography.titleMedium, color = c.ink)
-                Text(
-                    t.geo.deniedHint,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.muted,
-                )
-            }
+            Text(
+                p.message(lang),
+                Modifier.weight(1f),
+                style = MaterialTheme.typography.labelMedium,
+                color = c.ink,
+            )
         }
         return
     }
+
+    // Still asking — the system dialog is up, and it says more than a row would.
+    if (!granted) return
 
     val time = tracking.lastSentAt?.let {
         android.text.format.DateFormat.getTimeFormat(ctx).format(java.util.Date(it))

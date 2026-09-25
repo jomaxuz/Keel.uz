@@ -59,6 +59,10 @@ fun PrimaryButton(
     onClick: () -> Unit,
 ) {
     val c = KeelTheme.colors
+    // ⚠️ **In the light scheme a dimmed button takes dark ink.** The veil below
+    // mixes cream into the orange, and white on that pale peach was a label
+    // nobody could read — on exactly the button somebody is waiting to press.
+    val ink = if (!enabled && !c.dark) c.ink else c.onAccent
     Row(
         modifier
             .fillMaxWidth()
@@ -75,13 +79,13 @@ fun PrimaryButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (busy) {
-            CircularProgressIndicator(Modifier.size(20.dp), color = c.onAccent, strokeWidth = 2.dp)
+            CircularProgressIndicator(Modifier.size(20.dp), color = ink, strokeWidth = 2.dp)
         } else {
             if (icon != null) {
-                Icon(icon, null, tint = c.onAccent, modifier = Modifier.size(19.dp))
+                Icon(icon, null, tint = ink, modifier = Modifier.size(19.dp))
                 Box(Modifier.size(8.dp))
             }
-            Text(label, color = c.onAccent, style = MaterialTheme.typography.titleMedium)
+            Text(label, color = ink, style = MaterialTheme.typography.titleMedium)
         }
     }
 }

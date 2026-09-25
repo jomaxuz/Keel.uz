@@ -210,6 +210,11 @@ data class Dict(
         val payNow: String,
         val loadFailed: String,
         val placed: String,
+        /** Over the map while the order is on its way. */
+        val courierComing: (String) -> String,
+        val callCourier: String,
+        /** When the courier's phone last reported, e.g. "3 daqiqa oldin". */
+        val courierSeen: (Int) -> String,
     )
 
     data class Common(
@@ -327,6 +332,9 @@ private val uz = Dict(
         payNow = "To'lash",
         loadFailed = "Buyurtmani ochib bo'lmadi",
         placed = "Buyurtmangiz qabul qilindi",
+        courierComing = { n -> if (n.isBlank()) "Kuryer yo'lda" else "Kuryer yo'lda — $n" },
+        callCourier = "Kuryerga qo'ng'iroq",
+        courierSeen = { m -> if (m < 1) "Joylashuv hozir yangilandi" else "Joylashuv $m daqiqa oldin yangilangan" },
     ),
     common = Dict.Common(
         ok = "Yaxshi",
@@ -483,6 +491,9 @@ private val ru = Dict(
         payNow = "Оплатить",
         loadFailed = "Не удалось открыть заказ",
         placed = "Заказ принят",
+        courierComing = { n -> if (n.isBlank()) "Курьер в пути" else "Курьер в пути — $n" },
+        callCourier = "Позвонить курьеру",
+        courierSeen = { m -> if (m < 1) "Местоположение только что обновлено" else "Местоположение обновлено $m мин назад" },
     ),
     common = Dict.Common(
         ok = "Хорошо",
@@ -637,6 +648,9 @@ private val en = Dict(
         payNow = "Pay",
         loadFailed = "Could not open the order",
         placed = "Your order has been accepted",
+        courierComing = { n -> if (n.isBlank()) "The courier is on the way" else "$n is on the way" },
+        callCourier = "Call the courier",
+        courierSeen = { m -> if (m < 1) "Position updated just now" else "Position updated $m min ago" },
     ),
     common = Dict.Common(
         ok = "OK",

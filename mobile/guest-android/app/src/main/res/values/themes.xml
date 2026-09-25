@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- The window behind Compose. ⚠️ It has to be painted, and painted in the
          app's own ground: an unset window background flashes the platform's
@@ -9,6 +9,10 @@
         <item name="android:windowBackground">@color/keel_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- ⚠️ The app draws both schemes itself. A phone-wide "dark mode for
+             all apps" (MIUI, One UI) otherwise inverts some of what Compose
+             draws and not the rest: white ink on a still-cream panel. -->
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
     </style>
 
     <!-- — The splash —

@@ -50,5 +50,10 @@ dependencies {
     api(libs.ktor.serialization.json)
     api(libs.security.crypto)
     api(libs.core.ktx)
+    // The location gate (LocationGate.kt): one copy of the permission, the
+    // "location is off" dialog and the fix, for every app that punches or tracks.
+    implementation(libs.activity.compose)
+    implementation(libs.play.services.location)
+    implementation(libs.coroutines.play.services)
     debugImplementation(libs.compose.ui.tooling)
 }
