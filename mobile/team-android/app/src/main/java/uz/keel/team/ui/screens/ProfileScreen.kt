@@ -1,9 +1,5 @@
 package uz.keel.team.ui.screens
 
-import android.Manifest
-import android.annotation.SuppressLint
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,12 +40,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import uz.keel.design.GhostButton
 import uz.keel.design.KeelTheme
+import uz.keel.design.LocalLangHost
+import uz.keel.design.LocationProblem
+import uz.keel.design.currentFix
+import uz.keel.design.message
+import uz.keel.design.rememberLocationGate
 import uz.keel.design.Money
 import uz.keel.design.PrimaryButton
 import uz.keel.design.StatusColor
@@ -237,23 +233,27 @@ fun ProfileScreen(
 private fun ClockButton(api: KeelApi, open: Boolean, onChanged: (Boolean) -> Unit) {
     val c = KeelTheme.colors
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val lang = LocalLangHost.current.current
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
-    val needLocation = t.clock.needLocation
     val failed = t.clock.failed
 
-    fun punch() {
-        busy = true
+    // Permission, the phone's location switch and "precise, not approximate" —
+    // see LocationGate for why each of the three used to fail silently here.
+    val gate = rememberLocationGate(precise = true) { error = it.message(lang) }
+
+    fun press() {
+        if (busy) return
         error = ""
-        scope.launch {
+        busy = true
+        gate.request {
             try {
                 val fix = currentFix(ctx)
                 if (fix == null) {
-                    error = needLocation
-                    return@launch
+                    error = LocationProblem.NoFix.message(lang)
+                    return@request
                 }
-                api.clock(if (open) "out" else "in", fix.first, fix.second, fix.third)
+                api.clock(if (open) "out" else "in", fix.latitude, fix.longitude, fix.accuracy.toDouble())
                 onChanged(!open)
             } catch (e: Throwable) {
                 // The server's own words: "you are 400 m from the branch" is a
@@ -265,14 +265,8 @@ private fun ClockButton(api: KeelApi, open: Boolean, onChanged: (Boolean) -> Uni
             }
         }
     }
-
-    val ask = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { result ->
-        // ⚠️ Named plainly rather than as a failure: refusing is a choice, and
-        // the way back is the phone's settings, which is what the sentence says.
-        if (result.values.any { it }) punch() else error = needLocation
-    }
+    // A problem ends the attempt before `request`'s block ever runs.
+    LaunchedEffect(error) { if (error.isNotEmpty()) busy = false }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (open) {
@@ -280,59 +274,20 @@ private fun ClockButton(api: KeelApi, open: Boolean, onChanged: (Boolean) -> Uni
                 if (busy) t.common.loading else t.clock.end,
                 Modifier.fillMaxWidth(),
                 Icons.Rounded.Logout,
-            ) { start(ctx, ask::launch, ::punch) }
+                enabled = !busy,
+            ) { press() }
         } else {
             PrimaryButton(
                 label = t.clock.start,
                 icon = Icons.Rounded.Login,
                 busy = busy,
-            ) { start(ctx, ask::launch, ::punch) }
+            ) { press() }
         }
         if (error.isNotEmpty()) {
             Text(error, style = MaterialTheme.typography.labelMedium, color = c.danger)
         }
     }
 }
-
-/** Ask if we have to, punch if we can. */
-private fun start(
-    ctx: android.content.Context,
-    ask: (Array<String>) -> Unit,
-    punch: () -> Unit,
-) {
-    val granted = androidx.core.content.ContextCompat.checkSelfPermission(
-        ctx, Manifest.permission.ACCESS_FINE_LOCATION,
-    ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-        androidx.core.content.ContextCompat.checkSelfPermission(
-            ctx, Manifest.permission.ACCESS_COARSE_LOCATION,
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-    if (granted) punch() else ask(
-        // ⚠️ **Both, in one dialog.** Android 12 lets somebody grant
-        // "approximate only", and asking for fine alone means that answer
-        // arrives as a refusal — and the branch radius is fifty metres, which
-        // an approximate fix often clears.
-        arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-        ),
-    )
-}
-
-/** One position, now.
- *
- *  ⚠️ **Balanced accuracy, not the highest.** The branch's radius is fifty
- *  metres — chosen because a phone's GPS is 10–30 outdoors and worse inside — so
- *  the extra seconds the highest setting spends do not change the answer, and
- *  they are spent with somebody standing at a door. */
-@SuppressLint("MissingPermission")
-private suspend fun currentFix(ctx: android.content.Context): Triple<Double, Double, Double>? =
-    runCatching {
-        val client = LocationServices.getFusedLocationProviderClient(ctx)
-        val loc = client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null).await()
-            ?: client.lastLocation.await()
-            ?: return null
-        Triple(loc.latitude, loc.longitude, loc.accuracy.toDouble())
-    }.getOrNull()
 
 @Composable
 private fun Trend(label: String, value: String, modifier: Modifier = Modifier) {
