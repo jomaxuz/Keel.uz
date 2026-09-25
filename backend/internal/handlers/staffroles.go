@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -215,6 +216,15 @@ func (h *Handler) AdminUpdateRole(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "rol topilmadi")
 		return
 	}
+	// ⚠️ **The rename reaches the people who hold it.** Their `position` is a
+	// copy of this name (EnsurePositionFromRole), and a copy left behind here
+	// would show the old title on every report until the next restart.
+	if _, err := h.Store.Staff.UpdateMany(r.Context(),
+		bson.M{"roleId": id}, bson.M{"$set": bson.M{"position": names.uz}},
+	); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	// ⚠️ Logged with the permission list, not just the name. "Menejer roli
 	// o'zgartirildi" a month later answers nothing; the question being asked
 	// then is which abilities moved and when.
@@ -268,6 +278,20 @@ func (h *Handler) AdminDeleteRole(w http.ResponseWriter, r *http.Request) {
 //
 // An empty string is allowed and clears the role: taking somebody off the till
 // without deleting their account is a real thing to want.
+// roleTitle is the role's base name, which is what `position` holds. Empty for
+// no role, and for a role that has vanished — a title nobody holds is not one
+// to print.
+func (h *Handler) roleTitle(ctx context.Context, id primitive.ObjectID) string {
+	if id.IsZero() {
+		return ""
+	}
+	var role models.StaffRole
+	if err := h.Store.StaffRoles.FindOne(ctx, bson.M{"_id": id}).Decode(&role); err != nil {
+		return ""
+	}
+	return role.Name
+}
+
 func (h *Handler) roleRef(r *http.Request, id string) (primitive.ObjectID, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {

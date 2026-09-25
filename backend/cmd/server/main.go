@@ -136,6 +136,10 @@ func main() {
 	if err := repository.EnsureStockIssue(ctx, store); err != nil {
 		log.Printf("stock issue migration: %v", err)
 	}
+	// The job title is the role's name — see EnsurePositionFromRole.
+	if err := repository.EnsurePositionFromRole(ctx, store); err != nil {
+		log.Printf("position from role: %v", err)
+	}
 	if err := repository.EnsureSoldOutArrays(ctx, store); err != nil {
 		log.Printf("sold-out arrays: %v", err)
 	}

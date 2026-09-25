@@ -34,3 +34,24 @@ export function roleLabelOf(
   // role at all, which is every install that predates them.
   return undefined;
 }
+
+/** The job title to print beside a person's name: their role, in the screen's
+ *  language.
+ *
+ *  ⚠️ **The role, not the typed "Lavozim".** The panel no longer asks for a
+ *  title — the server copies the role's name into `position`
+ *  (EnsurePositionFromRole) — so `position` is only the fallback for somebody
+ *  with no role, whose old typed title is all there is. */
+export function staffTitle(
+  staff: Pick<Staff, "roleName" | "roleNameRu" | "roleNameEn" | "position">,
+  lang: Lang,
+): string {
+  if (staff.roleName)
+    return contentText(
+      staff.roleName,
+      staff.roleNameRu,
+      staff.roleNameEn,
+      lang,
+    );
+  return staff.position ?? "";
+}

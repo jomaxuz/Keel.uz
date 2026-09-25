@@ -3680,8 +3680,6 @@ export const adminUz = {
     editTitle: "Ishchini tahrirlash",
     name: "Ism",
     phone: "Telefon",
-    position: "Lavozim",
-    positionPh: "oshpaz, ofitsiant, kassir...",
     branch: "Filial",
     isActive: "Hisob faol (kira oladi)",
     canKitchen: "Oshxona ekraniga (KDS) ruxsat",
@@ -3694,7 +3692,7 @@ export const adminUz = {
     role: "Rol",
     roleNone: "Rol tanlanmagan",
     roleHint:
-      "Ruxsatlar roldan olinadi. Pastdagi lavozim — shunchaki izoh, tizim uni o'qimaydi.",
+      "Ruxsatlar ham, lavozim nomi ham roldan olinadi — hisobotlarda, kassada va ilovada shu nom ko'rinadi.",
     pin: "Kassa PIN kodi",
     pinHint:
       "4 ta raqam. Kassa ekraniga shu kod bilan kiriladi va har bir amal (void, chegirma, to'lov) shu odam nomiga yoziladi. Oddiy kod ham bo'ladi — kod ko'rsatilmaydi, faqat yangisini qo'yish yoki o'chirish mumkin.",
@@ -8930,8 +8928,6 @@ export const adminRu: AdminDict = {
     editTitle: "Редактировать сотрудника",
     name: "Имя",
     phone: "Телефон",
-    position: "Должность",
-    positionPh: "повар, официант, кассир...",
     branch: "Филиал",
     isActive: "Аккаунт активен (может входить)",
     canKitchen: "Доступ к экрану кухни (KDS)",
@@ -8944,7 +8940,7 @@ export const adminRu: AdminDict = {
     role: "Роль",
     roleNone: "Роль не выбрана",
     roleHint:
-      "Права берутся из роли. Должность ниже — просто заметка, система её не читает.",
+      "Из роли берутся и права, и название должности — именно оно видно в отчётах, на кассе и в приложении.",
     pin: "PIN-код кассы",
     pinHint:
       "4 цифры. По этому коду входят на экран кассы, и каждое действие (сторно, скидка, оплата) записывается на этого человека. Простой код тоже подходит — код не показывается.",
@@ -14041,8 +14037,6 @@ export const adminEn: AdminDict = {
     editTitle: "Edit employee",
     name: "Name",
     phone: "Phone",
-    position: "Position",
-    positionPh: "cook, waiter, cashier...",
     branch: "Branch",
     isActive: "Account active (can sign in)",
     canKitchen: "Kitchen screen (KDS) access",
@@ -14055,7 +14049,7 @@ export const adminEn: AdminDict = {
     role: "Role",
     roleNone: "No role",
     roleHint:
-      "Permissions come from the role. The position below is a note — nothing reads it.",
+      "Both the permissions and the job title come from the role — that name is what reports, the till and the app show.",
     pin: "Till PIN",
     pinHint:
       "4 digits. Used to unlock the till screen, and every action (void, discount, payment) is recorded under this person. A simple code is fine — the code is never shown, only replaced or removed.",

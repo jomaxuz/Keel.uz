@@ -4759,9 +4759,21 @@ ofitsiant olib bordi → ServedAt → u endi tashiladigan narsa emas
     **migratsiya** bilan saqlanadi (`EnsureKitchenAccess`) — aks holda bu
     xususiyat chiqqan deploy har bir jonli oshxonaning ekranini smena o'rtasida
     o'chirardi va planshetda buning sababi yozilmagan bo'lardi.
-  - ⚠️ **Lavozim maydoni ruxsat emas**: `position` — erkin matn ("oshpaz"),
-    uni tizim hech qayerda o'qimaydi. Uni ruxsat deb qabul qilish kimning
-    imlosi mos kelsa o'shanga kalit berish bo'lardi.
+  - ⚠️ **Lavozim maydoni ruxsat emas**: `position` hech qachon ruxsat sifatida
+    o'qilmaydi. Uni ruxsat deb qabul qilish kimning imlosi mos kelsa o'shanga
+    kalit berish bo'lardi.
+  - ⚠️ **«Lavozim» endi yozilmaydi — u rolning nomi** (2026-09-25). Panel rol
+    tanlovi yonida alohida «Lavozim» maydonini so'rardi. Ikkalasi bir-biriga
+    o'xshardi-yu, har xil narsani aytardi: roli Ofitsiant, lavozimi Kassir.
+    Hisobot, kassa PIN ekrani va telefon esa **yozilganini** ko'rsatardi.
+    Maydon formadan olib tashlandi. Server `position` ga rol nomini yozadi:
+    xodim saqlanganda, rol qayta nomlanganda (`AdminUpdateRole`) va har
+    ishga tushishda (`EnsurePositionFromRole` — bir martalik migratsiya
+    emas, proyeksiya: arzon va o'tkazib yuborilganini o'zi tuzatadi).
+    `position` ni o'qiydigan hamma joy o'zgarmay ishlayveradi. Rolsiz
+    xodimda eski yozilgan matn qoladi — quti yo'q, demak uni qayta kiritib
+    bo'lmaydi. Panel ro'yxatda nomni tilga qarab `staffTitle()` bilan
+    ko'rsatadi.
   - ⚠️ **`isActive` ham shu yerda tekshiriladi.** Ishdan bo'shatilgan odamning
     tokeni smenadan ancha uzoq yashaydi: kirish sahifasi va `StaffClock`
     tekshirardi, KDS esa **umuman tekshirmasdi** — ya'ni bugun o'chirilgan

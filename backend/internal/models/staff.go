@@ -60,8 +60,11 @@ type Staff struct {
 	Phone        string             `bson:"phone" json:"phone"`
 	Username     string             `bson:"username" json:"username" validate:"required"`
 	PasswordHash string             `bson:"passwordHash" json:"-"`
-	// Free text the admin writes: "oshpaz", "ofitsiant", "kassir". Deliberately
-	// not an enum — every restaurant names its jobs differently.
+	// The job title, as a **copy of the role's name** — the server writes it
+	// (repository.EnsurePositionFromRole, and on every staff save and role
+	// rename). It used to be free text typed beside the role and the two
+	// disagreed on every report. Still never read as a permission: that is
+	// RoleID's job. Staff with no role keep whatever was typed before.
 	Position string `bson:"position" json:"position"`
 
 	Schedule []StaffSchedule `bson:"schedule" json:"schedule"`

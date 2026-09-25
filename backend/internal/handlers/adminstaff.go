@@ -27,7 +27,8 @@ type staffPayload struct {
 	Phone    string `json:"phone"`
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password"`
-	Position string `json:"position"`
+	// ⚠️ No `position`: the title is the role's name and the server writes it
+	// (EnsurePositionFromRole). An old panel that still sends one is ignored.
 	BranchID string `json:"branchId"`
 	IsActive *bool  `json:"isActive"`
 	// May open the kitchen screen. A pointer so an older client that does not
@@ -307,13 +308,14 @@ func (h *Handler) AdminCreateStaff(w http.ResponseWriter, r *http.Request) {
 		Phone:        strings.TrimSpace(req.Phone),
 		Username:     username,
 		PasswordHash: string(hash),
-		Position:     clampText(req.Position, 60),
-		Schedule:     normalizeSchedule(req.Schedule),
-		PayMode:      mode,
-		PayPeriod:    period,
-		HourlyRate:   nonNegative(req.HourlyRate),
-		ShiftRate:    nonNegative(req.ShiftRate),
-		MonthlyRate:  nonNegative(req.MonthlyRate),
+		// ⚠️ The role's name, never typed text — see EnsurePositionFromRole.
+		Position:    h.roleTitle(r.Context(), newStaffRole),
+		Schedule:    normalizeSchedule(req.Schedule),
+		PayMode:     mode,
+		PayPeriod:   period,
+		HourlyRate:  nonNegative(req.HourlyRate),
+		ShiftRate:   nonNegative(req.ShiftRate),
+		MonthlyRate: nonNegative(req.MonthlyRate),
 		// ⚠️ New staff start **without** it, deliberately: a permission
 		// everybody gets on creation is not a permission. Existing staff were
 		// grandfathered once by EnsureKitchenAccess so no live pass went dark;
@@ -415,7 +417,6 @@ func (h *Handler) AdminUpdateStaff(w http.ResponseWriter, r *http.Request) {
 		"name":        strings.TrimSpace(req.Name),
 		"phone":       strings.TrimSpace(req.Phone),
 		"username":    username,
-		"position":    clampText(req.Position, 60),
 		"branchId":    branchID,
 		"schedule":    normalizeSchedule(req.Schedule),
 		"payMode":     mode,
@@ -451,6 +452,10 @@ func (h *Handler) AdminUpdateStaff(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		set["roleId"] = roleID
+		// ⚠️ The title follows the role and nothing else writes it — see
+		// EnsurePositionFromRole. Only when a role was sent: an old till or
+		// script that omits it must not blank the title it cannot see.
+		set["position"] = h.roleTitle(r.Context(), roleID)
 	}
 	if req.Password != "" {
 		if len(req.Password) < 5 {

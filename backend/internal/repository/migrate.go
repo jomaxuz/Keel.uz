@@ -1813,3 +1813,43 @@ func withDefaults(biz models.BusinessType, existing models.BrandFeatures) models
 	}
 	return biz.Defaults()
 }
+
+// EnsurePositionFromRole writes each employee's role name into `position`.
+//
+// ⚠️ **The job title is the role now, and `position` is its copy.** The panel
+// used to ask for both — a role from a list and a "Lavozim" typed beside it —
+// and the two drifted: a waiter's role said Ofitsiant and their title said
+// Kassir, and every report, the till's PIN screen and the phone showed the
+// typed one. The field is gone from the form; the server writes the role's name
+// here instead, so everything that already reads `position` keeps working and
+// says the same word the permissions are granted by.
+//
+// ⚠️ **Every boot, not once.** It is a projection, not a migration: cheap (one
+// update per role), and it heals whatever a role rename missed. Staff without a
+// role keep whatever was typed before — erasing it would lose a fact nobody can
+// re-enter now that the box is gone.
+func EnsurePositionFromRole(ctx context.Context, s *Store) error {
+	cur, err := s.StaffRoles.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	var roles []models.StaffRole
+	if err := cur.All(ctx, &roles); err != nil {
+		return err
+	}
+	var fixed int64
+	for _, r := range roles {
+		res, err := s.Staff.UpdateMany(ctx,
+			bson.M{"roleId": r.ID, "position": bson.M{"$ne": r.Name}},
+			bson.M{"$set": bson.M{"position": r.Name}},
+		)
+		if err != nil {
+			return err
+		}
+		fixed += res.ModifiedCount
+	}
+	if fixed > 0 {
+		log.Printf("migrate: %d ta xodimning lavozimi rol nomidan yozildi", fixed)
+	}
+	return nil
+}

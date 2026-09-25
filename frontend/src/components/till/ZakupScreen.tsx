@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { LuCheck, LuChevronLeft, LuChevronRight, LuSearch, LuX } from "react-icons/lu";
+import {
+  LuCheck,
+  LuChevronLeft,
+  LuChevronRight,
+  LuSearch,
+  LuX,
+} from "react-icons/lu";
 
 import { api, ApiError } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -263,7 +269,11 @@ export default function ZakupScreen({
 
   // ---- What the step's forward button says, and whether it may be pressed ----
   const canGo =
-    step === 1 ? lines.length > 0 : step === 2 ? ready.length > 0 : ready.length > 0;
+    step === 1
+      ? lines.length > 0
+      : step === 2
+        ? ready.length > 0
+        : ready.length > 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[rgb(var(--till-floor))]">
@@ -272,48 +282,51 @@ export default function ZakupScreen({
           signing for this morning's delivery are different jobs, and the second
           used to sit below the first — so the list being written scrolled away
           to reach it. */}
-      <header className="flex items-center gap-2 border-b border-line bg-surface px-3 py-2">
-        <div className="till-seg-track">
-          <button
-            className={tab === "new" ? "till-seg-on" : "till-seg"}
-            onClick={() => setTab("new")}
-          >
-            {t.zakup.tabNew}
-          </button>
-          <button
-            className={tab === "sent" ? "till-seg-on" : "till-seg"}
-            onClick={() => setTab("sent")}
-          >
-            {t.zakup.tabSent}
-            {/* The one number worth carrying on a tab: a delivery standing on
+      {/* ⚠️ **One column, centred, like the checks screen.** On a 1920px till
+          the list, the steps and the send bar ran edge to edge — a quantity box
+          a metre from the name it belonged to, and a single "+" per row far to
+          the right of everything. Every band below keeps its full-width
+          background and puts its contents in this column. */}
+      <header className="border-b border-line bg-surface px-3 py-2">
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-2">
+          <div className="till-seg-track">
+            <button
+              className={tab === "new" ? "till-seg-on" : "till-seg"}
+              onClick={() => setTab("new")}
+            >
+              {t.zakup.tabNew}
+            </button>
+            <button
+              className={tab === "sent" ? "till-seg-on" : "till-seg"}
+              onClick={() => setTab("sent")}
+            >
+              {t.zakup.tabSent}
+              {/* The one number worth carrying on a tab: a delivery standing on
                 the counter waiting to be signed for. */}
-            {waiting > 0 && (
-              <span className="ml-1.5 rounded-full bg-[rgb(var(--till-accent))] px-1.5 text-[12px] font-bold text-white">
-                {waiting}
-              </span>
-            )}
-          </button>
-        </div>
+              {waiting > 0 && (
+                <span className="ml-1.5 rounded-full bg-[rgb(var(--till-accent))] px-1.5 text-[12px] font-bold text-white">
+                  {waiting}
+                </span>
+              )}
+            </button>
+          </div>
 
-        {tab === "new" && (
-          <label className="ml-auto flex items-center gap-2 text-[13px] text-ink-muted">
-            {t.zakup.forDate}
-            <input
-              type="date"
-              className="till-input h-11 w-auto"
-              value={forDate}
-              onChange={(e) => setForDate(e.target.value)}
-            />
-          </label>
-        )}
+          {tab === "new" && (
+            <label className="ml-auto flex items-center gap-2 text-[13px] text-ink-muted">
+              {t.zakup.forDate}
+              <input
+                type="date"
+                className="till-input h-11 w-auto"
+                value={forDate}
+                onChange={(e) => setForDate(e.target.value)}
+              />
+            </label>
+          )}
+        </div>
       </header>
 
       {tab === "sent" ? (
-        <SentList
-          orders={orders}
-          t={t}
-          onAccept={setAccepting}
-        />
+        <SentList orders={orders} t={t} onAccept={setAccepting} />
       ) : (
         <>
           {/* ---- Where we are ----
@@ -321,307 +334,324 @@ export default function ZakupScreen({
               pressable: a person who mistyped a quantity should not have to
               send the list to fix it. The one ahead is not, because its answer
               depends on this one. */}
-          <nav className="flex items-center gap-1 border-b border-line bg-surface px-3 py-2">
-            {([1, 2, 3] as Step[]).map((n, i) => (
-              <button
-                key={n}
-                disabled={n > step}
-                onClick={() => setStep(n)}
-                className={`flex items-center gap-2 rounded-[12px] px-2.5 py-1.5 text-[13px] font-semibold transition ${
-                  n === step
-                    ? "bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
-                    : n < step
-                      ? "text-ink-soft hover:bg-ink/[0.05]"
-                      : "text-ink-muted/60"
-                }`}
-              >
-                <span
-                  className={`grid h-6 w-6 place-items-center rounded-full text-[12px] ${
-                    n < step
-                      ? "bg-[rgb(var(--till-accent))] text-white"
-                      : n === step
-                        ? "bg-[rgb(var(--till-accent-ink))] text-white"
-                        : "bg-ink/[0.08] text-ink-muted"
+          <nav className="border-b border-line bg-surface px-3 py-2">
+            <div className="mx-auto flex w-full max-w-3xl items-center gap-1">
+              {([1, 2, 3] as Step[]).map((n, i) => (
+                <button
+                  key={n}
+                  disabled={n > step}
+                  onClick={() => setStep(n)}
+                  className={`flex items-center gap-2 rounded-[12px] px-2.5 py-1.5 text-[13px] font-semibold transition ${
+                    n === step
+                      ? "bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
+                      : n < step
+                        ? "text-ink-soft hover:bg-ink/[0.05]"
+                        : "text-ink-muted/60"
                   }`}
                 >
-                  {n < step ? <LuCheck className="h-3.5 w-3.5" /> : n}
-                </span>
-                {n === 1 ? t.zakup.step1 : n === 2 ? t.zakup.step2 : t.zakup.step3}
-                {i < 2 && <span className="ml-1 text-ink-muted/40">›</span>}
-              </button>
-            ))}
+                  <span
+                    className={`grid h-6 w-6 place-items-center rounded-full text-[12px] ${
+                      n < step
+                        ? "bg-[rgb(var(--till-accent))] text-white"
+                        : n === step
+                          ? "bg-[rgb(var(--till-accent-ink))] text-white"
+                          : "bg-ink/[0.08] text-ink-muted"
+                    }`}
+                  >
+                    {n < step ? <LuCheck className="h-3.5 w-3.5" /> : n}
+                  </span>
+                  {n === 1
+                    ? t.zakup.step1
+                    : n === 2
+                      ? t.zakup.step2
+                      : t.zakup.step3}
+                  {i < 2 && <span className="ml-1 text-ink-muted/40">›</span>}
+                </button>
+              ))}
+            </div>
           </nav>
 
           {done !== "" && (
             <p className="border-b border-line bg-[rgb(var(--till-accent-tint))] px-3 py-2 text-sm font-semibold text-[rgb(var(--till-accent-ink))]">
-              {done}
+              <span className="mx-auto block w-full max-w-3xl">{done}</span>
             </p>
           )}
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-            {step === 1 && (
-              <>
-                {/* ⚠️ The search is the first thing under the thumb: the
+            <div className="mx-auto w-full max-w-3xl">
+              {step === 1 && (
+                <>
+                  {/* ⚠️ The search is the first thing under the thumb: the
                     shortage list answers most mornings, and the rest of the
                     catalogue is reached by typing three letters. */}
-                <div className="relative mb-3">
-                  <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-                  <input
-                    className="till-input h-12 w-full pl-9"
-                    placeholder={t.zakup.search}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </div>
+                  <div className="relative mb-3">
+                    <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                    <input
+                      className="till-input h-12 w-full pl-9"
+                      placeholder={t.zakup.search}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                  </div>
 
-                {loadErr !== "" ? (
-                  <p className="py-4 text-sm text-danger">{loadErr}</p>
-                ) : shown.length === 0 && unknown === "" ? (
-                  <p className="py-4 text-sm text-ink-muted">
-                    {t.zakup.nothingShort}
-                  </p>
-                ) : (
-                  <>
-                    <p className="mb-2 text-[13px] text-ink-muted">
-                      {t.zakup.pickHint}
+                  {loadErr !== "" ? (
+                    <p className="py-4 text-sm text-danger">{loadErr}</p>
+                  ) : shown.length === 0 && unknown === "" ? (
+                    <p className="py-4 text-sm text-ink-muted">
+                      {t.zakup.nothingShort}
                     </p>
-                    {/* Two to a row on a monoblock: the names are short and a
+                  ) : (
+                    <>
+                      <p className="mb-2 text-[13px] text-ink-muted">
+                        {t.zakup.pickHint}
+                      </p>
+                      {/* Two to a row on a monoblock: the names are short and a
                         single column made the shortage list four screens long. */}
-                    <ul className="grid gap-2 sm:grid-cols-2">
-                      {shown.map((row) => {
-                        const on = chosen.has(row.ingredientId);
-                        return (
-                          <li key={row.ingredientId}>
-                            <button
-                              onClick={() => toggle(row)}
-                              aria-pressed={on}
-                              className={`flex w-full items-center gap-2.5 rounded-[14px] border p-3 text-left transition ${
-                                on
-                                  ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))]"
-                                  : "border-line bg-surface hover:border-ink/20"
-                              }`}
-                            >
-                              <span className="min-w-0 flex-1">
-                                <span className="flex items-center gap-1.5">
-                                  <span className="truncate text-[15px] font-semibold">
-                                    {row.name}
-                                  </span>
-                                  {row.qty > 0 && (
-                                    <span className="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[11px] font-semibold text-danger">
-                                      {t.zakup.shortBadge}
+                      <ul className="grid gap-2 sm:grid-cols-2">
+                        {shown.map((row) => {
+                          const on = chosen.has(row.ingredientId);
+                          return (
+                            <li key={row.ingredientId}>
+                              <button
+                                onClick={() => toggle(row)}
+                                aria-pressed={on}
+                                className={`flex w-full items-center gap-2.5 rounded-[14px] border p-3 text-left transition ${
+                                  on
+                                    ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))]"
+                                    : "border-line bg-surface hover:border-ink/20"
+                                }`}
+                              >
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="truncate text-[15px] font-semibold">
+                                      {row.name}
                                     </span>
-                                  )}
-                                </span>
-                                <span className="mt-0.5 block text-[13px] text-ink-muted">
-                                  {/* A row that came from the catalogue rather
+                                    {row.qty > 0 && (
+                                      <span className="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[11px] font-semibold text-danger">
+                                        {t.zakup.shortBadge}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="mt-0.5 block text-[13px] text-ink-muted">
+                                    {/* A row that came from the catalogue rather
                                       than the shortage has no figures to show —
                                       only its unit, which is what the writer
                                       needs before typing a number into it. */}
-                                  {row.qty > 0
-                                    ? `${t.zakup.onHand(row.onHand, row.unit)} · ${t.zakup.need(row.qty, row.unit)}`
-                                    : t.zakup.unitIs(row.unit)}
+                                    {row.qty > 0
+                                      ? `${t.zakup.onHand(row.onHand, row.unit)} · ${t.zakup.need(row.qty, row.unit)}`
+                                      : t.zakup.unitIs(row.unit)}
+                                  </span>
                                 </span>
-                              </span>
-                              <span
-                                className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[18px] ${
-                                  on
-                                    ? "bg-[rgb(var(--till-accent))] text-white"
-                                    : "bg-ink/[0.06] text-ink-soft"
-                                }`}
-                              >
-                                {on ? <LuCheck className="h-4 w-4" /> : "+"}
-                              </span>
+                                <span
+                                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[18px] ${
+                                    on
+                                      ? "bg-[rgb(var(--till-accent))] text-white"
+                                      : "bg-ink/[0.06] text-ink-soft"
+                                  }`}
+                                >
+                                  {on ? <LuCheck className="h-4 w-4" /> : "+"}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                        {unknown !== "" && (
+                          <li className="sm:col-span-2">
+                            <button
+                              className="w-full rounded-[14px] border border-dashed border-line bg-surface p-3 text-left text-[15px]"
+                              onClick={() => add({ name: unknown })}
+                            >
+                              {t.zakup.addNew(unknown)}
                             </button>
                           </li>
-                        );
-                      })}
-                      {unknown !== "" && (
-                        <li className="sm:col-span-2">
-                          <button
-                            className="w-full rounded-[14px] border border-dashed border-line bg-surface p-3 text-left text-[15px]"
-                            onClick={() => add({ name: unknown })}
-                          >
-                            {t.zakup.addNew(unknown)}
-                          </button>
-                        </li>
-                      )}
-                    </ul>
-                  </>
-                )}
-              </>
-            )}
+                        )}
+                      </ul>
+                    </>
+                  )}
+                </>
+              )}
 
-            {step === 2 && (
-              <>
-                <p className="mb-2 text-[13px] text-ink-muted">
-                  {t.zakup.qtyHint}
-                </p>
-                {lines.length === 0 ? (
-                  <p className="py-4 text-sm text-ink-muted">
-                    {t.zakup.nothingChosen}
+              {step === 2 && (
+                <>
+                  <p className="mb-2 text-[13px] text-ink-muted">
+                    {t.zakup.qtyHint}
                   </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {lines.map((l) => (
-                      <li
-                        key={l.key}
-                        className="flex items-center gap-2.5 rounded-[14px] border border-line bg-surface p-3"
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[15px] font-semibold">
-                            {l.name}
-                          </span>
-                          <span className="text-[13px] text-ink-muted">
-                            {/* ⚠️ Where it goes is on every row, not only where
+                  {lines.length === 0 ? (
+                    <p className="py-4 text-sm text-ink-muted">
+                      {t.zakup.nothingChosen}
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {lines.map((l) => (
+                        <li
+                          key={l.key}
+                          className="flex items-center gap-2.5 rounded-[14px] border border-line bg-surface p-3"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[15px] font-semibold">
+                              {l.name}
+                            </span>
+                            <span className="text-[13px] text-ink-muted">
+                              {/* ⚠️ Where it goes is on every row, not only where
                                 it is surprising: a badge that appears sometimes
                                 is one people stop reading, and the row it is
                                 missing from is the one that needed it. */}
-                            {sourceLabel(l.source, t)}
-                            {l.onHand !== undefined &&
-                              ` · ${t.zakup.onHand(l.onHand, l.unit)}`}
+                              {sourceLabel(l.source, t)}
+                              {l.onHand !== undefined &&
+                                ` · ${t.zakup.onHand(l.onHand, l.unit)}`}
+                            </span>
                           </span>
-                        </span>
-                        <input
-                          className="till-input h-12 w-24 text-center text-[17px] font-semibold"
-                          inputMode="decimal"
-                          autoFocus={lines.length === 1}
-                          value={l.qty}
-                          onChange={(e) =>
-                            setLines((cur) =>
-                              cur.map((x) =>
-                                x.key === l.key
-                                  ? { ...x, qty: e.target.value.replace(",", ".") }
-                                  : x,
-                              ),
-                            )
-                          }
-                        />
-                        {/* ⚠️ **Tapped, not typed.** Where a market packaging is
+                          <input
+                            className="till-input h-12 w-24 text-center text-[17px] font-semibold"
+                            inputMode="decimal"
+                            autoFocus={lines.length === 1}
+                            value={l.qty}
+                            onChange={(e) =>
+                              setLines((cur) =>
+                                cur.map((x) =>
+                                  x.key === l.key
+                                    ? {
+                                        ...x,
+                                        qty: e.target.value.replace(",", "."),
+                                      }
+                                    : x,
+                                ),
+                              )
+                            }
+                          />
+                          {/* ⚠️ **Tapped, not typed.** Where a market packaging is
                             written down the unit becomes a two-way switch —
                             kilos or bunches — and the conversion is the
                             server's. Where none is, this is a label and the unit
                             stays the store's, which is the whole reason the
                             field is never free text. */}
-                        {l.packName && l.packQty ? (
+                          {l.packName && l.packQty ? (
+                            <button
+                              className="h-12 w-[4.5rem] shrink-0 rounded-[12px] bg-ink/[0.06] px-1 text-[13px] font-semibold text-ink-soft"
+                              onClick={() =>
+                                setLines((cur) =>
+                                  cur.map((x) =>
+                                    x.key === l.key
+                                      ? { ...x, pack: !x.pack }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            >
+                              {l.pack ? l.packName : l.unit}
+                            </button>
+                          ) : (
+                            <span className="w-[4.5rem] shrink-0 text-center text-[13px] text-ink-muted">
+                              {l.unit}
+                            </span>
+                          )}
                           <button
-                            className="h-12 w-[4.5rem] shrink-0 rounded-[12px] bg-ink/[0.06] px-1 text-[13px] font-semibold text-ink-soft"
+                            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-muted hover:bg-ink/[0.06]"
+                            aria-label={l.name}
                             onClick={() =>
                               setLines((cur) =>
-                                cur.map((x) =>
-                                  x.key === l.key ? { ...x, pack: !x.pack } : x,
-                                ),
+                                cur.filter((x) => x.key !== l.key),
                               )
                             }
                           >
-                            {l.pack ? l.packName : l.unit}
+                            <LuX className="h-4 w-4" />
                           </button>
-                        ) : (
-                          <span className="w-[4.5rem] shrink-0 text-center text-[13px] text-ink-muted">
-                            {l.unit}
-                          </span>
-                        )}
-                        <button
-                          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-muted hover:bg-ink/[0.06]"
-                          aria-label={l.name}
-                          onClick={() =>
-                            setLines((cur) => cur.filter((x) => x.key !== l.key))
-                          }
-                        >
-                          <LuX className="h-4 w-4" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
 
-            {step === 3 && (
-              /* ---- The last look before it is sent ----
+              {step === 3 && (
+                /* ---- The last look before it is sent ----
                  ⚠️ **A list is somebody else's morning.** The buyer will not be
                  able to ask what "5" meant, so the numbers and the units are
                  read back once, in the words they will arrive in. */
-              <>
-                <p className="mb-1 text-[15px] font-semibold">
-                  {t.zakup.previewBody(forDate)}
-                </p>
-                {storeCount > 0 && marketCount > 0 && (
-                  <p className="mb-2 text-[13px] text-ink-muted">
-                    {t.zakup.splitNote(marketCount, storeCount)}
+                <>
+                  <p className="mb-1 text-[15px] font-semibold">
+                    {t.zakup.previewBody(forDate)}
                   </p>
-                )}
-                {ready.length === 0 ? (
-                  <p className="py-4 text-sm text-ink-muted">
-                    {t.zakup.nothingToSend}
-                  </p>
-                ) : (
-                  <ul className="mt-2 overflow-hidden rounded-[14px] border border-line bg-surface">
-                    {ready.map((l) => (
-                      <li
-                        key={l.key}
-                        className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5 last:border-b-0"
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-[15px]">
-                            {l.name}
+                  {storeCount > 0 && marketCount > 0 && (
+                    <p className="mb-2 text-[13px] text-ink-muted">
+                      {t.zakup.splitNote(marketCount, storeCount)}
+                    </p>
+                  )}
+                  {ready.length === 0 ? (
+                    <p className="py-4 text-sm text-ink-muted">
+                      {t.zakup.nothingToSend}
+                    </p>
+                  ) : (
+                    <ul className="mt-2 overflow-hidden rounded-[14px] border border-line bg-surface">
+                      {ready.map((l) => (
+                        <li
+                          key={l.key}
+                          className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5 last:border-b-0"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-[15px]">
+                              {l.name}
+                            </span>
+                            <span className="text-[12px] text-ink-muted">
+                              {sourceLabel(l.source, t)}
+                            </span>
                           </span>
-                          <span className="text-[12px] text-ink-muted">
-                            {sourceLabel(l.source, t)}
-                          </span>
-                        </span>
-                        {/* ⚠️ Read back in both, where they differ: the list
+                          {/* ⚠️ Read back in both, where they differ: the list
                             travels to somebody else's morning and "2" has to be
                             unambiguous before it leaves. */}
-                        <span className="shrink-0 text-[15px] font-bold tabular-nums">
-                          {l.pack && l.packQty
-                            ? `${l.qty} ${l.packName} = ${Number(l.qty) * l.packQty} ${l.unit}`
-                            : `${l.qty} ${l.unit}`}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
+                          <span className="shrink-0 text-[15px] font-bold tabular-nums">
+                            {l.pack && l.packQty
+                              ? `${l.qty} ${l.packName} = ${Number(l.qty) * l.packQty} ${l.unit}`
+                              : `${l.qty} ${l.unit}`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* ---- One way forward ----
               ⚠️ Exactly one accent control (globals.css), and it is always the
               thing that moves this screen on. Back is quiet and on the left,
               where a thumb expects it. */}
-          <div className="flex items-center gap-3 border-t border-line bg-surface px-3 py-2.5">
-            {step > 1 ? (
-              <button
-                className="till-btn flex items-center gap-1.5 px-4"
-                onClick={() => setStep((s) => (s - 1) as Step)}
-              >
-                <LuChevronLeft className="h-4 w-4" />
-                {t.zakup.back}
-              </button>
-            ) : (
-              <span />
-            )}
-            <span className="ml-auto text-sm text-ink-muted">
-              {t.zakup.chosen(step === 1 ? lines.length : ready.length)}
-            </span>
-            {step < 3 ? (
-              <button
-                className="till-btn-accent flex items-center gap-1.5 px-5"
-                disabled={!canGo}
-                onClick={() => setStep((s) => (s + 1) as Step)}
-              >
-                {t.zakup.next}
-                <LuChevronRight className="h-4 w-4" />
-              </button>
-            ) : (
-              <button
-                className="till-btn-accent px-6"
-                disabled={!canGo || busy}
-                onClick={() => void send()}
-              >
-                {t.zakup.send}
-              </button>
-            )}
+          <div className="border-t border-line bg-surface px-3 py-2.5">
+            <div className="mx-auto flex w-full max-w-3xl items-center gap-3">
+              {step > 1 ? (
+                <button
+                  className="till-btn flex items-center gap-1.5 px-4"
+                  onClick={() => setStep((s) => (s - 1) as Step)}
+                >
+                  <LuChevronLeft className="h-4 w-4" />
+                  {t.zakup.back}
+                </button>
+              ) : (
+                <span />
+              )}
+              <span className="ml-auto text-sm text-ink-muted">
+                {t.zakup.chosen(step === 1 ? lines.length : ready.length)}
+              </span>
+              {step < 3 ? (
+                <button
+                  className="till-btn-accent flex items-center gap-1.5 px-5"
+                  disabled={!canGo}
+                  onClick={() => setStep((s) => (s + 1) as Step)}
+                >
+                  {t.zakup.next}
+                  <LuChevronRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  className="till-btn-accent px-6"
+                  disabled={!canGo || busy}
+                  onClick={() => void send()}
+                >
+                  {t.zakup.send}
+                </button>
+              )}
+            </div>
           </div>
         </>
       )}
@@ -661,7 +691,7 @@ function SentList({
     );
   }
   return (
-    <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+    <ul className="mx-auto min-h-0 w-full max-w-3xl flex-1 space-y-2 overflow-y-auto p-3">
       {orders.slice(0, 20).map((o) => (
         <li
           key={o.id}

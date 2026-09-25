@@ -12,6 +12,7 @@ import { ApiError, api } from "@/lib/api";
 import { useAdminScope } from "@/lib/adminScope";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
+import { staffTitle } from "@/lib/roleName";
 import { contentName } from "@/lib/i18n/content";
 import { formatPrice, formatUzPhone } from "@/lib/format";
 import Modal from "@/components/admin/Modal";
@@ -41,7 +42,6 @@ interface Draft {
   phone: string;
   username: string;
   password: string;
-  position: string;
   roleId: string;
   branchId: string;
   isActive: boolean;
@@ -76,7 +76,6 @@ const emptyDraft = (branchId: string): Draft => ({
   phone: "",
   username: "",
   password: "",
-  position: "",
   roleId: "",
   branchId,
   isActive: true,
@@ -149,7 +148,7 @@ export default function AdminStaffPage() {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) =>
-      [r.name, r.username, r.position, r.phone]
+      [r.name, r.username, staffTitle(r, lang), r.phone]
         .join(" ")
         .toLowerCase()
         .includes(q),
@@ -172,7 +171,6 @@ export default function AdminStaffPage() {
       phone: row.phone,
       username: row.username,
       password: "",
-      position: row.position,
       roleId: row.roleId ?? "",
       branchId: row.branchId ?? "",
       isActive: row.isActive,
@@ -206,7 +204,6 @@ export default function AdminStaffPage() {
       name: draft.name.trim(),
       phone: draft.phone.trim(),
       username: draft.username.trim().toLowerCase(),
-      position: draft.position.trim(),
       roleId: draft.roleId,
       branchId: draft.branchId,
       isActive: draft.isActive,
@@ -324,7 +321,7 @@ export default function AdminStaffPage() {
                           </span>
                         )}
                         <p className="text-xs text-ink-muted">
-                          {row.position || `@${row.username}`}
+                          {staffTitle(row, lang) || `@${row.username}`}
                           {row.phone && ` · ${formatUzPhone(row.phone)}`}
                           {multi && row.branchName && ` · ${row.branchName}`}
                         </p>
@@ -439,25 +436,15 @@ export default function AdminStaffPage() {
                   </option>
                 ))}
               </select>
-              {/* ⚠️ The role is what the system reads; the free-text position
-                  below it is a note and nothing checks it. Said here because
-                  the two fields look alike and only one of them opens a till. */}
+              {/* ⚠️ **There is no "Lavozim" box any more.** It sat beside this
+                  one, looked the same, and said something different on every
+                  report — the server now writes the role's name as the title
+                  (EnsurePositionFromRole). Said here so nobody goes looking. */}
               <span className="mt-1 block text-xs text-ink-muted">
                 {t.staff.roleHint}
               </span>
             </label>
 
-            <label className="block text-sm">
-              <span className="font-medium">{t.staff.position}</span>
-              <input
-                className={inputCls}
-                placeholder={t.staff.positionPh}
-                value={draft.position}
-                onChange={(e) =>
-                  setDraft({ ...draft, position: e.target.value })
-                }
-              />
-            </label>
             <label className="block text-sm">
               <span className="font-medium">{t.staff.phone}</span>
               <input

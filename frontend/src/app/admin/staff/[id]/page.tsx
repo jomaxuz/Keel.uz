@@ -14,6 +14,7 @@ import { useParams } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
+import { staffTitle } from "@/lib/roleName";
 import { formatPrice, formatUzPhone, weekdayName } from "@/lib/format";
 import { formatDateTime } from "@/lib/orderFlow";
 import DeviceList from "@/components/admin/DeviceList";
@@ -158,7 +159,7 @@ export default function AdminStaffCardPage() {
             )}
           </h1>
           <p className="mt-0.5 text-sm text-ink-muted">
-            {staff.position || `@${staff.username}`}
+            {staffTitle(staff, lang) || `@${staff.username}`}
             {staff.phone && ` · ${formatUzPhone(staff.phone)}`}
             {data.branchName && ` · ${data.branchName}`}
           </p>

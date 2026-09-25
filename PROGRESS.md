@@ -15662,3 +15662,40 @@ b5somsa'dagi ortiqcha 8 ta topshirma o'chirildi (pastda).
   xodim ilovalari qayta o'rnatilishi kerak.
 - Bozorchi/texnolog tablari rol ruxsati bo'yicha (`buy` / `stock`) —
   lokal bazada ikkala xodim «Ish boshqaruvchi» edi, shuning uchun ko'rinmagan.
+
+## 2026-09-25 (2) — Ilovalar: versiya, light tema, bozor va sanoq ekranlari; kassa bozorligi; lavozim → rol
+
+- **Versiya** (5 ta xodim ilovasi): `versionName` endi ildizdagi `VERSION`
+  dan build paytida o'qiladi (`v0.2.1` → `0.2.1`, kod 201). Ilgari bu ikki
+  joyda edi: gradle'da `1.0.0`/`2.0.0` va `APP_VERSION` konstantasi. Shu
+  sababli ofitsiant 1.0.0, kuryer 2.0.0, panel esa v0.2.1 ko'rsatardi.
+  Ekranga `appVersion()` (`android-design`) chiqaradi. TV ham serverga shuni
+  yuboradi, panel esa «vv» yozmasligi uchun boshidagi `v` ni kesadi.
+  Mehmon ilovasi o'z raqamida qoldi (konsol build'i, Play talabi).
+- **Light tema** (`android-design`): shisha chegarasi oq edi — krem fonda
+  ko'rinmasdi; endi to'q hairline. Shisha zichroq (72% → 85%). Inputlar
+  endi shisha emas, **chuqurcha** (`field`/`fieldBorder`): shisha karta
+  ustida oq ustiga oq edi. Fokusdagi input to'q sariq chegara oladi.
+- **Team → Bozor** (bozorchi): hamyon kartasi; yuborilgan ro'yxat — progress
+  va yig'iladigan qatorlar (bir vaqtda bittasi ochiq, «Olindi» dan keyin
+  keyingisi ochiladi); birlik maydon ichida (almashtirgich); jami va asosiy
+  tugma pastda doim ko'rinadi.
+- **Team → Bozorlik ro'yxati**: «Yangi / Yuborilganlar» tablari. Sana
+  qo'lda yozilmaydi — Bugun / Ertaga / Indinga chiplari. «Qabul qilish»
+  tugmasi o'z kartasida turadi. Qabulda har qator «to'g'ri» yoki farqni
+  (±) ko'rsatadi; ro'yxat uzun bo'lsa tugmalar ekrandan chiqib ketmaydi.
+- **Team → Inventarizatsiya**: omborlar chip bilan tanlanadi, katta
+  progress (12 / 40), birlik maydon ichida, klaviaturadagi «Keyingi»
+  pastdagi qatorga o'tkazadi, «Saqlash» pastda doim ko'rinadi.
+- **Mehmon ilovasi**: yetkazilgan buyurtmada saytdagi kabi konfetti,
+  sakraydigan yashil belgi va «Yetkazildi! 🎉». Konfetti ~7 soniyada
+  to'xtaydi (ekran stolda ochiq qoladi — batareya).
+- **Kassa → Bozorlik**: sarlavha, qadamlar, ro'yxat va pastki panel markazda
+  `max-w-3xl` ustunda (ChecksScreen kabi) — keng monoblokda chetdan-chetga
+  cho'zilardi.
+- **Panel → Ishchilar**: «Lavozim» maydoni olib tashlandi, lavozim = rol
+  nomi (qarang DECISIONS → «Ishchilar davomati»).
+- ⏳ Telefonda / monoblokda sinalmagan. Xodim ilovalarini qayta o'rnatish,
+  mehmon ilovasini konsoldan qayta build qilish, kassa uchun yangi installer
+  kerak.
+
