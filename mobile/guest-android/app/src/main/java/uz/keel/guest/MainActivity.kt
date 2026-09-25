@@ -197,6 +197,7 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
                 is Where.Tracking -> OrderScreen(
                     api = app.api,
                     number = place.number,
+                    restaurant = profile?.restaurant,
                     bottomInset = bottomInset,
                     onBack = { where = Where.Tabs },
                 )

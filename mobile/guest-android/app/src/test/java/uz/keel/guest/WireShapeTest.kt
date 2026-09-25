@@ -148,6 +148,34 @@ class WireShapeTest {
         assertEquals("https://checkout.paycom.uz/abc", order.payUrl)
     }
 
+    /** `handlers/orders.go` → `TrackOrder`, while the order is on its way.
+     *
+     *  ⚠️ **The courier is only there at `on_the_way`** and is absent before and
+     *  after — so the absent case matters as much as the present one. The app
+     *  read neither field for months: the server sent the position, the site
+     *  drew it, and the guest's screen said "Yo'lda" and nothing more. */
+    @Test
+    fun `a tracked order carries the courier's position only while on the way`() {
+        val onWay = json.decodeFromString<Order>(
+            """{"number":"CHL-A71-4509","status":"on_the_way","type":"delivery","total":105000,
+                "createdAt":"2026-09-25T12:00:00Z",
+                "address":{"text":"Chilonzor 9","lat":41.2856,"lng":69.2034,"comment":""},
+                "tableNumber":"","paymentMethod":"cash","paymentStatus":"unpaid",
+                "courierName":"Aziz",
+                "courier":{"name":"Aziz","phone":"+998901234567",
+                           "location":{"lat":41.29,"lng":69.21,"accuracy":12,"at":"2026-09-25T12:31:04Z"}}}""",
+        )
+        assertEquals(41.29, onWay.courier?.location?.lat ?: 0.0, 1e-9)
+        assertEquals(69.2034, onWay.address.lng, 1e-9)
+        assertEquals("+998901234567", onWay.courier?.phone)
+
+        val cooking = json.decodeFromString<Order>(
+            """{"number":"CHL-A71-4509","status":"preparing","type":"pickup","total":105000,
+                "address":{"text":"","lat":0,"lng":0,"comment":""},"courierName":"Aziz"}""",
+        )
+        assertNull(cooking.courier)
+    }
+
     /** ⚠️ **The profile is wrapped, and this test is here because it was read
      *  wrongly the first time.** `/restaurant` answers
      *  `{restaurant, brand, branch, design, …}` — decoding the top level as the

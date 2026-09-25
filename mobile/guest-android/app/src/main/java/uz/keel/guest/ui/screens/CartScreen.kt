@@ -1,5 +1,13 @@
 package uz.keel.guest.ui.screens
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +63,7 @@ import uz.keel.guest.t
 // week should not have to learn where things are — and the two drifting apart
 // is how "the app is worse" starts, one small difference at a time.
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun CartScreen(
     cart: Cart,
@@ -121,13 +130,27 @@ fun CartScreen(
         return
     }
 
+    // ⚠️ **The list ends where the summary begins — measured, not guessed.**
+    // It used to reserve a fixed 96 dp, and the summary is more than twice that
+    // (three rows, a button, a second button). So the last dish's note field
+    // sat permanently under "Rasmiylashtirish" and could not be tapped, however
+    // far one scrolled. The summary reports its own height and the list pads by
+    // exactly that, so a new row in the summary cannot bring the bug back.
+    val density = LocalDensity.current
+    var summaryHeight by remember { mutableStateOf(0.dp) }
+    // ⚠️ **Hidden while the keyboard is up.** Somebody typing "piyozsiz" is
+    // looking at the field, and a summary pinned above the keyboard would take
+    // half of what is left of the screen and cover the very field being typed in.
+    val typing = WindowInsets.isImeVisible
+
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.fillMaxSize().imePadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                bottom = bottomInset.calculateBottomPadding() + 96.dp,
+                bottom = if (typing) 16.dp
+                else bottomInset.calculateBottomPadding() + 10.dp + summaryHeight + 12.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -254,7 +277,7 @@ fun CartScreen(
         // ⚠️ **Above the list rather than at the end of it.** A guest with
         // fifteen lines should not scroll to find out what they owe — and the
         // figure is the reason they opened this screen.
-        Column(
+        if (!typing) Column(
             Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
@@ -263,6 +286,7 @@ fun CartScreen(
                     bottom = bottomInset.calculateBottomPadding() + 10.dp,
                 )
                 .fillMaxWidth()
+                .onSizeChanged { summaryHeight = with(density) { it.height.toDp() } }
                 .glass(c, RoundedCornerShape(20.dp))
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),

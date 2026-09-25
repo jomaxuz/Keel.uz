@@ -338,6 +338,29 @@ data class Order(
     val statusHistory: List<StatusEvent> = emptyList(),
     val cancelReason: String = "",
     val payUrl: String = "",
+    /** Where it is going. Zero for pickup and dine-in. */
+    val address: GeoPoint = GeoPoint(),
+    /** ⚠️ **Only while the order is `on_the_way`, and only with a position.**
+     *  The server hands the courier out for that one stage and never before or
+     *  after (`TrackOrder`), so null is the normal case, not an error. */
+    val courier: TrackedCourier? = null,
+)
+
+@Serializable
+data class TrackedCourier(
+    val name: String = "",
+    val phone: String = "",
+    val location: CourierFix? = null,
+)
+
+@Serializable
+data class CourierFix(
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
+    val accuracy: Double = 0.0,
+    /** When the courier's phone took it. ⚠️ Shown, because a pin that stopped
+     *  moving ten minutes ago looks exactly like a courier who stopped. */
+    val at: String = "",
 )
 
 // ---- The guest's own account ----

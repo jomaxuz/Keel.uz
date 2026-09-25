@@ -15637,3 +15637,28 @@ buyurtma bittalab yana «pul qaytdi» qilingan — jami aynan 8 373 000.
 Tuzatish: topshirma kuryerning haqiqiy qarzidan (`courierOwes`) oshmaydi —
 kassa kesadi, panel rad etadi. Testlar: toza funksiya + live ketma-ketlik.
 b5somsa'dagi ortiqcha 8 ta topshirma o'chirildi (pastda).
+
+## 2026-09-25 — Native ilovalar: light theme, push, geolokatsiya, mehmon ilovasida kuryer
+
+- **Light theme** (`android-design`): status bar ikonkalari ilovaning o'z
+  tanlovidan (tizimnikidan emas); `muted` #8A8178 → #6F675F (~5:1); o'chiq
+  asosiy tugma light'da to'q matn; `forceDarkAllowed=false` oltala ilovada
+  (MIUI/One UI majburiy tungi rejimi). Brend ustidagi matn endi **kontrast
+  bo'yicha** (`inkOn`): oq ≥ 3:1 bo'lsa oq, aks holda to'q — #F5A623 kabi
+  o'rta ranglarda oq matn 2:1 edi.
+- **Push**: `SERVICE_NOT_AVAILABLE` vaqtinchalik — `fetchPushToken` ~1 daqiqa
+  ichida qayta so'raydi; sozlamalarda faqat kod ko'rinadi.
+- **Geolokatsiya** (`LocationGate`): FINE+COARSE birga (waiter'da FINE yolg'iz
+  so'ralardi — Android 12+ dialogsiz rad etadi); taxminiy joylashuv 50 m
+  radiusga yaramaydi (~2 km panjara) — aniq so'raladi; telefonda GPS o'chiq
+  bo'lsa Android'ning o'z dialogi; ikki marta rad → ilova sozlamalari.
+  Nuqta HIGH_ACCURACY, 15 s, eski `lastLocation` olinmaydi. Team, waiter,
+  kuryer shunga o'tdi; kuryer holatini o'zgartirish xatosi endi ko'rinadi.
+- **Mehmon ilovasi**: «Yo'lda» buyurtmada kuryer xaritada (2GIS/Yandex/
+  Google, `TrackMap.kt`) — server buni doim qaytarardi, ilova o'qimasdi.
+  Savatda oxirgi taom izohi rasmiylashtirish bloki ostida qolardi — ro'yxat
+  endi blok balandligini o'lchab padding beradi.
+- ⏳ Telefonda sinalmagan. Mehmon ilovasi konsoldan qayta build qilinishi,
+  xodim ilovalari qayta o'rnatilishi kerak.
+- Bozorchi/texnolog tablari rol ruxsati bo'yicha (`buy` / `stock`) —
+  lokal bazada ikkala xodim «Ish boshqaruvchi» edi, shuning uchun ko'rinmagan.

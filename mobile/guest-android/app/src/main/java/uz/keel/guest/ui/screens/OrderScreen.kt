@@ -1,5 +1,15 @@
 package uz.keel.guest.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Call
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import uz.keel.guest.Brand
+import uz.keel.guest.data.GeoPoint
+import uz.keel.guest.data.Restaurant
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -47,6 +57,8 @@ import uz.keel.guest.t
 fun OrderScreen(
     api: KeelApi,
     number: String,
+    /** For the map: which engine the restaurant chose, and its key. */
+    restaurant: Restaurant?,
     bottomInset: PaddingValues,
     onBack: () -> Unit,
 ) {
@@ -153,6 +165,16 @@ fun OrderScreen(
                 }
             }
 
+            // ⚠️ **Where the courier is, while it is on its way.** The server has
+            // always sent this (`TrackOrder`, only at `on_the_way`) and the site
+            // has always drawn it; the app read neither field, so the guest saw
+            // "Yo'lda" and nothing else — the one stage where a map is the
+            // whole point of opening the screen.
+            val fix = o.courier?.location
+            if (o.status == "on_the_way" && fix != null && (fix.lat != 0.0 || fix.lng != 0.0)) {
+                item { CourierCard(o, restaurant) }
+            }
+
             item {
                 Column(
                     Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
@@ -183,5 +205,52 @@ fun OrderScreen(
         }
 
         item { GhostButton(t.common.back, Modifier.fillMaxWidth()) { onBack() } }
+    }
+}
+
+@Composable
+private fun CourierCard(o: Order, restaurant: Restaurant?) {
+    val c = KeelTheme.colors
+    val ctx = LocalContext.current
+    val courier = o.courier ?: return
+    val fix = courier.location ?: return
+    val provider = restaurant?.provider ?: "2gis"
+    // Same fallback as the checkout's picker: the build's Google key only
+    // stands in for a restaurant on Google that has not set its own.
+    val key = (restaurant?.mapKey ?: "").ifBlank {
+        if (provider == "google" || restaurant == null) Brand.mapsKey else ""
+    }
+    val home = o.address.takeIf { it.lat != 0.0 || it.lng != 0.0 }
+    val minutes = runCatching {
+        ((System.currentTimeMillis() - java.time.Instant.parse(fix.at).toEpochMilli()) / 60_000).toInt()
+    }.getOrNull()
+
+    Column(
+        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(t.order.courierComing(courier.name), style = MaterialTheme.typography.titleMedium, color = c.ink)
+        // ⚠️ No key, no map — and not a grey rectangle either: the sentence
+        // above and the call button still answer "where is my food?".
+        if (key.isNotBlank()) {
+            TrackMap(
+                provider = provider,
+                mapKey = key,
+                courier = GeoPoint(fix.lat, fix.lng),
+                home = home,
+                accent = c.accent,
+                modifier = Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(16.dp)),
+            )
+        }
+        if (minutes != null) {
+            Text(t.order.courierSeen(minutes), style = MaterialTheme.typography.labelMedium, color = c.muted)
+        }
+        if (courier.phone.isNotBlank()) {
+            GhostButton(t.order.callCourier, Modifier.fillMaxWidth(), icon = Icons.Rounded.Call) {
+                runCatching {
+                    ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${courier.phone}")))
+                }
+            }
+        }
     }
 }
