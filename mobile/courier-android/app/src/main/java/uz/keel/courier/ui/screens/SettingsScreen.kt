@@ -43,6 +43,8 @@ import uz.keel.courier.data.Courier
 import uz.keel.courier.i18n.DICTS
 import uz.keel.courier.push.PushState
 import uz.keel.courier.t
+import androidx.compose.ui.platform.LocalContext
+import uz.keel.design.appVersion
 
 // Language, appearance, and the two ways out.
 
@@ -161,7 +163,7 @@ fun SettingsScreen(
             InfoRow(courier.name, courier.vehicle)
             if (courier.phone.isNotEmpty()) InfoRow(t.settings.phone, courier.phone)
             InfoRow(t.settings.restaurant, address)
-            InfoRow(t.settings.version, KeelCourierApp.APP_VERSION)
+            InfoRow(t.settings.version, appVersion(LocalContext.current))
         }
 
         // ⚠️ **Two ways out, kept apart on purpose.** A shift ends every evening;

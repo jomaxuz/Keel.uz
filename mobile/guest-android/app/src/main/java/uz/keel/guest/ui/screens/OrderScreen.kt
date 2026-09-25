@@ -11,6 +11,7 @@ import uz.keel.guest.Brand
 import uz.keel.guest.data.GeoPoint
 import uz.keel.guest.data.Restaurant
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -81,130 +82,137 @@ fun OrderScreen(
         }
     }
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            bottom = bottomInset.calculateBottomPadding(),
-        ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item {
-            Column(
-                Modifier.statusBarsPadding().padding(top = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    t.order.number(number),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = c.ink,
-                )
-                if (error.isNotEmpty()) {
-                    Text(error, style = MaterialTheme.typography.bodyMedium, color = c.danger)
-                }
-            }
-        }
+    val delivered = order?.status == "delivered"
 
-        order?.let { o ->
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = bottomInset.calculateBottomPadding(),
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             item {
                 Column(
-                    Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    Modifier.statusBarsPadding().padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    // ⚠️ **A cancelled order is not a step on the road** — it is
-                    // the end of a different one, and drawing it as the fifth
-                    // dot would say the food is on its way.
-                    if (o.status == "cancelled") {
-                        Text(
-                            t.order.cancelled,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = c.danger,
-                        )
-                        if (o.cancelReason.isNotEmpty()) {
+                    Text(
+                        t.order.number(number),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = c.ink,
+                    )
+                    if (error.isNotEmpty()) {
+                        Text(error, style = MaterialTheme.typography.bodyMedium, color = c.danger)
+                    }
+                }
+            }
+
+            order?.let { o ->
+                if (delivered) item { DeliveredBadge() }
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        // ⚠️ **A cancelled order is not a step on the road** — it is
+                        // the end of a different one, and drawing it as the fifth
+                        // dot would say the food is on its way.
+                        if (o.status == "cancelled") {
                             Text(
-                                o.cancelReason,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = c.muted,
+                                t.order.cancelled,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = c.danger,
                             )
-                        }
-                    } else {
-                        val steps = listOf(
-                            "pending" to t.order.pending,
-                            "confirmed" to t.order.confirmed,
-                            "preparing" to t.order.preparing,
-                            "on_the_way" to t.order.onTheWay,
-                            "delivered" to t.order.delivered,
-                        ).filter {
-                            // Pickup never goes on a road; showing the step
-                            // would have a guest waiting at home for it.
-                            o.type == "delivery" || it.first != "on_the_way"
-                        }
-                        val at = steps.indexOfFirst { it.first == o.status }
-                        steps.forEachIndexed { i, (_, label) ->
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(
-                                    Modifier
-                                        .size(10.dp)
-                                        .background(
-                                            if (i <= at) c.accent else c.line,
-                                            CircleShape,
-                                        ),
-                                ) {}
+                            if (o.cancelReason.isNotEmpty()) {
                                 Text(
-                                    label,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = if (i <= at) c.ink else c.muted,
+                                    o.cancelReason,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = c.muted,
                                 )
+                            }
+                        } else {
+                            val steps = listOf(
+                                "pending" to t.order.pending,
+                                "confirmed" to t.order.confirmed,
+                                "preparing" to t.order.preparing,
+                                "on_the_way" to t.order.onTheWay,
+                                "delivered" to t.order.delivered,
+                            ).filter {
+                                // Pickup never goes on a road; showing the step
+                                // would have a guest waiting at home for it.
+                                o.type == "delivery" || it.first != "on_the_way"
+                            }
+                            val at = steps.indexOfFirst { it.first == o.status }
+                            steps.forEachIndexed { i, (_, label) ->
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(
+                                        Modifier
+                                            .size(10.dp)
+                                            .background(
+                                                if (i <= at) c.accent else c.line,
+                                                CircleShape,
+                                            ),
+                                    ) {}
+                                    Text(
+                                        label,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = if (i <= at) c.ink else c.muted,
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // ⚠️ **Where the courier is, while it is on its way.** The server has
-            // always sent this (`TrackOrder`, only at `on_the_way`) and the site
-            // has always drawn it; the app read neither field, so the guest saw
-            // "Yo'lda" and nothing else — the one stage where a map is the
-            // whole point of opening the screen.
-            val fix = o.courier?.location
-            if (o.status == "on_the_way" && fix != null && (fix.lat != 0.0 || fix.lng != 0.0)) {
-                item { CourierCard(o, restaurant) }
-            }
+                // ⚠️ **Where the courier is, while it is on its way.** The server has
+                // always sent this (`TrackOrder`, only at `on_the_way`) and the site
+                // has always drawn it; the app read neither field, so the guest saw
+                // "Yo'lda" and nothing else — the one stage where a map is the
+                // whole point of opening the screen.
+                val fix = o.courier?.location
+                if (o.status == "on_the_way" && fix != null && (fix.lat != 0.0 || fix.lng != 0.0)) {
+                    item { CourierCard(o, restaurant) }
+                }
 
-            item {
-                Column(
-                    Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    o.items.forEach { line ->
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        o.items.forEach { line ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "${line.qty} × ${line.name}",
+                                    Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = c.ink,
+                                )
+                                Money(line.price * line.qty, color = c.inkSoft)
+                            }
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "${line.qty} × ${line.name}",
+                                t.checkout.total,
                                 Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.titleMedium,
                                 color = c.ink,
                             )
-                            Money(line.price * line.qty, color = c.inkSoft)
+                            Money(o.total, color = c.ink)
                         }
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            t.checkout.total,
-                            Modifier.weight(1f),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = c.ink,
-                        )
-                        Money(o.total, color = c.ink)
                     }
                 }
             }
-        }
 
-        item { GhostButton(t.common.back, Modifier.fillMaxWidth()) { onBack() } }
+            item { GhostButton(t.common.back, Modifier.fillMaxWidth()) { onBack() } }
+        }
+        // Over the list, and never in the way of it: the overlay draws only.
+        if (delivered) ConfettiOverlay()
     }
 }
 

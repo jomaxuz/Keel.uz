@@ -60,6 +60,7 @@ import uz.keel.owner.data.Subscription
 import uz.keel.owner.i18n.DICTS
 import uz.keel.owner.push.PushState
 import uz.keel.owner.t
+import uz.keel.design.appVersion
 
 // Language, appearance, the subscription, help, and the two ways out.
 
@@ -86,11 +87,7 @@ fun SettingsScreen(
 
     LaunchedEffect(Unit) { sub = runCatching { api.subscription() }.getOrNull() }
 
-    val version = remember {
-        runCatching {
-            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "—"
-        }.getOrDefault("—")
-    }
+    val version = remember { appVersion(ctx) }
 
     Column(Modifier.fillMaxSize()) {
         ScreenHeader(title = t.settings.title)

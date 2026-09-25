@@ -80,11 +80,7 @@ fun SettingsScreen(
         branch = runCatching { api.branch().name }.getOrDefault("")
     }
 
-    val version = remember {
-        runCatching {
-            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "—"
-        }.getOrDefault("—")
-    }
+    val version = remember { appVersion(ctx) }
 
     Column(Modifier.fillMaxSize()) {
         ScreenHeader(title = t.settings.title)

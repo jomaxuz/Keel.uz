@@ -33,6 +33,19 @@ val signingProps: Properties? = run {
     props
 }
 
+// What this build calls itself.
+//
+// ⚠️ **The platform's one number, read from the repo-root `VERSION`.** The
+// dashboard, the console and the till all say that number, and this app used to
+// carry its own ("1.0.0" here, "2.0.0" in a constant beside it) — three answers
+// to "which version?" on one support call. `scripts/set-version.sh` writes
+// `VERSION`, so a release moves this too without anyone remembering the app.
+// The code only grows (major·10000 + minor·100 + patch), which is what Android
+// needs to install a build over the last one.
+val keelVersion: String = rootDir.resolve("../../VERSION").readText().trim().removePrefix("v")
+val keelVersionCode: Int = keelVersion.split(".").map { it.toInt() }
+    .let { (major, minor, patch) -> major * 10000 + minor * 100 + patch }
+
 android {
     namespace = "uz.keel.team"
     compileSdk = 36
@@ -49,8 +62,8 @@ android {
         // minSdk chosen for a visual effect would lock out the people it is for.
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "2.0.0"
+        versionCode = keelVersionCode
+        versionName = keelVersion
         vectorDrawables { useSupportLibrary = true }
     }
 

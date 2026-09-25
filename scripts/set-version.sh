@@ -49,6 +49,11 @@ sed -i -E "s/(\"ProductVersion\": \")[^\"]+(\")/\1$bare\2/;s/(\"file_version\": 
 sed -i -E "s/(const Version = \")[^\"]+(\")/\1$bare\2/" \
   backend/desktop/version.go
 
+# ⚠️ **The five staff Android apps are not written here, on purpose.** Their
+# Gradle files read `VERSION` at build time (mobile/*-android/app/build.gradle.kts),
+# so there is no sixth constant to forget. The guest app is the exception: its
+# number is per restaurant and comes from the console's build.
+
 echo "versiya: $new"
 grep -hoE 'v[0-9]+\.[0-9]+\.[0-9]+' VERSION \
   control/internal/handlers/version.go \

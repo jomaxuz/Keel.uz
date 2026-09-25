@@ -362,7 +362,7 @@ export default function AdminTVPage() {
                               timeAgo(s.lastSeenAt, t.common.timeAgo),
                             )
                           : t.tv.neverSeen}
-                        {s.appVersion ? ` · v${s.appVersion}` : ""}
+                        {s.appVersion ? ` · v${s.appVersion.replace(/^v/, "")}` : ""}
                       </p>
                     </div>
 

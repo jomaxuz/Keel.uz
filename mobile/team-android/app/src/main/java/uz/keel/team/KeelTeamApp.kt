@@ -68,9 +68,5 @@ class KeelTeamApp : Application() {
 
     companion object {
         const val TEAM_CHANNEL = "team"
-
-        /** ⚠️ Here rather than in `BuildConfig` so the settings screen and the
-         *  device row the panel shows are reading one string. */
-        const val APP_VERSION = "2.0.0"
     }
 }

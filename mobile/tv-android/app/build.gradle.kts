@@ -32,6 +32,19 @@ val signingProps: Properties? = run {
     props
 }
 
+// What this build calls itself.
+//
+// ⚠️ **The platform's one number, read from the repo-root `VERSION`.** The
+// dashboard, the console and the till all say that number, and this app used to
+// carry its own ("1.0.0" here, "2.0.0" in a constant beside it) — three answers
+// to "which version?" on one support call. `scripts/set-version.sh` writes
+// `VERSION`, so a release moves this too without anyone remembering the app.
+// The code only grows (major·10000 + minor·100 + patch), which is what Android
+// needs to install a build over the last one.
+val keelVersion: String = rootDir.resolve("../../VERSION").readText().trim().removePrefix("v")
+val keelVersionCode: Int = keelVersion.split(".").map { it.toInt() }
+    .let { (major, minor, patch) -> major * 10000 + minor * 100 + patch }
+
 android {
     namespace = "uz.keel.tv"
     compileSdk = 36
@@ -48,11 +61,11 @@ android {
         // lock out most of the walls this is for.
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        // ⚠️ Continues the Expo build's numbering (it shipped versionCode 5,
-        // 1.2.1): the store refuses an upload whose code is not higher than the
-        // last one, and this is the same application id.
-        versionName = "2.0.0"
+        // ⚠️ Must stay above the Expo build's last code (5, 1.2.1): the store
+        // refuses an upload whose code is not higher, and this is the same
+        // application id. v0.2.1 gives 201.
+        versionCode = keelVersionCode
+        versionName = keelVersion
         vectorDrawables { useSupportLibrary = true }
     }
 

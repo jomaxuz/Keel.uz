@@ -43,6 +43,8 @@ import uz.keel.team.data.Staff
 import uz.keel.team.i18n.DICTS
 import uz.keel.team.push.PushState
 import uz.keel.team.t
+import androidx.compose.ui.platform.LocalContext
+import uz.keel.design.appVersion
 
 // Language, appearance, and the two ways out.
 
@@ -160,7 +162,7 @@ fun SettingsScreen(
         Section(t.settings.account) {
             InfoRow(staff.name, staff.position)
             InfoRow(t.settings.restaurant, address)
-            InfoRow(t.settings.version, KeelTeamApp.APP_VERSION)
+            InfoRow(t.settings.version, appVersion(LocalContext.current))
         }
 
         // ⚠️ **Two ways out, kept apart on purpose.** A day ends every evening; a

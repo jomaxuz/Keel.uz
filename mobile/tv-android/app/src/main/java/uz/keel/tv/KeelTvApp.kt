@@ -61,12 +61,4 @@ class KeelTvApp : Application() {
         )
         tokens.read(TokenStore.SERVER_ADDRESS)?.let { api.useServer(it) }
     }
-
-    companion object {
-        /** ⚠️ **The version string lives here rather than in `BuildConfig`**, for
-         *  the reason the Expo build kept it in `App.tsx`: the panel's "this
-         *  screen is running an old build" has to be a fact about the code
-         *  actually answering, and it is sent on every heartbeat. */
-        const val APP_VERSION = "2.0.0"
-    }
 }

@@ -1,6 +1,15 @@
 package uz.keel.team.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.ui.draw.clip
+import uz.keel.design.Chip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -263,186 +272,202 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
         }
     }
 
-    LazyColumn(
-        Modifier.fillMaxSize().imePadding(),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 8.dp,
-            bottom = bottomInset.calculateBottomPadding(),
-        ),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item {
-            Column(
-                Modifier.statusBarsPadding().padding(top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (error.isNotEmpty()) {
-                    Text(error, style = MaterialTheme.typography.bodyMedium, color = c.danger)
-                }
-                if (done.isNotEmpty()) {
-                    Text(done, style = MaterialTheme.typography.bodyMedium, color = c.accent)
-                }
-                Text(t.zakup.forDate, style = MaterialTheme.typography.titleLarge, color = c.ink)
-                GlassField(forDate, { forDate = it }, "2026-09-07")
-            }
+    val waitingCount = orders.count { it.waiting }
+    /** Which half of the screen is showing: writing a list, or the lists sent.
+     *
+     *  ⚠️ **Two tabs rather than one long page.** Writing a list and signing for
+     *  what arrived are done at different hours by the same person, and on one
+     *  page the accept button sat under the whole catalogue — the one list that
+     *  needed them was the one they had to scroll past everything to find. */
+    var tab by remember { mutableIntStateOf(0) }
+    var jumped by remember { mutableStateOf(false) }
+    // ⚠️ Opens on the sent lists once, when something is waiting to be counted.
+    // After that the tab is the person's choice and stays theirs.
+    LaunchedEffect(waitingCount) {
+        if (!jumped && waitingCount > 0) {
+            tab = 1
+            jumped = true
         }
+    }
+    val today = java.time.LocalDate.now()
+    val days = listOf(
+        t.zakup.today to today,
+        t.zakup.tomorrow to today.plusDays(1),
+        t.zakup.dayAfter to today.plusDays(2),
+    )
 
-        if (lines.isNotEmpty()) {
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            Modifier.fillMaxSize().imePadding(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 8.dp,
+                bottom = bottomInset.calculateBottomPadding() + if (tab == 0 && ready.isNotEmpty()) 96.dp else 16.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item { MarketHeader(t.zakup.title) }
             item {
-                Text(t.zakup.listTitle, style = MaterialTheme.typography.titleLarge, color = c.ink)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip(t.zakup.tabNew + if (lines.isNotEmpty()) " · ${lines.size}" else "", tab == 0) { tab = 0 }
+                    Chip(t.zakup.tabSent + if (waitingCount > 0) " · $waitingCount" else "", tab == 1) { tab = 1 }
+                }
             }
-            items(lines, key = { it.key }) { l ->
-                Column(
-                    Modifier.fillMaxWidth().glass(c, RoundedCornerShape(18.dp)).padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                l.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = c.ink,
-                            )
+            if (error.isNotEmpty()) item { MarketBanner(error, error = true) }
+            if (done.isNotEmpty()) item { MarketBanner(done, error = false) }
+
+            if (tab == 0) {
+                if (waitingCount > 0) {
+                    item {
+                        Text(
+                            t.zakup.waitingBanner(waitingCount),
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(c.accentSoft)
+                                .clickable { tab = 1 }
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = c.ink,
+                        )
+                    }
+                }
+
+                // ---- For which day ----
+                //
+                // ⚠️ **Three chips, not a date box.** The box took "2026-09-07"
+                // typed by hand, and a list is written for tomorrow nine times in
+                // ten; a typo there sends somebody to the market on the wrong day.
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionTitle(t.zakup.forDate)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            days.forEach { (word, day) ->
+                                Chip(word, forDate == day.toString()) { forDate = day.toString() }
+                            }
+                        }
+                    }
+                }
+
+                item { SectionTitle(t.zakup.listTitle, lines.size) }
+                if (lines.isEmpty()) {
+                    item {
+                        Text(
+                            t.zakup.emptyList,
+                            Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, c.line, RoundedCornerShape(18.dp))
+                                .padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = c.muted,
+                        )
+                    }
+                }
+                items(lines, key = { it.key }) { l ->
+                    Row(
+                        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(18.dp)).padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                            Text(l.name, style = MaterialTheme.typography.bodyLarge, color = c.ink)
                             // ⚠️ On every row, not only where it is surprising:
                             // a badge that appears sometimes is one people stop
                             // reading, and the row it is missing from is the one
                             // that needed it.
-                            Text(
-                                sourceWord(l.source),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = c.muted,
-                            )
+                            Pill(sourceWord(l.source), if (l.source == "store") c.inkSoft else c.accent, Modifier.padding(top = 3.dp))
                         }
-                        Icon(
-                            Icons.Rounded.Close,
-                            null,
-                            tint = c.muted,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clickable { lines.removeAll { it.key == l.key } },
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(Modifier.weight(1f)) {
-                            GlassField(
-                                value = l.qty,
-                                onValueChange = { v ->
-                                    val i = lines.indexOfFirst { it.key == l.key }
-                                    if (i >= 0) lines[i] = l.copy(qty = v.replace(',', '.'))
-                                },
-                                placeholder = t.zakup.qty,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            )
-                        }
-                        UnitLabel(l.unit, l.packName, l.packQty, l.pack) {
-                            val i = lines.indexOfFirst { it.key == l.key }
-                            if (i >= 0) lines[i] = l.copy(pack = !l.pack)
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(t.zakup.shortTitle, style = MaterialTheme.typography.titleLarge, color = c.ink)
-                GlassField(query, { query = it }, t.zakup.search)
-            }
-        }
-
-        if (shown.isEmpty() && unknown.isEmpty()) {
-            item {
-                Text(
-                    t.zakup.nothingShort,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = c.muted,
-                )
-            }
-        }
-        items(shown, key = { it.ingredientId }) { row ->
-            PickRow(
-                title = row.name,
-                // A catalogue row has no shortage figures — only its unit, which
-                // is what the writer needs before typing a number.
-                subtitle = sourceWord(row.source) + " · " + if (row.qty > 0) {
-                    "${t.zakup.onHand(qty(row.onHand), row.unit)} · " +
-                        t.zakup.need(qty(row.qty), row.unit)
-                } else {
-                    t.zakup.unitIs(row.unit)
-                },
-            ) { add(row, row.name) }
-        }
-        if (unknown.isNotEmpty()) {
-            item {
-                PickRow(
-                    title = t.zakup.addNew(unknown),
-                    subtitle = "",
-                    icon = Icons.Rounded.AddCircleOutline,
-                ) { add(null, unknown) }
-            }
-        }
-
-        if (ready.isNotEmpty()) {
-            item { PrimaryButton(t.zakup.review) { preview = true } }
-        }
-
-        if (orders.isNotEmpty()) {
-            item {
-                Text(t.zakup.sentTitle, style = MaterialTheme.typography.titleLarge, color = c.ink)
-            }
-            items(orders.take(8), key = { it.id }) { o ->
-                Row(
-                    Modifier.fillMaxWidth().glass(c, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(o.forDate, style = MaterialTheme.typography.bodyLarge, color = c.ink)
-                        // ⚠️ Asked and brought together: "asked for ten, brought
-                        // six" is the sentence this document exists to make
-                        // possible.
-                        Text(
-                            t.zakup.progress(
-                                o.lines.count { it.gotAt.isNotEmpty() && !it.missing },
-                                o.lines.size,
-                            ) + if (o.createdBy.isNotEmpty()) " · ${o.createdBy}" else "",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = c.muted,
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            when (o.status) {
-                                "done" -> t.zakup.statusDone
-                                "shipped" -> t.zakup.statusShipped
-                                else -> t.zakup.statusSent
+                        QtyField(
+                            value = l.qty,
+                            onValueChange = { v ->
+                                val i = lines.indexOfFirst { it.key == l.key }
+                                if (i >= 0) lines[i] = l.copy(qty = v)
                             },
-                            style = MaterialTheme.typography.labelMedium,
-                            // ⚠️ **Only the middle state gets a colour.**
-                            // "Waiting" is what every request looks like for its
-                            // first hour and "signed for" is the end; the one
-                            // somebody has to act on is goods that left
-                            // somebody's hands and reached nobody's.
-                            color = if (o.waiting) c.accent else c.muted,
+                            unit = l.unit,
+                            packName = l.packName,
+                            packQty = l.packQty,
+                            inPacks = l.pack,
+                            onToggle = {
+                                val i = lines.indexOfFirst { it.key == l.key }
+                                if (i >= 0) lines[i] = l.copy(pack = !l.pack)
+                            },
+                            modifier = Modifier.width(150.dp),
+                            placeholder = t.zakup.qty,
                         )
-                        Text(
-                            sourceWord(o.source),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = c.muted,
+                        Box(
+                            Modifier.size(30.dp).clip(CircleShape).clickable { lines.removeAll { it.key == l.key } },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.Rounded.Close, null, tint = c.muted, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionTitle(t.zakup.shortTitle)
+                        GlassField(
+                            query,
+                            { query = it },
+                            t.zakup.search,
+                            trailing = {
+                                Icon(Icons.Rounded.Search, null, tint = c.muted, modifier = Modifier.size(20.dp))
+                            },
                         )
                     }
                 }
+                if (shown.isEmpty() && unknown.isEmpty()) {
+                    item {
+                        Text(t.zakup.nothingShort, style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                    }
+                }
+                items(shown, key = { it.ingredientId }) { row ->
+                    PickRow(
+                        title = row.name,
+                        // A catalogue row has no shortage figures — only its unit, which
+                        // is what the writer needs before typing a number.
+                        subtitle = sourceWord(row.source) + " · " + if (row.qty > 0) {
+                            "${t.zakup.onHand(qty(row.onHand), row.unit)} · " +
+                                t.zakup.need(qty(row.qty), row.unit)
+                        } else {
+                            t.zakup.unitIs(row.unit)
+                        },
+                    ) { add(row, row.name) }
+                }
+                if (unknown.isNotEmpty()) {
+                    item {
+                        PickRow(
+                            title = t.zakup.addNew(unknown),
+                            subtitle = "",
+                            icon = Icons.Rounded.AddCircleOutline,
+                        ) { add(null, unknown) }
+                    }
+                }
+            } else {
+                if (orders.isEmpty()) {
+                    item {
+                        Text(t.zakup.emptySent, style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                    }
+                }
+                // ⚠️ **The ones waiting to be counted first**: they are the only
+                // ones anybody has to act on.
+                val sorted = orders.sortedByDescending { it.waiting }.take(12)
+                items(sorted, key = { it.id }) { o -> SentOrderCard(o) { accepting = o } }
             }
-            // ⚠️ **The button only exists on the list that is waiting for it.**
-            // An accept button on a list nobody has shopped yet would answer a
-            // question nobody has asked.
-            items(orders.filter { it.waiting }, key = { "acc-" + it.id }) { o ->
-                GhostButton(t.zakup.accept, Modifier.fillMaxWidth()) { accepting = o }
+        }
+
+        if (tab == 0 && ready.isNotEmpty()) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = bottomInset.calculateBottomPadding())
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .fillMaxWidth()
+                    .glassSheet(c, RoundedCornerShape(22.dp))
+                    .padding(10.dp),
+            ) {
+                PrimaryButton(t.zakup.review + " · " + ready.size) { preview = true }
             }
         }
     }
@@ -468,16 +493,12 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
         Dialog(onDismissRequest = { preview = false }) {
             Column(
                 Modifier
-                    .widthIn(max = 380.dp)
+                    .widthIn(max = 400.dp)
                     .glassSheet(c, RoundedCornerShape(26.dp))
                     .padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(
-                    t.zakup.previewTitle,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = c.ink,
-                )
+                Text(t.zakup.previewTitle, style = MaterialTheme.typography.headlineMedium, color = c.ink)
                 Text(
                     t.zakup.previewBody(forDate) +
                         if (storeCount > 0 && marketCount > 0) {
@@ -488,23 +509,17 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.muted,
                 )
+                // ⚠️ `fill = false`: a long list scrolls inside the sheet, and the
+                // two buttons stay on screen instead of being pushed off its end.
                 Column(
-                    Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ready.forEach { l ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(
-                                    l.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = c.ink,
-                                )
-                                Text(
-                                    sourceWord(l.source),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = c.muted,
-                                )
+                                Text(l.name, style = MaterialTheme.typography.bodyLarge, color = c.ink)
+                                Text(sourceWord(l.source), style = MaterialTheme.typography.labelMedium, color = c.muted)
                             }
                             // ⚠️ Read back in both where they differ: the list
                             // travels to somebody else's morning and "2" has to
@@ -516,7 +531,7 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                                 } else {
                                     "${l.qty} ${l.unit}"
                                 },
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.titleMedium,
                                 color = c.ink,
                             )
                         }
@@ -530,6 +545,58 @@ fun ZakupScreen(api: KeelApi, bottomInset: PaddingValues) {
                 }
             }
         }
+    }
+}
+
+/** One list that was sent, and where it stands.
+ *
+ *  ⚠️ **The accept button lives on the card it accepts.** It used to be a row of
+ *  identical buttons under the list of cards, and with two lists on their way
+ *  nothing said which button belonged to which. */
+@Composable
+private fun SentOrderCard(o: ShoppingOrder, onAccept: () -> Unit) {
+    val c = KeelTheme.colors
+    val got = o.lines.count { it.gotAt.isNotEmpty() && !it.missing }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .glass(c, RoundedCornerShape(20.dp))
+            .then(if (o.waiting) Modifier.border(1.5.dp, c.accent.copy(alpha = 0.6f), RoundedCornerShape(20.dp)) else Modifier)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(o.forDate, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = c.ink)
+            Pill(sourceWord(o.source), c.inkSoft)
+            // ⚠️ **Only the middle state gets a colour.** "Waiting" is what every
+            // request looks like for its first hour and "signed for" is the end;
+            // the one somebody has to act on is goods that left somebody's hands
+            // and reached nobody's.
+            Pill(
+                when (o.status) {
+                    "done" -> t.zakup.statusDone
+                    "shipped" -> t.zakup.statusShipped
+                    else -> t.zakup.statusSent
+                },
+                when {
+                    o.waiting -> c.accent
+                    o.status == "done" -> c.ready
+                    else -> c.muted
+                },
+            )
+        }
+        // ⚠️ Asked and brought together: "asked for ten, brought six" is the
+        // sentence this document exists to make possible.
+        ProgressLine(got, o.lines.size)
+        Text(
+            t.zakup.progress(got, o.lines.size) + if (o.createdBy.isNotEmpty()) " · ${o.createdBy}" else "",
+            style = MaterialTheme.typography.labelMedium,
+            color = c.muted,
+        )
+        // ⚠️ **The button only exists on the list that is waiting for it.** An
+        // accept button on a list nobody has shopped yet would answer a question
+        // nobody has asked.
+        if (o.waiting) PrimaryButton(t.zakup.accept, icon = Icons.Rounded.Checklist) { onAccept() }
     }
 }
 
@@ -564,60 +631,75 @@ private fun AcceptDialog(
     }
 
     val sent = order.lines.filter { it.gotAt.isNotEmpty() && !it.missing }
+    val diffs = sent.count { l ->
+        val v = counted[l.id]?.toDoubleOrNull()
+        v != null && v != l.gotQty
+    }
 
     Dialog(onDismissRequest = onClose) {
         Column(
             Modifier
-                .widthIn(max = 380.dp)
+                .widthIn(max = 420.dp)
                 .glassSheet(c, RoundedCornerShape(26.dp))
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                t.zakup.acceptTitle,
-                style = MaterialTheme.typography.headlineMedium,
-                color = c.ink,
-            )
-            Text(
-                t.zakup.acceptBody,
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.muted,
-            )
+            Text(t.zakup.acceptTitle + " · " + order.forDate, style = MaterialTheme.typography.headlineMedium, color = c.ink)
+            Text(t.zakup.acceptBody, style = MaterialTheme.typography.bodyMedium, color = c.muted)
+            // ⚠️ `fill = false` keeps the two buttons on screen under a long list.
             Column(
-                Modifier.verticalScroll(rememberScrollState()),
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 sent.forEach { l ->
+                    val typed = counted[l.id]?.toDoubleOrNull()
+                    val differs = typed != null && typed != l.gotQty
                     Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .glass(c, RoundedCornerShape(16.dp))
+                            .then(if (differs) Modifier.border(1.5.dp, c.warn, RoundedCornerShape(16.dp)) else Modifier)
+                            .padding(10.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(Modifier.weight(1f)) {
+                        Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                            Text(l.name, style = MaterialTheme.typography.bodyLarge, color = c.ink)
                             Text(
-                                l.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = c.ink,
-                            )
-                            Text(
-                                qty(l.gotQty) + " " + l.unit,
+                                t.zakup.sentQty(qty(l.gotQty), l.unit),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = c.muted,
                             )
+                            // ⚠️ **Left alone is "right", and it says so.** The
+                            // rule that an untouched row is accepted as sent was
+                            // written in a paragraph above the list, which is
+                            // where nobody reads it.
+                            if (differs) {
+                                val d = typed!! - l.gotQty
+                                Text(
+                                    (if (d > 0) "+" else "−") + qty(kotlin.math.abs(d)) + " " + l.unit,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = c.warn,
+                                )
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(Icons.Rounded.Check, null, tint = c.ready, modifier = Modifier.size(14.dp))
+                                    Text(t.zakup.acceptOk, style = MaterialTheme.typography.labelMedium, color = c.ready)
+                                }
+                            }
                         }
-                        Box(Modifier.widthIn(max = 120.dp)) {
-                            GlassField(
-                                value = counted[l.id] ?: "",
-                                onValueChange = { v ->
-                                    counted[l.id] = v.replace(',', '.')
-                                },
-                                placeholder = qty(l.gotQty),
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                ),
-                            )
-                        }
+                        GlassField(
+                            value = counted[l.id] ?: "",
+                            onValueChange = { v -> counted[l.id] = v.replace(',', '.') },
+                            placeholder = qty(l.gotQty),
+                            modifier = Modifier.width(110.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        )
                     }
                 }
+            }
+            if (diffs > 0) {
+                Text(t.zakup.acceptDiffs(diffs), style = MaterialTheme.typography.bodyMedium, color = c.warn)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GhostButton(t.zakup.back, Modifier.weight(1f)) { onClose() }

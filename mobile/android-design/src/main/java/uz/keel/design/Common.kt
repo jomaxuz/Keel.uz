@@ -4,6 +4,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -193,7 +195,13 @@ fun GlassIconButton(
     }
 }
 
-/** A text field on glass. */
+/** A text field: a sunken well with an edge, which turns orange while typing.
+ *
+ *  ⚠️ **Not glass.** It used to be, and on a glass card in the light scheme it
+ *  was white on white — the form was on screen and nobody could see where to
+ *  tap. See `KeelColors.field`. The orange edge while focused is the other half:
+ *  on a screen with three fields, "which one am I typing into?" is answered by
+ *  the edge, not by hunting for a blinking cursor. */
 @Composable
 fun GlassField(
     value: String,
@@ -205,25 +213,38 @@ fun GlassField(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val c = KeelTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val edge by animateColorAsState(if (focused) c.accent else c.fieldBorder, label = "fieldEdge")
+    val shape = RoundedCornerShape(16.dp)
     TextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth().glass(c, RoundedCornerShape(16.dp)),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(c.field, shape)
+            .border(if (focused) 1.5.dp else 1.dp, edge, shape),
         placeholder = { Text(placeholder, color = c.muted) },
         singleLine = true,
         keyboardOptions = keyboardOptions,
         visualTransformation = visualTransformation,
         trailingIcon = trailing,
+        interactionSource = interaction,
         textStyle = LocalTextStyle.current.copy(color = c.ink, fontSize = 16.sp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent,
             unfocusedContainerColor = Color.Transparent,
             disabledContainerColor = Color.Transparent,
-            // ⚠️ Material's underline removed: it belongs to a filled text field
-            // and cuts the glass in half.
+            // ⚠️ Material's underline removed: the edge above does its job, and
+            // two indicators is one too many.
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
             cursorColor = c.accent,
+            focusedTextColor = c.ink,
+            unfocusedTextColor = c.ink,
+            focusedTrailingIconColor = c.inkSoft,
+            unfocusedTrailingIconColor = c.inkSoft,
         ),
     )
 }

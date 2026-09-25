@@ -1,6 +1,21 @@
 package uz.keel.team.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import uz.keel.design.BigNumberStyle
+import uz.keel.design.GhostButton
+import uz.keel.design.MoneyStyle
+import uz.keel.design.glassSheet
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -265,178 +280,122 @@ fun BuyScreen(api: KeelApi, bottomInset: PaddingValues) {
         (it.qty.toDoubleOrNull() ?: 0.0) * (it.price.toDoubleOrNull() ?: 0.0)
     }
     val q = query.trim()
+    val chosen = lines.mapNotNull { it.ingredientId }.toSet()
     val matches = if (q.isEmpty()) emptyList() else
-        catalog.filter { it.name.contains(q, ignoreCase = true) }.take(12)
+        catalog.filter { it.name.contains(q, ignoreCase = true) && it.id !in chosen }.take(12)
     // ⚠️ **Offered rather than refused.** A buyer who cannot record half a run
     // stops recording any of it — the lesson this product paid for with the
     // supplier field and the void reason. The server matches the name against
     // what exists before inventing anything, and marks what it does invent.
     val unknown = if (q.length >= 2 && catalog.none { it.name.equals(q, true) }) q else ""
+    /** The line whose boxes are open. ⚠️ **One at a time.** Eight lines each with
+     *  two boxes and two buttons was a wall of fields at a stall; closed, a line
+     *  is one row that says what happened to it, and the next one opens itself. */
+    var openLine by remember { mutableStateOf<String?>(null) }
 
-    LazyColumn(
-        Modifier.fillMaxSize().imePadding(),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 8.dp,
-            bottom = bottomInset.calculateBottomPadding(),
-        ),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        // ---- What is still in the buyer's pocket ----
-        //
-        // ⚠️ **First, and before the list.** It is the number that decides
-        // whether this trip happens at all, and somebody who has to ring the
-        // office to find out how much they are carrying will guess instead.
-        //
-        // ⚠️ **Negative is shown rather than clamped.** A buyer who ran out and
-        // paid for the last crate themselves is owed money, and a purse that
-        // stopped at zero would be silent about exactly the debt they are
-        // waiting on.
-        purseBalance?.let { balance ->
-            item {
-                Column(
-                    Modifier
-                        .statusBarsPadding()
-                        .padding(top = 8.dp)
-                        .fillMaxWidth()
-                        .glass(c, RoundedCornerShape(20.dp))
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(t.buy.purse, style = MaterialTheme.typography.labelMedium, color = c.muted)
-                    Text(
-                        money(balance),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = if (balance < 0) c.danger else c.ink,
-                    )
-                    if (balance < 0) {
-                        Text(
-                            t.buy.purseOwed,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = c.muted,
-                        )
-                    }
-                    if (purseIssued > 0) {
-                        Text(
-                            t.buy.purseOf(money(purseIssued), money(purseSpent)),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = c.muted,
-                        )
-                    }
-                }
-            }
-        }
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            Modifier.fillMaxSize().imePadding(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 8.dp,
+                // Room for the bar that floats over the end of the list.
+                bottom = bottomInset.calculateBottomPadding() + 96.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item { MarketHeader(t.buy.title) }
 
-        if (error.isNotEmpty()) {
-            item { Text(error, style = MaterialTheme.typography.bodyMedium, color = c.danger) }
-        }
-        if (done.isNotEmpty()) {
-            item { Text(done, style = MaterialTheme.typography.bodyMedium, color = c.accent) }
-        }
-
-        val sent = order
-        if (sent != null) {
-            // ---- The list somebody sent ----
+            // ---- What is still in the buyer's pocket ----
             //
-            // ⚠️ **Asked and brought are shown together.** "Asked for ten,
-            // brought six" is the sentence this whole document exists to make
-            // possible; a screen showing only the result would leave the same
-            // silence the buying had before.
-            item {
-                Column {
-                    Text(
-                        t.buy.orderTitle(sent.forDate),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = c.ink,
-                    )
-                    if (sent.createdBy.isNotEmpty()) {
+            // ⚠️ **First, and before the list.** It is the number that decides
+            // whether this trip happens at all, and somebody who has to ring the
+            // office to find out how much they are carrying will guess instead.
+            //
+            // ⚠️ **Negative is shown rather than clamped.** A buyer who ran out and
+            // paid for the last crate themselves is owed money, and a purse that
+            // stopped at zero would be silent about exactly the debt they are
+            // waiting on.
+            purseBalance?.let { balance ->
+                item { PurseCard(balance, purseIssued, purseSpent) }
+            }
+
+            if (error.isNotEmpty()) item { MarketBanner(error, error = true) }
+            if (done.isNotEmpty()) item { MarketBanner(done, error = false) }
+
+            val sent = order
+            if (sent != null) {
+                // ---- The list somebody sent ----
+                //
+                // ⚠️ **Asked and brought are shown together.** "Asked for ten,
+                // brought six" is the sentence this whole document exists to make
+                // possible; a screen showing only the result would leave the same
+                // silence the buying had before.
+                val settledCount = sent.lines.count { it.gotAt.isNotEmpty() || it.missing }
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().glass(c, RoundedCornerShape(20.dp)).padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(t.buy.orderTitle(sent.forDate), style = MaterialTheme.typography.titleMedium, color = c.ink)
+                        if (sent.createdBy.isNotEmpty()) {
+                            Text(t.buy.orderFrom(sent.createdBy), style = MaterialTheme.typography.labelMedium, color = c.muted)
+                        }
+                        ProgressLine(settledCount, sent.lines.size)
                         Text(
-                            t.buy.orderFrom(sent.createdBy),
+                            t.buy.progress(settledCount, sent.lines.size),
                             style = MaterialTheme.typography.labelMedium,
                             color = c.muted,
                         )
                     }
                 }
-            }
-            items(sent.lines, key = { it.id }) { line ->
-                OrderLineCard(
-                    line = line,
-                    pack = catalog.firstOrNull { it.id == line.ingredientId },
-                    onGot = { gotQty, gotPrice, inPacks ->
-                        mark(line.id) { o, l ->
-                            api.markOrderLine(o, l, qty = gotQty, price = gotPrice, pack = inPacks)
-                        }
-                    },
-                    onMissing = { mark(line.id) { o, l -> api.markOrderLine(o, l, missing = true) } },
-                    onUndo = { mark(line.id) { o, l -> api.markOrderLine(o, l, clear = true) } },
-                )
-            }
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        t.buy.whereTitle,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = c.ink,
-                    )
-                    GlassField(supplier, { supplier = it }, t.buy.wherePlaceholder)
-                    PrimaryButton(t.buy.finish, busy = busy) { finish() }
-                    Text(
-                        t.buy.sendHint,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = c.muted,
+                val firstOpen = openLine ?: sent.lines.firstOrNull { it.gotAt.isEmpty() && !it.missing }?.id
+                items(sent.lines, key = { it.id }) { line ->
+                    OrderLineCard(
+                        line = line,
+                        pack = catalog.firstOrNull { it.id == line.ingredientId },
+                        expanded = line.id == firstOpen,
+                        onExpand = { openLine = if (line.id == firstOpen) "" else line.id },
+                        onGot = { gotQty, gotPrice, inPacks ->
+                            openLine = sent.lines.firstOrNull {
+                                it.id != line.id && it.gotAt.isEmpty() && !it.missing
+                            }?.id ?: ""
+                            mark(line.id) { o, l ->
+                                api.markOrderLine(o, l, qty = gotQty, price = gotPrice, pack = inPacks)
+                            }
+                        },
+                        onMissing = {
+                            openLine = sent.lines.firstOrNull {
+                                it.id != line.id && it.gotAt.isEmpty() && !it.missing
+                            }?.id ?: ""
+                            mark(line.id) { o, l -> api.markOrderLine(o, l, missing = true) }
+                        },
+                        onUndo = { mark(line.id) { o, l -> api.markOrderLine(o, l, clear = true) } },
                     )
                 }
-            }
-        } else {
-            // ---- What the kitchen is short of ----
-            if (lines.isEmpty()) {
                 item {
-                    Text(
-                        t.buy.shortTitle,
-                        Modifier.statusBarsPaddingIfNoPurse(purseBalance),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = c.ink,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionTitle(t.buy.whereTitle)
+                        GlassField(supplier, { supplier = it }, t.buy.wherePlaceholder)
+                        Text(t.buy.sendHint, style = MaterialTheme.typography.labelMedium, color = c.muted)
+                    }
                 }
-                if (shortlist.isEmpty()) {
+            } else {
+                // ---- The run being written ----
+                item { SectionTitle(t.buy.basketTitle, lines.size) }
+                if (lines.isEmpty()) {
                     item {
                         Text(
-                            t.buy.nothingShort,
+                            t.buy.emptyBasket,
+                            Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, c.line, RoundedCornerShape(18.dp))
+                                .padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             color = c.muted,
                         )
                     }
-                }
-                items(shortlist, key = { it.ingredientId }) { row ->
-                    PickRow(
-                        title = row.name,
-                        subtitle = "${t.buy.onHand(qty(row.onHand), row.unit)} · " +
-                            t.buy.need(qty(row.suggested), row.unit),
-                    ) {
-                        add(
-                            ingredientId = row.ingredientId,
-                            name = row.name,
-                            unit = row.unit,
-                            lastPrice = row.price,
-                            // ⚠️ Pre-filled with what is short, **not** locked to
-                            // it: a market sells what it has, and a buyer who
-                            // came back with more must be able to say so.
-                            qtyText = qty(row.suggested),
-                            priceText = if (row.price > 0) money(row.price).replace(" ", "") else "",
-                        )
-                    }
-                }
-            }
-
-            // ---- The run being written ----
-            if (lines.isNotEmpty()) {
-                item {
-                    Text(
-                        t.buy.basketTitle,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = c.ink,
-                    )
                 }
                 items(lines, key = { it.key }) { l ->
                     DraftCard(
@@ -448,144 +407,209 @@ fun BuyScreen(api: KeelApi, bottomInset: PaddingValues) {
                         onRemove = { lines.removeAll { it.key == l.key } },
                     )
                 }
-            }
 
-            // ---- Anything else the market had ----
-            //
-            // ⚠️ Hidden while a list is open: a buyer recording the same crate
-            // twice — once as a ticked line and once as a free-form row — would
-            // raise the shelf twice, and nothing on any screen would say so.
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        t.buy.addTitle,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = c.ink,
-                    )
-                    GlassField(query, { query = it }, t.buy.searchPlaceholder)
-                }
-            }
-            items(matches, key = { it.id }) { row ->
-                PickRow(
-                    title = row.name,
-                    subtitle = if (row.lastPrice > 0) money(row.lastPrice) else "",
-                ) {
-                    add(
-                        ingredientId = row.id,
-                        name = row.name,
-                        unit = row.unit,
-                        lastPrice = row.lastPrice,
-                        priceText = if (row.lastPrice > 0) money(row.lastPrice).replace(" ", "") else "",
-                        packName = row.packName,
-                        packQty = row.packQty,
-                    )
-                }
-            }
-            if (unknown.isNotEmpty()) {
-                item {
-                    PickRow(title = t.buy.addNew(unknown), subtitle = "", icon = Icons.Rounded.AddCircleOutline) {
-                        add(ingredientId = null, name = unknown)
-                    }
-                }
-            }
-
-            if (lines.isNotEmpty()) {
+                // ---- Adding: search first, the shortage beneath it ----
+                //
+                // ⚠️ Hidden while a list is open: a buyer recording the same crate
+                // twice — once as a ticked line and once as a free-form row — would
+                // raise the shelf twice, and nothing on any screen would say so.
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            t.buy.whereTitle,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = c.ink,
-                        )
-                        GlassField(supplier, { supplier = it }, t.buy.wherePlaceholder)
-                        Row(
-                            Modifier.fillMaxWidth().padding(top = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                t.buy.total,
-                                Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = c.ink,
-                            )
-                            Text(
-                                money(total),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = c.ink,
-                            )
-                        }
-                        PrimaryButton(t.buy.send, busy = busy) { send() }
-                        // ⚠️ Said before the button rather than after the fact:
-                        // this raises the shelf and rewrites prices the moment it
-                        // lands, and the person pressing it should know that is
-                        // what they are doing.
-                        Text(
-                            t.buy.sendHint,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = c.muted,
+                        SectionTitle(t.buy.addTitle)
+                        GlassField(
+                            query,
+                            { query = it },
+                            t.buy.searchPlaceholder,
+                            trailing = {
+                                Icon(Icons.Rounded.Search, null, tint = c.muted, modifier = Modifier.size(20.dp))
+                            },
                         )
                     }
+                }
+                if (q.isEmpty()) {
+                    val short = shortlist.filter { it.ingredientId !in chosen }
+                    if (short.isNotEmpty()) {
+                        item {
+                            Text(t.buy.shortTitle, style = MaterialTheme.typography.labelMedium, color = c.muted)
+                        }
+                    } else if (lines.isEmpty()) {
+                        item {
+                            Text(t.buy.nothingShort, style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                        }
+                    }
+                    items(short, key = { "s-" + it.ingredientId }) { row ->
+                        PickRow(
+                            title = row.name,
+                            subtitle = "${t.buy.onHand(qty(row.onHand), row.unit)} · " +
+                                t.buy.need(qty(row.suggested), row.unit),
+                        ) {
+                            val pack = catalog.firstOrNull { it.id == row.ingredientId }
+                            add(
+                                ingredientId = row.ingredientId,
+                                name = row.name,
+                                unit = row.unit,
+                                lastPrice = row.price,
+                                // ⚠️ Pre-filled with what is short, **not** locked to
+                                // it: a market sells what it has, and a buyer who
+                                // came back with more must be able to say so.
+                                qtyText = qty(row.suggested),
+                                priceText = if (row.price > 0) money(row.price).replace(" ", "") else "",
+                                packName = pack?.packName ?: "",
+                                packQty = pack?.packQty ?: 0.0,
+                            )
+                        }
+                    }
+                }
+                items(matches, key = { it.id }) { row ->
+                    PickRow(
+                        title = row.name,
+                        subtitle = if (row.lastPrice > 0) t.buy.lastPrice(money(row.lastPrice)) else "",
+                    ) {
+                        add(
+                            ingredientId = row.id,
+                            name = row.name,
+                            unit = row.unit,
+                            lastPrice = row.lastPrice,
+                            priceText = if (row.lastPrice > 0) money(row.lastPrice).replace(" ", "") else "",
+                            packName = row.packName,
+                            packQty = row.packQty,
+                        )
+                    }
+                }
+                if (unknown.isNotEmpty()) {
+                    item {
+                        PickRow(title = t.buy.addNew(unknown), subtitle = "", icon = Icons.Rounded.AddCircleOutline) {
+                            add(ingredientId = null, name = unknown)
+                        }
+                    }
+                }
+
+                if (lines.isNotEmpty()) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SectionTitle(t.buy.whereTitle)
+                            GlassField(supplier, { supplier = it }, t.buy.wherePlaceholder)
+                            // ⚠️ Said before the button rather than after the fact:
+                            // this raises the shelf and rewrites prices the moment it
+                            // lands, and the person pressing it should know that is
+                            // what they are doing.
+                            Text(t.buy.sendHint, style = MaterialTheme.typography.labelMedium, color = c.muted)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- The one action, always in reach ----
+        //
+        // ⚠️ **Floating, not the last row of the list.** At the end of a long
+        // list the button was a scroll away from every line, and a buyer at a
+        // stall checks the total after each crate.
+        val sentOrder = order
+        if (sentOrder != null || lines.isNotEmpty()) {
+            Row(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = bottomInset.calculateBottomPadding())
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .fillMaxWidth()
+                    .glassSheet(c, RoundedCornerShape(22.dp))
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (sentOrder == null) {
+                    Column(Modifier.padding(start = 6.dp)) {
+                        Text(t.buy.total, style = MaterialTheme.typography.labelMedium, color = c.muted)
+                        Text(money(total), style = MaterialTheme.typography.titleLarge.merge(MoneyStyle), color = c.ink)
+                    }
+                    Box(Modifier.weight(1f)) { PrimaryButton(t.buy.send, busy = busy) { send() } }
+                } else {
+                    Box(Modifier.weight(1f)) { PrimaryButton(t.buy.finish, busy = busy) { finish() } }
                 }
             }
         }
     }
 }
 
-/** ⚠️ The purse clears the status bar when it is drawn; without it the first
- *  heading sat under the clock. */
-private fun Modifier.statusBarsPaddingIfNoPurse(purse: Double?): Modifier =
-    if (purse == null) this.then(Modifier.statusBarsPadding().padding(top = 8.dp)) else this
+/** What the buyer is carrying, as the first thing on the screen. */
+@Composable
+private fun PurseCard(balance: Double, issued: Double, spent: Double) {
+    val c = KeelTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(if (balance < 0) c.danger.copy(alpha = 0.12f) else c.accentSoft)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            Modifier.size(44.dp).clip(CircleShape).background(if (balance < 0) c.danger else c.accent),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Rounded.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(22.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(t.buy.purse, style = MaterialTheme.typography.labelMedium, color = c.inkSoft)
+            Text(
+                money(balance),
+                style = BigNumberStyle.copy(fontSize = 28.sp, lineHeight = 32.sp),
+                color = if (balance < 0) c.danger else c.ink,
+            )
+            if (balance < 0) {
+                Text(t.buy.purseOwed, style = MaterialTheme.typography.labelMedium, color = c.danger)
+            }
+            if (issued > 0) {
+                Text(t.buy.purseOf(money(issued), money(spent)), style = MaterialTheme.typography.labelMedium, color = c.muted)
+            }
+        }
+    }
+}
 
 @Composable
 private fun DraftCard(line: BuyDraft, onChange: (BuyDraft) -> Unit, onRemove: () -> Unit) {
     val c = KeelTheme.colors
+    val sum = (line.qty.toDoubleOrNull() ?: 0.0) * (line.price.toDoubleOrNull() ?: 0.0)
     Column(
         Modifier.fillMaxWidth().glass(c, RoundedCornerShape(18.dp)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                line.name,
-                Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge,
-                color = c.ink,
+            Text(line.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = c.ink)
+            if (sum > 0) {
+                Text(money(sum), style = MaterialTheme.typography.bodyMedium.merge(MoneyStyle), color = c.ink)
+            }
+            Box(
+                Modifier.padding(start = 8.dp).size(30.dp).clip(CircleShape).clickable(onClick = onRemove),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.Close, null, tint = c.muted, modifier = Modifier.size(18.dp))
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QtyField(
+                value = line.qty,
+                onValueChange = { onChange(line.copy(qty = it)) },
+                unit = line.unit,
+                packName = line.packName,
+                packQty = line.packQty,
+                inPacks = line.pack,
+                onToggle = { onChange(line.copy(pack = !line.pack)) },
+                modifier = Modifier.weight(1f),
+                placeholder = t.buy.qty(""),
             )
-            Icon(
-                Icons.Rounded.Close,
-                null,
-                tint = c.muted,
-                modifier = Modifier.size(20.dp).clickable(onClick = onRemove),
+            PriceField(
+                value = line.price,
+                onValueChange = { onChange(line.copy(price = it)) },
+                modifier = Modifier.weight(1f),
+                placeholder = t.buy.price,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                UnitLabel(line.unit, line.packName, line.packQty, line.pack) {
-                    onChange(line.copy(pack = !line.pack))
-                }
-                GlassField(
-                    value = line.qty,
-                    onValueChange = { onChange(line.copy(qty = it.replace(',', '.'))) },
-                    placeholder = "",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(t.buy.price, style = MaterialTheme.typography.labelMedium, color = c.muted)
-                GlassField(
-                    value = line.price,
-                    onValueChange = { onChange(line.copy(price = it.filter { ch -> ch.isDigit() })) },
-                    placeholder = "",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-                // ⚠️ **The guard, and the only one this figure has.**
-                if (line.lastPrice > 0) {
-                    Text(
-                        t.buy.lastPrice(money(line.lastPrice)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = c.muted,
-                    )
-                }
-            }
+        // ⚠️ **The guard, and the only one this figure has.**
+        if (line.lastPrice > 0) {
+            Text(t.buy.lastPrice(money(line.lastPrice)), style = MaterialTheme.typography.labelSmall, color = c.muted)
         }
     }
 }
@@ -594,104 +618,127 @@ private fun DraftCard(line: BuyDraft, onChange: (BuyDraft) -> Unit, onRemove: ()
  *
  *  ⚠️ **"Could not get it" is its own answer, not a quantity of zero.** A line
  *  nobody touched and one somebody looked for and could not find are different
- *  facts, and only the second is worth ringing a supplier about. */
+ *  facts, and only the second is worth ringing a supplier about.
+ *
+ *  ⚠️ **Closed, a line is one row that says what happened to it** — a tick and
+ *  what came back, a cross, or nothing yet. Only the open one has boxes. */
 @Composable
 private fun OrderLineCard(
     line: uz.keel.team.data.ShoppingLine,
     pack: BuyCatalogRow?,
+    expanded: Boolean,
+    onExpand: () -> Unit,
     onGot: (Double, Double, Boolean) -> Unit,
     onMissing: () -> Unit,
     onUndo: () -> Unit,
 ) {
     val c = KeelTheme.colors
-    var gotQty by remember(line.id) {
-        mutableStateOf(if (line.gotQty > 0) qty(line.gotQty) else "")
+    var gotQty by remember(line.id, line.gotAt) {
+        mutableStateOf(if (line.gotQty > 0) qty(line.gotQty) else qty(line.qty))
     }
-    var price by remember(line.id) {
+    var price by remember(line.id, line.gotAt) {
         mutableStateOf(if (line.price > 0) money(line.price).replace(" ", "") else "")
     }
     /** ⚠️ Off by default even where a packaging exists: the list asked in the
      *  store's unit, so the figure in front of the buyer is in that unit until
      *  they say otherwise. */
     var inPacks by remember(line.id) { mutableStateOf(false) }
-    val settled = line.gotAt.isNotEmpty()
+    val settled = line.gotAt.isNotEmpty() && !line.missing
 
     Column(
         Modifier
             .fillMaxWidth()
             .glass(c, RoundedCornerShape(18.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .then(if (expanded) Modifier.border(1.5.dp, c.accent.copy(alpha = 0.6f), RoundedCornerShape(18.dp)) else Modifier)
+            .animateContentSize(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                line.name,
-                Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (settled) c.accent else c.ink,
-            )
-            Text(
-                t.buy.asked(qty(line.qty), line.unit),
-                style = MaterialTheme.typography.labelMedium,
-                color = c.muted,
-            )
-        }
-
-        if (line.missing) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().clickable(onClick = onExpand).padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            val (dotBg, dotIcon, dotTint) = when {
+                line.missing -> Triple(c.line, Icons.Rounded.Close, c.muted)
+                settled -> Triple(c.ready, Icons.Rounded.Check, Color.White)
+                else -> Triple(c.accentSoft, null, c.accent)
+            }
+            Box(Modifier.size(28.dp).clip(CircleShape).background(dotBg), contentAlignment = Alignment.Center) {
+                if (dotIcon != null) Icon(dotIcon, null, tint = dotTint, modifier = Modifier.size(16.dp))
+            }
+            Column(Modifier.weight(1f)) {
                 Text(
-                    t.buy.wasMissing,
-                    Modifier.weight(1f),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.muted,
+                    line.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (line.missing) c.muted else c.ink,
                 )
                 Text(
+                    when {
+                        line.missing -> t.buy.wasMissing
+                        settled -> "${qty(line.gotQty)} ${line.unit}" +
+                            if (line.price > 0) " · ${money(line.price)}" else ""
+                        else -> t.buy.asked(qty(line.qty), line.unit)
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (settled) c.ready else c.muted,
+                )
+            }
+            if (line.missing || settled) {
+                Text(
                     t.buy.undo,
-                    Modifier.clickable(onClick = onUndo),
+                    Modifier.clip(CircleShape).clickable(onClick = onUndo).padding(horizontal = 8.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = c.accent,
                 )
-            }
-            return@Column
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                UnitLabel(line.unit, pack?.packName ?: "", pack?.packQty ?: 0.0, inPacks) {
-                    inPacks = !inPacks
-                }
-                GlassField(
-                    value = gotQty,
-                    onValueChange = { gotQty = it.replace(',', '.') },
-                    placeholder = "",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(t.buy.price, style = MaterialTheme.typography.labelMedium, color = c.muted)
-                GlassField(
-                    value = price,
-                    onValueChange = { price = it.filter { ch -> ch.isDigit() } },
-                    placeholder = "",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            } else {
+                Icon(
+                    if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    null,
+                    tint = c.muted,
+                    modifier = Modifier.size(22.dp),
                 )
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.weight(1f)) {
-                PrimaryButton(
-                    label = if (settled) t.buy.changed else t.buy.got,
-                    enabled = (gotQty.toDoubleOrNull() ?: 0.0) > 0,
-                ) {
-                    onGot(
-                        gotQty.toDoubleOrNull() ?: 0.0,
-                        price.toDoubleOrNull() ?: 0.0,
-                        inPacks,
+        if (expanded && !line.missing) {
+            Column(
+                Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QtyField(
+                        value = gotQty,
+                        onValueChange = { gotQty = it },
+                        unit = line.unit,
+                        packName = pack?.packName ?: "",
+                        packQty = pack?.packQty ?: 0.0,
+                        inPacks = inPacks,
+                        onToggle = { inPacks = !inPacks },
+                        modifier = Modifier.weight(1f),
+                        placeholder = t.buy.qty(""),
+                    )
+                    PriceField(
+                        value = price,
+                        onValueChange = { price = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = if ((pack?.lastPrice ?: 0.0) > 0) money(pack!!.lastPrice) else t.buy.price,
                     )
                 }
+                if ((pack?.lastPrice ?: 0.0) > 0) {
+                    Text(t.buy.lastPrice(money(pack!!.lastPrice)), style = MaterialTheme.typography.labelSmall, color = c.muted)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GhostButton(t.buy.noneLeft, Modifier.weight(1f)) { onMissing() }
+                    Box(Modifier.weight(1f)) {
+                        PrimaryButton(
+                            label = if (settled) t.buy.changed else t.buy.got,
+                            icon = Icons.Rounded.Check,
+                            enabled = (gotQty.toDoubleOrNull() ?: 0.0) > 0,
+                        ) {
+                            onGot(gotQty.toDoubleOrNull() ?: 0.0, price.toDoubleOrNull() ?: 0.0, inPacks)
+                        }
+                    }
+                }
             }
-            uz.keel.design.GhostButton(t.buy.noneLeft, Modifier.weight(1f)) { onMissing() }
         }
     }
 }

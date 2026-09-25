@@ -34,6 +34,15 @@ data class KeelColors(
     val glassStrong: Color,
     val glassBorder: Color,
     val glassHighlight: Color,
+    /** Where something is typed: a sunken well, not another pane of glass.
+     *
+     *  ⚠️ **Its own role because fields sit on glass.** A field drawn as glass
+     *  on a glass card is white on white in the light scheme — the form was
+     *  there and nobody could see where to tap. A field is a hole in the
+     *  surface, so it goes a shade *darker* than what holds it, with an edge
+     *  that is ink rather than light. */
+    val field: Color,
+    val fieldBorder: Color,
     val ink: Color,
     val inkSoft: Color,
     val muted: Color,
@@ -61,17 +70,24 @@ val LightColors = KeelColors(
     bg = Color(0xFFF7F3EE),
     auraWarm = Color(0x33E2590D),
     auraCool = Color(0x1F2563EB),
-    glass = Color(0xB8FFFFFF),
-    glassStrong = Color(0xE0FFFFFF),
-    glassBorder = Color(0x59FFFFFF),
+    // ⚠️ **Denser than the dark scheme's, and edged in ink, not in light.**
+    // At 72% white over cream a panel was the page colour again, and its white
+    // hairline was white on white — every card, chip and button in the light
+    // scheme had no edge at all, which is what "the light theme looks broken"
+    // was. On a pale ground the edge has to be darker than both sides of it.
+    glass = Color(0xD9FFFFFF),
+    glassStrong = Color(0xF5FFFFFF),
+    glassBorder = Color(0x262A2521),
     glassHighlight = Color(0x99FFFFFF),
+    field = Color(0xFFF0EBE4),
+    fieldBorder = Color(0x402A2521),
     ink = Color(0xFF2A2521),
     inkSoft = Color(0xFF57504A),
     // Darkened from #8A8178: that sat near 3.4:1 on the cream ground and lower
     // on glass over the warm aura — hints, prices and every "not sent" label
     // read as a grey smudge in daylight, the light-scheme twin of the dark fix.
     muted = Color(0xFF6F675F),
-    line = Color(0x1A2A2521),
+    line = Color(0x242A2521),
     accent = KeelOrange,
     accentSoft = Color(0x1FE2590D),
     onAccent = Color.White,
@@ -110,6 +126,9 @@ val DarkColors = KeelColors(
     // Barely there. At any real strength this becomes the grey slab again — the
     // highlight is a hint of a light source, not a light.
     glassHighlight = Color(0x14FFF3E6),
+    // A shade below the panel, like the light one: a well, not a lid.
+    field = Color(0xFF171311),
+    fieldBorder = Color(0x33FFE7D2),
     ink = Color(0xFFF4EFE8),
     inkSoft = Color(0xFFCFC7BC),
     // Lifted from the original #948A80: at that value the hints, the prices and

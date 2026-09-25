@@ -41,6 +41,7 @@ import uz.keel.tv.ui.screens.PairedScreen
 import uz.keel.tv.ui.screens.PairingScreen
 import uz.keel.tv.ui.screens.PlayerScreen
 import uz.keel.tv.ui.screens.ServerScreen
+import uz.keel.design.appVersion
 
 // Keel TV — the screen on the restaurant's wall.
 //
@@ -129,7 +130,7 @@ private fun Root(app: KeelTvApp) {
                 clock = app.clock,
                 playlist = app.playlist,
                 boardPoller = app.board,
-                appVersion = KeelTvApp.APP_VERSION,
+                appVersion = appVersion(app),
                 installId = app.installId,
             ) as T
         },
