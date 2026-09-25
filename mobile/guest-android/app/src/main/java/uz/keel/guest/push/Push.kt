@@ -20,6 +20,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
+import uz.keel.design.fetchPushToken
 import uz.keel.guest.Brand
 import uz.keel.guest.data.KeelApi
 
@@ -125,7 +126,7 @@ fun rememberPush(api: KeelApi, signedIn: Boolean): PushState {
         // simply could not reach Firebase this minute, still has a working app
         // — and the tracking screen shows the same facts.
         runCatching {
-            val token = FirebaseMessaging.getInstance().token.await()
+            val token = fetchPushToken { FirebaseMessaging.getInstance().token.await() }
             api.registerDevice(token, api.lang)
         }
     }

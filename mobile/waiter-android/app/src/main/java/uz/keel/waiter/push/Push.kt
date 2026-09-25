@@ -23,6 +23,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.tasks.await
+import uz.keel.design.fetchPushToken
 import uz.keel.waiter.KeelWaiterApp
 import uz.keel.waiter.MainActivity
 import uz.keel.waiter.R
@@ -113,7 +114,7 @@ fun rememberPushRegistration(
         }
         state = PushState.Asking
         try {
-            val value = FirebaseMessaging.getInstance().token.await()
+            val value = fetchPushToken { FirebaseMessaging.getInstance().token.await() }
             token[0] = value
             // Registered on every launch: the token can be re-issued after a
             // reinstall, and the server keys on it so a phone handed to somebody

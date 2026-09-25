@@ -1,5 +1,8 @@
 package uz.keel.design
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -8,14 +11,17 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 
 // ⚠️ **Material3's `ColorScheme` is filled in but is not where the app reads
 // its colours from.** Material's roles (primary, surfaceVariant, outline) do not
@@ -83,9 +89,31 @@ fun KeelWaiterTheme(
         )
     }
 
+    // ⚠️ **The status bar follows the app's scheme, not the phone's.**
+    // `enableEdgeToEdge()` picks the icon colour from the *system* setting, so a
+    // phone in dark mode with the app switched to light drew a white clock and
+    // white battery on a cream background — present, and invisible. Set here,
+    // where `dark` is decided, it cannot disagree with the screen beneath it.
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = view.context.findActivity()?.window ?: return@SideEffect
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !dark
+                isAppearanceLightNavigationBars = !dark
+            }
+        }
+    }
+
     CompositionLocalProvider(LocalKeelColors provides colors) {
         MaterialTheme(colorScheme = material, typography = KeelTypography, content = content)
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /** The same scheme wearing somebody else's colour.
@@ -108,12 +136,25 @@ fun KeelColors.branded(accent: Color?): KeelColors {
     return copy(
         accent = accent,
         accentSoft = accent.copy(alpha = if (dark) 0.24f else 0.12f),
-        // 0.55 rather than 0.5: the eye reads mid-tones as darker than the
-        // arithmetic does, and the failure is one-sided — grey-on-colour is
-        // uncomfortable, white-on-pale is unreadable.
-        onAccent = if (accent.luminance() > 0.55f) Color(0xFF1A1614) else Color.White,
+        onAccent = inkOn(accent),
         auraWarm = accent.copy(alpha = if (dark) 0.30f else 0.20f),
     )
+}
+
+/** White or near-black, whichever a label on [fill] can actually be read in.
+ *
+ *  ⚠️ **By contrast ratio, not by a luminance cut-off.** The old rule was
+ *  "white unless luminance > 0.55", and the brands restaurants actually pick —
+ *  saffron, mustard, a warm #F5A623 orange — sit at 0.4–0.55: white on them is
+ *  under 2:1, which is the "white letters you cannot read" on every primary
+ *  button of that restaurant's app. White is kept while it clears 3:1 (the
+ *  WCAG floor for bold 16sp+ labels, which is what sits on an accent), so a
+ *  strong brand keeps its white text and Keel's own orange (3.6:1) is
+ *  unchanged. */
+fun inkOn(fill: Color): Color {
+    val l = fill.luminance()
+    val whiteContrast = 1.05f / (l + 0.05f)
+    return if (whiteContrast >= 3f) Color.White else Color(0xFF1A1614)
 }
 
 // ⚠️ **Tabular figures wherever money is printed.** A total whose digits change

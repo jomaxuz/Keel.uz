@@ -22,6 +22,8 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.tasks.await
+import uz.keel.design.fetchPushToken
+import uz.keel.design.pushErrorDetail
 import uz.keel.courier.KeelCourierApp
 import uz.keel.courier.MainActivity
 import uz.keel.courier.R
@@ -104,7 +106,7 @@ fun rememberPushRegistration(api: KeelApi, signedIn: Boolean, lang: String): Pus
         state = PushState.Asking
         detail = null
         try {
-            val value = FirebaseMessaging.getInstance().token.await()
+            val value = fetchPushToken { FirebaseMessaging.getInstance().token.await() }
             token[0] = value
             api.registerPush(value, lang)
             state = PushState.Working
@@ -114,7 +116,7 @@ fun rememberPushRegistration(api: KeelApi, signedIn: Boolean, lang: String): Pus
             // "they said they sent me an order and nothing came" has five causes
             // and no way to tell them apart from the phone it happened on.
             state = PushState.Failed
-            detail = e.message ?: e::class.java.simpleName
+            detail = pushErrorDetail(e)
         }
     }
 

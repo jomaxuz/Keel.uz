@@ -67,7 +67,10 @@ val LightColors = KeelColors(
     glassHighlight = Color(0x99FFFFFF),
     ink = Color(0xFF2A2521),
     inkSoft = Color(0xFF57504A),
-    muted = Color(0xFF8A8178),
+    // Darkened from #8A8178: that sat near 3.4:1 on the cream ground and lower
+    // on glass over the warm aura — hints, prices and every "not sent" label
+    // read as a grey smudge in daylight, the light-scheme twin of the dark fix.
+    muted = Color(0xFF6F675F),
     line = Color(0x1A2A2521),
     accent = KeelOrange,
     accentSoft = Color(0x1FE2590D),
