@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Deploy Keel from this laptop, without GitHub Actions.
+#
+#   deploy/keel-deploy-local            # deploys local `main`
+#   deploy/keel-deploy-local some-ref   # or any commit / branch
+#
+# ⚠️ **What is deployed is this laptop's commit, not GitHub's.** The code goes
+# up as a `git bundle` over scp, so the server never needs a token and it works
+# when the Actions quota has run out. It warns when the commit is not on
+# origin/main: a server running code nobody pushed is a server whose next CI
+# deploy silently takes it back.
+#
+# The password is never in the repository. In order:
+#   1. $KEEL_SSHPASS
+#   2. ~/.config/keel/deploy-pass   (chmod 600, one line)
+#   3. asked for, not echoed
+#
+# ⚠️ **Password auth only** (`PubkeyAuthentication=no`): a key in the agent
+# may be the CI key with `command="keel-deploy"`, and SSH tries keys first —
+# every connection would then be a different deploy (see CLAUDE.md, "SSH
+# kalitni parolingizdan oldin sinaydi").
+#
+# ⚠️ **git runs as deploy-keel on the server, never as root.** A root-owned
+# `.git/index` breaks the next deploy's fetch silently (CLAUDE.md, "prod
+# checkout ichiga root nomidan fayl ko'chirish").
+set -euo pipefail
+
+HOST=${KEEL_HOST:-169.58.131.165}
+REF=${1:-main}
+
+cd "$(git rev-parse --show-toplevel)"
+
+sha=$(git rev-parse --verify "$REF^{commit}")
+short=$(git rev-parse --short "$sha")
+echo "==> deploy: $(git --no-pager log --oneline -1 "$sha")"
+
+if [ -n "$(git status --porcelain)" ]; then
+	echo "    ⚠️  commit qilinmagan o'zgarishlar bor — ular deploy'ga KIRMAYDI" >&2
+fi
+git fetch --quiet origin main 2>/dev/null || true
+if ! git merge-base --is-ancestor "$sha" origin/main 2>/dev/null; then
+	echo "    ⚠️  $short origin/main da yo'q — avval push qiling, aks holda keyingi CI deploy uni qaytaradi" >&2
+	read -r -p "    Baribir davom etilsinmi? [y/N] " yn
+	[[ "$yn" == [yY]* ]] || exit 1
+fi
+
+if [ -z "${KEEL_SSHPASS:-}" ] && [ -r "$HOME/.config/keel/deploy-pass" ]; then
+	KEEL_SSHPASS=$(head -n1 "$HOME/.config/keel/deploy-pass")
+fi
+if [ -z "${KEEL_SSHPASS:-}" ]; then
+	read -r -s -p "root@$HOST paroli: " KEEL_SSHPASS
+	echo
+fi
+export SSHPASS=$KEEL_SSHPASS
+command -v sshpass >/dev/null || { echo "sshpass kerak: sudo apt install sshpass" >&2; exit 1; }
+
+SSH_OPTS=(-o PubkeyAuthentication=no -o PreferredAuthentications=password -o ConnectTimeout=15)
+
+bundle=$(mktemp --suffix=.bundle)
+trap 'rm -f "$bundle"' EXIT
+# ⚠️ **Through a named ref**: `git bundle` refuses a bare sha ("empty
+# bundle"). Full history rather than a thin bundle — the server's checkout may
+# be any number of commits behind, and a missing parent fails the fetch.
+git update-ref refs/keel/deploy "$sha"
+git bundle create --quiet "$bundle" refs/keel/deploy
+git update-ref -d refs/keel/deploy
+
+# Outside the checkout on purpose — a file root drops *inside* /opt/keel is
+# root-owned and breaks the next `git reset`.
+remote_bundle=/tmp/keel-$short.bundle
+echo "==> yuborish ($(du -h "$bundle" | cut -f1))"
+sshpass -e scp "${SSH_OPTS[@]}" -q "$bundle" "root@$HOST:$remote_bundle"
+
+echo "==> serverda"
+# shellcheck disable=SC2087  # expanded here on purpose: sha and path
+sshpass -e ssh "${SSH_OPTS[@]}" "root@$HOST" bash -s <<EOF
+set -euo pipefail
+chmod 644 "$remote_bundle"
+trap 'rm -f "$remote_bundle"' EXIT
+sudo -u deploy-keel bash -s <<'INNER'
+set -euo pipefail
+cd /opt/keel
+# The same lock CI takes: a person and CI deploying together is the one
+# collision it exists to prevent.
+exec 9>/opt/keel/.deploy.lock
+if ! flock -n 9; then
+	echo "boshqa deploy ketmoqda — to'xtatildi" >&2
+	exit 1
+fi
+before=\$(git rev-parse --short HEAD)
+git fetch --quiet "$remote_bundle" refs/keel/deploy
+[ "\$(git rev-parse FETCH_HEAD)" = "$sha" ] || { echo "bundle boshqa commit berdi" >&2; exit 1; }
+git reset --hard --quiet FETCH_HEAD
+echo "    \$before -> \$(git rev-parse --short HEAD)"
+# ⚠️ The build-and-replace half is the repository's, shared with CI.
+exec /opt/keel/deploy/keel-release
+INNER
+EOF

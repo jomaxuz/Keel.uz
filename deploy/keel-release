@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# The second half of a Keel deploy: build, replace, check.
+#
+# ⚠️ **Run from the checkout, after the code is in place, with the deploy lock
+# already held** (fd 9, inherited from the caller). Two callers:
+#   - keel-deploy        — CI: fetches from GitHub with the run's token
+#   - keel-deploy-local  — a person: fetches from a bundle sent over scp
+# One definition of "deploy" for both, because a second copy of these steps is
+# exactly the kind that drifts: it would miss the next `--force-recreate` fix
+# and be green while running old code.
+set -euo pipefail
+
+cd /opt/keel
+COMPOSE=(docker compose -f docker-compose.saas.yml)
+
+echo "==> mijoz image'i"
+# Built but never started here — the control plane starts one per customer.
+"${COMPOSE[@]}" --profile tenant build
+
+# Leftovers from a run that died between "rename the old one" and "start the
+# new one". They are dead by definition — the live containers never carry this
+# prefix — and the next deploy collides on the name until they are gone.
+stale=$(docker ps -a --format '{{.Names}}' | grep -E '^[0-9a-f]{12}_keel-' || true)
+if [ -n "$stale" ]; then
+	echo "==> qolib ketgan konteynerlar tozalanmoqda"
+	echo "$stale" | sed 's/^/    /'
+	echo "$stale" | xargs -r docker rm -f >/dev/null
+fi
+
+echo "==> ishga tushirish"
+"${COMPOSE[@]}" up -d --build
+
+# And then recreate the three we build, explicitly.
+#
+# Compose is supposed to notice a rebuilt image and replace the container. It
+# did not: after a deploy the tag pointed at one image, the container ran a
+# second, and compose's own label recorded a third. The result was the worst
+# kind of green deploy — right commit, healthy containers, new code never
+# running, and the only symptom a missing route in a generated config.
+#
+# Every build produces a new image ID anyway (Go and Next builds are not
+# reproducible), so "only if changed" would be true every time regardless.
+# Asking directly is shorter than a heuristic that has already been wrong.
+#
+# `--no-deps` keeps mongo and caddy out of it: mongo holds every database on
+# this host, and restarting caddy drops the edge back to its bootstrap config
+# until the control plane syncs again.
+echo "==> ilova xizmatlarini almashtirish"
+# ⚠️ `pagecache` ham shu ro'yxatda, garchi u qurilmasa ham.
+#
+# Uning konfiguratsiyasi bind-mount qilingan fayl (`caddy/pagecache.conf`), ya'ni
+# xizmat ta'rifi o'zgarmaydi va `up -d` konteynerni almashtirishga sabab
+# ko'rmaydi — nginx esa eski konfiguratsiya bilan ishlab turadi. Bu repodagi eng
+# qimmat tuzoqning aynan o'zi: commit to'g'ri, konteyner sog'lom, yangi qoida
+# ishlamayapti.
+"${COMPOSE[@]}" up -d --force-recreate --no-deps control site frontend pagecache
+
+echo "==> tekshiruv"
+# "Started" is not "working": a container whose Mongo is unreachable stays up
+# for the whole connection timeout. The control plane's own health endpoint is
+# the first honest signal, and keel.uz answering is the second.
+# Both get the same patience, and that is the point.
+#
+# control had thirty attempts and keel-site had exactly one, immediately after
+# — an asymmetry nobody chose, and one that held only for as long as Next.js
+# happened to boot faster than the control plane. It stopped holding the day
+# the landing page started fetching from the control plane during its first
+# render: same container, same second, one shot, and the deploy failed on a
+# site that came up fine moments later.
+wait_for() {
+	local name=$1 url=$2
+	for _ in $(seq 1 30); do
+		if docker exec keel-caddy wget -qO- --timeout=5 "$url" >/dev/null 2>&1; then
+			echo "    $name OK"
+			return 0
+		fi
+		sleep 2
+	done
+	echo "    $name JAVOB BERMADI" >&2
+	# The useful sentence is the container's, not ours.
+	docker logs --tail 30 "$name" 2>&1 | sed 's/^/      /' >&2
+	return 1
+}
+
+wait_for keel-control http://keel-control:9000/health || exit 1
+wait_for keel-site http://keel-site:3100/ || exit 1
+# Every tenant site goes through the cache now, so it is the one new single
+# point of failure this deploy introduced. Checked before the deploy is called
+# a success, and checked on its own endpoint rather than through a render — the
+# question here is "is nginx up", not "is Next.js up".
+wait_for keel-pagecache http://keel-pagecache:3000/_cache_health || exit 1
+
+down=$("${COMPOSE[@]}" ps --status exited --status dead -q | wc -l)
+[ "$down" = 0 ] || { echo "    $down konteyner ishlamayapti" >&2; "${COMPOSE[@]}" ps; exit 1; }
+
+echo "==> deploy tugadi: $(git --no-pager log --oneline -1)"
+
+# Tenant containers are rolled forward by the control plane, not from here.
+#
+# Already-running tenants keep the image they were started with, so a backend
+# change reaches nobody until each container is replaced. That is done ~90s
+# after the control container comes up (`RolloutOnBoot`), one tenant at a time,
+# each waiting on its own /health before the next is touched.
+#
+# Deliberately not this script's job: rolling fifty restaurants takes minutes,
+# and a deploy that fails because the twelfth restaurant is slow would be a
+# worse failure than the one it fixes. Progress and any tenant that did not
+# come up are in the console; `ROLLOUT_ON_BOOT=0` turns it off.
