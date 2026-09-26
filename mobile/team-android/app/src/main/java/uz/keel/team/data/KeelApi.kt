@@ -213,7 +213,7 @@ class KeelApi(private val tokens: TokenStore) {
                                 l.ingredientId?.let { put("ingredientId", JsonPrimitive(it)) }
                                 l.newName?.let { put("newName", JsonPrimitive(it)) }
                                 put("qty", JsonPrimitive(l.qty))
-                                put("price", JsonPrimitive(l.price))
+                                put("price", JsonPrimitive(Math.round(l.price)))
                                 put("pack", JsonPrimitive(l.pack))
                             }
                         },
@@ -269,7 +269,8 @@ class KeelApi(private val tokens: TokenStore) {
         HttpMethod.Put,
         body = buildJsonObject {
             qty?.let { put("qty", JsonPrimitive(it)) }
-            price?.let { put("price", JsonPrimitive(it)) }
+            // Whole so'm: a Double goes out as "30000.0".
+            price?.let { put("price", JsonPrimitive(Math.round(it))) }
             pack?.let { put("pack", JsonPrimitive(it)) }
             missing?.let { put("missing", JsonPrimitive(it)) }
             clear?.let { put("clear", JsonPrimitive(it)) }

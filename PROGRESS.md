@@ -15699,3 +15699,25 @@ b5somsa'dagi ortiqcha 8 ta topshirma o'chirildi (pastda).
   mehmon ilovasini konsoldan qayta build qilish, kassa uchun yangi installer
   kerak.
 
+
+## 2026-09-26 — Mehmon ilovasi: olib ketish filiali, bildirishnomalar, savat; bozorchi xatosi
+
+- **Team → Bozor «Olindi» → «so'rov formati noto'g'ri»**: telefon narxni
+  `Double` (`30000.0`) yuborardi, server `int` kutardi — narxli har belgi
+  yiqilardi. Telefon endi butun so'm yuboradi, server esa `wholeSom` bilan
+  `30000.0` ni ham qabul qiladi (o'rnatilgan eski telefonlar ham tuzaladi).
+  `/staff/buy` (erkin xarid) da ham xuddi shu xato bor edi.
+- **Mehmon bildirishnomasi faqat panel status o'zgartirganda ketardi.**
+  Kuryerning «Yetkazildi» si va kassaning olib ketishni yopishi hech kimga
+  aytmasdi. Endi `orderEvent` → `tellGuest` (bot + ilova), har status bir
+  marta (`order.guestTold`, atomik). Olib ketishda «Buyurtma topshirildi»,
+  oshxona «tayyor» bosganda — «Buyurtmangizni olib ketishingiz mumkin».
+  Ilovaga `FirebaseMessagingService` qo'shildi — ochiq ilovada kelgan push
+  ilgari tashlab yuborilardi; bosilsa o'sha buyurtma ochiladi.
+- **Olib ketishda filial**: ilova `branchId` yubormasdi (server jimgina
+  birinchi filialga berardi) va filialni ko'rsatmasdi. Endi filial kartasi
+  (nom, manzil, «Yo'nalish»), bir nechta bo'lsa tanlanadi.
+- **Savat** soddalashtirildi: ixcham qator (rasm | nom, variant, narx × son,
+  stepper), izoh «+ Izoh qo'shish» havolasi ortida, pastda bitta qatorli
+  jami + «Rasmiylashtirish».
+- ⏳ Telefonda sinalmagan; mehmon va team ilovalarini qayta build qilish kerak.

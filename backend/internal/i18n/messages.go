@@ -592,6 +592,14 @@ var messages = map[string]pair{
 		"Заказ доставлен",
 		"Your order has arrived",
 	},
+	"Buyurtma topshirildi": {
+		"Заказ выдан",
+		"Your order has been collected",
+	},
+	"Buyurtmangizni olib ketishingiz mumkin": {
+		"Можете забрать заказ",
+		"You can collect it now",
+	},
 	"Yoqimli ishtaha!": {
 		"Приятного аппетита!",
 		"Enjoy your meal!",

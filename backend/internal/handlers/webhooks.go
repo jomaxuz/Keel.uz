@@ -130,6 +130,7 @@ func (h *Handler) orderEvent(ctx context.Context, orderID primitive.ObjectID) {
 	}
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
+	h.tellGuest(ctx, orderID)
 	endpoints, err := h.liveWebhookEndpoints(ctx)
 	if err != nil || len(endpoints) == 0 {
 		return

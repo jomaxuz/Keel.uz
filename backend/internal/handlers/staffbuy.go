@@ -23,6 +23,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"math"
 	"net/http"
 	"regexp"
 	"sort"
@@ -166,11 +168,27 @@ type buyRequest struct {
 	SupplyID primitive.ObjectID `json:"supplierId"`
 }
 
+// A price in whole so'm that also accepts `30000.0`.
+//
+// ⚠️ Kotlin's JsonPrimitive(Double) writes the fraction even when it is zero,
+// and a plain int refuses it: the whole request failed as "bad JSON" at the
+// stall, on every tick that carried a price. Rounded, not truncated.
+type wholeSom int
+
+func (p *wholeSom) UnmarshalJSON(b []byte) error {
+	var f float64
+	if err := json.Unmarshal(b, &f); err != nil {
+		return err
+	}
+	*p = wholeSom(math.Round(f))
+	return nil
+}
+
 type buyRequestLine struct {
 	IngredientID string  `json:"ingredientId"`
 	Qty          float64 `json:"qty"`
 	// Per purchase unit, in so'm.
-	Price int `json:"price"`
+	Price wholeSom `json:"price"`
 	// Whether `Qty` and `Price` are counted the way the market sells it — three
 	// bunches at three thousand a bunch — rather than in the unit the store
 	// keeps it in.
@@ -337,14 +355,14 @@ func (h *Handler) buyLines(
 			if name == "" {
 				continue
 			}
-			newID, err := h.newBoughtIngredient(ctx, brand, name, l.Price)
+			newID, err := h.newBoughtIngredient(ctx, brand, name, int(l.Price))
 			if err != nil {
 				return nil, nil, err
 			}
 			id = newID
 			created = append(created, name)
 		}
-		qty, price := l.Qty, l.Price
+		qty, price := l.Qty, int(l.Price)
 		if l.Pack {
 			// ⚠️ **Converted here rather than on the phone**, and that is the
 			// point of the field. The factor lives on the ingredient, the

@@ -145,6 +145,11 @@ class KeelApi(private val tokens: TokenStore) {
     // ---- Ordering ----
 
     /** Which methods this restaurant can actually take money with. */
+    /** Every active branch. ⚠️ Pickup must name one: without it the server
+     *  quietly sends the order to the first branch, and a guest in a chain
+     *  walks to the wrong building. */
+    suspend fun branches(): BranchList = call("/brands")
+
     suspend fun paymentMethods(): PaymentMethods = call("/payment-methods")
 
     /** Whether this address can be delivered to, by whom, and for how much.
@@ -168,7 +173,12 @@ class KeelApi(private val tokens: TokenStore) {
         point: GeoPoint?,
         promoCode: String,
         usePoints: Double,
-    ): OrderQuote = call("/orders/quote", HttpMethod.Post, quoteBody(lines, type, point, promoCode, usePoints))
+        branchId: String = "",
+    ): OrderQuote = call(
+        "/orders/quote",
+        HttpMethod.Post,
+        quoteBody(lines, type, point, promoCode, usePoints, branchId),
+    )
 
     /** Place it.
      *
@@ -187,10 +197,11 @@ class KeelApi(private val tokens: TokenStore) {
         paymentMethod: String,
         promoCode: String,
         usePoints: Double,
+        branchId: String = "",
     ): Order = call(
         "/orders",
         HttpMethod.Post,
-        orderBody(lines, type, name, phone, point, comment, paymentMethod, promoCode, usePoints),
+        orderBody(lines, type, name, phone, point, comment, paymentMethod, promoCode, usePoints, branchId),
     )
 
     /** Following one, by the number printed on it.
@@ -352,8 +363,11 @@ internal fun quoteBody(
     point: GeoPoint?,
     promoCode: String,
     usePoints: Double,
+    branchId: String = "",
 ): JsonObject = buildJsonObject {
     put("type", JsonPrimitive(type))
+    // Pickup only: delivery's branch is the address's, decided by the server.
+    if (type != "delivery" && branchId.isNotBlank()) put("branchId", JsonPrimitive(branchId))
     put("promoCode", JsonPrimitive(promoCode))
     put("usePoints", JsonPrimitive(usePoints.toLong()))
     if (point != null) {
@@ -378,7 +392,9 @@ internal fun orderBody(
     paymentMethod: String,
     promoCode: String,
     usePoints: Double,
+    branchId: String = "",
 ): JsonObject = buildJsonObject {
+    if (type != "delivery" && branchId.isNotBlank()) put("branchId", JsonPrimitive(branchId))
     put(
         "customer",
         buildJsonObject {

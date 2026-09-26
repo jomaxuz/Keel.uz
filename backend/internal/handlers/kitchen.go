@@ -344,6 +344,7 @@ func (h *Handler) notifyReady(
 	if !o.CourierID.IsZero() {
 		h.courierOrderReady(&o)
 	}
+	h.pickupReady(&o)
 	// Only a till check has a waiter.
 	if o.Check == nil || o.Check.ServerID.IsZero() {
 		return

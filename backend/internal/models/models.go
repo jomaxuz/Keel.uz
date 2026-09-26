@@ -1848,6 +1848,11 @@ type Order struct {
 	Refund *CheckRefund `bson:"refund,omitempty" json:"refund,omitempty"`
 
 	StatusHistory []StatusEvent `bson:"statusHistory" json:"statusHistory"`
+	// The last status the guest was told about (app push + bot). ⚠️ The dedup
+	// for handlers.tellGuest: `orderEvent` runs on every write, status or not,
+	// and without this a line edited on a delivered order would say
+	// "delivered" again.
+	GuestTold OrderStatus `bson:"guestTold,omitempty" json:"-"`
 	// Why the restaurant cancelled it. The customer sees this on the tracking
 	// page, so "why was my order cancelled?" never needs a phone call.
 	CancelReason string `bson:"cancelReason,omitempty" json:"cancelReason,omitempty"`

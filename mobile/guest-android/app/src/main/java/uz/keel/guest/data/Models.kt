@@ -112,7 +112,25 @@ data class MenuGroup(
 data class RestaurantResponse(
     val restaurant: Restaurant = Restaurant(),
     val isOpenNow: Boolean = true,
+    /** Which brand this app sells — narrows `/brands` to its own branches. */
+    val brand: BrandRef? = null,
 )
+
+@Serializable
+data class BrandRef(val id: String = "")
+
+/** A place a guest can collect from (`GET /brands` → `branches`). */
+@Serializable
+data class PickupBranch(
+    val id: String = "",
+    val brandId: String = "",
+    val name: String = "",
+    val phones: List<String> = emptyList(),
+    val address: GeoPoint = GeoPoint(),
+)
+
+@Serializable
+data class BranchList(val branches: List<PickupBranch> = emptyList())
 
 /** How this restaurant looks and what it is called.
  *

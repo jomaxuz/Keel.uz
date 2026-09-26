@@ -3,7 +3,9 @@ package uz.keel.guest.push
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -14,14 +16,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.tasks.await
 import uz.keel.design.fetchPushToken
 import uz.keel.guest.Brand
+import uz.keel.guest.MainActivity
+import uz.keel.guest.R
 import uz.keel.guest.data.KeelApi
 
 // ---- Telling a guest what happened to their dinner ----
@@ -155,4 +163,55 @@ suspend fun forgetPush(context: Context, api: KeelApi) {
     // Deleted at the Firebase end too, so a phone that is signed out stops
     // costing a delivery attempt per order.
     runCatching { FirebaseMessaging.getInstance().deleteToken().await() }
+}
+
+/** Draws an order update that arrives while the app is open.
+ *
+ *  ⚠️ **The background case is not this.** The server sends a `notification`
+ *  block too, and with the app closed the system draws that itself; a tap then
+ *  carries the `data` keys (`number`) into MainActivity. Before this service
+ *  existed a message arriving with the app in front was simply dropped — the
+ *  guest watching their order saw nothing when it was delivered. */
+class OrderMessagingService : FirebaseMessagingService() {
+
+    override fun onNewToken(token: String) {
+        // Re-registered by the app on its next launch: a service has no
+        // signed-in session of its own.
+    }
+
+    override fun onMessageReceived(message: RemoteMessage) {
+        val data = message.data
+        val title = data["title"] ?: message.notification?.title ?: return
+        val body = data["body"] ?: message.notification?.body ?: ""
+        val number = data["number"]
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) return
+        createChannel(this)
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (number != null) putExtra(MainActivity.EXTRA_ORDER, number)
+        }
+        val pending = PendingIntent.getActivity(
+            this, number?.hashCode() ?: 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val note = NotificationCompat.Builder(this, CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(Brand.accent.toArgb())
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .build()
+        // ⚠️ One slot per order: "on the way" is replaced by "delivered"
+        // rather than stacked under it.
+        getSystemService(NotificationManager::class.java)
+            .notify(number?.hashCode() ?: title.hashCode(), note)
+    }
 }

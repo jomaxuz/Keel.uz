@@ -1,5 +1,6 @@
 package uz.keel.guest
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -65,6 +66,20 @@ import uz.keel.guest.ui.screens.OrdersTab
 // looking for it, not in front of the menu.
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        /** An order number to open, from a tapped notification. ⚠️ The same
+         *  key the server puts in `data`, so a tap on a message the *system*
+         *  drew (app closed) lands here too — Firebase copies the data keys. */
+        const val EXTRA_ORDER = "number"
+    }
+
+    private val openOrder = mutableStateOf<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra(EXTRA_ORDER)?.let { openOrder.value = it }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // ⚠️ **Before `super.onCreate`.** The activity wears the splash theme so
         // the launcher has the restaurant's logo to show instantly; this hands
@@ -75,6 +90,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val app = application as KeelGuestApp
+        if (savedInstanceState == null) {
+            intent?.getStringExtra(EXTRA_ORDER)?.let { openOrder.value = it }
+        }
         setContent {
             val notice = remember { mutableStateOf<Note?>(null) }
             CompositionLocalProvider(
@@ -104,7 +122,7 @@ class MainActivity : ComponentActivity() {
                 // the restaurant has set no colour at all.
                 val accent = parseColor(app.prefs.accent.value) ?: Brand.accent
                 KeelWaiterTheme(app.prefs.theme.value, accent = accent) {
-                    KeelBackground { Root(app, notice) }
+                    KeelBackground { Root(app, notice, openOrder) }
                 }
             }
         }
@@ -125,9 +143,20 @@ private sealed interface Where {
 }
 
 @Composable
-private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableState<Note?>) {
+private fun Root(
+    app: KeelGuestApp,
+    notice: androidx.compose.runtime.MutableState<Note?>,
+    openOrder: androidx.compose.runtime.MutableState<String?>,
+) {
     var tab by remember { mutableStateOf("menu") }
     var where by remember { mutableStateOf<Where>(Where.Tabs) }
+    // A tapped order notification opens that order.
+    LaunchedEffect(openOrder.value) {
+        openOrder.value?.let {
+            where = Where.Tracking(it)
+            openOrder.value = null
+        }
+    }
     var profile by remember { mutableStateOf<RestaurantResponse?>(null) }
     val prefs = LocalPrefs.current
     val lang = prefs.lang.value.code
@@ -180,6 +209,7 @@ private fun Root(app: KeelGuestApp, notice: androidx.compose.runtime.MutableStat
                     api = app.api,
                     cart = app.cart,
                     restaurant = profile?.restaurant,
+                    brandId = profile?.brand?.id.orEmpty(),
                     bottomInset = bottomInset,
                     onBack = { where = Where.Tabs },
                     onPlaced = { order ->

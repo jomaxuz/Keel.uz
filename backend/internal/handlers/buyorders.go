@@ -468,8 +468,8 @@ func (h *Handler) StaffMarkBuyOrderLine(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var req struct {
-		Qty   float64 `json:"qty"`
-		Price int     `json:"price"`
+		Qty   float64  `json:"qty"`
+		Price wholeSom `json:"price"`
 		// Whether the figures count packs — three bunches at three thousand a
 		// bunch. ⚠️ Converted here for the reason `buyRequestLine.Pack` gives:
 		// the factor is a fact about the ingredient and the result lands on a
@@ -514,7 +514,7 @@ func (h *Handler) StaffMarkBuyOrderLine(w http.ResponseWriter, r *http.Request) 
 				httpx.Error(w, http.StatusBadRequest, "miqdorni yozing")
 				return
 			}
-			qty, price := req.Qty, req.Price
+			qty, price := req.Qty, int(req.Price)
 			// ⚠️ **A store issue carries no price**, whatever the phone sent.
 			// The goods were bought once, and a second price written here would
 			// enter the history as a purchase and recost every dish that uses

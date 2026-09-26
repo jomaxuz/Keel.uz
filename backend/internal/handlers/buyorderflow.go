@@ -265,7 +265,7 @@ func (h *Handler) StaffAcceptBuyOrder(w http.ResponseWriter, r *http.Request) {
 				// marked for somebody to finish, never silently completed.
 				NewName: l.Name,
 				Qty:     l.Took(),
-				Price:   l.Price,
+				Price:   wholeSom(l.Price),
 			})
 		}
 		if len(lines) == 0 {

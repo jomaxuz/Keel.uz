@@ -824,14 +824,9 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		h.autoSendToPOS(r.Context(), &order)
 	}
 
-	// The guest hears about it through the bot, when they came in through it.
-	// Free, unlike the SMS this replaces — see handlers/notify.go — and never
-	// able to fail the status change.
-	h.notifyOrderStatus(r.Context(), &order)
-	// ⚠️ **Beside it, not instead of it.** The bot and the restaurant's own app
-	// reach different people — see pushOrderStatus.
-	h.pushOrderStatus(&order)
-	// And any program the owner connected (handlers/webhooks.go).
+	// The guest (bot + app) and any program the owner connected. ⚠️ The guest
+	// is told from inside orderEvent — see tellGuest — so the courier's and
+	// the till's status writes reach the guest too.
 	h.orderEvent(r.Context(), order.ID)
 
 	if req.Status == models.StatusCancelled {

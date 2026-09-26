@@ -1,5 +1,8 @@
 package uz.keel.guest.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,9 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Directions
+import androidx.compose.material.icons.rounded.Storefront
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +31,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import uz.keel.design.Chip
@@ -39,6 +49,7 @@ import uz.keel.guest.data.GeoPoint
 import uz.keel.guest.data.KeelApi
 import uz.keel.guest.data.Order
 import uz.keel.guest.data.OrderQuote
+import uz.keel.guest.data.PickupBranch
 import uz.keel.guest.data.Restaurant
 import uz.keel.guest.data.User
 import uz.keel.guest.data.UserAddress
@@ -61,6 +72,7 @@ fun CheckoutScreen(
     api: KeelApi,
     cart: Cart,
     restaurant: Restaurant?,
+    brandId: String,
     bottomInset: PaddingValues,
     onBack: () -> Unit,
     onPlaced: (Order) -> Unit,
@@ -80,6 +92,16 @@ fun CheckoutScreen(
     var picking by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    // ---- Pickup: which door ----
+    //
+    // ⚠️ **Always sent, and always shown.** Without a `branchId` the server
+    // hands a pickup to the first branch in the list; in a chain that is a
+    // guest walking to the wrong building, and with one branch it is still the
+    // address they need before leaving the house.
+    var branches by remember { mutableStateOf(listOf<PickupBranch>()) }
+    var pickupBranch by remember { mutableStateOf("") }
 
     /** Who is ordering, when the phone knows. ⚠️ Held rather than only read
      *  once: saving a new address means sending the whole list back, so the
@@ -97,6 +119,12 @@ fun CheckoutScreen(
 
     LaunchedEffect(Unit) {
         runCatching { methods = api.paymentMethods().methods.ifEmpty { listOf("cash") } }
+    }
+    LaunchedEffect(brandId) {
+        runCatching { api.branches().branches }.onSuccess { all ->
+            branches = all.filter { brandId.isBlank() || it.brandId == brandId }
+            if (branches.none { it.id == pickupBranch }) pickupBranch = branches.firstOrNull()?.id.orEmpty()
+        }
     }
 
     // ---- The form is not blank for somebody the restaurant already knows ----
@@ -130,9 +158,12 @@ fun CheckoutScreen(
     }
 
     // ⚠️ Re-asked on every input the price depends on — see the file's note.
-    LaunchedEffect(cart.lines.toList(), type, point, promo) {
+    LaunchedEffect(cart.lines.toList(), type, point, promo, pickupBranch) {
         runCatching {
-            quote = api.quote(cart.lines.toList(), type, point.takeIf { type == "delivery" }, promo, 0.0)
+            quote = api.quote(
+                cart.lines.toList(), type, point.takeIf { type == "delivery" }, promo, 0.0,
+                branchId = pickupBranch,
+            )
             error = ""
         }.onFailure { e -> error = if (e is ApiError) e.message else failedWord }
     }
@@ -181,6 +212,7 @@ fun CheckoutScreen(
                     paymentMethod = payment,
                     promoCode = promo.trim(),
                     usePoints = 0.0,
+                    branchId = pickupBranch,
                 )
                 // ⚠️ **After the order, and never allowed to fail it.**
                 // Remembering an address is a convenience; an order that was
@@ -291,6 +323,9 @@ fun CheckoutScreen(
                             }
                         }
                     } else {
+                        PickupBranches(branches, pickupBranch, { pickupBranch = it }) { b ->
+                            openRoute(context, b)
+                        }
                         GlassField(comment, { comment = it }, t.checkout.comment)
                     }
 
@@ -410,4 +445,79 @@ private fun paymentLabel(method: String): String = when (method) {
     "cash" -> t.checkout.payCash
     "card" -> t.checkout.payCard
     else -> method.replaceFirstChar { it.uppercase() }
+}
+
+/** Where a pickup is collected: the branch's name and street, picked when there
+ *  are several, and a route straight into the phone's own map app. */
+@Composable
+private fun PickupBranches(
+    branches: List<PickupBranch>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    onRoute: (PickupBranch) -> Unit,
+) {
+    val c = KeelTheme.colors
+    if (branches.isEmpty()) return
+    Text(t.checkout.pickupFrom, style = MaterialTheme.typography.titleMedium, color = c.ink)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        branches.forEach { b ->
+            val on = b.id == selected
+            val shape = RoundedCornerShape(16.dp)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .then(
+                        if (on) Modifier.background(c.accentSoft).border(1.5.dp, c.accent, shape)
+                        else Modifier.glass(c, shape),
+                    )
+                    .clickable(enabled = branches.size > 1) { onSelect(b.id) }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Rounded.Storefront,
+                    null,
+                    tint = if (on) c.accent else c.muted,
+                    modifier = Modifier.size(22.dp),
+                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(b.name, style = MaterialTheme.typography.titleSmall, color = c.ink)
+                    Text(
+                        b.address.text.ifBlank { t.checkout.pickupNoBranch },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.muted,
+                    )
+                }
+                if (on && b.address.lat != 0.0) {
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(c.accent)
+                            .clickable { onRoute(b) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Rounded.Directions, null, tint = c.onAccent, modifier = Modifier.size(16.dp))
+                        Text(t.checkout.pickupRoute, style = MaterialTheme.typography.labelMedium, color = c.onAccent)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Hand the route to whichever map app the guest already uses. */
+private fun openRoute(context: android.content.Context, b: PickupBranch) {
+    val lat = b.address.lat
+    val lng = b.address.lng
+    val uri = android.net.Uri.parse("geo:$lat,$lng?q=$lat,$lng(${android.net.Uri.encode(b.name)})")
+    runCatching {
+        context.startActivity(
+            android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
 }

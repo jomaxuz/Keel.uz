@@ -27,6 +27,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"restaurant-backend/internal/httpx"
@@ -124,7 +125,7 @@ func (h *Handler) pushOrderStatus(order *models.Order) {
 	if order == nil || order.UserID.IsZero() || !notifiableStatus(order.Status) {
 		return
 	}
-	title, body := orderStatusWords(order.Status)
+	title, body := orderStatusWords(order.Status, order.Type)
 	if title == "" {
 		return
 	}
@@ -143,7 +144,12 @@ func (h *Handler) pushOrderStatus(order *models.Order) {
 // read on a lock screen where the app's own icon already says which restaurant,
 // and it is translated per **device** — because the phone, not the account,
 // is what has a language here.
-func orderStatusWords(status models.OrderStatus) (title, body string) {
+func orderStatusWords(status models.OrderStatus, orderType string) (title, body string) {
+	// ⚠️ A pickup is handed over at the counter: "yetkazildi" to somebody who
+	// just walked out with the bag reads as a message about another order.
+	if orderType == "pickup" && status == models.StatusDelivered {
+		return "Buyurtma topshirildi", "Yoqimli ishtaha!"
+	}
 	switch status {
 	case models.StatusConfirmed:
 		return "Buyurtma qabul qilindi", "Restoran buyurtmangizni qabul qildi"
@@ -157,6 +163,55 @@ func orderStatusWords(status models.OrderStatus) (title, body string) {
 		return "Buyurtma bekor qilindi", "Batafsil ma'lumot uchun restoranga murojaat qiling"
 	}
 	return "", ""
+}
+
+// tellGuest tells the guest (app push and bot) about the order's status —
+// once per status, whoever wrote it.
+//
+// ⚠️ **Called from orderEvent, not from each status writer.** It used to sit
+// in the panel's status handler only, so the two moments a guest most wants
+// to hear about — the courier pressing "delivered" and the till closing a
+// pickup — changed the order and told nobody. orderEvent is already on every
+// status write (webhooks_test counts them), so this rides on that rule.
+//
+// ⚠️ **The claim is atomic.** orderEvent also runs on writes that change no
+// status (a line edited, a check merged); `guestTold` is set to the current
+// status only if it differs, and only the caller that flipped it sends.
+func (h *Handler) tellGuest(ctx context.Context, orderID primitive.ObjectID) {
+	var o models.Order
+	err := h.Store.Orders.FindOneAndUpdate(ctx,
+		bson.M{
+			"_id":    orderID,
+			"userId": bson.M{"$exists": true, "$ne": primitive.NilObjectID},
+			"$expr":  bson.M{"$ne": bson.A{"$guestTold", "$status"}},
+		},
+		mongo.Pipeline{{{Key: "$set", Value: bson.M{"guestTold": "$status"}}}},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&o)
+	if err != nil {
+		return
+	}
+	// ⚠️ **Only a fresh step.** An order from before this field existed has
+	// no marker, and its first unrelated write would otherwise announce a
+	// status reached days ago.
+	if n := len(o.StatusHistory); n == 0 || time.Since(o.StatusHistory[n-1].At) > 15*time.Minute {
+		return
+	}
+	h.notifyOrderStatus(ctx, &o)
+	h.pushOrderStatus(&o)
+}
+
+// pickupReady tells a pickup guest that the bag is at the counter.
+//
+// ⚠️ **Not a status**: the order stays `preparing` until it is handed over,
+// but "ready" is the one moment a pickup guest is actually waiting for — it is
+// when they leave the house.
+func (h *Handler) pickupReady(o *models.Order) {
+	if o == nil || o.Type != "pickup" || o.UserID.IsZero() {
+		return
+	}
+	h.notifyUser(o.UserID, "Buyurtma tayyor", "Buyurtmangizni olib ketishingiz mumkin",
+		map[string]any{"type": "order", "number": o.Number, "status": "ready"})
 }
 
 // notifyUser sends one message to every phone this guest has registered.
