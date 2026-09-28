@@ -15,7 +15,14 @@
 // spelled out here rather than assumed.
 
 import { useCallback, useEffect, useState } from "react";
-import { seoPing, seoStatus, type SeoPingResult, type SeoStatus } from "@/lib/api";
+import {
+  seoLlmsPing,
+  seoPing,
+  seoStatus,
+  type LlmsStatus,
+  type SeoPingResult,
+  type SeoStatus,
+} from "@/lib/api";
 import { useT } from "@/lib/i18n/client";
 import { growthDict } from "@/lib/i18n/growth";
 
@@ -28,6 +35,7 @@ export default function SeoPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
 
   const load = useCallback(() => {
     seoStatus()
@@ -47,6 +55,19 @@ export default function SeoPage() {
       setError(String((e as Error).message ?? e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function pingAi() {
+    setAiBusy(true);
+    setError("");
+    try {
+      const llms = await seoLlmsPing();
+      setStatus((s) => (s ? { ...s, llms } : s));
+    } catch (e) {
+      setError(String((e as Error).message ?? e));
+    } finally {
+      setAiBusy(false);
     }
   }
 
@@ -226,6 +247,22 @@ export default function SeoPage() {
         </div>
       </div>
 
+      {/* ---- For AI assistants: llms.txt ----
+
+          ⚠️ The paragraph under the title is the honest half: there is no ping
+          a language model listens to. What this card pings is IndexNow, and it
+          says so — a button promising "tell ChatGPT" would be a button that
+          lies about what it did. */}
+      <LlmsCard
+        d={d}
+        llms={status?.llms}
+        hasKey={!!status?.hasKey}
+        busy={aiBusy}
+        copied={copied}
+        onCopy={copy}
+        onPing={pingAi}
+      />
+
       {/* ---- What is already done ---- */}
       <div className="card">
         <h2 className="h-display text-lg">{d.doneTitle}</h2>
@@ -243,6 +280,133 @@ export default function SeoPage() {
             • <strong className="text-ink">{d.done4Term}</strong> {d.done4}
           </li>
         </ul>
+      </div>
+    </div>
+  );
+}
+
+function when(v?: string | null): string {
+  return v ? new Date(v).toLocaleString() : "";
+}
+
+function LlmsCard({
+  d,
+  llms,
+  hasKey,
+  busy,
+  copied,
+  onCopy,
+  onPing,
+}: {
+  d: ReturnType<typeof growthDict>["seo"];
+  llms?: LlmsStatus;
+  hasKey: boolean;
+  busy: boolean;
+  copied: string;
+  onCopy: (what: string) => void;
+  onPing: () => void;
+}) {
+  const ping = llms?.lastPing;
+  const pingOk = ping && (ping.status === 200 || ping.status === 202);
+  return (
+    <div className="card">
+      <h2 className="h-display text-lg">{d.aiTitle}</h2>
+      <p className="mt-1 max-w-3xl text-sm text-ink-muted">{d.aiLead}</p>
+      <p className="mt-2 max-w-3xl text-xs text-ink-muted">
+        {d.aiPingNote.replace("{n}", String(llms?.everyMin ?? 15))}
+      </p>
+
+      {/* One row per language: the index, the full text, how big the full
+          text is. Both are links, because the first thing anybody does with
+          a file like this is open it and read what the machines will read. */}
+      <div className="mt-4 space-y-2">
+        {(llms?.files ?? []).map((f) => (
+          <div
+            key={f.lang}
+            className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-raised px-3 py-2 text-sm"
+          >
+            <span className="w-8 font-semibold uppercase text-ink">{f.lang}</span>
+            {[
+              { label: d.aiIndex, url: f.index },
+              { label: d.aiFull, url: f.full },
+            ].map((x) => (
+              <span key={x.url} className="flex items-center gap-1">
+                <a
+                  href={x.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-signal-600 underline-offset-4 hover:underline dark:text-signal-400"
+                >
+                  {x.label}
+                </a>
+                <button className="btn-ghost px-2 py-1 text-xs" onClick={() => onCopy(x.url)}>
+                  {copied === x.url ? d.copied : d.copy}
+                </button>
+              </span>
+            ))}
+            {f.pages > 0 && (
+              <span className="ml-auto text-xs text-ink-muted">
+                {f.pages} {d.aiPages} · {Math.round(f.bytes / 1024)} KB
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-ink-muted">{d.aiChecked}</p>
+          <p className="mt-0.5 text-ink">{when(llms?.checkedAt) || d.aiNever}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-ink-muted">{d.aiChanged}</p>
+          <p className="mt-0.5 text-ink">{when(llms?.changedAt) || "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-ink-muted">{d.aiLastPing}</p>
+          <p className="mt-0.5 text-ink">
+            {ping
+              ? `${when(ping.at)} · ${ping.count} · ${ping.status} · ${ping.auto ? d.aiAuto : d.aiManual}`
+              : d.aiNoPing}
+          </p>
+          {ping && !pingOk && (
+            <p className="mt-0.5 text-xs text-signal-600 dark:text-signal-400">
+              {ping.status === 403 ? d.reason403 : ping.status === 422 ? d.reason422 : ping.message || d.reasonNone}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {llms?.error && (
+        <p className="mt-3 rounded-xl bg-signal-500/10 px-3 py-2 text-sm text-signal-600 dark:text-signal-400">
+          {llms.error}
+        </p>
+      )}
+      {!!llms?.unsent && (
+        <p className="mt-3 text-sm text-ink-muted">
+          {llms.unsent} {d.aiUnsent}
+        </p>
+      )}
+
+      {!!llms?.changed?.length && (
+        <details className="mt-3 text-sm">
+          <summary className="cursor-pointer text-ink-soft">
+            {d.aiChangedList} · {llms.changed.length}
+          </summary>
+          <ul className="mt-2 space-y-1 text-xs text-ink-muted">
+            {llms.changed.map((u) => (
+              <li key={u} className="break-all">
+                {u}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      <div className="mt-4">
+        <button className="btn-primary" disabled={busy || !hasKey} onClick={onPing}>
+          {busy ? d.aiBusy : d.aiButton}
+        </button>
       </div>
     </div>
   );

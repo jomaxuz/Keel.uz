@@ -752,6 +752,48 @@ yetkazadi / yangi ochilyapti / allaqachon tizimi bor), **til** (uz / ru),
   sahifa bugun ertalab yozilgan va har deployda qayta yozilgan deb aytardi.
   Yo'q maydon hech nima turmaydi, yolg'oni esa da'vo.
 
+- **AI uchun `llms.txt` va `llms-full.txt`** (2026-09-28, llmstxt.org shakli).
+  `/llms.txt` — ro'yxat (sahifa, qo'llanmaning har maqolasi bo'lim bo'yicha,
+  blog, hujjatlar), `/llms-full.txt` — har sahifaning to'liq matni markdownda.
+  Uch tilda: `/ru/llms.txt`, `/en/llms-full.txt` va h.k. — middleware
+  prefiksni odatdagidek olib tashlaydi.
+  - ⚠️ **Fayl emas, route** (`keel-site/src/lib/llms.ts`): qo'llanma
+    bloklaridan, landing lug'atidan, `/developers` hujjatidan va control'dagi
+    blogdan **har so'rovda** quriladi. `public/llms.txt` yozilgan kuni to'g'ri
+    va keyingi maqoladan keyin xato bo'lardi — sitemap darsining o'zi.
+  - ⚠️ **Til faqat middleware sarlavhasidan**, cookie'dan emas: prefikssiz fayl
+    har crawler uchun o'zbekcha bo'lishi shart, oxirgi mehmon nima tanlaganidan
+    qat'i nazar.
+  - Blog butun ro'yxati matni bilan **bitta so'rovda** keladi
+    (`/internal/blog/full`), post boshiga bittadan emas.
+- ⚠️ **LLM uchun rasmiy «ping» yo'q, va ekran buni aytadi.** ChatGPT, Claude,
+  Perplexity o'z jadvali bilan o'qiydi, pushed URL qabul qilmaydi. Shuning
+  uchun «ping» — **IndexNow**: Bing (ChatGPT qidiruvi va Copilot shundan) va
+  Yandex (Alisa). «ChatGPT'ga yuborish» degan tugma nima qilganini aldagan
+  tugma bo'lardi.
+- **Kuzatuvchi** (`control/internal/handlers/llms.go`, `WatchLLMs`): har 15
+  daqiqada uchala `llms-full.txt` ni o'qiydi, **sahifa bo'yicha** xeshlaydi va
+  faqat o'zgargan (yangi, o'chgan) sahifalarni + ikkala faylni yuboradi. Blog
+  saqlanganda/o'chirilganda — 90 soniyadan keyin (`NudgeLLMs`, saytning bir
+  daqiqalik blog keshidan keyin). Qo'llanma deploy bilan o'zgaradi, bu haqda
+  controlga hech kim aytmaydi — uni tiker ushlaydi.
+  - ⚠️ **Shartnoma — har sahifa sarlavhasi ostidagi `URL:` qatori.** Kuzatuvchi
+    faylni shu qatorlar bo'yicha bo'ladi; sahifa **o'z `##` sarlavhasidan**
+    keyingi sahifa sarlavhasigacha. "`##` bilan boshlangan har qator" emas:
+    blog — erkin matn, va muallifning o'z `## Kichik sarlavhasi` postni erta
+    tugatib, qolgan qismini kuzatuvdan chiqarib qo'yardi. Ikkala tomonda test.
+  - ⚠️ **Birinchi qarash — baza, o'zgarish emas**: saqlangan xesh yo'q bo'lsa har
+    sahifa "yangi" bo'lardi va deploydan keyingi birinchi yugurish butun saytni
+    yuborardi. Buning uchun ekranda tugma bor.
+  - ⚠️ **Yarim sayt bilan solishtirilmaydi**: bitta til o'qilmasa, uning hamma
+    sahifasi "o'chgan" bo'lib ko'rinardi va ping dvigatellarga shuni aytardi.
+  - ⚠️ **Xeshlar ro'yxatda, URL kalitli xaritada emas**: Mongo `$set` dagi
+    nuqtani yo'l deb o'qiydi, har URL'da esa nuqta bor.
+  - Kalit yo'q paytdagi o'zgarishlar **sanaladi** (`unsent`) va ekranda
+    aytiladi — jimgina tashlanmaydi.
+  - «Hamma sahifani yuborish» tugmasi ham endi oltita llms manzilini qo'shib
+    yuboradi: ular sitemapda yo'q (odam tushadigan sahifa emas).
+
 ### Hamkorlar: tashqi tavsiya va komissiya (`/console/referrers`)
 Distributsiya mahsulotdan qiyinroq bo'lib chiqdi. Sovuq DM ishlamaydi, iiko
 o'rnatgan restoranda esa allaqachon Delever turibdi. Qoladigan yo'l —

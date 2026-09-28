@@ -15789,3 +15789,28 @@ bitta haqiqiy xato — `clip` importi — tuzatildi); `WireShapeTest` 7/7.
 Room, activity, firebase, lifecycle — stub, ya'ni ularga tegadigan joylar
 tekshirilmagan (bu ishda ular o'zgarmagan).
 ⏳ `./gradlew :app:assembleDebug` va telefonda sinash kerak.
+
+
+## 2026-09-28 (2) — keel.uz: AI uchun llms.txt / llms-full.txt va avtomatik ping
+
+- **`/llms.txt` va `/llms-full.txt`** (uch tilda, `/ru/…`, `/en/…`): ro'yxat
+  va har sahifaning to'liq markdown matni — bosh sahifa, kassa, yuklab olish,
+  ochiq API, qo'llanmaning 88 maqolasi va blog. Har so'rovda saytning o'z
+  manbalaridan quriladi (`keel-site/src/lib/llms.ts`), ya'ni hech qachon
+  eskirmaydi. Control'da blog butun matni bilan bitta so'rovda
+  (`/internal/blog/full`).
+- **Avtomatik ping** (`control/internal/handlers/llms.go`): kuzatuvchi har 15
+  daqiqada fayllarni qayta o'qiydi, sahifa bo'yicha xeshlab, faqat o'zgargan
+  sahifalarni va ikkala faylni IndexNow'ga yuboradi; blog saqlanganda — 90 s
+  keyin. «Hamma sahifani yuborish» ham endi llms fayllarini qo'shadi.
+- **Konsol → SEO**: yangi «Sun'iy intellekt uchun: llms.txt» kartasi — uch til
+  bo'yicha havolalar (ochish/nusxa), sahifa soni va hajmi, oxirgi tekshiruv,
+  oxirgi o'zgarish, oxirgi ping (avto/qo'lda, dvigatel javobi), o'zgargan
+  sahifalar ro'yxati va «Tekshirish va ping qilish» tugmasi.
+- ⚠️ LLM'larga rasmiy ping yo'q — ekran buni ochiq aytadi: ping Bing (ChatGPT
+  qidiruvi, Copilot) va Yandex (Alisa) orqali.
+- Tekshiruv: control `go vet` + `go test ./...` (4 yangi test), keel-site
+  `tsc` + vitest 47/47 (6 yangi), dev serverda `/llms.txt`, `/ru/llms-full.txt`
+  ochildi (92 sahifa, ~188 KB).
+- ⏳ Deploydan keyin: `INDEXNOW_KEY` borligini va konsolda birinchi tekshiruv
+  (2 daqiqadan keyin) o'tganini ko'rish.

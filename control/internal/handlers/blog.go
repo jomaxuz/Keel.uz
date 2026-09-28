@@ -75,6 +75,49 @@ func (h *Handler) BlogList(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"posts": out})
 }
 
+// blogBody is one post with its words, for the site's `/llms-full.txt`.
+type blogBody struct {
+	blogCard
+	Body string `json:"body"`
+}
+
+// BlogFullList is every published post in one language, bodies included.
+//
+// ⚠️ **One answer for the whole list**, because the file it feeds holds every
+// post: built from BlogRead it would be a request per post on a route crawlers
+// fetch. Same rule as the list — a post with nothing in this language is left
+// out rather than shown in another.
+func (h *Handler) BlogFullList(w http.ResponseWriter, r *http.Request) {
+	lang := blogLang(r.URL.Query().Get("lang"))
+	cur, err := h.Store.Blog.Find(r.Context(),
+		bson.M{"published": true},
+		options.Find().SetSort(bson.D{{Key: "publishedAt", Value: -1}}).SetLimit(200))
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var posts []models.BlogPost
+	if err := cur.All(r.Context(), &posts); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	out := []blogBody{}
+	for _, p := range posts {
+		if !p.Has(lang) {
+			continue
+		}
+		t := p.Text(lang)
+		out = append(out, blogBody{
+			blogCard: blogCard{
+				Slug: p.Slug, Cover: p.Cover, Title: t.Title, Excerpt: t.Excerpt,
+				PublishedAt: p.PublishedAt, Views: p.Views,
+			},
+			Body: t.Body,
+		})
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"posts": out})
+}
+
 // blogFull is one post as its own page shows it.
 type blogFull struct {
 	blogCard
@@ -216,6 +259,9 @@ func (h *Handler) ConsoleBlogSave(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		req.ID, _ = res.InsertedID.(primitive.ObjectID)
+		// The AI files are rebuilt from the blog; look at them once the site
+		// has picked the change up, and ping what moved (llms.go).
+		h.NudgeLLMs()
 		httpx.JSON(w, http.StatusOK, req)
 		return
 	}
@@ -248,6 +294,7 @@ func (h *Handler) ConsoleBlogSave(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	h.NudgeLLMs()
 	httpx.JSON(w, http.StatusOK, req)
 }
 
@@ -262,6 +309,7 @@ func (h *Handler) ConsoleBlogDelete(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	h.NudgeLLMs()
 	httpx.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
 }
 

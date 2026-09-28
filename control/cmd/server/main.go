@@ -75,6 +75,11 @@ func main() {
 	// with it.
 	go sampleStatus(ctx, h, time.Minute)
 
+	// Reads keel.uz/llms-full.txt back every quarter hour and pings the pages
+	// whose text changed — the half of "keep the AI files current" that the
+	// files cannot do for themselves (handlers/llms.go).
+	go h.WatchLLMs(ctx)
+
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      handlers.Router(h, cfg),

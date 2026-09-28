@@ -23,6 +23,9 @@ export default defineConfig({
       // rendered again — the difference between an editor that flashes on every
       // click and one that does not.
       "src/lib/designDiff.test.ts",
+      // keel.uz/llms.txt and llms-full.txt — including the `URL:` line under
+      // every page that the console's watcher splits the file on.
+      "src/lib/llms.test.ts",
     ],
   },
 });
