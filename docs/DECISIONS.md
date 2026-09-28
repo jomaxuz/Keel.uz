@@ -4990,6 +4990,42 @@ keldi. Uchta alohida sabab bor edi, va uchalasi ham «qotish» bo'lib ko'rinadi:
    rost edi. Endi qo'shish hech qachon o'chmaydi; navbat baribir tartibni
    saqlaydi.
 
+⚠️ **Native ofitsiantda (Kotlin) qotishning yana beshta sababi bor edi**
+(2026-09-28, `mobile/waiter-android`). Uchtasi yuqoridagilarning o'zi edi,
+ikkinchi tilda qayta yozilgan; qolganlari faqat shu yerda:
+
+1. **Ekran kalit bo'yicha animatsiya qilinib, joriy holatdan chizilardi.**
+   `AnimatedContent` ning ikkala yarmi ham *joriy* sessiyani o'qirdi, ya'ni stol
+   ochilganda chek ekrani **ikki nusxada** yaratilardi: ikki barobar so'rov, va
+   eski nusxa yo'qolganda `releaseCheck` endi ochilgan stolni bo'shatardi.
+   Qoida: animatsiya kontenti **lambda parametridan** chiziladi (`Screen`).
+2. **Ma'lumot ekran bilan birga tashlanardi.** Zal, menyu va profil hisoboti
+   `remember` ichida edi — tab almashsa yoki chek yopilsa spinner. Endi
+   jarayonda (`FloorStore`, `MenuCache`): avval ma'lum narsa, keyin yangisi.
+   ⚠️ Eskisi xato bilan almashtirilmaydi — yiqilgan poll oxirgi zalni
+   qoldiradi va buni banner bilan aytadi.
+3. **Stepper eski sonni yuborardi.** `onPlus = { lineQty(l.qty + 1) }` — `l`
+   javob kelguncha o'zgarmaydi, ya'ni uch bosish uchta "2" edi. Son absolyut,
+   shuning uchun raqam bosilganda o'zgaradi va 350 ms tinchlikdan keyin
+   **oxirgisi** bitta so'rov bo'lib ketadi.
+4. **Timeout yo'q edi.** Ktor/OkHttp o'zi kutaverardi, navbatdagi har bosish
+   uning ortida turardi. Endi 6/15/20 s; timeout `ApiError` emas, ya'ni outbox
+   uni "yetib bormadi" deb saqlaydi — to'g'ri javob.
+5. **Navbatda narsa turganda yangi amal to'g'ri serverga urinardi** — tartib
+   buzilishi mumkin edi va oflaynda har bosish timeout kutardi. Endi navbat
+   bo'sh bo'lmasa amal ham navbatga yoziladi va tarmoq qaytishi bilan
+   (`NetworkCallback`) yuboriladi.
+
+⚠️ **Ekrandan chiqish yuborishni bekor qilmasligi kerak.** `rememberCoroutineScope`
+ekran bilan o'ladi, va outbox bekor qilingan korutinadan navbatga yoza olmaydi —
+taom na yuborilgan, na saqlangan bo'lardi. Yozuvlar `NonCancellable` da ketadi
+(`keep {}`), javobi esa hech kim chizmaydigan holatga tushadi — bu bepul.
+
+⚠️ **Umumiy fondagi blur (`KeelBackground`, 120dp `RenderEffect`) olib
+tashlandi**: u har skroll kadrida qayta hisoblanardi, radial gradient esa
+o'zi yumshoq. API 31 dan pastda u umuman ishlamasdi — restoran telefonlarining
+ko'pi shu ko'rinishni doim ko'rgan.
+
 ⚠️ **Pastdagi tugma Android tugmasining ostiga tushmaydi (`useBottomInset`).**
 To'rtala ilova ham edge-to-edge chiziladi, ya'ni maket tizim panelining **ostiga**
 ham cho'ziladi: pastga qo'yilgan tugma «Orqaga» va «Home» ning ortida qoladi, va

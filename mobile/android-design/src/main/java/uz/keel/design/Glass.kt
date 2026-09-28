@@ -39,16 +39,21 @@ import androidx.compose.ui.unit.dp
 // stack-blur library: a per-frame CPU blur on a cheap phone is the stutter the
 // Expo app spent a release removing.
 
-/** Radius the aura blobs are blurred by. Large — it is a light source, not a
- *  shape, and a small radius makes it read as an orange smudge. */
-private val AURA_BLUR = 120.dp
-
 /** The page behind everything: the ground colour and two soft lights.
  *
  *  ⚠️ **Glass needs something to refract.** With a flat backdrop every panel is
  *  a grey rectangle with a border, which is the version of this design that
  *  looks cheap. The two blobs are what makes the same panel read as glass at
- *  the top of a screen and as glass at the bottom. */
+ *  the top of a screen and as glass at the bottom.
+ *
+ *  ⚠️ **No blur on this layer any more, and that was a frame-rate bug.** It
+ *  carried a 120dp `RenderEffect` over the whole screen — and a render effect is
+ *  applied again every time the window is redrawn, which during a scroll is
+ *  every frame. On Android 12+ phones that was the single most expensive thing
+ *  on screen, and it bought nothing: a radial gradient that fades to
+ *  transparent at its own radius is already a soft light. Below API 31 the blur
+ *  never ran at all, so this is also the look most restaurants' phones always
+ *  had. */
 @Composable
 fun KeelBackground(content: @Composable BoxScope.() -> Unit) {
     val c = KeelTheme.colors
@@ -56,7 +61,6 @@ fun KeelBackground(content: @Composable BoxScope.() -> Unit) {
         Box(
             Modifier
                 .fillMaxSize()
-                .blurCompat(AURA_BLUR)
                 .drawBehind {
                     drawCircle(
                         brush = Brush.radialGradient(

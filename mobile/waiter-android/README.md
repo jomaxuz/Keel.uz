@@ -113,6 +113,21 @@ bitta, va farqi shu.
 
 ---
 
+### Zal va chek (2026-09-28 qayta chizilgan)
+
+- **Zal**: soni bilan filtrlar (Hammasi / Band / Bo'sh / Tayyor / Meniki —
+  oxirgi ikkitasi faqat bo'sh bo'lmasa), stol kartasida raqam, daqiqa, summa
+  va **bitta** eng muhim nishon (tayyor → yangi → hisob berilgan → mehmonlar).
+  ⚠️ Ikki burchakdagi rangli nuqta emas — qaysi biri nima ekanini hech kim
+  aytib bera olmasdi. Tayyor taomli stol — yashil chegara (animatsiya emas:
+  har tayyor stolga cheksiz kadr arzon telefonda qimmat).
+- **Chek**: qatorlar guruhlarda — *Yuborilmagan → Tayyor — olib boring →
+  Oshxonada → Berilgan*; pastda doimiy panel (Jami + bitta asosiy amal).
+  Chek/Menyu — segment, ⚠️ **to'q sariq emas**: ekrandagi yagona to'q sariq
+  «Oshxonaga yuborish».
+- Holat jarayonda (`data/FloorStore.kt`), ekranda emas — qarang
+  `docs/DECISIONS.md` → «Native ofitsiantda qotishning yana beshta sababi».
+
 ## Nima qolgan
 
 ⚠️ **Bu ro'yxat 2026-09-06 da tekshirildi**: to'rttadan uchtasi bajarilgan edi

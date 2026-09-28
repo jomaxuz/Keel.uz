@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -175,23 +176,44 @@ class Outbox(
         call: suspend (opId: String) -> T,
     ): Outcome<T> {
         val opId = UUID.randomUUID().toString()
+        // ⚠️ **Behind the queue, not past it, while anything is waiting.** Sent
+        // straight away, "make it three" could reach the server before the "add
+        // two" still sitting on the disk — the ordering the whole queue exists to
+        // keep. And while the network is down every direct attempt costs a full
+        // timeout before it is queued anyway, which is the wait people felt as a
+        // frozen menu. Queued here, it is drained in order the moment the flush
+        // gets through.
+        if (_pending.value > 0) {
+            enqueue(opId, checkId, kind, payload)
+            flushSoon()
+            return Outcome.Queued
+        }
         return try {
             Outcome.Sent(call(opId))
         } catch (e: ApiError) {
             Outcome.Refused(e)
+        } catch (e: CancellationException) {
+            // ⚠️ The caller went away (the screen closed); that is not a network
+            // failure, and writing it to the queue from a cancelled coroutine
+            // fails anyway. The callers that must finish run it NonCancellable.
+            throw e
         } catch (e: Throwable) {
             // ⚠️ Written with the id the attempt already used. A resend that
             // minted a fresh one would be a new tap to the server, and the
             // dedupe it relies on would never match.
-            dao.add(
-                OutboxOp(
-                    id = opId, checkId = checkId, kind = kind.name,
-                    payload = payload, createdAt = System.currentTimeMillis(),
-                ),
-            )
-            refreshCount()
+            enqueue(opId, checkId, kind, payload)
             Outcome.Queued
         }
+    }
+
+    private suspend fun enqueue(opId: String, checkId: String, kind: OpKind, payload: String) {
+        dao.add(
+            OutboxOp(
+                id = opId, checkId = checkId, kind = kind.name,
+                payload = payload, createdAt = System.currentTimeMillis(),
+            ),
+        )
+        refreshCount()
     }
 
     /** Send everything that is waiting, oldest first. */
@@ -202,25 +224,37 @@ class Outbox(
     suspend fun flush() {
         if (!flushing.tryLock()) return
         try {
-            for (op in dao.all()) {
-                try {
-                    replay(op)
-                    dao.remove(op.id)
-                } catch (e: ApiError) {
-                    // ⚠️ **The server answered, so this will not improve by
-                    // being asked again.** A voided line, a sold-out dish, a
-                    // closed check: dropped rather than retried, or one dead
-                    // operation holds up every live one behind it.
-                    dao.remove(op.id)
-                } catch (e: Throwable) {
-                    // Still no network. Left in place, counted, and the rest of
-                    // the queue is not attempted — ⚠️ order is the correctness
-                    // here, and skipping ahead would apply "make it three"
-                    // before "add two".
-                    dao.failed(op.id)
-                    dao.dropExhausted(MAX_ATTEMPTS)
-                    break
+            // ⚠️ **Until it is empty or stuck, not one pass.** A tap queued while
+            // this pass was running used to wait out the whole retry interval
+            // with the network already back.
+            var stuck = false
+            while (!stuck) {
+                val ops = dao.all()
+                if (ops.isEmpty()) break
+                for (op in ops) {
+                    try {
+                        replay(op)
+                        dao.remove(op.id)
+                    } catch (e: ApiError) {
+                        // ⚠️ **The server answered, so this will not improve by
+                        // being asked again.** A voided line, a sold-out dish, a
+                        // closed check: dropped rather than retried, or one dead
+                        // operation holds up every live one behind it.
+                        dao.remove(op.id)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        // Still no network. Left in place, counted, and the rest
+                        // of the queue is not attempted — ⚠️ order is the
+                        // correctness here, and skipping ahead would apply "make
+                        // it three" before "add two".
+                        dao.failed(op.id)
+                        dao.dropExhausted(MAX_ATTEMPTS)
+                        stuck = true
+                        break
+                    }
                 }
+                refreshCount()
             }
             refreshCount()
         } finally {

@@ -3,9 +3,13 @@ package uz.keel.waiter
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.Build
 import uz.keel.waiter.data.DeviceInfo
+import uz.keel.waiter.data.FloorStore
 import uz.keel.waiter.data.KeelApi
+import uz.keel.waiter.data.MenuCache
 import uz.keel.waiter.data.Outbox
 import uz.keel.design.TokenStore
 
@@ -25,6 +29,11 @@ class KeelWaiterApp : Application() {
     lateinit var prefs: Prefs
         private set
     lateinit var outbox: Outbox
+        private set
+    /** The room and the menu, kept between screens — see `FloorStore.kt`. */
+    lateinit var floor: FloorStore
+        private set
+    lateinit var menu: MenuCache
         private set
 
     override fun onCreate() {
@@ -52,7 +61,25 @@ class KeelWaiterApp : Application() {
         // saved — the worst outcome this app can produce.
         outbox = Outbox(this, api)
         outbox.startRetrying()
+        floor = FloorStore(api)
+        menu = MenuCache(api)
         createKitchenChannel()
+        watchNetwork()
+    }
+
+    /** ⚠️ **The queue is drained the moment the network is back**, not on the
+     *  next tick of the retry loop. Walking out of the cellar with four dishes
+     *  held used to mean up to eight more seconds of "yuborilmoqda" with full
+     *  signal — long enough for the waiter to tap them again. */
+    private fun watchNetwork() {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return
+        runCatching {
+            cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    outbox.flushSoon()
+                }
+            })
+        }
     }
 
     /** ⚠️ **Created before the first notification can arrive**, or Android files

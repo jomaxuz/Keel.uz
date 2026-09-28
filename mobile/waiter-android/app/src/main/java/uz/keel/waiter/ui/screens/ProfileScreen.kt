@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,10 +67,15 @@ fun ProfileScreen(
     staff: Staff,
     bottomInset: PaddingValues,
     onShiftChanged: () -> Unit = {},
+    /** The last report, kept by the caller between visits. ⚠️ Without it the tab
+     *  drew a spinner every time it was opened — a second of nothing to read a
+     *  number that had not changed since the last glance. */
+    cached: MutableState<StaffReport?>? = null,
 ) {
     val c = KeelTheme.colors
     val scope = rememberCoroutineScope()
-    var report by remember { mutableStateOf<StaffReport?>(null) }
+    val holder = cached ?: remember { mutableStateOf<StaffReport?>(null) }
+    var report by holder
     var error by remember { mutableStateOf("") }
     val failedLoad = t.floor.failedLoad
 
