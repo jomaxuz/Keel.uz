@@ -51,6 +51,10 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		// The blog keel.uz renders. Public because it is a marketing page —
 		// the same reasoning the partner logos above are public under.
 		r.Get("/blog", h.BlogList)
+		// Every post with its words, for keel.uz/llms-full.txt. (chi matches
+		// the static segment before `{slug}`, so "full" is never read as a
+		// post's address.)
+		r.Get("/blog/full", h.BlogFullList)
 		r.Get("/blog/{slug}", h.BlogRead)
 		r.Get("/blog/image/{id}", h.BlogImage)
 		// One reading, told by the reader's browser — see blog.go for why it
@@ -178,6 +182,8 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 
 			r.Get("/seo", h.need("seo", h.SeoStatus))
 			r.Post("/seo/indexnow", h.need("seo", h.SeoPing))
+			// llms.txt / llms-full.txt: look now and ping them (llms.go).
+			r.Post("/seo/llms", h.need("seo", h.SeoLLMsPing))
 
 			r.Get("/referrers", h.need("partners", h.ListReferrers))
 			r.Get("/referrers/{id}", h.need("partners", h.GetReferrer))

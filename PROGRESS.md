@@ -15721,3 +15721,96 @@ b5somsa'dagi ortiqcha 8 ta topshirma o'chirildi (pastda).
   stepper), izoh «+ Izoh qo'shish» havolasi ortida, pastda bitta qatorli
   jami + «Rasmiylashtirish».
 - ⏳ Telefonda sinalmagan; mehmon va team ilovalarini qayta build qilish kerak.
+
+
+## 2026-09-28 — Keel Waiter (native): yangi ko'rinish va qotishlar
+
+Egasi: «dizayn ko'nglimga yoqmayapti, ilovada qotish va kutishlar bor».
+Qotishlarning **sabablari topildi** — hammasi kodda, tarmoqda emas:
+
+- **Stol ochilganda chek ekrani ikki marta yaratilardi.** Ildizdagi
+  `AnimatedContent` kalit bo'yicha animatsiya qilardi, lekin ikkala yarmini
+  ham *joriy* sessiyadan chizardi: har ochilish 6 ta so'rov (3 emas), va
+  chiqib ketayotgan nusxa yo'q bo'lganda **endi ochilgan stolning holdini
+  bo'shatardi**. Endi ekran maqsad holatdan chiziladi (`Screen`).
+- **Zal har safar noldan yuklanardi.** Profil tabiga o'tib qaytish yoki chekni
+  yopish zalni tashlab yuborardi va spinner chiqardi. Zal va menyu endi
+  jarayonda turadi (`data/FloorStore.kt`: `FloorStore`, `MenuCache`) — ekran
+  darhol ko'rinadi, yangilanish ostida ketadi; zona, filtr va skroll joyi
+  saqlanadi. `branch` va `checks` endi **parallel** so'raladi, `branch` esa
+  5 daqiqada bir.
+- **Menyu har stolda qayta yuklanardi** (va menyu tabi bo'sh turardi) — endi
+  zal ochilganda oldindan olinadi va xotiradan ko'rsatiladi.
+- **Stepper tez bosilganda eski sonni yuborardi**: har bosish `line.qty` ning
+  eskirgan qiymatidan `+1` qilardi va javobgacha raqam qimirlamasdi. Endi raqam
+  bosilganda o'zgaradi, so'rov 350 ms tinchlikdan keyin **oxirgi** qiymat bilan
+  bitta ketadi. «Berildi» ham shunday; umumiy `busy` (bitta so'rov butun
+  ro'yxatni o'chirib qo'yardi) olib tashlandi.
+- **Timeout yo'q edi**: yarim o'lik Wi-Fi'da so'rov socket qo'yguncha osilib
+  turardi, orqasidagi har bosish navbatda kutardi. Endi 6/15/20 s, va timeout
+  outbox'ga tushadi (taom yo'qolmaydi).
+- **Outbox**: navbatda nimadir tursa yangi amal ham navbatga yoziladi (tartib
+  buzilmaydi, har bosish timeout kutmaydi); tarmoq qaytishi bilan
+  (`NetworkCallback`) darhol yuboriladi; bir o'tishda emas, bo'shaguncha.
+  Ekran yopilayotganda yuborilgan taom endi bekor qilinmaydi (`NonCancellable`)
+  — ilgari u na yuborilgan, na navbatda bo'lardi.
+- **Zal va chek o'zi yangilanadi** (15 s / 10 s, faqat ekran ko'rinib turganda,
+  ilova oldinga chiqqanda darhol). Ilgari «tayyor» faqat qo'lda tortganda
+  ko'rinardi.
+- **Umumiy fondagi 120dp `RenderEffect` blur olib tashlandi** (`android-design`
+  → `Glass.kt`, oltita ilovaga tegadi): u har skroll kadrida qayta hisoblanardi,
+  radial gradient esa o'zi yumshoq. Taom kartalaridan soya va doimiy
+  `graphicsLayer` olib tashlandi.
+
+Dizayn:
+- **Zal**: sarlavha (filial + «Zal»), soni bilan filtrlar (Hammasi / Band /
+  Bo'sh / Tayyor / Meniki), zona chiplari, stol kartasi — raqam, necha daqiqa,
+  summa va **bitta eng muhim nishon** («2 tayyor» yashil, «3 yangi», «Hisob
+  berilgan»). Ikki burchakdagi 9px nuqtalar o'rniga so'z. Tayyor taomli stol
+  yashil chegara bilan. Smena ochilmagan bo'lsa ogohlantirish bosishdan
+  **oldin** ko'rinadi. Birinchi yuklanishda spinner o'rniga stol shakllari.
+- **Chek**: sarlavhada stol, #raqam · mehmonlar · daqiqa; Chek/Menyu —
+  segment boshqaruv; qatorlar guruhlangan: **Yuborilmagan → Tayyor — olib
+  boring → Oshxonada → Berilgan**; chap tomonda son nishoni; pastda doimiy
+  panel: Jami (+ xizmat haqi), «Oshxonaga yuborish (n)» yoki «Hisob».
+  Xatolar qizil satr emas, yopiladigan banner (navbat — to'q sariq, xato —
+  qizil). Har qo'shishda yengil tebranish (haptic).
+- **Menyu**: kategoriya chipida shu bo'limdan chekda nechta taom borligi,
+  «Chekdagilar» birinchi o'rinda va barcha bo'limlar bo'yicha; bo'lim
+  almashganda ro'yxat tepadan boshlanadi; Chek↔Menyu o'tganda qidiruv,
+  bo'lim va skroll saqlanadi.
+- Profil tabi ham oxirgi hisobotni saqlaydi (har kirishda spinner yo'q).
+
+⚠️ **Bu muhitda Android build qilib bo'lmadi** (Google Maven bloklangan).
+Tekshiruv o'rniga: butun `waiter-android` + `android-design` Compose Desktop
+1.7.3 (Maven Central) va API 36 Android klasslari bilan JVM'da kompilyatsiya
+qilindi (Compose kompilyator plagini bilan) — **0 xato** (shunda topilgan
+bitta haqiqiy xato — `clip` importi — tuzatildi); `WireShapeTest` 7/7.
+Room, activity, firebase, lifecycle — stub, ya'ni ularga tegadigan joylar
+tekshirilmagan (bu ishda ular o'zgarmagan).
+⏳ `./gradlew :app:assembleDebug` va telefonda sinash kerak.
+
+
+## 2026-09-28 (2) — keel.uz: AI uchun llms.txt / llms-full.txt va avtomatik ping
+
+- **`/llms.txt` va `/llms-full.txt`** (uch tilda, `/ru/…`, `/en/…`): ro'yxat
+  va har sahifaning to'liq markdown matni — bosh sahifa, kassa, yuklab olish,
+  ochiq API, qo'llanmaning 88 maqolasi va blog. Har so'rovda saytning o'z
+  manbalaridan quriladi (`keel-site/src/lib/llms.ts`), ya'ni hech qachon
+  eskirmaydi. Control'da blog butun matni bilan bitta so'rovda
+  (`/internal/blog/full`).
+- **Avtomatik ping** (`control/internal/handlers/llms.go`): kuzatuvchi har 15
+  daqiqada fayllarni qayta o'qiydi, sahifa bo'yicha xeshlab, faqat o'zgargan
+  sahifalarni va ikkala faylni IndexNow'ga yuboradi; blog saqlanganda — 90 s
+  keyin. «Hamma sahifani yuborish» ham endi llms fayllarini qo'shadi.
+- **Konsol → SEO**: yangi «Sun'iy intellekt uchun: llms.txt» kartasi — uch til
+  bo'yicha havolalar (ochish/nusxa), sahifa soni va hajmi, oxirgi tekshiruv,
+  oxirgi o'zgarish, oxirgi ping (avto/qo'lda, dvigatel javobi), o'zgargan
+  sahifalar ro'yxati va «Tekshirish va ping qilish» tugmasi.
+- ⚠️ LLM'larga rasmiy ping yo'q — ekran buni ochiq aytadi: ping Bing (ChatGPT
+  qidiruvi, Copilot) va Yandex (Alisa) orqali.
+- Tekshiruv: control `go vet` + `go test ./...` (4 yangi test), keel-site
+  `tsc` + vitest 47/47 (6 yangi), dev serverda `/llms.txt`, `/ru/llms-full.txt`
+  ochildi (92 sahifa, ~188 KB).
+- ⏳ Deploydan keyin: `INDEXNOW_KEY` borligini va konsolda birinchi tekshiruv
+  (2 daqiqadan keyin) o'tganini ko'rish.

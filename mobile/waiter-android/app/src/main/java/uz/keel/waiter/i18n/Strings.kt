@@ -41,6 +41,7 @@ data class Dict(
     val settings: Settings,
     val outbox: Outbox,
     val common: Common,
+    val look: Look,
 ) {
     data class Server(val title: String, val hint: String, val placeholder: String, val next: String, val bad: String)
     data class Login(val title: String, val username: String, val password: String, val submit: String, val other: String, val failed: String)
@@ -107,6 +108,18 @@ data class Dict(
      *  retyping, which is the opposite of what "qo'shib bo'lmadi" told people. */
     data class Outbox(val queued: String, val waiting: (Int) -> String)
     data class Common(val retry: String, val loading: String, val timeAgo: TimeAgo)
+    /** Words the redesigned floor and check screens say. ⚠️ One group rather
+     *  than a field added to each of four others: the redesign is one change,
+     *  and reverting it should be one too. */
+    data class Look(
+        val all: String, val taken: String, val free: String, val ready: String, val mine: String,
+        val seats: (Int) -> String, val minutes: (Int) -> String,
+        val readyBadge: (Int) -> String, val newBadge: (Int) -> String,
+        val billGiven: String, val staleRoom: String, val noMatch: String,
+        val secDraft: String, val secReady: String, val secCooking: String, val secServed: String,
+        val total: String, val service: (String) -> String, val guests: (Int) -> String,
+        val menuFailed: String,
+    )
     data class TimeAgo(val now: String, val min: (Int) -> String, val hour: (Int) -> String, val day: (Int) -> String)
 }
 
@@ -213,6 +226,18 @@ val UZ = Dict(
         retry = "Qayta urinish", loading = "Yuklanmoqda…",
         timeAgo = Dict.TimeAgo("hozir", { "$it daq oldin" }, { "$it soat oldin" }, { "$it kun oldin" }),
     ),
+    look = Dict.Look(
+        all = "Hammasi", taken = "Band", free = "Bo'sh", ready = "Tayyor", mine = "Meniki",
+        seats = { "$it o'rin" }, minutes = { "$it daq" },
+        readyBadge = { "$it tayyor" }, newBadge = { "$it yangi" },
+        billGiven = "Hisob berilgan",
+        staleRoom = "Yangilab bo'lmadi — oxirgi ma'lumot ko'rsatilmoqda",
+        noMatch = "Bu filtrda stol yo'q",
+        secDraft = "Yuborilmagan", secReady = "Tayyor — olib boring",
+        secCooking = "Oshxonada", secServed = "Berilgan",
+        total = "Jami", service = { "Xizmat haqi $it%" }, guests = { "$it mehmon" },
+        menuFailed = "Menyuni yuklab bo'lmadi",
+    ),
 )
 
 val RU = Dict(
@@ -308,6 +333,18 @@ val RU = Dict(
         retry = "Повторить", loading = "Загрузка…",
         timeAgo = Dict.TimeAgo("только что", { "$it мин назад" }, { "$it ч назад" }, { "$it дн назад" }),
     ),
+    look = Dict.Look(
+        all = "Все", taken = "Заняты", free = "Свободны", ready = "Готово", mine = "Мои",
+        seats = { "$it мест" }, minutes = { "$it мин" },
+        readyBadge = { "$it готово" }, newBadge = { "$it новых" },
+        billGiven = "Счёт выдан",
+        staleRoom = "Не удалось обновить — показаны последние данные",
+        noMatch = "Нет столов по этому фильтру",
+        secDraft = "Не отправлено", secReady = "Готово — несите",
+        secCooking = "На кухне", secServed = "Подано",
+        total = "Итого", service = { "Обслуживание $it%" }, guests = { "$it гостей" },
+        menuFailed = "Не удалось загрузить меню",
+    ),
 )
 
 val EN = Dict(
@@ -402,6 +439,18 @@ val EN = Dict(
     common = Dict.Common(
         retry = "Try again", loading = "Loading…",
         timeAgo = Dict.TimeAgo("just now", { "$it min ago" }, { "$it h ago" }, { "$it d ago" }),
+    ),
+    look = Dict.Look(
+        all = "All", taken = "Taken", free = "Free", ready = "Ready", mine = "Mine",
+        seats = { "$it seats" }, minutes = { "$it min" },
+        readyBadge = { "$it ready" }, newBadge = { "$it new" },
+        billGiven = "Bill given",
+        staleRoom = "Could not refresh — showing the last known room",
+        noMatch = "No tables match this filter",
+        secDraft = "Not sent", secReady = "Ready — take it out",
+        secCooking = "In the kitchen", secServed = "Served",
+        total = "Total", service = { "Service $it%" }, guests = { "$it guests" },
+        menuFailed = "Could not load the menu",
     ),
 )
 

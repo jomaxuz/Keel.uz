@@ -84,6 +84,7 @@ func (h *Handler) SeoStatus(w http.ResponseWriter, r *http.Request) {
 		FindOne(r.Context(), bson.M{"_id": "indexnow"}).Decode(&st); e == nil {
 		out["last"] = st
 	}
+	out["llms"] = h.llmsStatus(r.Context())
 	httpx.JSON(w, http.StatusOK, out)
 }
 
@@ -104,39 +105,29 @@ func (h *Handler) SeoPing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	host := strings.TrimPrefix(strings.TrimPrefix(h.origin(), "https://"), "http://")
-	body, _ := json.Marshal(map[string]any{
-		"host":        host,
-		"key":         h.Cfg.IndexNowKey,
-		"keyLocation": h.origin() + keyPath,
-		"urlList":     urls,
-	})
+	// ⚠️ **The AI files ride along.** `/llms.txt` and `/llms-full.txt` are not
+	// in the sitemap (they are not pages a person lands on), so without this
+	// line the one push that says "look at everything" would skip exactly the
+	// files the answer engines read. See llms.go.
+	urls = append(urls, h.llmsURLs()...)
 
-	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
-	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, indexNowEndpoint,
-		strings.NewReader(string(body)))
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-
-	res, err := http.DefaultClient.Do(req)
+	host := h.indexNowHost()
+	status, message, err := h.indexNowSubmit(r.Context(), urls)
 	if err != nil {
 		httpx.Error(w, http.StatusBadGateway, "yuborilmadi: "+err.Error())
 		return
 	}
-	defer res.Body.Close()
-	answer, _ := io.ReadAll(io.LimitReader(res.Body, 2048))
-
 	st := seoState{
 		LastPingAt:  time.Now(),
 		LastCount:   len(urls),
-		LastStatus:  res.StatusCode,
-		LastMessage: strings.TrimSpace(string(answer)),
+		LastStatus:  status,
+		LastMessage: message,
 	}
 	_, _ = h.Store.DB.Collection("seo_state").UpdateOne(r.Context(),
 		bson.M{"_id": "indexnow"}, bson.M{"$set": st}, options.Update().SetUpsert(true))
 
 	h.logConsole(r.Context(), h.actorOrNil(r), "seo.indexnow", host,
-		fmt.Sprintf("%d ta manzil, javob %d", len(urls), res.StatusCode))
+		fmt.Sprintf("%d ta manzil, javob %d", len(urls), status))
 
 	// ⚠️ The engine's own status is passed through rather than translated into
 	// ok/not-ok. 200 and 202 both mean accepted; 403 means the key file is not
@@ -144,10 +135,48 @@ func (h *Handler) SeoPing(w http.ResponseWriter, r *http.Request) {
 	// different fix, and "yuborilmadi" tells nobody which.
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"urls":    len(urls),
-		"status":  res.StatusCode,
+		"status":  status,
 		"message": st.LastMessage,
-		"ok":      res.StatusCode == http.StatusOK || res.StatusCode == http.StatusAccepted,
+		"ok":      indexNowAccepted(status),
 	})
+}
+
+// indexNowAccepted is the engine's own word for "taken": 200 and 202 both.
+func indexNowAccepted(status int) bool {
+	return status == http.StatusOK || status == http.StatusAccepted
+}
+
+// indexNowHost is the host IndexNow is told the URLs belong to.
+func (h *Handler) indexNowHost() string {
+	return strings.TrimPrefix(strings.TrimPrefix(h.origin(), "https://"), "http://")
+}
+
+// indexNowSubmit posts one URL list to the IndexNow engines and hands back
+// their answer unchanged — see SeoPing for why the status is not flattened.
+//
+// ⚠️ **One function for the button and for the watcher.** The automatic ping
+// (llms.go) and the manual one must send the same body with the same key; two
+// copies of this request is how one of them ends up on the old key location.
+func (h *Handler) indexNowSubmit(ctx context.Context, urls []string) (int, string, error) {
+	body, _ := json.Marshal(map[string]any{
+		"host":        h.indexNowHost(),
+		"key":         h.Cfg.IndexNowKey,
+		"keyLocation": h.origin() + keyPath,
+		"urlList":     urls,
+	})
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, indexNowEndpoint,
+		strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, "", err
+	}
+	defer res.Body.Close()
+	answer, _ := io.ReadAll(io.LimitReader(res.Body, 2048))
+	return res.StatusCode, strings.TrimSpace(string(answer)), nil
 }
 
 // sitemapURLs reads every address the site publishes, in every language.

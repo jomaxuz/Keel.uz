@@ -1812,6 +1812,35 @@ export type SeoStatus = {
     lastStatus: number;
     lastMessage?: string;
   };
+  /** The AI files and their watcher — see control/internal/handlers/llms.go. */
+  llms?: LlmsStatus;
+};
+
+export type LlmsFile = {
+  lang: string;
+  index: string;
+  full: string;
+  bytes: number;
+  pages: number;
+};
+
+export type LlmsStatus = {
+  files: LlmsFile[];
+  checkedAt?: string | null;
+  /** When the text last changed — not when it was last looked at. */
+  changedAt?: string | null;
+  changed: string[];
+  /** Changes noticed while there was no IndexNow key to tell anybody with. */
+  unsent: number;
+  lastPing?: {
+    at: string;
+    count: number;
+    status: number;
+    message?: string;
+    auto: boolean;
+  } | null;
+  error?: string;
+  everyMin: number;
 };
 
 export type SeoPingResult = {
@@ -1827,3 +1856,5 @@ export type SeoPingResult = {
 export const seoStatus = () => req<SeoStatus>("/seo");
 export const seoPing = () =>
   req<SeoPingResult>("/seo/indexnow", { method: "POST" });
+/** Read the AI files back now and ping them, whatever changed. */
+export const seoLlmsPing = () => req<LlmsStatus>("/seo/llms", { method: "POST" });

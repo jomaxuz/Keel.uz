@@ -5,6 +5,7 @@ import uz.keel.design.TokenStore
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -84,6 +85,18 @@ class KeelApi(private val tokens: TokenStore) {
     private val client = HttpClient(OkHttp) {
         expectSuccess = false
         install(ContentNegotiation) { json(json) }
+        // ⚠️ **Bounded, and short enough to be the outbox's cue.** With no limit
+        // of its own, a request on a restaurant's half-dead wifi hung for as long
+        // as the socket let it — and every tap behind it waited in the check
+        // screen's queue, which is the freeze people reported. A timeout is not
+        // an `ApiError`, so the outbox reads it as "the request never arrived"
+        // and holds the tap on the disk, which is the right answer: nothing is
+        // lost, and the screen is free again in seconds rather than in a minute.
+        install(HttpTimeout) {
+            connectTimeoutMillis = 6_000L
+            socketTimeoutMillis = 15_000L
+            requestTimeoutMillis = 20_000L
+        }
     }
 
     // ---- The wire ----

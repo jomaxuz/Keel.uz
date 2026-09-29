@@ -8,6 +8,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -52,6 +56,8 @@ import uz.keel.design.DesignWords
 import uz.keel.design.LocalLangHost
 import uz.keel.design.LocalWords
 import uz.keel.waiter.push.rememberPushRegistration
+import uz.keel.waiter.data.Check
+import uz.keel.waiter.data.StaffReport
 import uz.keel.design.*
 import uz.keel.waiter.ui.screens.CheckScreen
 import uz.keel.waiter.ui.screens.FloorScreen
@@ -135,7 +141,44 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private data class Open(val checkId: String, val branchId: String)
+/** A table somebody tapped.
+ *
+ *  @param preview what the room already knew about this check. ⚠️ Drawn at once
+ *  while the check is asked for again: the floor's list carries every line, so
+ *  a table that opened on a spinner was waiting for something already on the
+ *  phone. */
+private data class Open(val checkId: String, val branchId: String, val preview: Check? = null)
+
+/** What the root is showing.
+ *
+ *  ⚠️ **The animation is keyed on this and draws from it, and that was a real
+ *  bug.** The root used to animate on a key but draw from the *current* session
+ *  inside both halves of the cross-fade — so opening a table composed two check
+ *  screens at once: both loaded the check, the menu and the room (every open
+ *  was six requests instead of three), and when the outgoing copy was disposed
+ *  it released the hold on the very table the waiter had just opened. */
+private sealed interface Screen {
+    val key: String
+
+    data object Loading : Screen {
+        override val key: String get() = "loading"
+    }
+    data object NoServer : Screen {
+        override val key: String get() = "noServer"
+    }
+    data class Offline(val address: String) : Screen {
+        override val key: String get() = "offline"
+    }
+    data class SignedOut(val address: String) : Screen {
+        override val key: String get() = "signedOut"
+    }
+    data class Main(val ready: Session.Ready) : Screen {
+        override val key: String get() = "main"
+    }
+    data class Table(val ready: Session.Ready, val open: Open) : Screen {
+        override val key: String get() = "check:" + open.checkId
+    }
+}
 
 @Composable
 private fun Root(app: KeelWaiterApp, pendingCheckId: String?, onConsumed: () -> Unit) {
@@ -156,17 +199,33 @@ private fun Root(app: KeelWaiterApp, pendingCheckId: String?, onConsumed: () -> 
 
     val ready = session as? Session.Ready
     val branchId = ready?.staff?.branchId ?: ""
+    // Per person: a new sign-in must not open on the last one's hours.
+    val reportCache = remember(ready?.staff?.id) { mutableStateOf<StaffReport?>(null) }
 
     // ⚠️ Registered once signed in, not at launch: a permission prompt on the
     // first screen is asked before anybody knows what the app is for.
     val push = rememberPushRegistration(app.api, ready != null, app.prefs.lang.value.code)
+
+    // ⚠️ **The room belongs to whoever is signed in.** It is held by the process
+    // now (see FloorStore), so signing out has to let go of it — or the next
+    // person on this phone sees the last one's tables for a second, and on a
+    // different branch that second is somebody else's room.
+    val signedIn = ready != null
+    LaunchedEffect(signedIn) {
+        if (!signedIn) {
+            app.floor.clear()
+            app.menu.clear()
+            open = null
+            tab = "floor"
+        }
+    }
 
     // A notification tap opens the table rather than the room: somebody reading
     // it on the move has already decided where they are going.
     LaunchedEffect(pendingCheckId, ready) {
         val id = pendingCheckId ?: return@LaunchedEffect
         if (ready == null) return@LaunchedEffect
-        open = Open(id, branchId)
+        open = Open(id, branchId, app.floor.checks.firstOrNull { it.id == id })
         onConsumed()
     }
 
@@ -183,69 +242,99 @@ private fun Root(app: KeelWaiterApp, pendingCheckId: String?, onConsumed: () -> 
     // dish is the one somebody just added. 56 of bar + 20 of its margins.
     val tabsInset = PaddingValues(bottom = 76.dp + bottomInset.calculateBottomPadding())
 
+    val screen: Screen = when (val s = session) {
+        is Session.Loading -> Screen.Loading
+        is Session.NoServer -> Screen.NoServer
+        is Session.Offline -> Screen.Offline(s.address)
+        is Session.SignedOut -> Screen.SignedOut(s.address)
+        is Session.Ready -> open?.let { Screen.Table(s, it) } ?: Screen.Main(s)
+    }
+
     Box(Modifier.fillMaxSize()) {
         AnimatedContent(
-            targetState = session::class to (open?.checkId ?: "") to tab,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            targetState = screen,
+            contentKey = { it.key },
+            transitionSpec = {
+                // A table slides in from the side it will leave by, so going
+                // back reads as going back rather than as a third screen.
+                val into = targetState is Screen.Table && initialState !is Screen.Table
+                val back = initialState is Screen.Table && targetState !is Screen.Table
+                when {
+                    into -> (slideInHorizontally(tween(260)) { it / 4 } + fadeIn(tween(220)))
+                        .togetherWith(fadeOut(tween(140)))
+                    back -> fadeIn(tween(220))
+                        .togetherWith(slideOutHorizontally(tween(220)) { it / 4 } + fadeOut(tween(180)))
+                    else -> fadeIn(tween(220)).togetherWith(fadeOut(tween(160)))
+                }
+            },
             label = "root",
-        ) { _ ->
-            when (val s = session) {
-                is Session.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+        ) { sc ->
+            when (sc) {
+                is Screen.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator(color = c.accent)
                 }
 
-                is Session.NoServer -> ServerScreen(onChosen = vm::useServer)
+                is Screen.NoServer -> ServerScreen(onChosen = vm::useServer)
 
                 // ⚠️ **Before the login screen, not instead of an error on it.** A
                 // launch with no network used to land on the password field, where
                 // the right password fails and the app blames the person for a
                 // network they cannot see.
-                is Session.Offline -> OfflineScreen(s.address) { vm.probe() }
+                is Screen.Offline -> OfflineScreen(sc.address) { vm.probe() }
 
-                is Session.SignedOut -> LoginScreen(
-                    address = s.address,
-                    onSignIn = { u, p -> vm.signIn(s.address, u, p) },
+                is Screen.SignedOut -> LoginScreen(
+                    address = sc.address,
+                    onSignIn = { u, p -> vm.signIn(sc.address, u, p) },
                     onForget = vm::forgetServer,
                 )
 
-                is Session.Ready -> {
-                    val o = open
-                    if (o != null) {
-                        CheckScreen(
-                            api = app.api, outbox = app.outbox,
-                            checkId = o.checkId, branchId = o.branchId,
-                            bottomInset = bottomInset, onBack = { open = null },
-                        )
-                    } else {
-                        Column(Modifier.fillMaxSize()) {
-                            Box(Modifier.weight(1f)) {
-                                when (tab) {
-                                    "floor" -> FloorScreen(app.api, tabsInset, s.shiftOpen) { id, br ->
-                                        open = Open(id, br.ifEmpty { branchId })
-                                    }
-                                    // ⚠️ The session is re-read when a shift is
-                                    // punched, or the room goes on refusing a
-                                    // waiter who has just clocked in.
-                                    "profile" -> ProfileScreen(
-                                        app.api, s.staff, tabsInset, onShiftChanged = vm::refreshShift,
-                                    )
-                                    else -> SettingsScreen(
-                                        api = app.api, staff = s.staff, address = s.address,
-                                        bottomInset = tabsInset,
-                                        pushState = push.state,
-                                        onRetryPush = push.retry,
-                                        // ⚠️ The phone is dropped **before** the
-                                        // token is cleared, or the request goes
-                                        // out unauthenticated and the row stays.
-                                        onSignOut = {
-                                            scope.launch { push.forget(); vm.signOut(s.address) }
-                                        },
-                                        onForgetServer = {
-                                            scope.launch { push.forget(); vm.forgetServer() }
-                                        },
-                                    )
-                                }
+                is Screen.Table -> CheckScreen(
+                    api = app.api, outbox = app.outbox, floor = app.floor, menuCache = app.menu,
+                    checkId = sc.open.checkId, branchId = sc.open.branchId,
+                    preview = sc.open.preview,
+                    bottomInset = bottomInset, onBack = { open = null },
+                )
+
+                is Screen.Main -> {
+                    // ⚠️ The live session when there is one: a shift punched on
+                    // the Profile tab re-reads it, and the room has to stop
+                    // refusing at once. The snapshot only draws the frames of a
+                    // sign-out's fade.
+                    val s = ready ?: sc.ready
+                    // ⚠️ **A cross-fade between tabs that keeps nothing, over data
+                    // that is kept elsewhere.** The room lives in FloorStore, so
+                    // coming back to it is instant instead of a spinner.
+                    Crossfade(targetState = tab, animationSpec = tween(180), label = "tab") { tb ->
+                        when (tb) {
+                            "floor" -> FloorScreen(
+                                api = app.api, store = app.floor, menu = app.menu,
+                                staffId = s.staff.id,
+                                bottomInset = tabsInset, shiftOpen = s.shiftOpen,
+                            ) { id, br, preview ->
+                                open = Open(id, br.ifEmpty { s.staff.branchId ?: "" }, preview)
                             }
+                            // ⚠️ The session is re-read when a shift is
+                            // punched, or the room goes on refusing a
+                            // waiter who has just clocked in.
+                            "profile" -> ProfileScreen(
+                                app.api, s.staff, tabsInset, onShiftChanged = vm::refreshShift,
+                                cached = reportCache,
+                            )
+                            else -> SettingsScreen(
+                                api = app.api, staff = s.staff, address = s.address,
+                                bottomInset = tabsInset,
+                                pushState = push.state,
+                                onRetryPush = push.retry,
+                                // ⚠️ The phone is dropped **before** the
+                                // token is cleared, or the request goes
+                                // out unauthenticated and the row stays.
+                                onSignOut = {
+                                    scope.launch { push.forget(); vm.signOut(s.address) }
+                                },
+                                onForgetServer = {
+                                    scope.launch { push.forget(); vm.forgetServer() }
+                                },
+                            )
                         }
                     }
                 }
@@ -254,15 +343,16 @@ private fun Root(app: KeelWaiterApp, pendingCheckId: String?, onConsumed: () -> 
 
         // ⚠️ **What the phone is still holding, said on every screen.** An app
         // with four dishes queued looks exactly like an app that sent them, and
-        // the difference reaches the guest. Above the tab bar rather than inside
-        // the check: the waiter walks away from the table while it is still
-        // waiting, and that is precisely when they need to know.
+        // the difference reaches the guest. Above the tab bar: the waiter walks
+        // away from the table while it is still waiting, and that is precisely
+        // when they need to know. ⚠️ The check screen says it in its own bottom
+        // panel instead — drawn here it sat on top of "send to the kitchen".
         val queued by app.outbox.pending.collectAsState()
-        if (ready != null && queued > 0) {
+        if (ready != null && open == null && queued > 0) {
             QueuedBanner(
                 queued,
                 Modifier.align(Alignment.BottomCenter)
-                    .padding(bottom = if (open == null) 84.dp else 8.dp)
+                    .padding(bottom = 84.dp)
                     .padding(bottom = bottomInset.calculateBottomPadding()),
             )
         }

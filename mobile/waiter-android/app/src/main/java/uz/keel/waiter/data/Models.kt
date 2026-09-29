@@ -149,6 +149,10 @@ data class Check(
     val tableId: String? = null,
     val tableNumber: String? = null,
     val guests: Int = 0,
+    /** Who opened the table. ⚠️ The floor's "mine" filter reads this, and it is
+     *  the till's own field (`check.serverId`), not a second idea of ownership. */
+    val serverId: String? = null,
+    val serverName: String? = null,
     val openedAt: String = "",
     val openMin: Int = 0,
     val lines: List<CheckLine> = emptyList(),

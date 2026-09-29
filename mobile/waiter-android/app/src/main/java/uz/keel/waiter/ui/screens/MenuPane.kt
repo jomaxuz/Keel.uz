@@ -1,5 +1,8 @@
 package uz.keel.waiter.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,12 +13,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
@@ -28,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +42,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -56,12 +65,27 @@ import uz.keel.waiter.ui.components.MenuView
 // missing translation falls back to it, which is what stops a half-translated
 // menu from showing empty rows.
 
+/** Where the waiter was in the menu.
+ *
+ *  ⚠️ **Held by the check screen, not by this pane.** The pane is thrown away
+ *  every time the waiter flips to the check and back — which they do after
+ *  every few dishes, to read the table back — and it used to come back on the
+ *  first category, scrolled to the top, with the search cleared. The drinks
+ *  they were halfway through were three taps away again. */
+class MenuPaneState {
+    var category by mutableIntStateOf(0)
+    var query by mutableStateOf("")
+    var onlyAdded by mutableStateOf(false)
+    val grid = LazyGridState()
+    val chips = LazyListState()
+}
+
 @Composable
 fun MenuPane(
     groups: List<MenuGroup>,
     /** How many of each dish are already on the check. */
     onCheck: Map<String, Int>,
-    /** What the branch has run out of today, from the check poll. */
+    /** What the branch has run out of today, from the room's poll. */
     soldOut: Set<String>,
     view: MenuView,
     onView: (MenuView) -> Unit,
@@ -74,12 +98,12 @@ fun MenuPane(
      *  another tab to undo a tap they made a second ago is how a wrong count
      *  survives to the kitchen. */
     onRemove: (MenuItem) -> Unit,
+    state: MenuPaneState = remember { MenuPaneState() },
 ) {
     val c = KeelTheme.colors
-    var category by remember { mutableIntStateOf(0) }
-    var query by remember { mutableStateOf("") }
-    var onlyAdded by remember { mutableStateOf(false) }
-
+    val category = state.category.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
+    val query = state.query
+    val onlyAdded = state.onlyAdded
     val searching = query.isNotBlank()
 
     /** What to draw.
@@ -93,16 +117,42 @@ fun MenuPane(
      *
      *  ⚠️ **Matched on the translated name, not the base one.** A Russian-speaking
      *  waiter types what they see; searching the Uzbek text would find nothing.
-     *  The base is matched too, so a name with no translation is still reachable. */
-    val items = remember(groups, category, query, onlyAdded, onCheck, lang) {
+     *  The base is matched too, so a name with no translation is still reachable.
+     *
+     *  ⚠️ **Not keyed on the counts unless the filter reads them.** Every tap
+     *  changes `onCheck`, and re-filtering two hundred dishes on each one is work
+     *  the list does not need when it is not showing "only what is on the check". */
+    val countsKey: Any = if (onlyAdded) onCheck else Unit
+    val items = remember(groups, category, query, onlyAdded, countsKey, lang) {
         val q = query.trim().lowercase()
         val pool = if (searching) groups.flatMap { it.items }
         else groups.getOrNull(category)?.items ?: emptyList()
-        pool.filter { it ->
+        pool.filter {
             if (onlyAdded && (onCheck[it.id] ?: 0) == 0) return@filter false
             if (q.isEmpty()) return@filter true
             it.displayName(lang).lowercase().contains(q) || it.name.lowercase().contains(q)
         }
+    }
+
+    /** How many dishes from each category are on the check — said on its chip,
+     *  so "did I add the drinks?" is answered without opening every section. */
+    val perCategory = remember(groups, onCheck) {
+        groups.map { g -> g.items.sumOf { onCheck[it.id] ?: 0 } }
+    }
+
+    // ⚠️ A new section starts at its top. The grid kept its scroll offset across
+    // categories, so a waiter who switched from a long section to a short one
+    // landed in the middle of nothing.
+    LaunchedEffect(category, searching, onlyAdded) {
+        if (state.grid.firstVisibleItemIndex > 0 || state.grid.firstVisibleItemScrollOffset > 0) {
+            state.grid.scrollToItem(0)
+        }
+    }
+    // And the chosen chip stays in view — the strip is wider than the phone.
+    // (Index `category` is the chip *before* the chosen one — "on the check"
+    // sits first — so the neighbour on the left stays visible as a hint.)
+    LaunchedEffect(category, searching) {
+        if (!searching && groups.isNotEmpty()) state.chips.animateScrollToItem(category)
     }
 
     val views = listOf(
@@ -113,19 +163,19 @@ fun MenuPane(
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.weight(1f)) {
                 GlassField(
-                    value = query, onValueChange = { query = it },
+                    value = query, onValueChange = { state.query = it },
                     placeholder = t.menu.search,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false,
                     ),
                     trailing = {
-                        if (searching) GlassIconButton(Icons.Rounded.Close) { query = "" }
+                        if (searching) GlassIconButton(Icons.Rounded.Close) { state.query = "" }
                         else Icon(Icons.Rounded.Search, null, tint = c.muted, modifier = Modifier.size(18.dp))
                     },
                 )
@@ -144,34 +194,43 @@ fun MenuPane(
         // disappeared. It is the one control that says where you are.
         if (!searching) {
             LazyRow(
-                Modifier.fillMaxWidth().height(52.dp),
+                Modifier.fillMaxWidth().height(50.dp),
+                state = state.chips,
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                items(groups.size) { i ->
-                    val g = groups[i]
-                    Chip(g.category.displayName(lang), i == category) { category = i }
+                // "On the check" first: it is the filter used while reading the
+                // table back, and at the end of a long strip it was never found.
+                item(key = "added") {
+                    Chip(t.menu.onCheck, onlyAdded, icon = Icons.Rounded.Check) {
+                        state.onlyAdded = !onlyAdded
+                    }
+                }
+                items(groups.size, key = { groups[it].category.id.ifEmpty { "i$it" } }) { i ->
+                    CategoryChip(
+                        groups[i].category.displayName(lang),
+                        perCategory.getOrElse(i) { 0 },
+                        i == category && !onlyAdded,
+                    ) {
+                        state.onlyAdded = false
+                        state.category = i
+                    }
                 }
             }
-        }
-
-        Box(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            if (searching) {
-                Text(t.menu.found(items.size), color = c.muted, style = MaterialTheme.typography.labelMedium)
-            } else {
-                Chip(t.menu.onCheck, onlyAdded, icon = Icons.Rounded.Check) { onlyAdded = !onlyAdded }
-            }
+        } else {
+            Text(
+                t.menu.found(items.size), color = c.muted,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+            )
         }
 
         // ⚠️ **A lazy grid, never a Column of everything.** A menu of two hundred
         // dishes with photographs composed all at once is what makes a cheap
         // Android stutter — the same reason the Expo build moved off ScrollView.
-        // One column in list view, adaptive in the two card views.
         LazyVerticalGrid(
+            state = state.grid,
             // ⚠️ **Two, counted, not `Adaptive`.** Adaptive(160.dp) asks how many
             // 160dp columns fit — and on a 320dp phone, after padding and the
             // gap, the answer is one. So the photo view drew a single column of
@@ -180,10 +239,15 @@ fun MenuPane(
             columns = if (view == MenuView.List) GridCells.Fixed(1) else GridCells.Fixed(2),
             contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, bottomPad),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(if (view == MenuView.List) 8.dp else 10.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items, key = { it.id }) { item ->
+            // ⚠️ With the only-on-check filter the list spans categories, so the
+            // selected section would be a lie; the whole check is the section.
+            val pool = if (onlyAdded && !searching) {
+                groups.flatMap { it.items }.filter { (onCheck[it.id] ?: 0) > 0 }
+            } else items
+            items(pool, key = { it.id }, contentType = { view }) { item ->
                 DishCard(
                     name = item.displayName(lang),
                     price = money(item.price),
@@ -199,14 +263,51 @@ fun MenuPane(
                     onRemove = { onRemove(item) },
                 )
             }
-            if (items.isEmpty()) {
-                item {
+            if (pool.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
                         if (searching) t.menu.nothingFound else t.check.noItems,
                         color = c.muted, textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(24.dp),
                     )
                 }
+            }
+        }
+    }
+}
+
+/** A category, and how many of its dishes are on the check. */
+@Composable
+private fun CategoryChip(label: String, count: Int, on: Boolean, onClick: () -> Unit) {
+    val c = KeelTheme.colors
+    Row(
+        Modifier
+            .clip(CircleShape)
+            .then(if (on) Modifier.background(c.accentSoft, CircleShape) else Modifier.glass(c, CircleShape))
+            .border(1.dp, if (on) c.accent.copy(alpha = 0.55f) else c.glassBorder, CircleShape)
+            .clickable(onClick = onClick)
+            .padding(start = 14.dp, end = if (count > 0) 6.dp else 14.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            label,
+            color = if (on) c.ink else c.inkSoft,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+            ),
+            maxLines = 1,
+        )
+        if (count > 0) {
+            Box(
+                Modifier.widthIn(min = 20.dp).height(20.dp).clip(CircleShape).background(c.accent)
+                    .padding(horizontal = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "$count", color = c.onAccent,
+                    style = MaterialTheme.typography.labelSmall.merge(MoneyStyle),
+                )
             }
         }
     }

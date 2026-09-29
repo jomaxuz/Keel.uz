@@ -73,3 +73,29 @@ export const getPost = cache(async function getPost(
     return null;
   }
 });
+
+/** Every published post in one language, with its body — for `/llms-full.txt`.
+ *
+ *  ⚠️ **One request, not one per post.** The full file carries every article's
+ *  words, and building it from `getPost` would be a round trip per post on a
+ *  route crawlers fetch. The control plane answers the whole list at once
+ *  (`/internal/blog/full`), and like the rest of this file an unreachable
+ *  control plane is an empty list — the help centre and the product pages are
+ *  still in the file without it.
+ *
+ *  ⚠️ Same minute of cache as the list, so a post saved in the console is in the
+ *  file within about a minute — the console's watcher waits past that before it
+ *  reads the file back and pings (control/internal/handlers/llms.go). */
+export async function getPostsFull(lang: string): Promise<(BlogCard & { body: string })[]> {
+  try {
+    const res = await fetch(`${CONTROL}${INTERNAL}/blog/full?lang=${lang}`, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(TIMEOUT_MS * 2),
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { posts?: (BlogCard & { body: string })[] };
+    return body.posts ?? [];
+  } catch {
+    return [];
+  }
+}

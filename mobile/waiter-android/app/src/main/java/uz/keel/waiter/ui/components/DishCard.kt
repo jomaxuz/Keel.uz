@@ -9,6 +9,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -33,8 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -80,25 +83,33 @@ fun DishCard(
             // ⚠️ **A sold-out tile is not merely refused, it is visibly out.**
             // It was still full-strength and still took the press: the waiter
             // tapped, the server said "lag'mon bugun tugadi", and they found out
-            // standing at a table where they had already offered it. The alpha
-            // is what makes that a decision before the promise rather than an
-            // apology after it.
-            .graphicsLayer { alpha = if (soldOut) 0.45f else 1f }
+            // standing at a table where they had already offered it.
+            //
+            // ⚠️ `alpha` only when it is sold out. The old `graphicsLayer` sat on
+            // every card with alpha 1 — an offscreen layer per dish for nothing.
+            .then(if (soldOut) Modifier.alpha(0.45f) else Modifier)
+            // Clipped before the ripple, so the press lights the card's own shape.
+            .clip(shape)
             .then(if (added && !soldOut) Modifier else Modifier.clickable(enabled = !soldOut, onClick = onAdd))
-            .softShadow(shape, elevation = 2.dp, dark = c.dark)
+            // ⚠️ **No shadow per card.** Two hundred dishes each casting a
+            // platform shadow under a translucent pane is overdraw on exactly the
+            // phones that stutter; the edge separates glass from the page on its
+            // own, and the tab bar and the dock keep theirs.
             .glass(c, shape)
-            // ⚠️ The added state is said by the edge, not by a tint over the
-            // photograph: a wash across a plate is a plate nobody can read.
+            // ⚠️ The added state is said by the edge and a wash from the top,
+            // not by a tint over the photograph: a wash across a plate is a plate
+            // nobody can read.
             .then(
-                if (added) Modifier.background(
-                    Brush.verticalGradient(listOf(c.accentSoft, Color.Transparent)), shape,
-                ) else Modifier,
+                if (added) Modifier
+                    .background(Brush.verticalGradient(listOf(c.accentSoft, Color.Transparent)), shape)
+                    .border(1.5.dp, c.accent.copy(alpha = 0.55f), shape)
+                else Modifier,
             ),
     ) {
         when (view) {
             MenuView.List -> ListRow(name, price, count, soldOut, onAdd, onRemove)
             MenuView.Cards -> CardBody(name, price, null, count, soldOut, onAdd, onRemove)
-// ⚠️ A dish with no photograph still gets a **named gap** in the
+            // ⚠️ A dish with no photograph still gets a **named gap** in the
             // photo view, drawn by `CardBody` — a restaurant that has
             // photographed half its menu must not have the other half look
             // broken.
@@ -114,19 +125,22 @@ private fun ListRow(
 ) {
     val c = KeelTheme.colors
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.weight(1f)) {
+        // ⚠️ Name over price, not side by side: on a 360dp phone the price
+        // column squeezed long names to one clipped word, and the name is what
+        // the guest said.
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 name,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                 color = if (soldOut) c.muted else c.ink,
                 maxLines = 2, overflow = TextOverflow.Ellipsis,
             )
+            Text(price, style = MaterialTheme.typography.bodyMedium.merge(MoneyStyle), color = c.inkSoft)
         }
-        Text(price, style = MaterialTheme.typography.bodyMedium.merge(MoneyStyle), color = c.inkSoft)
         if (soldOut) SoldOutTag() else AddControl(count, soldOut, onAdd, onRemove, compact = false)
     }
 }

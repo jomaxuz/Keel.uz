@@ -752,6 +752,48 @@ yetkazadi / yangi ochilyapti / allaqachon tizimi bor), **til** (uz / ru),
   sahifa bugun ertalab yozilgan va har deployda qayta yozilgan deb aytardi.
   Yo'q maydon hech nima turmaydi, yolg'oni esa da'vo.
 
+- **AI uchun `llms.txt` va `llms-full.txt`** (2026-09-28, llmstxt.org shakli).
+  `/llms.txt` — ro'yxat (sahifa, qo'llanmaning har maqolasi bo'lim bo'yicha,
+  blog, hujjatlar), `/llms-full.txt` — har sahifaning to'liq matni markdownda.
+  Uch tilda: `/ru/llms.txt`, `/en/llms-full.txt` va h.k. — middleware
+  prefiksni odatdagidek olib tashlaydi.
+  - ⚠️ **Fayl emas, route** (`keel-site/src/lib/llms.ts`): qo'llanma
+    bloklaridan, landing lug'atidan, `/developers` hujjatidan va control'dagi
+    blogdan **har so'rovda** quriladi. `public/llms.txt` yozilgan kuni to'g'ri
+    va keyingi maqoladan keyin xato bo'lardi — sitemap darsining o'zi.
+  - ⚠️ **Til faqat middleware sarlavhasidan**, cookie'dan emas: prefikssiz fayl
+    har crawler uchun o'zbekcha bo'lishi shart, oxirgi mehmon nima tanlaganidan
+    qat'i nazar.
+  - Blog butun ro'yxati matni bilan **bitta so'rovda** keladi
+    (`/internal/blog/full`), post boshiga bittadan emas.
+- ⚠️ **LLM uchun rasmiy «ping» yo'q, va ekran buni aytadi.** ChatGPT, Claude,
+  Perplexity o'z jadvali bilan o'qiydi, pushed URL qabul qilmaydi. Shuning
+  uchun «ping» — **IndexNow**: Bing (ChatGPT qidiruvi va Copilot shundan) va
+  Yandex (Alisa). «ChatGPT'ga yuborish» degan tugma nima qilganini aldagan
+  tugma bo'lardi.
+- **Kuzatuvchi** (`control/internal/handlers/llms.go`, `WatchLLMs`): har 15
+  daqiqada uchala `llms-full.txt` ni o'qiydi, **sahifa bo'yicha** xeshlaydi va
+  faqat o'zgargan (yangi, o'chgan) sahifalarni + ikkala faylni yuboradi. Blog
+  saqlanganda/o'chirilganda — 90 soniyadan keyin (`NudgeLLMs`, saytning bir
+  daqiqalik blog keshidan keyin). Qo'llanma deploy bilan o'zgaradi, bu haqda
+  controlga hech kim aytmaydi — uni tiker ushlaydi.
+  - ⚠️ **Shartnoma — har sahifa sarlavhasi ostidagi `URL:` qatori.** Kuzatuvchi
+    faylni shu qatorlar bo'yicha bo'ladi; sahifa **o'z `##` sarlavhasidan**
+    keyingi sahifa sarlavhasigacha. "`##` bilan boshlangan har qator" emas:
+    blog — erkin matn, va muallifning o'z `## Kichik sarlavhasi` postni erta
+    tugatib, qolgan qismini kuzatuvdan chiqarib qo'yardi. Ikkala tomonda test.
+  - ⚠️ **Birinchi qarash — baza, o'zgarish emas**: saqlangan xesh yo'q bo'lsa har
+    sahifa "yangi" bo'lardi va deploydan keyingi birinchi yugurish butun saytni
+    yuborardi. Buning uchun ekranda tugma bor.
+  - ⚠️ **Yarim sayt bilan solishtirilmaydi**: bitta til o'qilmasa, uning hamma
+    sahifasi "o'chgan" bo'lib ko'rinardi va ping dvigatellarga shuni aytardi.
+  - ⚠️ **Xeshlar ro'yxatda, URL kalitli xaritada emas**: Mongo `$set` dagi
+    nuqtani yo'l deb o'qiydi, har URL'da esa nuqta bor.
+  - Kalit yo'q paytdagi o'zgarishlar **sanaladi** (`unsent`) va ekranda
+    aytiladi — jimgina tashlanmaydi.
+  - «Hamma sahifani yuborish» tugmasi ham endi oltita llms manzilini qo'shib
+    yuboradi: ular sitemapda yo'q (odam tushadigan sahifa emas).
+
 ### Hamkorlar: tashqi tavsiya va komissiya (`/console/referrers`)
 Distributsiya mahsulotdan qiyinroq bo'lib chiqdi. Sovuq DM ishlamaydi, iiko
 o'rnatgan restoranda esa allaqachon Delever turibdi. Qoladigan yo'l —
@@ -4989,6 +5031,42 @@ keldi. Uchta alohida sabab bor edi, va uchalasi ham «qotish» bo'lib ko'rinadi:
    Chek chiqarayotganda butun menyu bosilmas edi — ya'ni «qotish» so'zma-so'z
    rost edi. Endi qo'shish hech qachon o'chmaydi; navbat baribir tartibni
    saqlaydi.
+
+⚠️ **Native ofitsiantda (Kotlin) qotishning yana beshta sababi bor edi**
+(2026-09-28, `mobile/waiter-android`). Uchtasi yuqoridagilarning o'zi edi,
+ikkinchi tilda qayta yozilgan; qolganlari faqat shu yerda:
+
+1. **Ekran kalit bo'yicha animatsiya qilinib, joriy holatdan chizilardi.**
+   `AnimatedContent` ning ikkala yarmi ham *joriy* sessiyani o'qirdi, ya'ni stol
+   ochilganda chek ekrani **ikki nusxada** yaratilardi: ikki barobar so'rov, va
+   eski nusxa yo'qolganda `releaseCheck` endi ochilgan stolni bo'shatardi.
+   Qoida: animatsiya kontenti **lambda parametridan** chiziladi (`Screen`).
+2. **Ma'lumot ekran bilan birga tashlanardi.** Zal, menyu va profil hisoboti
+   `remember` ichida edi — tab almashsa yoki chek yopilsa spinner. Endi
+   jarayonda (`FloorStore`, `MenuCache`): avval ma'lum narsa, keyin yangisi.
+   ⚠️ Eskisi xato bilan almashtirilmaydi — yiqilgan poll oxirgi zalni
+   qoldiradi va buni banner bilan aytadi.
+3. **Stepper eski sonni yuborardi.** `onPlus = { lineQty(l.qty + 1) }` — `l`
+   javob kelguncha o'zgarmaydi, ya'ni uch bosish uchta "2" edi. Son absolyut,
+   shuning uchun raqam bosilganda o'zgaradi va 350 ms tinchlikdan keyin
+   **oxirgisi** bitta so'rov bo'lib ketadi.
+4. **Timeout yo'q edi.** Ktor/OkHttp o'zi kutaverardi, navbatdagi har bosish
+   uning ortida turardi. Endi 6/15/20 s; timeout `ApiError` emas, ya'ni outbox
+   uni "yetib bormadi" deb saqlaydi — to'g'ri javob.
+5. **Navbatda narsa turganda yangi amal to'g'ri serverga urinardi** — tartib
+   buzilishi mumkin edi va oflaynda har bosish timeout kutardi. Endi navbat
+   bo'sh bo'lmasa amal ham navbatga yoziladi va tarmoq qaytishi bilan
+   (`NetworkCallback`) yuboriladi.
+
+⚠️ **Ekrandan chiqish yuborishni bekor qilmasligi kerak.** `rememberCoroutineScope`
+ekran bilan o'ladi, va outbox bekor qilingan korutinadan navbatga yoza olmaydi —
+taom na yuborilgan, na saqlangan bo'lardi. Yozuvlar `NonCancellable` da ketadi
+(`keep {}`), javobi esa hech kim chizmaydigan holatga tushadi — bu bepul.
+
+⚠️ **Umumiy fondagi blur (`KeelBackground`, 120dp `RenderEffect`) olib
+tashlandi**: u har skroll kadrida qayta hisoblanardi, radial gradient esa
+o'zi yumshoq. API 31 dan pastda u umuman ishlamasdi — restoran telefonlarining
+ko'pi shu ko'rinishni doim ko'rgan.
 
 ⚠️ **Pastdagi tugma Android tugmasining ostiga tushmaydi (`useBottomInset`).**
 To'rtala ilova ham edge-to-edge chiziladi, ya'ni maket tizim panelining **ostiga**
