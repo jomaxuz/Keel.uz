@@ -277,6 +277,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// ---- Staff auth (accounts are created in the admin panel) ----
 		r.With(authGate).Post("/staff/login", h.StaffLogin)
 
+		// ---- The Keel app: one sign-in, every account it opens ----
+		// See handlers/applogin.go. The four older apps keep their own logins.
+		r.With(authGate).Post("/app/login", h.AppLogin)
+
 		// ---- Pairing a television (open: the set has no identity yet) ----
 		//
 		// The screen shows a code, somebody types it into the panel. Both of

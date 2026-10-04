@@ -5134,6 +5134,56 @@ bajariladigan ish** sifatida tanlandi:
   haftada o'chiriladi), **menejerga ham** (loss alertdan farqi: bu xabar xodim
   haqida emas, va kechqurun qo'ng'iroq qila oladigan odam ko'pincha aynan u).
 
+### Keel: to'rtta xodim ilovasi bitta ilovada (`mobile/keel-android`)
+Yuqoridagi «to'rtta ilova» qarorining sababi — **ekran kimga tegishli** — o'z
+kuchida qoladi; o'zgargani — uni kim ta'minlashi. Ilgari buni ilovaning o'zi
+ta'minlardi (kuryer ilovasida zal yo'q). Endi buni **server** ta'minlaydi:
+odam bitta login bilan kiradi, `/app/login` shu login ochadigan hisoblarni
+qaytaradi, va telefon faqat o'shalarning ish joylarini ko'rsatadi. Farroshga
+zal xaritasi baribir berilmaydi — uning hisobi zalni ochmaydi.
+
+- **Nega birlashtirildi:** to'rtta ikonka, to'rtta login ekrani va «qaysi
+  ilovani yuklab olay?» savoli. Egasi kuryer ilovasiga to'g'ri parolni yozib
+  «noto'g'ri» degan javob olardi — parol to'g'ri edi, eshik noto'g'ri edi.
+- ⚠️ **Eskilarining yonida, o'rnida emas** (`uz.keel.app`). Restoran
+  telefonlarni birma-bir ko'chiradi; umumiy `applicationId` eski ilovalardan
+  birini yangilanishda almashtirib, unga muhtoj odamni qoldirib ketardi.
+- ⚠️ **Qurilma kalitlari Keel'niki va hisob turi bo'yicha** (`keel-owner`,
+  `keel-staff`, `keel-courier`). Eski `waiter`/`owner`… kaliti bilan ikki
+  ilova o'rnatilgan telefonda ular har kirishda bir-birining bog'lanishini
+  surib chiqarardi (`(app, deviceId)` unique). Butun Keel uchun bitta kalit
+  esa ega + kuryer hisobli odamga ikkalasini bitta telefonda ushlashga
+  bermasdi. Zal va xodim bo'limi — **bitta** `keel-staff`: bitta hisob.
+- ⚠️ **Rol tanlash so'ralmaydi.** «Siz kimsiz?» — aynan yo'qotilayotgan
+  noto'g'ri javobga taklif.
+- ⚠️ **Zal — serverning `Can(PermWaiter)` qoidasi bilan**, ilovaning o'z
+  qoidasi bilan emas: aks holda server keyin rad etadigan zal ko'rsatilardi.
+  Xodim bo'limi ofitsiantga faqat zalda yo'q narsa bo'lsa (bozorlik, sanoq,
+  ombor, markirovka) — bir xil «soatlarim» ikki eshik ortida bo'lmasin.
+- ⚠️ **Push tokeni bitta, hisoblar bir nechta.** Token har hisobga
+  **birdaniga** yoziladi (rol ochilganda emas — kun bo'yi zalda yurgan ega
+  ham loss alertni olishi kerak), va bitta hisobdan chiqish tokenni
+  **o'chirmaydi**: u boshqa hisoblarniki ham. Eski ilovalarda chiqishning
+  oxirgi qadami `deleteToken()` edi — bu yerda u qolgan hisoblarni jimgina
+  o'chirib qo'yardi.
+- ⚠️ **`data.channel`** — server endi kanalni `data` ga ham yozadi
+  (`push/fcm.go`): ilova fonda bo'lsa bildirishnomani tizim chizadi va
+  bosilganda faqat `data` kalitlari keladi — qaysi rolniki ekanini
+  boshqa hech nima aytmaydi. `checkId` kanaldan ustun: xodim qatorining
+  kanali oxirgi ro'yxatdan o'tgan bo'limdan keladi, oshxonaning «tayyor»i
+  esa baribir stolni ochishi kerak.
+- ⚠️ **Rollarning kodi deyarli o'zgarmagan** — `Application` → dangasa
+  `Graph`, `MainActivity` → `Entry`, login ekrani olib tashlangan. Rol
+  qayta yozilmadi, chunki ular allaqachon telefonlarda sinalgan; yangi kod —
+  faqat qobiq (kirish, ish joylari, almashtirish, push).
+- ⚠️ **`SessionViewModel` token bo'yicha kalitlangan.** Activity rol ekranidan
+  uzoq yashaydi (zal → boshqaruv → zal), kalitsiz model esa yangi kirgan
+  odamga oldingisining sessiyasini berardi.
+- **Eski server:** `/app/login` 404/405 bersa ilova uchta eski loginni
+  ketma-ket urinadi (Keel kalitlari bilan) — restoranlar birma-bir
+  yangilanadi, telefon esa ko'pincha birinchi ko'chadi.
+- Tafsilot: `mobile/keel-android/README.md`.
+
 ### Ishchilar davomati (`/staff` + `/admin/staff` + `/admin/payroll`)
 - **Ikki kirish, bir chiqish**: hamma narsa ikkita manbadan hisoblanadi —
   admin yozgan **ish grafigi** va ishchi bosgan **smenalar**. Kunning holati

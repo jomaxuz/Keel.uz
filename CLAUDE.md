@@ -62,6 +62,11 @@ softmax/
     ├── courier-android/      # kuryer
     ├── team-android/         # qolgan xodimlar
     ├── tv-android/           # zaldagi televizor
+    ├── keel-android/         # ⚠️ «Keel»: waiter/owner/courier/team BITTA
+    │                         #   ilovada, eskilarining yonida (`uz.keel.app`,
+    │                         #   o'z qurilma kalitlari `keel-*`). Login'dan
+    │                         #   keyin server qaysi ish joylari ochilishini
+    │                         #   aytadi. Qarang DECISIONS → «Keel: to'rtta…».
     │
     └── guest-android/        # ⚠️ mehmonniki, qolgan beshtasi xodimniki —
                               #   restoranning o'z ilovasi. Bitta kod bazasi,

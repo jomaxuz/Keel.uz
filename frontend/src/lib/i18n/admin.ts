@@ -2415,6 +2415,9 @@ export const adminUz = {
     app: {
       owner: "Keel Owner",
       waiter: "Keel Waiter",
+      "keel-owner": "Keel · boshqaruv",
+      "keel-staff": "Keel · xodim",
+      "keel-courier": "Keel · kuryer",
       courier: "Keel Courier",
       team: "Keel Team",
     },
@@ -7859,6 +7862,9 @@ export const adminRu: AdminDict = {
     app: {
       owner: "Keel Owner",
       waiter: "Keel Waiter",
+      "keel-owner": "Keel · управление",
+      "keel-staff": "Keel · сотрудник",
+      "keel-courier": "Keel · курьер",
       courier: "Keel Courier",
       team: "Keel Team",
     },
@@ -13009,6 +13015,9 @@ export const adminEn: AdminDict = {
     app: {
       owner: "Keel Owner",
       waiter: "Keel Waiter",
+      "keel-owner": "Keel · management",
+      "keel-staff": "Keel · staff",
+      "keel-courier": "Keel · courier",
       courier: "Keel Courier",
       team: "Keel Team",
     },

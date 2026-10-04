@@ -15838,3 +15838,45 @@ Batafsil: `docs/DECISIONS.md` → «Shubhali operatsiyalar: yetkazish navbati» 
   ⏳ `owner-android` build qilinmadi (Google Maven yopiq); o'zgarish bir qator.
   ⏳ Windows'da `wails build` va «Yangilash» tugmasini haqiqiy manifest bilan
   sinash kerak.
+
+## 2026-10-04 (2) — «Keel»: to'rtta xodim ilovasi bitta ilovada
+
+`mobile/keel-android` — ofitsiant, ega, kuryer va xodim **bitta** native
+ilovada (`uz.keel.app`). Televizor va mehmon ilovasi alohida qoladi. Eski
+to'rtta ilova o'chirilmagan va yonida ishlaydi.
+
+### Backend
+- `POST /api/v1/app/login` (`handlers/applogin.go`) — bitta login + parol
+  bilan admin, xodim va kuryer jadvallariga qaraydi, ochilgan har hisobni
+  o'z qurilma kaliti bilan bog'laydi (`keel-owner`, `keel-staff`,
+  `keel-courier`). O'chirilgan / boshqa telefonga bog'langan hisob — javobda
+  `error` bilan, jim tashlab yuborilmaydi. Hech biri ochilmasa 401/409.
+  Testlar: kalitlar eski ilovalarnikidan farqli; jonli test (Mongo bilan).
+- `push/fcm.go` — kanal `data.channel` ga ham yoziladi (fonda bosilgan
+  bildirishnoma qaysi rolniki ekanini bilish uchun). Test yangilandi.
+- Panel: qurilmalar ro'yxatida «Keel · boshqaruv / xodim / kuryer» (uch tilda).
+
+### Ilova
+- **Kirish** — bitta ekran: restoran + login + parol, rol tanlash yo'q.
+  Xato parolda kartochka «silkinadi», internet yo'qligi (sariq) parol
+  xatosidan (qizil) ajratiladi. Eski server uchun — uchta eski loginga
+  zaxira.
+- **«Bugun qayerda ishlaymiz?»** — ish joylari (Boshqaruv, Zal, Yetkazish,
+  Xodim), oxirgisi gradient bilan; hisoblar ro'yxati, hisob qo'shish,
+  boshqa restoran (tasdiq bilan). Bitta ish joyi bo'lsa bu ekran umuman
+  ko'rinmaydi; bir nechta bo'lsa ilova oxirgisiga ochiladi.
+- **Almashtirish** — har rolning Sozlamalari tepasidagi hisob kartochkasi.
+- Rollar ko'chirildi: `Application` → dangasa `Graph`, `MainActivity` →
+  `Entry`, login ekranlari olib tashlandi, til/tema — umumiy `KeelLook`.
+- Push: bitta `KeelMessagingService`, token barcha hisoblarga birdaniga,
+  bitta hisobdan chiqish tokenni o'chirmaydi. Bildirishnoma bosilsa o'z ish
+  joyi ochiladi (oshxona «tayyor» — to'g'ri stolga).
+- Tekshiruv: Android SDK bu muhitda yo'q — butun ilova Compose Desktop +
+  stublar bilan JVM'da **kompilyatsiya qilindi**. Qurilmada sinalmagan.
+
+### Keyingi qadam
+- Firebase konsolda `uz.keel.app` ilovasini qo'shish va
+  `google-services.json` ni `mobile/keel-android/app/` ga qo'yish (busiz
+  push «sozlanmagan» bo'lib turadi, ilova esa ishlaydi).
+- Imzo kaliti: `~/keys/keel-app.properties`, keyin `assembleRelease` va
+  telefonda sinov.

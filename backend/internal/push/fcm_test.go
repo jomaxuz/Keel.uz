@@ -174,6 +174,9 @@ func TestTheEnvelopeCarriesBothHalvesAndOnlyStrings(t *testing.T) {
 	if data["title"] != "Tayyor" {
 		t.Fatal("a foregrounded app has no words to draw")
 	}
+	if data["channel"] != KitchenChannel {
+		t.Fatal("no channel in data: Keel cannot tell whose notification a tap was")
+	}
 	android, _ := env["android"].(map[string]any)
 	note, _ := android["notification"].(map[string]any)
 	if note["channel_id"] != KitchenChannel {

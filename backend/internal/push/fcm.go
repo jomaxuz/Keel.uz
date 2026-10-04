@@ -333,6 +333,14 @@ func fcmEnvelope(m Message) map[string]any {
 	if m.Body != "" {
 		data["body"] = m.Body
 	}
+	// ⚠️ **The channel in `data` too, for the one app that answers on all
+	// four.** Keel (`uz.keel.app`) is the waiter, the courier, the owner and
+	// the team in one install, so a tap has to know which of them it belongs
+	// to — and a tap on a notification the system drew carries the data keys
+	// and nothing else. The four single-role apps ignore it.
+	if m.ChannelID != "" {
+		data["channel"] = m.ChannelID
+	}
 
 	android := map[string]any{
 		// ⚠️ "high" for the kitchen, and this is the case it is for: a dish at

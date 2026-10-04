@@ -147,6 +147,11 @@ class TokenStore(context: Context) {
             // makes is whether a dated slide may play — and a set that came back
             // from a power cut may believe it is 1970. See tv-android/Clock.kt.
             "keel_tv_clock",
+            // Keel (`uz.keel.app`): who is signed in on this phone, and which of
+            // their workspaces was open last. ⚠️ Listed for the reason every key
+            // here is — an unlisted one reads as absent on a cold start.
+            "keel_accounts",
+            "keel_workspace",
         )
     }
 }

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ⚠️ The union of the four apps this one unites, and nothing more. Every
+         permission is still asked at the moment it is needed and by the screen
+         that needs it — location when a shift opens, the camera when a code is
+         scanned, notifications after signing in — so a waiter is never asked
+         for the courier's location on the first screen. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Fine and coarse: Android 12 lets somebody grant "approximate only", and
+         an app that declared fine alone would be handed nothing at all. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- The courier's shift: a foreground service of type `location`, started
+         while the app is on screen. No background permission — see
+         `courier/location/LocationService.kt` for what that gives up. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- The team's stock count and marking scanner. ⚠️ Not required: a phone
+         without a camera still opens the floor, the orders and the numbers. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
+    <!-- Android 11+ hides other applications unless a query names what this one
+         reaches: the courier's call and maps buttons. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".KeelApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="false"
+        android:theme="@style/Theme.Keel.Splash">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.Keel.Splash"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name="uz.keel.courier.location.LocationService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- ⚠️ The default for a message whose channel this phone never made is
+             the team's: the quietest of the four that is still HIGH. All four
+             channels are created in `KeelApp.onCreate`, before anything can
+             arrive. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="team" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/keel_orange" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <!-- ⚠️ **One service for all four roles.** Firebase delivers to exactly
+             one MESSAGING_EVENT receiver per app; a second declared here would
+             simply never be called. -->
+        <service
+            android:name=".push.KeelMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

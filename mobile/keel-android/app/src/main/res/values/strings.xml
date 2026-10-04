@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Keel</string>
+    <!-- The courier's running-shift notification. Kept under the names the
+         courier code already reads (location/LocationService.kt). -->
+    <string name="shift_running">Keel — smena ochiq</string>
+    <string name="shift_sending">Joylashuv restoranga yuborilmoqda</string>
+</resources>
