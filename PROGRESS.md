@@ -15875,8 +15875,8 @@ to'rtta ilova o'chirilmagan va yonida ishlaydi.
   stublar bilan JVM'da **kompilyatsiya qilindi**. Qurilmada sinalmagan.
 
 ### Keyingi qadam
-- Firebase konsolda `uz.keel.app` ilovasini qo'shish va
-  `google-services.json` ni `mobile/keel-android/app/` ga qo'yish (busiz
-  push «sozlanmagan» bo'lib turadi, ilova esa ishlaydi).
-- Imzo kaliti: `~/keys/keel-app.properties`, keyin `assembleRelease` va
-  telefonda sinov.
+- ✅ Firebase: `uz.keel.app` konsolda qo'shildi, `google-services.json`
+  repozitoriyda.
+- Serverda build: `deploy/appbuild/build-keel.sh` (`keel-appbuild` image,
+  kalit birinchi build'da `appkeys/keel-app/` ga yaratiladi — zaxira
+  qilinsin), keyin telefonda sinov.

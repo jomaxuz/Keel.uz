@@ -113,21 +113,39 @@ app/src/main/java/uz/keel/
   yaratiladi: oshxona ovozini o'chirgan odam egasining ogohlantirishini
   o'chirmagan bo'lishi kerak.
 
-## ⚠️ Firebase: bir qadam konsolda
+## Firebase
 
-`keel-7f31a` loyihasida hozircha faqat to'rtta eski ilova bor. Push ishlashi
-uchun:
+`app/google-services.json` repozitoriyda (boshqa ilovalarniki kabi) va unda
+`uz.keel.app` mijozi bor — google-services plagini shuni ko'rib qo'llanadi.
+⚠️ Fayl almashtirilsa va unda `uz.keel.app` bo'lmasa build **yiqilmaydi**,
+lekin push o'chiq holda chiqadi (`build-keel.sh` buni boshida ogohlantiradi).
 
-1. Firebase konsol → Project settings → **Add app → Android** →
-   `uz.keel.app`.
-2. Yangi `google-services.json` ni `mobile/keel-android/app/` ga qo'ying.
+## Release build (serverda)
 
-Fayl bo'lmasa (yoki unda `uz.keel.app` bo'lmasa) build **yiqilmaydi** —
-google-services plagini qo'llanmaydi, ilova ishlaydi, sozlamalarda esa push
-«sozlanmagan» deb ko'rinadi. Server tomonda hech narsa kerak emas: FCM v1
-yuboruvchisi loyiha bo'yicha ishlaydi.
+Serverda JDK/Android SDK o'rnatilmaydi — mehmon ilovalarini quradigan
+`keel-appbuild` Docker image'i ishlatiladi (`deploy/appbuild`):
 
-## Build
+```bash
+docker run --rm \
+  -v /opt/keel:/opt/keel \
+  -v keel-gradle-cache:/root/.gradle \
+  keel-appbuild:latest \
+  /opt/keel/deploy/appbuild/build-keel.sh apk      # Play Store uchun: aab
+```
+
+- Natija: `/opt/keel/appbuilds/keel-app/keel-<versiya>-<vaqt>.apk`
+  (oxirgi qatorda `KEEL_ARTIFACT=...`).
+- ⚠️ **Imzo kaliti birinchi build'da bir marta yaratiladi**:
+  `/opt/keel/appkeys/keel-app/release.jks` + `keystore.properties`. Yo'qolsa
+  `uz.keel.app` ni hech kim yangilay olmaydi — **serverdan tashqariga zaxira**
+  qiling.
+- Build checkout'da emas, nusxada bo'ladi: konteyner root nomidan ishlaydi,
+  `/opt/keel` dagi root'ning `build/` papkasi esa keyingi deploy'ning
+  `git reset` ini yarmida to'xtatadi (CLAUDE.md tuzog'i).
+- Mehmon build'lari bilan bitta qulf (`/opt/keel/.appbuild.lock`) — ikki
+  Gradle bir vaqtda serverning xotirasini to'ldiradi.
+
+Noutbukda (Android SDK bo'lsa):
 
 ```bash
 cd mobile/keel-android

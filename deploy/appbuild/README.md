@@ -36,6 +36,22 @@ tenantlar bilan yonma-yon turadi; navbatni konsol boshqaradi
 (`/opt/keel/.appbuild.lock`, **absolut yo'l** — `$HOME` dagi qulf serverni emas,
 foydalanuvchini qulflaydi).
 
+## Keel (xodimlar ilovasi) — `build-keel.sh`
+
+Restoranlarniki emas, Keel'ning o'zi (`uz.keel.app`: ofitsiant, ega, kuryer,
+xodim) — bitta ilova, bitta kalit, shu image bilan:
+
+```bash
+docker run --rm \
+  -v /opt/keel:/opt/keel \
+  -v keel-gradle-cache:/root/.gradle \
+  keel-appbuild:latest \
+  /opt/keel/deploy/appbuild/build-keel.sh apk
+```
+
+Kalit — `/opt/keel/appkeys/keel-app/` (birinchi build'da bir marta), natija —
+`/opt/keel/appbuilds/keel-app/`. Tafsilot: `mobile/keel-android/README.md`.
+
 ## Artefakt bir marta yashaydi
 
 Konsol faylni **yuklab olingan zahoti o'chiradi** — har build 2,5 MB, va hech

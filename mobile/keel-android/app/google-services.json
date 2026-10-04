@@ -1,0 +1,124 @@
+{
+  "project_info": {
+    "project_number": "889013622083",
+    "project_id": "keel-7f31a",
+    "storage_bucket": "keel-7f31a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889013622083:android:7b33541af2676e618c0bf6",
+        "android_client_info": {
+          "package_name": "uz.keel.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RLdkpCmm2IDgpP0q58ZfYCdQjKIsDiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889013622083:android:8eeb607b846fdf9a8c0bf6",
+        "android_client_info": {
+          "package_name": "uz.keel.app.b5somsa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RLdkpCmm2IDgpP0q58ZfYCdQjKIsDiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889013622083:android:2e4fdeb0874951c48c0bf6",
+        "android_client_info": {
+          "package_name": "uz.keel.courier"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RLdkpCmm2IDgpP0q58ZfYCdQjKIsDiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889013622083:android:35b7dbe50cd601be8c0bf6",
+        "android_client_info": {
+          "package_name": "uz.keel.owner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RLdkpCmm2IDgpP0q58ZfYCdQjKIsDiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889013622083:android:d599033f4ac7f3888c0bf6",
+        "android_client_info": {
+          "package_name": "uz.keel.team"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RLdkpCmm2IDgpP0q58ZfYCdQjKIsDiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889013622083:android:85bc9ebde4dabb9d8c0bf6",
+        "android_client_info": {
+          "package_name": "uz.keel.waiter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RLdkpCmm2IDgpP0q58ZfYCdQjKIsDiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
