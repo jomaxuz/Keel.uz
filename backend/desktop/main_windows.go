@@ -69,6 +69,13 @@ func main() {
 			// accident. Ctrl+scroll on a touch screen is one careless swipe,
 			// and a till at 300% mid-service is a till nobody can use.
 			IsZoomControlEnabled: false,
+			// ⚠️ **And the pinch, which the line above does not cover.**
+			// `IsZoomControlEnabled` is Ctrl+wheel and Ctrl+/-; a two-finger
+			// pinch on the touch panel is WebView2's own *visual* zoom, handled
+			// in the compositor before any page script sees it — so NoZoom's
+			// listeners could not stop it, and a cashier brushing the screen
+			// with two fingers left the till magnified with no way back.
+			DisablePinchZoom: true,
 		},
 	})
 	if err != nil {

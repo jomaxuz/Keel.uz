@@ -281,11 +281,17 @@ body {
      ⚠️ **Every control here is touched, not clicked, and three browser defaults
      get in the way of that.**
 
-     `touch-action: manipulation` removes the ~300ms wait a browser keeps in
+     `touch-action: pan-x pan-y` removes the ~300ms wait a browser keeps in
      case a tap becomes a double-tap-to-zoom. On a keypad that delay is felt as
      every key sticking, and typing 1111 quickly is exactly the case it handles
      worst: the second tap is read as the start of a zoom gesture and the digit
      is dropped.
+
+     ⚠️ **`pan-x pan-y`, not `manipulation`.** `manipulation` was used here,
+     and it means "pan *and pinch-zoom*" — it removed the double-tap delay and
+     explicitly allowed the two-finger zoom this class exists to forbid, so a
+     till could be magnified by a stray hand on the screen. Panning is all a
+     till needs; scrolling a check still works.
 
      `user-select: none` stops a fast repeated tap starting a text selection.
      Once a selection begins the following taps go to it rather than to the key,
@@ -298,7 +304,7 @@ body {
      The half CSS cannot do — a press that registers where the finger landed,
      and the keyboard's own copy — is in components/till/TillAppliance. */
   .appliance {
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     -webkit-user-select: none;
@@ -323,7 +329,7 @@ body {
   }
 
   .till {
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     -webkit-user-select: none;

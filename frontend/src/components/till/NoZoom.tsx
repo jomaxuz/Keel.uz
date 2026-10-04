@@ -42,6 +42,14 @@ export default function NoZoom() {
   useEffect(() => {
     const stop = (e: Event) => e.preventDefault();
 
+    // ⚠️ **On the root as well as on `.till`.** Pinch-zoom is the viewport's
+    // own gesture, so the browser asks every element up to the document
+    // whether it is allowed — and the root, outside every till class, still
+    // said yes. Put back on unmount, so the website in the same tab zooms.
+    const root = document.documentElement;
+    const before = root.style.touchAction;
+    root.style.touchAction = "pan-x pan-y";
+
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 1) e.preventDefault();
     };
@@ -80,6 +88,7 @@ export default function NoZoom() {
       document.removeEventListener("touchend", onTouchEnd);
       document.removeEventListener("wheel", onWheel);
       window.removeEventListener("keydown", onKey);
+      root.style.touchAction = before;
     };
   }, []);
 
