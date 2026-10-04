@@ -60,6 +60,8 @@ data class Words(
         val cancel: String,
         val switch: String,
         val switchHint: String,
+        val switchTitle: String,
+        val manage: String,
     )
 
     /** One workspace: what it is called and the one line under it. */
@@ -116,6 +118,8 @@ val UZ = Words(
         cancel = "Bekor qilish",
         switch = "Almashtirish",
         switchHint = "Ish joylari va hisoblar",
+        switchTitle = "Ish joyini tanlang",
+        manage = "Hisoblarni boshqarish",
     ),
     owner = Words.Space("Boshqaruv", "Bugungi tushum, diqqat, buyurtmalar va hisobotlar"),
     waiter = Words.Space("Zal", "Stollar, cheklar va oshxonadan «tayyor» xabari"),
@@ -168,6 +172,8 @@ val RU = Words(
         cancel = "Отмена",
         switch = "Сменить",
         switchHint = "Рабочие места и аккаунты",
+        switchTitle = "Выберите рабочее место",
+        manage = "Управление аккаунтами",
     ),
     owner = Words.Space("Управление", "Выручка за сегодня, внимание, заказы и отчёты"),
     waiter = Words.Space("Зал", "Столы, чеки и «готово» с кухни"),
@@ -220,6 +226,8 @@ val EN = Words(
         cancel = "Cancel",
         switch = "Switch",
         switchHint = "Workspaces and accounts",
+        switchTitle = "Choose a workspace",
+        manage = "Manage accounts",
     ),
     owner = Words.Space("Management", "Today's takings, alerts, orders and reports"),
     waiter = Words.Space("Floor", "Tables, checks and “ready” from the kitchen"),

@@ -36,14 +36,14 @@ import uz.keel.design.glass
  *  ⚠️ **Shown even with one workspace.** "Add an account" lives behind it, and
  *  an owner who is handed a courier login has to find where it goes. */
 @Composable
-fun AccountCard(account: Account, workspace: Workspace, onSwitch: () -> Unit) {
+fun AccountCard(account: Account, workspace: Workspace, canSwitch: Boolean = true, onSwitch: () -> Unit) {
     val c = KeelTheme.colors
     val words = w
     Row(
         Modifier
             .fillMaxWidth()
             .glass(c, RoundedCornerShape(24.dp), strong = true)
-            .clickable(onClick = onSwitch)
+            .then(if (canSwitch) Modifier.clickable(onClick = onSwitch) else Modifier)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -66,16 +66,18 @@ fun AccountCard(account: Account, workspace: Workspace, onSwitch: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Row(
-            Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(c.accentSoft)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(Icons.Rounded.SwapHoriz, null, tint = c.accent, modifier = Modifier.size(16.dp))
-            Text(words.hub.switch, style = MaterialTheme.typography.labelLarge, color = c.accent)
+        if (canSwitch) {
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(c.accentSoft)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(Icons.Rounded.SwapHoriz, null, tint = c.accent, modifier = Modifier.size(16.dp))
+                Text(words.hub.switch, style = MaterialTheme.typography.labelLarge, color = c.accent)
+            }
         }
     }
 }

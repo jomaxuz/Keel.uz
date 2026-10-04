@@ -118,6 +118,8 @@ fun KeelRoot(app: KeelApp, route: Route?, onRouteConsumed: () -> Unit) {
     /** What the hub returns to on back — the workspace it was opened from. */
     var behind by remember { mutableStateOf<Stage?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
+    // The workspace the quick switcher was opened from, or null while closed.
+    var switchFrom by remember { mutableStateOf<Stage.Open?>(null) }
     var pendingCheck by remember { mutableStateOf<String?>(null) }
     var pendingTab by remember { mutableStateOf<String?>(null) }
 
@@ -316,9 +318,13 @@ fun KeelRoot(app: KeelApp, route: Route?, onRouteConsumed: () -> Unit) {
                                 leaveRestaurant = { confirmLeave = true },
                                 expired = { expire(st.ws.kind) },
                                 card = {
-                                    AccountCard(account, st.ws) {
-                                        behind = st
-                                        stage = Stage.Hub
+                                    // ⚠️ **One workspace is a label, more than one
+                                    // is a door.** A cashier who only has the floor
+                                    // taps nothing here; someone who also counts the
+                                    // store gets the quick switcher over their work,
+                                    // not a page they leave it for.
+                                    AccountCard(account, st.ws, canSwitch = workspaces.size > 1) {
+                                        switchFrom = st
                                     }
                                 },
                             )
@@ -329,6 +335,24 @@ fun KeelRoot(app: KeelApp, route: Route?, onRouteConsumed: () -> Unit) {
                         }
                     }
                 }
+            }
+        }
+
+        val from = switchFrom
+        if (from != null) {
+            val account = app.accounts.accountFor(from.ws)
+            if (account != null) {
+                WorkspaceSwitcher(
+                    current = from.ws,
+                    account = account,
+                    workspaces = workspaces,
+                    onPick = { ws -> switchFrom = null; open(ws) },
+                    onAdd = { switchFrom = null; stage = Stage.SignIn(adding = true) },
+                    // The full page, for the rare things: signing an account out,
+                    // another restaurant.
+                    onManage = { switchFrom = null; behind = from; stage = Stage.Hub },
+                    onDismiss = { switchFrom = null },
+                )
             }
         }
 
