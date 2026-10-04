@@ -102,14 +102,16 @@ fun KeelRoot(app: KeelApp, route: Route?, onRouteConsumed: () -> Unit) {
      *  workspace, or the one used last. The switcher is a door somebody opens,
      *  not a lobby everybody waits in each morning. */
     fun home(): Stage {
+        // ⚠️ **A launch never asks "which section?".** The person signed in; the
+        // app takes them straight to their work — the one they had open last, or
+        // their primary one (a cashier to the floor, an owner to the numbers).
+        // The switcher is a door on the settings screen, not a lobby everyone
+        // waits in. Showing the hub on launch was the one wrong step this app
+        // existed to remove, re-added at the top.
+        if (app.accounts.accounts.value.isEmpty()) return Stage.SignIn(adding = false)
         val ws = app.accounts.workspaces()
-        val last = app.accounts.last.value
-        return when {
-            app.accounts.accounts.value.isEmpty() -> Stage.SignIn(adding = false)
-            last != null && last in ws -> Stage.Open(last)
-            ws.size == 1 -> Stage.Open(ws.first())
-            else -> Stage.Hub
-        }
+        val target = app.accounts.last.value?.takeIf { it in ws } ?: ws.firstOrNull()
+        return target?.let { Stage.Open(it) } ?: Stage.SignIn(adding = false)
     }
 
     var stage by remember { mutableStateOf(home()) }
@@ -252,12 +254,11 @@ fun KeelRoot(app: KeelApp, route: Route?, onRouteConsumed: () -> Unit) {
         // The waiter's queue starts with the floor's first sign-in, as it did
         // with the app's launch in Keel Waiter.
         if (Workspace.Waiter in all) app.waiter
+        // Straight into the work, never the picker: a new account opens on its
+        // own primary workspace, a first sign-in on the primary one.
         val fresh = res.opened.flatMap { it.account.workspaces() }
-        when {
-            adding && fresh.size == 1 -> open(fresh.first())
-            all.size == 1 -> open(all.first())
-            else -> { behind = null; stage = Stage.Hub }
-        }
+        val target = if (adding) fresh.firstOrNull() else all.firstOrNull()
+        if (target != null) open(target) else { behind = null; stage = Stage.Hub }
         return null
     }
 
