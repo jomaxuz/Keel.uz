@@ -189,6 +189,13 @@ type checkView struct {
 	PaymentMethod string              `json:"paymentMethod,omitempty"`
 	PaymentStatus string              `json:"paymentStatus,omitempty"`
 	Refund        *models.CheckRefund `json:"refund,omitempty"`
+	// Why a cancelled check was cancelled. ⚠️ The till's sales list showed a
+	// red "cancelled" and nothing else — the reason was required on the way in
+	// and then never shown again, so the one question anybody opens a
+	// cancelled check to ask had no answer on the screen.
+	CancelReason string `json:"cancelReason,omitempty"`
+	// The counter slot of a check with no table (models.OrderCheck.CounterNo).
+	CounterNo int `json:"counterNo,omitempty"`
 	// The fiscal filing, once there is one. Carried on the check rather than
 	// fetched separately because the screen that needs it is the one showing the
 	// guest their QR, and it is showing it while they wait.
@@ -242,6 +249,7 @@ func viewCheck(o *models.Order, now time.Time, viewer primitive.ObjectID) checkV
 		v.ClosedAt = o.Check.ClosedAt
 		v.PrecheckAt = o.Check.PrecheckAt
 		v.ClosedBy = o.Check.ClosedBy
+		v.CounterNo = o.Check.CounterNo
 		if !o.Check.ServerID.IsZero() {
 			v.ServerID = o.Check.ServerID.Hex()
 		}
@@ -257,6 +265,9 @@ func viewCheck(o *models.Order, now time.Time, viewer primitive.ObjectID) checkV
 		v.PaymentMethod = o.PaymentMethod
 		v.PaymentStatus = paymentStatusOf(o)
 		v.Refund = o.Refund
+		if o.Status == models.StatusCancelled {
+			v.CancelReason = o.CancelReason
+		}
 	}
 	for _, it := range o.Items {
 		line := checkLine{
@@ -371,6 +382,11 @@ func (h *Handler) StaffOpenCheck(w http.ResponseWriter, r *http.Request) {
 		serverID, serverName = other.ID, other.Name
 	}
 
+	counterNo := 0
+	if tableID == "" {
+		counterNo = h.freeCounterNo(r.Context(), s.BranchID)
+	}
+
 	now := time.Now()
 	// ⚠️ **The rate is copied onto the check when the table sits down**, not
 	// read at payment. A restaurant that changes its service charge at eight
@@ -410,6 +426,7 @@ func (h *Handler) StaffOpenCheck(w http.ResponseWriter, r *http.Request) {
 			ServerID:   serverID,
 			ServerName: serverName,
 			Guests:     req.Guests,
+			CounterNo:  counterNo,
 		},
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -422,6 +439,45 @@ func (h *Handler) StaffOpenCheck(w http.ResponseWriter, r *http.Request) {
 	order.ID = res.InsertedID.(primitive.ObjectID)
 	h.orderEvent(r.Context(), order.ID)
 	httpx.JSON(w, http.StatusCreated, viewCheck(&order, now, s.ID))
+}
+
+// freeCounterNo is the smallest slot number no open counter check holds.
+//
+// ⚠️ Smallest free, not "highest plus one": a counter that has served forty
+// takeaways by the evening should still be handing out 1, 2 and 3 when only
+// three are waiting — the number is said out loud to the guest.
+func (h *Handler) freeCounterNo(ctx context.Context, branchID primitive.ObjectID) int {
+	cur, err := h.Store.Orders.Find(ctx, bson.M{
+		"branchId":        branchID,
+		"check":           bson.M{"$exists": true},
+		"check.closedAt":  bson.M{"$exists": false},
+		"check.counterNo": bson.M{"$gt": 0},
+		"status":          bson.M{"$ne": models.StatusCancelled},
+	}, options.Find().SetProjection(bson.M{"check.counterNo": 1}))
+	if err != nil {
+		return 0
+	}
+	defer cur.Close(ctx)
+	taken := map[int]bool{}
+	for cur.Next(ctx) {
+		var row struct {
+			Check struct {
+				CounterNo int `bson:"counterNo"`
+			} `bson:"check"`
+		}
+		if cur.Decode(&row) == nil {
+			taken[row.Check.CounterNo] = true
+		}
+	}
+	return smallestFree(taken)
+}
+
+func smallestFree(taken map[int]bool) int {
+	n := 1
+	for taken[n] {
+		n++
+	}
+	return n
 }
 
 // branchTable finds a table on the branch's floor plan.

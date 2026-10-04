@@ -271,11 +271,48 @@ func (e *MigratedError) Error() string {
 }
 
 func SendMessage(ctx context.Context, token string, chatID int64, text string) error {
+	// ⚠️ **A 429 is "not yet", not "no".** Telegram allows about one message a
+	// second into one chat and twenty a minute into a group, and a cancelled
+	// check with three cooked lines raises four alerts in the same instant —
+	// the third and fourth used to be refused and dropped, which is how "some
+	// of the suspicious operations never arrive" looked from the restaurant.
+	// The reply names how long to wait; a short wait is waited out here, a long
+	// one is left to the caller's retry queue.
+	for attempt := 0; ; attempt++ {
+		err := sendMessageOnce(ctx, token, chatID, text)
+		var wait *RetryAfterError
+		if !errors.As(err, &wait) || attempt >= 2 || wait.After > 30*time.Second {
+			return err
+		}
+		t := time.NewTimer(wait.After)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return err
+		case <-t.C:
+		}
+	}
+}
+
+// RetryAfterError is Telegram's flood control: the message was refused for now,
+// and After is how long it asked us to wait.
+type RetryAfterError struct {
+	After       time.Duration
+	Description string
+}
+
+func (e *RetryAfterError) Error() string {
+	return "telegram: " + e.Description
+}
+
+func sendMessageOnce(ctx context.Context, token string, chatID int64, text string) error {
 	var out struct {
 		OK          bool   `json:"ok"`
+		ErrorCode   int    `json:"error_code"`
 		Description string `json:"description"`
 		Parameters  struct {
 			MigrateToChatID int64 `json:"migrate_to_chat_id"`
+			RetryAfter      int   `json:"retry_after"`
 		} `json:"parameters"`
 	}
 	body := map[string]any{
@@ -293,6 +330,13 @@ func SendMessage(ctx context.Context, token string, chatID int64, text string) e
 	if !out.OK {
 		if id := out.Parameters.MigrateToChatID; id != 0 {
 			return &MigratedError{NewChatID: id, Description: out.Description}
+		}
+		if out.ErrorCode == 429 || out.Parameters.RetryAfter > 0 {
+			after := time.Duration(out.Parameters.RetryAfter) * time.Second
+			if after <= 0 {
+				after = time.Second
+			}
+			return &RetryAfterError{After: after, Description: out.Description}
 		}
 		return fmt.Errorf("telegram: %s", out.Description)
 	}

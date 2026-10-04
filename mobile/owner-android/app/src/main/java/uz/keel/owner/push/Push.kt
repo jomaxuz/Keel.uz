@@ -163,7 +163,14 @@ class OwnerMessagingService : FirebaseMessagingService() {
         // ⚠️ **Keyed on the server's tag, not on one id.** Two different losses
         // are two facts; keying them together would let the second silently
         // erase the first, and an owner would never learn about it.
-        val tag = data["tag"] ?: title
+        //
+        // ⚠️ **Never on the title.** That was the fallback, and alerts came
+        // without a tag — so the title, which is the kind ("Katta chegirma"),
+        // was the key, and a second large discount replaced the first on the
+        // phone. The owner saw one of each kind and reported the rest as
+        // "never arrived". The server now tags every alert; a message without
+        // one falls back to its own FCM id, which is unique by construction.
+        val tag = data["tag"] ?: message.messageId ?: "${title}#${System.currentTimeMillis()}"
         getSystemService(NotificationManager::class.java).notify(tag.hashCode(), note)
     }
 }

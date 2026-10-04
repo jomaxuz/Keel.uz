@@ -207,14 +207,11 @@ describe("leaving a check", () => {
     await user.click(screen.getByRole("button", { name: t.till.tables }));
     await waitForFloor();
 
-    // ⚠️ The dish screen is the tell: it is only reachable while a check is
-    // being worked on, so a menu that is still pressable means the till is
-    // still holding one.
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: t.till.menu }),
-      ).toBeDisabled(),
-    );
+    // ⚠️ **The dish screen is not on the rail at all in a restaurant** — it
+    // opens with a table, and only then has anything to add to.
+    expect(
+      screen.queryByRole("button", { name: t.till.menu }),
+    ).not.toBeInTheDocument();
     // ⚠️ **The column is gone, not emptied.** An empty panel saying "chek
     // bo'sh" spends a quarter of a 1024px monoblock on a sentence, and it makes
     // letting go of a check look like nothing happened — the check's own name
@@ -236,10 +233,11 @@ describe("leaving a check", () => {
     await user.click(await screen.findByRole("button", { name: t.till.open }));
     await user.click(await screen.findByRole("button", { name: t.till.tables }));
     await waitForFloor();
+    // Tapping the table again opens its dishes beside it — the only way to the
+    // dish screen now that it is off the rail.
     await user.click(tableTile("7"));
-
-    await user.click(await screen.findByRole("button", { name: t.till.menu }));
     expect(await screen.findByRole("button", { name: PLAIN_DISH })).toBeTruthy();
+    expect(document.querySelector("aside")).not.toBeNull();
   });
 });
 
@@ -967,6 +965,12 @@ describe("a guest paying back what they owe", () => {
 
     const row = screen.getByText("A-0007").closest("div")!.parentElement!;
     await user.click(within(row).getByRole("button", { name: t.till.methodCash }));
+
+    // ⚠️ **Asked first.** A tap on the method used to close the debt at once;
+    // nothing may reach the server until the cashier says the money is here.
+    expect(await screen.findByText(t.till.debtConfirmTitle)).toBeInTheDocument();
+    expect(server.calls.payDebt).toHaveLength(0);
+    await user.click(screen.getByRole("button", { name: t.till.debtConfirmYes }));
 
     await waitFor(() => expect(server.calls.payDebt).toHaveLength(1));
     // ⚠️ Cash goes into the drawer counted tonight and a card does not; a till
@@ -1723,5 +1727,30 @@ describe("a shop counter tapped faster than the network", () => {
       expect(screen.getAllByText(PLAIN_DISH).length).toBeGreaterThan(0);
       expect(screen.getAllByText(TEA_DISH).length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("a debt the guest has not paid", () => {
+  it("stays open when the cashier answers no", async () => {
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getAllByRole("button", { name: t.cash.title })[0]);
+    await screen.findByText(t.till.debtsTitle);
+
+    await user.type(screen.getByPlaceholderText(t.till.debtPhone), "998901234567");
+    await user.click(screen.getByRole("button", { name: t.till.debtFind }));
+    await screen.findByText("Aziz Karimov");
+    const row = screen.getByText("A-0007").closest("div")!.parentElement!;
+    await user.click(within(row).getByRole("button", { name: t.till.methodCard }));
+
+    await screen.findByText(t.till.debtConfirmTitle);
+    await user.click(screen.getByRole("button", { name: t.till.debtConfirmNo }));
+    // A thumb that brushed the button closed nothing.
+    await waitFor(() =>
+      expect(screen.queryByText(t.till.debtConfirmTitle)).not.toBeInTheDocument(),
+    );
+    expect(server.calls.payDebt).toHaveLength(0);
   });
 });

@@ -538,6 +538,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Who a wage can be handed to at this counter — staff and couriers
 			// of this branch, in one list.
 			r.Get("/staff/payees", h.StaffPayees)
+			// This person's favourites and most-rung dishes, above the menu.
+			// See handlers/tillfavorites.go.
+			r.Get("/staff/menu/mine", h.StaffMenuMine)
+			r.Put("/staff/menu/favorites", h.StaffSaveMenuFavorites)
 			r.Post("/staff/checks/{id}/pay-online", h.TillStartPayment)
 			r.Get("/staff/checks/{id}/payment", h.TillPaymentStatus)
 			// ⚠️ The other direction: the cashier scans the guest's code and

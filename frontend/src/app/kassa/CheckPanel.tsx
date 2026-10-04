@@ -244,7 +244,9 @@ export default function CheckPanel({
             <h2 className="truncate text-[21px] font-bold leading-tight tracking-tight">
               {check.tableNumber
                 ? `${check.tableNumber}-${t.till.table.toLowerCase()}`
-                : t.till.counter}
+                : check.counterNo
+                  ? `${t.till.counter} #${check.counterNo}`
+                  : t.till.counter}
               {check.guests ? (
                 <span className="text-ink-muted"> · {check.guests}</span>
               ) : null}
@@ -310,8 +312,8 @@ export default function CheckPanel({
                 is six repetitions of one fact, and the eye stops reading it. */}
             {(line.course ?? 0) > 0 &&
               (line.course ?? 0) !== (shownLines[i - 1]?.course ?? 0) && (
-                <span className="till-chip till-chip-info absolute -ml-1 -mt-4">
-                  {"I".repeat(line.course ?? 0)}
+                <span className="till-chip till-chip-info self-start">
+                  {t.till.courseOf(line.course ?? 0)}
                 </span>
               )}
             {/* ⚠️ **The count in its own square, before the name.** It used to

@@ -15814,3 +15814,27 @@ tekshirilmagan (bu ishda ular o'zgarmagan).
   ochildi (92 sahifa, ~188 KB).
 - ⏳ Deploydan keyin: `INDEXNOW_KEY` borligini va konsolda birinchi tekshiruv
   (2 daqiqadan keyin) o'tganini ko'rish.
+
+## 2026-10-04 — Kassa (Windows): 11 ta tuzatish + shubhali operatsiyalar yetib borishi
+
+Batafsil: `docs/DECISIONS.md` → «Shubhali operatsiyalar: yetkazish navbati» va
+«Kassa: 2026-10-04 tuzatishlari».
+
+- **Telegram va ega ilovasi**: kunlik limit endi tashlamaydi (digest), 429
+  kutiladi, yuborilmaganlar har daqiqada qayta yuboriladi, ega ilovasida
+  bildirishnomalar bir-birini o'chirmaydi, kassadan smena yopilganda kamomad va
+  bekor qilingan chekdagi o'chirilgan taomlar ham xabar beradi.
+- **Kassa**: peshtaxta raqami barqaror, «Menyu» paneldan olindi, kurs tugmalari
+  tushunarli, sevimlilar + ko'p ishlatilgan (kassa va zal), qarz qaytarishda
+  tasdiq, maosh ro'yxati faqat maoshda (va endi payrollga yoziladi), bekor
+  qilingan chek sababi, barcha ro'yxatlarda pagination, ekran klaviaturasi
+  pastdagi maydonlarni ko'taradi, saboy slotlari, setup tarjimasi,
+  «Yangilash» tugmasi.
+- Tekshiruv: backend `go build`/`go vet`/`go test ./...`, desktop
+  `GOOS=windows go build/vet` + `tsc`, frontend `tsc` + vitest (kassa testlari
+  yangilandi: rail'da menyu yo'q, qarz tasdig'i; `renderTill` endi
+  `AskProvider` bilan).
+- ⏳ Jonli Mongo testlari (`liveHandler`) bu muhitda skip bo'ldi — mongod yo'q.
+  ⏳ `owner-android` build qilinmadi (Google Maven yopiq); o'zgarish bir qator.
+  ⏳ Windows'da `wails build` va «Yangilash» tugmasini haqiqiy manifest bilan
+  sinash kerak.

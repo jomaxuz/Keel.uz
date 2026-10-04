@@ -7,9 +7,12 @@
 // storing "course two is away" on the check would be a second thing to be wrong
 // about something the lines already know.
 //
-// ⚠️ **Off by default and invisible until used.** A counter selling coffee
-// never numbers a course, and a control that is on every screen for a feature
-// most branches never touch is a control that gets pressed by accident.
+// ⚠️ **Words and numbers, not glyphs.** This was a row of "— I II III" with no
+// label, beside the photo switch, and it was reported as "buttons next to the
+// picture toggle that do nothing": pressing one changed nothing anybody could
+// see, because what it changes is the *next* dish. So it now says what it is
+// ("Kurs"), counts in digits, and, while a course is chosen, says in a line
+// under the bar what will happen to the next dish.
 
 import { useAdminT } from "@/lib/i18n/admin";
 
@@ -27,24 +30,43 @@ export default function CourseTabs({
 }) {
   const t = useAdminT();
   return (
-    <div className="till-seg-track shrink-0" aria-label={t.till.course}>
-      <button
-        className={value === 0 ? "till-seg-on" : "till-seg"}
-        onClick={() => onPick(0)}
-        title={t.till.noCourse}
-      >
-        —
-      </button>
-      {COURSES.map((c) => (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <span className="hidden text-xs font-semibold uppercase tracking-wide text-ink-muted sm:inline">
+        {t.till.course}
+      </span>
+      <div className="till-seg-track" role="group" aria-label={t.till.course}>
         <button
-          key={c}
-          className={`${value === c ? "till-seg-on" : "till-seg"} px-3`}
-          onClick={() => onPick(c)}
-          aria-label={t.till.courseOf(c)}
+          className={value === 0 ? "till-seg-on" : "till-seg"}
+          onClick={() => onPick(0)}
+          title={t.till.noCourse}
+          aria-pressed={value === 0}
         >
-          {"I".repeat(c)}
+          {t.till.courseAll}
         </button>
-      ))}
+        {COURSES.map((c) => (
+          <button
+            key={c}
+            className={`${value === c ? "till-seg-on" : "till-seg"} min-w-10 px-3`}
+            onClick={() => onPick(value === c ? 0 : c)}
+            aria-label={t.till.courseOf(c)}
+            title={t.till.courseHint(c)}
+            aria-pressed={value === c}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
     </div>
+  );
+}
+
+/** The sentence under the bar while a course is chosen. */
+export function CourseNote({ value }: { value: number }) {
+  const t = useAdminT();
+  if (value <= 0) return null;
+  return (
+    <p className="shrink-0 border-b border-line bg-[rgb(var(--till-accent-tint))] px-3 py-1.5 text-[13px] font-medium text-[rgb(var(--till-accent-ink))]">
+      {t.till.courseHint(value)}
+    </p>
   );
 }

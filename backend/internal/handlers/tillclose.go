@@ -541,6 +541,14 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 	// draws that line for the PIN and the alert, and the shelf must not draw a
 	// second one — see handlers/stocksale.go.
 	h.syncOrderStock(r.Context(), o)
+	// ⚠️ **The voided lines too, not only what was left on the check.** The
+	// void alert hung on the close path alone, and the cancelled-check alert
+	// counts only live lines — so the oldest trick in the book went unseen
+	// from both sides: remove the cooked dishes one by one, then cancel what
+	// is left. Neither alert saw the dishes.
+	if aset := h.alertSettingsOf(r.Context(), o.BranchID); aset.Enabled {
+		h.alertOnVoidsAfterPrecheck(o, aset)
+	}
 	h.alertOnCancelledCheck(o, who, req)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }

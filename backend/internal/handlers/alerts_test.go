@@ -79,7 +79,7 @@ func TestACancelledCheckRaisesOne(t *testing.T) {
 // the owner scrolls past.
 func TestSurplusesRaiseNothing(t *testing.T) {
 	cash := readLossSource(t, "cash.go")
-	if !strings.Contains(cash, "if short := figures.Expected - req.Counted; short > 0 {") {
+	if !strings.Contains(cash, "if shift == nil || short <= 0 {") {
 		t.Fatal("a cash surplus can now raise an alert")
 	}
 	stock := readLossSource(t, "stocktake.go")
@@ -300,5 +300,84 @@ func TestTheMirrorDoesNotInventAnActor(t *testing.T) {
 	src := readLossSource(t, "alerts.go")
 	if !strings.Contains(src, `if d.ByID.IsZero() && d.By == "" {`) {
 		t.Fatal("a promotion that matched would now be reported as somebody's judgement")
+	}
+}
+
+// ⚠️ **Both doors that close a drawer raise the shortfall.** The till's own
+// "close shift" — the one a cashier presses every evening — used to close
+// through a handler with no alert in it, so a till counted short never reached
+// the owner. One function now, and both callers are checked by name.
+func TestBothShiftClosesAlertOnAShortfall(t *testing.T) {
+	for _, file := range []string{"cash.go", "tillcash.go"} {
+		if !strings.Contains(readLossSource(t, file), "h.alertOnCashShort(") {
+			t.Fatalf("%s closes a drawer without the shortfall alert", file)
+		}
+	}
+}
+
+// ⚠️ A cancelled check raises its voided cooked lines too — otherwise "remove
+// the dishes, then cancel the rest" is invisible to both alerts.
+func TestACancelledCheckRaisesItsVoids(t *testing.T) {
+	src := readLossSource(t, "tillclose.go")
+	i := strings.Index(src, "h.alertOnCancelledCheck(o, who, req)")
+	if i < 0 {
+		t.Fatal("the cancelled-check alert is gone")
+	}
+	if !strings.Contains(src[max(0, i-900):i], "h.alertOnVoidsAfterPrecheck(o, aset)") {
+		t.Fatal("a cancelled check no longer raises its voided cooked lines")
+	}
+}
+
+// ⚠️ **Past the ceiling an alert is held, never dropped.** It used to return
+// there for good — with the ceiling at eight, the ninth suspicious operation
+// of a busy evening reached nobody.
+func TestTheCeilingHoldsRatherThanDrops(t *testing.T) {
+	src := readLossSource(t, "alerts.go")
+	i := strings.Index(src, "if sent >= int64(set.DailyMax) {")
+	if i < 0 {
+		t.Fatal("the ceiling check is gone")
+	}
+	if !strings.Contains(src[i:i+300], `"heldAt"`) {
+		t.Fatal("the ceiling drops alerts instead of holding them for the digest")
+	}
+	if !strings.Contains(src, "func (h *Handler) sendDigest(") {
+		t.Fatal("nothing sends what the ceiling held back")
+	}
+}
+
+func TestAlertBackoffGrowsAndStops(t *testing.T) {
+	prev := time.Duration(0)
+	for n := 1; n <= alertMaxAttempts; n++ {
+		d := alertBackoff(n)
+		if d < prev {
+			t.Fatalf("backoff shrank at attempt %d: %v < %v", n, d, prev)
+		}
+		prev = d
+	}
+	if alertBackoff(0) <= 0 || alertBackoff(100) != alertBackoff(alertMaxAttempts) {
+		t.Fatal("backoff out of range")
+	}
+}
+
+// ⚠️ Counter slots are handed out smallest-free and never recounted: closing
+// #2 must leave #3 as #3, and the next check fills the gap.
+func TestCounterSlotsAreSmallestFree(t *testing.T) {
+	cases := []struct {
+		taken []int
+		want  int
+	}{
+		{nil, 1},
+		{[]int{1, 2, 3}, 4},
+		{[]int{1, 3, 4}, 2},
+		{[]int{2, 3}, 1},
+	}
+	for _, c := range cases {
+		m := map[int]bool{}
+		for _, n := range c.taken {
+			m[n] = true
+		}
+		if got := smallestFree(m); got != c.want {
+			t.Fatalf("smallestFree(%v) = %d, want %d", c.taken, got, c.want)
+		}
 	}
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { LuFlame, LuStar } from "react-icons/lu";
 
 import { imageUrl } from "@/lib/api";
 import { tapProps } from "./tap";
@@ -11,6 +12,7 @@ import { useI18n } from "@/lib/i18n/client";
 import type { Lang } from "@/lib/i18n/dictionaries";
 import { categoryTint } from "@/lib/tillColors";
 import type { MenuGroup, MenuItem } from "@/lib/types";
+import { FAV_CAT, TOP_CAT, type MenuMine } from "./MenuMine";
 
 /**
  * The menu, drawn for a monoblock.
@@ -40,6 +42,8 @@ export default function MenuGrid({
   currency,
   disabled,
   onPick,
+  mine,
+  onToggleFavorite,
 }: {
   menu: MenuGroup[];
   items: MenuItem[];
@@ -51,9 +55,13 @@ export default function MenuGrid({
   /** No check is open, so nothing can be added to anything. */
   disabled: boolean;
   onPick: (item: MenuItem) => void;
+  /** This person's pinned and most-rung dishes; absent hides both chips. */
+  mine?: MenuMine;
+  onToggleFavorite?: (id: string) => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
+  const favs = useMemo(() => new Set(mine?.favorites ?? []), [mine]);
 
   // Which category each dish belongs to, so a search result keeps the colour it
   // has in its own section — the cue has to survive the search or it teaches
@@ -85,6 +93,31 @@ export default function MenuGrid({
           neutral, and the selected one is the only filled thing in the row. */}
       {!query && (
         <div className="flex shrink-0 flex-wrap gap-2 px-3 pb-3 pt-3">
+          {/* ⚠️ The person's own two lists first, drawn like categories —
+              see MenuMine. "Most used" only once there is something in it;
+              "Favourites" always, so the star on a tile has somewhere to be
+              found. */}
+          {mine && (mine.top.length > 0 || categoryID === TOP_CAT) && (
+            <button
+              {...tapProps(() => onCategory(TOP_CAT))}
+              className={categoryID === TOP_CAT ? "till-chip-btn-on" : "till-chip-btn"}
+            >
+              <LuFlame className="h-4 w-4 text-[rgb(var(--till-accent))]" aria-hidden />
+              {t.till.menuTop}
+            </button>
+          )}
+          {mine && onToggleFavorite && (
+            <button
+              {...tapProps(() => onCategory(FAV_CAT))}
+              className={categoryID === FAV_CAT ? "till-chip-btn-on" : "till-chip-btn"}
+            >
+              <LuStar className="h-4 w-4 text-amber-500" aria-hidden />
+              {t.till.menuFavorites}
+              {mine.favorites.length > 0 && (
+                <span className="tabular-nums opacity-60">{mine.favorites.length}</span>
+              )}
+            </button>
+          )}
           {menu.map((g) => {
             const tint = categoryTint(g.category.id);
             const on = g.category.id === categoryID;
@@ -121,7 +154,9 @@ export default function MenuGrid({
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         {capped.length === 0 && (
           <p className="py-8 text-center text-ink-muted">
-            {t.till.nothingFound}
+            {!query && categoryID === FAV_CAT
+              ? t.till.menuFavoritesEmpty
+              : t.till.nothingFound}
           </p>
         )}
         <div
@@ -143,6 +178,8 @@ export default function MenuGrid({
               currency={currency}
               disabled={disabled}
               onPick={onPick}
+              fav={favs.has(it.id)}
+              onFav={onToggleFavorite}
             />
           ))}
         </div>
@@ -166,6 +203,8 @@ function Tile({
   currency,
   disabled,
   onPick,
+  fav,
+  onFav,
 }: {
   item: MenuItem;
   tint: { background: string; bar: string };
@@ -173,6 +212,8 @@ function Tile({
   currency: string;
   disabled: boolean;
   onPick: (item: MenuItem) => void;
+  fav?: boolean;
+  onFav?: (id: string) => void;
 }) {
   const { lang } = useI18n();
   const t = useAdminT();
@@ -201,6 +242,10 @@ function Tile({
     : contentName(item, lang);
 
   return (
+    // ⚠️ **The star is the tile's neighbour, not its child.** A button inside
+    // a button is invalid HTML and the browser hands the press to whichever it
+    // likes; side by side in one box, each one owns its own tap.
+    <div className="relative">
     <button
       // ⚠️ **Pointer-down, the same rule the PIN pad already followed.** The
       // pad was fixed and the grid was not, so the surface a cashier taps
@@ -216,7 +261,7 @@ function Tile({
       // ⚠️ **A finger, not a cursor.** The tile is thumb-sized even without a
       // photograph — the person pressing it is standing, talking, and not
       // looking at their hand.
-      className="till-tile h-[10.5rem] justify-between p-3.5"
+      className="till-tile h-[10.5rem] w-full justify-between p-3.5"
     >
       {src ? (
         <>
@@ -301,6 +346,23 @@ function Tile({
         </span>
       )}
     </button>
+    {onFav && (
+      // Bottom-right, away from the options dot and the photograph: the
+      // corner a thumb reaches without covering the name.
+      <button
+        type="button"
+        {...tapProps(() => onFav(item.id))}
+        aria-pressed={!!fav}
+        aria-label={fav ? t.till.menuUnpin : t.till.menuPin}
+        title={fav ? t.till.menuUnpin : t.till.menuPin}
+        className={`absolute bottom-1.5 right-1.5 z-10 grid h-10 w-10 place-items-center rounded-full transition ${
+          fav ? "text-amber-500" : "text-ink/25 hover:text-ink/50"
+        }`}
+      >
+        <LuStar className={`h-5 w-5 ${fav ? "fill-current" : ""}`} aria-hidden />
+      </button>
+    )}
+    </div>
   );
 }
 

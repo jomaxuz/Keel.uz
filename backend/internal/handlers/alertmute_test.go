@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"restaurant-backend/internal/models"
 
@@ -81,5 +82,48 @@ func TestMutedKindsAndTheListOfKinds(t *testing.T) {
 	}
 	if (models.AlertSettings{}).WithDefaults().Muted == nil {
 		t.Fatal("defaults left muted as nil, which reaches the page as null")
+	}
+}
+
+// ⚠️ **Past the ceiling: held, then handed to the digest — never dropped.**
+// Against a real database. The ceiling is filled with one already-sent record,
+// the next alert must come back held rather than silently finished, and the
+// sweeper must then try it (no chat is configured here, so the attempt fails —
+// which is the proof it was made, and that it will be made again).
+func TestAHeldAlertGoesToTheDigest(t *testing.T) {
+	h, branch := liveHandler(t)
+	ctx := context.Background()
+	if _, err := h.Store.AlertSettings.UpdateOne(ctx, bson.M{"branchId": branch},
+		bson.M{"$set": bson.M{"dailyMax": 1}}); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	if _, err := h.Store.LossAlerts.InsertOne(ctx, models.LossAlert{
+		BranchID: branch, Kind: models.AlertCashOut, At: now, SentAt: &now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	h.raiseAlertSync(ctx, models.LossAlert{
+		BranchID: branch, Kind: models.AlertBigDiscount, Amount: 1,
+		At: now.Add(-time.Hour),
+	})
+	var held models.LossAlert
+	if err := h.Store.LossAlerts.FindOne(ctx, bson.M{"kind": models.AlertBigDiscount}).Decode(&held); err != nil {
+		t.Fatal(err)
+	}
+	if held.HeldAt == nil || held.SentAt != nil {
+		t.Fatalf("past the ceiling the alert was not held: %+v", held)
+	}
+
+	h.sweepAlerts(ctx)
+	if err := h.Store.LossAlerts.FindOne(ctx, bson.M{"_id": held.ID}).Decode(&held); err != nil {
+		t.Fatal(err)
+	}
+	if held.Attempts != 1 || held.SendErr == "" || held.NextTryAt == nil {
+		t.Fatalf("the sweeper never tried the held alert: %+v", held)
+	}
+	if held.ClaimUntil != nil {
+		t.Fatal("a failed digest left its records claimed, so no retry can take them")
 	}
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LuMonitor, LuPrinter } from "react-icons/lu";
+import { LuMonitor, LuPrinter, LuRefreshCw } from "react-icons/lu";
 import { useAdminT } from "@/lib/i18n/admin";
-import { bridge, type Status } from "@/lib/tillBridge";
+import { bridge, type Status, type UpdateResult } from "@/lib/tillBridge";
 import PrinterList from "./PrinterList";
 import PrinterSettings from "./PrinterSettings";
 
@@ -100,6 +100,7 @@ export default function SettingsScreen({
 
         <Section icon={<LuMonitor />} title={t.till.settings.device.title}>
           {status ? (
+            <>
             <dl className="space-y-2 text-sm">
               <Row label={t.till.settings.device.branch} value={status.branchName} />
               <Row label={t.till.settings.device.server} value={status.server} />
@@ -133,6 +134,8 @@ export default function SettingsScreen({
                 warn={!status.agent}
               />
             </dl>
+            <UpdateButton />
+            </>
           ) : (
             <p className="text-sm text-ink-soft">
               {t.till.settings.device.browser}
@@ -184,6 +187,73 @@ function Row({
       <dd className={`break-all text-right ${warn ? "text-danger" : "text-ink"}`}>
         {value}
       </dd>
+    </div>
+  );
+}
+
+/** "Update": install a newer till now, or say there is none.
+ *
+ *  ⚠️ **One press does the whole job.** Updates already arrive by themselves
+ *  — downloaded in the background and installed the next time the machine
+ *  starts — but a till that is never switched off never starts, so a fix could
+ *  sit on the disk for weeks. The button runs the same checked path at once:
+ *  if something newer exists it is installed and the till reopens; if not, it
+ *  says so in a sentence instead of doing nothing visible.
+ *
+ *  ⚠️ Drawn only by a shell that has the method — an older one would answer
+ *  the press with a missing-function error. */
+function UpdateButton() {
+  const t = useAdminT();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ text: string; warn?: boolean } | null>(null);
+  const b = bridge();
+  if (!b?.UpdateNow) return null;
+
+  async function run() {
+    const now = bridge()?.UpdateNow;
+    if (!now) return;
+    setBusy(true);
+    setNote({ text: t.till.settings.device.updateChecking });
+    try {
+      const res: UpdateResult = await now();
+      const d = t.till.settings.device;
+      setNote({
+        text:
+          res.status === "latest"
+            ? d.updateLatest(res.current)
+            : res.status === "installing"
+              ? d.updateInstalling(res.latest)
+              : d.updateStaged(res.latest),
+      });
+    } catch (e) {
+      setNote({
+        text: `${t.till.settings.device.updateFailed} (${String(e).replace(/^Error:\s*/, "")})`,
+        warn: true,
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 border-t border-line pt-3">
+      <button
+        type="button"
+        className="till-btn w-full gap-2"
+        disabled={busy}
+        onClick={() => void run()}
+      >
+        <LuRefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} aria-hidden />
+        {t.till.settings.device.update}
+      </button>
+      {note && (
+        <p
+          role="status"
+          className={`mt-2 text-sm ${note.warn ? "text-danger" : "text-ink-muted"}`}
+        >
+          {note.text}
+        </p>
+      )}
     </div>
   );
 }

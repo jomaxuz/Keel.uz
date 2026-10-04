@@ -79,7 +79,8 @@ import TillNav from "@/components/till/TillNav";
 import StopListScreen from "@/components/till/StopListScreen";
 import ZakupScreen from "@/components/till/ZakupScreen";
 import OnlineScreen from "@/components/till/OnlineScreen";
-import CourseTabs from "@/components/till/CourseTabs";
+import CourseTabs, { CourseNote } from "@/components/till/CourseTabs";
+import { minePool, useMenuMine } from "@/components/till/MenuMine";
 import MoveLinesDialog from "@/components/till/MoveLinesDialog";
 import MergeDialog from "@/components/till/MergeDialog";
 import MenuGrid from "@/components/till/MenuGrid";
@@ -602,11 +603,17 @@ export default function TillPage() {
   }, []);
 
   // ---- Menu view ----
+  // This person's pinned and most-rung dishes — see components/till/MenuMine.
+  const { mine, toggle: toggleFavorite } = useMenuMine(
+    person?.id ?? staff?.id ?? "",
+  );
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
     const pool: MenuItem[] = q
       ? menu.flatMap((g) => g.items)
-      : (menu.find((g) => g.category.id === catID)?.items ?? []);
+      : (minePool(menu, catID, mine) ??
+        menu.find((g) => g.category.id === catID)?.items ??
+        []);
     // ⚠️ **A model is not a thing on the shelf, so it is not a tile.** A shirt
     // that comes in five sizes has a row of its own to hang the photograph and
     // the name on; what is sold is always a size, and the server refuses the
@@ -625,7 +632,7 @@ export default function TillPage() {
         .toLowerCase()
         .includes(q),
     );
-  }, [menu, catID, query, lang]);
+  }, [menu, catID, query, lang, mine]);
 
   // Does this screen lock, and what does it put on itself while it does?
   //
@@ -1086,12 +1093,16 @@ export default function TillPage() {
             // things that are temporarily unavailable. A shop has no floor
             // plan and never will, and a permanently grey first destination is
             // a shop cashier's first impression of the till.
-            ...(hasTables
+            // ⚠️ A counter-only restaurant (no floor plan, not a shop) keeps
+            // this destination under the counter's name: it is where its
+            // checks are opened, and with the dish screen gone from the rail
+            // it would otherwise have no way back to them.
+            ...(hasTables || !sellsGoods
               ? [
                   {
                     id: "tables",
                     icon: <LuLayoutGrid />,
-                    label: t.till.tables,
+                    label: hasTables ? t.till.tables : t.till.counter,
                     // Somewhere in the room a check has lines the kitchen has
                     // not been told about — the one thing that goes quietly
                     // wrong.
@@ -1099,19 +1110,21 @@ export default function TillPage() {
                   },
                 ]
               : []),
-            {
-              id: "order",
-              icon: <LuUtensils />,
-              label: t.till.menu,
-              // ⚠️ Disabled rather than hidden: a menu with nothing to add a
-              // dish to is a screen that answers every tap with silence, and a
-              // control that vanishes is a control people hunt for.
-              //
-              // ⚠️ **Never disabled in a shop**, where this is not a menu but
-              // the counter itself: the scan opens its own check, so there is
-              // nothing to wait for and nothing to disable it against.
-              disabled: !active && !sellsGoods,
-            },
+            // ⚠️ **The dish screen is not a destination in a restaurant.** It
+            // opens when a table or a counter check is opened, and only then
+            // does it have anything to add to — as a rail button it sat greyed
+            // out most of the day, and when it was not, it was the way a dish
+            // reached the wrong table. Gone from the rail, except in a shop,
+            // where it is the counter itself: the scan opens its own check.
+            ...(sellsGoods
+              ? [
+                  {
+                    id: "order",
+                    icon: <LuUtensils />,
+                    label: t.till.menu,
+                  },
+                ]
+              : []),
             {
               // ⚠️ **Not behind `canCashier`.** The person told that lag'mon
               // has run out is whoever is nearest the kitchen door, and that is
@@ -1197,7 +1210,9 @@ export default function TillPage() {
           // refuses the call either way.
           onExit={person?.canExit ? exitScreen : undefined}
           exitLabel={t.till.exit}
-          value={view}
+          // The open check belongs to the room it was opened from, so the
+          // room stays lit while its dishes are on screen.
+          value={view === "order" && !sellsGoods ? "tables" : view}
           // ⚠️ **Leaving the check lets go of it.**
           //
           // It used to stay: a cashier rang two dishes onto table 4, walked to
@@ -1390,6 +1405,7 @@ export default function TillPage() {
                   {showImages ? "🖼" : "▦"}
                 </button>
               </div>
+              {!sellsGoods && <CourseNote value={course} />}
               <MenuGrid
                 menu={menu}
                 items={items}
@@ -1402,6 +1418,8 @@ export default function TillPage() {
                 // exactly as the scan does.
                 disabled={!active && !sellsGoods}
                 onPick={pick}
+                mine={mine}
+                onToggleFavorite={toggleFavorite}
               />
             </>
           )}

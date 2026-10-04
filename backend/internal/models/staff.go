@@ -126,6 +126,15 @@ type Staff struct {
 	// the deploy that adds this.
 	CanBuyOrder bool `bson:"canBuyOrder,omitempty" json:"canBuyOrder"`
 
+	// The dishes this person pinned to the top of the till's menu.
+	//
+	// ⚠️ **On the person, not on the machine.** A waiter carries the evening
+	// between three tablets and the till; favourites kept in one browser's
+	// storage would be there on one of them. Kept out of JSON: the screen reads
+	// them from /staff/menu/mine, and the staff list in the panel has no use
+	// for a column of dish ids.
+	MenuFavorites []primitive.ObjectID `bson:"menuFavorites,omitempty" json:"-"`
+
 	// Which role this person holds. ⚠️ **The role is where permissions live
 	// now**; the three booleans above are kept only so tills and kitchens
 	// installed before roles existed keep working, and so the migration has

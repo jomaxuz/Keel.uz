@@ -64,6 +64,10 @@ type notifyWords struct {
 	// Guest feedback.
 	FeedbackFrom string
 	Order        string
+
+	// Digest is the heading of the one message that carries everything held
+	// back by the daily ceiling — "%d more events" in the group's language.
+	Digest string
 }
 
 // notifyWordsFor picks the language.
@@ -93,6 +97,7 @@ func notifyWordsFor(lang string) notifyWords {
 			Table:             "Стол",
 			AfterPrecheck:     "счёт уже был распечатан",
 			Unknown:           "Внимание",
+			Digest:            "Ещё %d событий (сверх дневного лимита)",
 			Who:               "Кто",
 			Approved:          "подтвердил",
 			Reason:            "Причина",
@@ -124,6 +129,7 @@ func notifyWordsFor(lang string) notifyWords {
 			Table:             "Table",
 			AfterPrecheck:     "the bill had already been printed",
 			Unknown:           "Notice",
+			Digest:            "%d more events (past the daily limit)",
 			Who:               "Who",
 			Approved:          "approved",
 			Reason:            "Reason",
@@ -155,6 +161,7 @@ func notifyWordsFor(lang string) notifyWords {
 		Table:             "Stol",
 		AfterPrecheck:     "hisob chiqarilgan edi",
 		Unknown:           "Diqqat",
+		Digest:            "Yana %d ta hodisa (kunlik limitdan keyin)",
 		Who:               "Kim",
 		Approved:          "tasdiqladi",
 		Reason:            "Sabab",

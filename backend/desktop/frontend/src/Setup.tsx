@@ -169,10 +169,10 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
                 required
               />
               <p className="mt-1.5 text-xs text-ink-muted">
-                Ega yoki menejer hisobi. Parol bu kompyuterda saqlanmaydi.
+                {t.passwordHint}
               </p>
 
-              {error && <Problem text={error} />}
+              {error && <Problem text={setupError(error, t.errors)} />}
 
               {/* ⚠️ Exactly one accent control per screen (globals.css): it is
                   always the thing that moves the setup forward. */}
@@ -184,10 +184,10 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
             <div>
               <h1 className="text-base font-semibold">{t.whatTitle}</h1>
               <p className="mt-1 text-sm text-ink-muted">
-                Keyin ham o'zgartirish mumkin (Ctrl+Shift+M).
+                {t.modeLater}
               </p>
 
-              {error && <Problem text={error} />}
+              {error && <Problem text={setupError(error, t.errors)} />}
 
               {/* ⚠️ Quiet, not accent, for the reason the branch list is: there
                   is no recommended answer — a restaurant that bought one
@@ -218,7 +218,7 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
               <h1 className="text-base font-semibold">{t.branchTitle}</h1>
               <p className="mt-1 text-sm text-ink-muted">{t.branchHint}</p>
 
-              {error && <Problem text={error} />}
+              {error && <Problem text={setupError(error, t.errors)} />}
 
               {/* ⚠️ Quiet, not accent: there is no "recommended" branch, and an
                   accent on every row would make the choice look already made. */}
@@ -250,7 +250,7 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
                 disabled={busy}
                 onClick={() => setBranches(null)}
               >
-                Orqaga
+                {t.back}
               </button>
             </div>
           )}
@@ -260,6 +260,43 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
       <OnScreenKeyboard />
     </div>
   );
+}
+
+/** The Windows side's refusal, in the screen's language.
+ *
+ *  ⚠️ **Matched by its opening words, because it is written in Uzbek.** The
+ *  errors are produced in Go (pair_windows.go), which has no dictionary, and
+ *  come here as a sentence — so a Russian-speaking installer switched the
+ *  language, watched every label change, and then read "login yoki parol xato"
+ *  in a red box. Unknown text is shown as it came: a sentence we did not
+ *  expect is still better than a generic "something went wrong". */
+type SetupErrors = ReturnType<typeof useAdminT>["till"]["setup"]["errors"];
+function setupError(raw: string, e: SetupErrors): string {
+  const text = raw.replace(/^Error:\s*/, "").trim();
+  const low = text.toLowerCase();
+  const known: [string, string][] = [
+    ["restoran manzilini kiriting", e.noAddress],
+    ["serverga ulanib bo'lmadi", e.unreachable],
+    ["login yoki parol xato", e.badLogin],
+    ["serverdan tushunarsiz javob", e.badReply],
+    ["bu hisobda filial yo'q", e.noBranch],
+    ["filiallar ro'yxat", e.branches],
+    ["avval tizimga kiring", e.signIn],
+    ["qurilma kalit", e.deviceKey],
+    ["bu hisobda shu filialga ruxsat yo'q", e.noAccess],
+    ["kassa ekranlari limiti tugadi", e.cap],
+    ["sozlamani saqlab bo'lmadi", e.save],
+  ];
+  for (const [uz, said] of known) {
+    if (low.startsWith(uz)) {
+      // The register count travels in brackets; it is a number in any language.
+      const count = uz === "kassa ekranlari limiti tugadi" ? text.match(/\(\d+ \/ \d+\)/)?.[0] : undefined;
+      return count ? `${said} ${count}` : said;
+    }
+  }
+  const status = text.match(/^server javobi: (\d+)/i);
+  if (status) return e.server(status[1]);
+  return text;
 }
 
 // ⚠️ Named in red, not filled in it — the same rule as till-btn-danger. A panel

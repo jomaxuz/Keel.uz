@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n/client";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import { printReceipt, type PrintOutcome } from "@/lib/print";
 import type { TillPayee } from "@/lib/types";
+import { TillPager, usePaged } from "@/components/till/Pager";
 import PrintResultDialog from "@/components/till/PrintResultDialog";
 import type {
   CashEntry,
@@ -394,6 +395,11 @@ function Row({
   );
 }
 
+/** Whether a reason chip means a wage, in any of the three languages. */
+function wageWord(r: string): boolean {
+  return /^(maosh|ish haqi|зарплата|wages?)$/i.test(r.trim());
+}
+
 /** What a cash movement needs before it can be written. */
 export interface EntryDraft {
   kind: "in" | "out";
@@ -404,6 +410,9 @@ export interface EntryDraft {
    *  never inferred from the direction: money out of the drawer goes to a
    *  supplier as often as it goes to the safe. */
   toSafe?: boolean;
+  /** Who a wage was handed to, picked from the list. */
+  personKind?: "staff" | "courier";
+  personId?: string;
 }
 
 interface Pending {
@@ -448,6 +457,13 @@ function CashEntries({
 
   const ready = category.trim() !== "" && Number(amount) > 0;
   const picked = payees.find((p) => `${p.kind}:${p.id}` === payee);
+  // ⚠️ **The staff list belongs to the wage, and to nothing else.** It used to
+  // sit under every "out" — a supplier paid at the door, change for the
+  // drawer, a bag of onions — asking "to whom?" about money that was going to
+  // no employee at all. Shown when the reason is a wage: the chip, or the same
+  // word typed.
+  const isWage = kind === "out" && wageWord(category);
+  const paged = usePaged(entries, 8);
 
   useEffect(() => {
     if (!open || payees.length > 0) return;
@@ -495,7 +511,12 @@ function CashEntries({
               <button
                 key={r}
                 className={category === r ? "till-chip-btn-on" : "till-chip-btn"}
-                onClick={() => setCategory(r)}
+                onClick={() => {
+                  setCategory(r);
+                  // Leaving the wage forgets the person: a supplier payment
+                  // must not quietly go to somebody's payroll.
+                  if (!wageWord(r)) setPayee("");
+                }}
               >
                 {r}
               </button>
@@ -531,7 +552,7 @@ function CashEntries({
               ⚠️ Names are never typed here. "Aziz", "aziz", "Азиз" and "Aziz
               kuryer" all appear within a week, and none can be matched to the
               person payroll owes. */}
-          {kind === "out" && payees.length > 0 && (
+          {isWage && payees.length > 0 && (
             <select
               className="till-input h-11"
               value={payee}
@@ -573,17 +594,25 @@ function CashEntries({
             className="till-btn w-full"
             disabled={busy || !ready}
             onClick={async () => {
+              // ⚠️ **The person goes with the entry.** It was picked and
+              // then never sent: the drawer was right, payroll still owed the
+              // whole month, and the comment above promising otherwise was
+              // describing a field that never left this component.
+              const who = isWage ? picked : undefined;
               await onAdd({
                 kind,
                 category: category.trim(),
                 amount: Number(amount) || 0,
                 note: note.trim() || undefined,
                 toSafe,
+                personKind: who?.kind,
+                personId: who?.id,
               });
               setAmount("");
               setNote("");
               setCategory("");
               setToSafe(false);
+              setPayee("");
             }}
           >
             {t.cash.entrySave}
@@ -591,7 +620,7 @@ function CashEntries({
 
           {entries.length > 0 && (
             <ul className="space-y-1 pt-1 text-xs">
-              {entries.map((e) => (
+              {paged.shown.map((e) => (
                 <li key={e.id} className="flex justify-between gap-2">
                   <span className="truncate text-ink-muted">
                     {e.category}
@@ -609,6 +638,7 @@ function CashEntries({
               ))}
             </ul>
           )}
+          <TillPager page={paged.page} pages={paged.pages} onPage={paged.setPage} />
         </div>
       )}
     </Fold>
@@ -643,6 +673,9 @@ function ClosedShifts({
   // would show the wrong dialog over the wrong list.
   const [printed, setPrinted] = useState<PrintOutcome | null>(null);
   const [working, setWorking] = useState(false);
+  // ⚠️ Paged: a till open for a few months has a long tail of shifts, and
+  // the fold had become a column longer than the screen.
+  const paged = usePaged(rows ?? [], 8);
 
   async function toggle() {
     const next = !open;
@@ -680,7 +713,7 @@ function ClosedShifts({
           {rows?.length === 0 && (
             <p className="text-xs text-ink-muted">{t.cash.zNone}</p>
           )}
-          {(rows ?? []).map((sh) => (
+          {paged.shown.map((sh) => (
             <div
               key={sh.id}
               className="flex items-center justify-between gap-2 rounded-xl bg-ink/[0.03] p-2"
@@ -708,6 +741,7 @@ function ClosedShifts({
               </button>
             </div>
           ))}
+          <TillPager page={paged.page} pages={paged.pages} onPage={paged.setPage} />
         </div>
       )}
     </Fold>

@@ -13,6 +13,7 @@ import {
   type StopHold,
 } from "@/lib/stopHold";
 import type { StopListItem } from "@/lib/types";
+import { TillPager, usePaged } from "./Pager";
 
 /**
  * What has run out, on the counter's own screen.
@@ -105,6 +106,11 @@ export default function StopListScreen({
       );
     });
   }, [items, query, cat, only]);
+  // ⚠️ Pages of cards, sized to a grid row: a menu of two hundred dishes was
+  // one long scroll of pictures on a touch screen.
+  const paged = usePaged(shown, 24);
+  const { setPage } = paged;
+  useEffect(() => setPage(0), [query, cat, only, setPage]);
 
   /** How many of this dish today.
    *
@@ -299,8 +305,9 @@ export default function StopListScreen({
         ) : shown.length === 0 ? (
           <p className="px-2 py-6 text-sm text-ink-muted">{w.tillStopEmpty}</p>
         ) : (
+          <>
           <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
-            {shown.map((row) => {
+            {paged.shown.map((row) => {
               const held = row.pos || row.stock;
               // ⚠️ `off` is what the card looks like; `held` is what it refuses.
               // A limit makes a dish look stopped and still opens — raising the
@@ -377,6 +384,8 @@ export default function StopListScreen({
               );
             })}
           </ul>
+          <TillPager page={paged.page} pages={paged.pages} onPage={paged.setPage} />
+          </>
         )}
       </div>
 
