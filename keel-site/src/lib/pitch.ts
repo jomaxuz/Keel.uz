@@ -24,7 +24,7 @@ export const PITCH_CONFIG = {
   video: {
     /** A YouTube video id (the part after `watch?v=`). Preferred: it streams
      *  from YouTube, so a 3-minute demo costs keel.uz nothing. */
-    youtubeId: "0XiQEopWj8k",
+    youtubeId: "fm4QYQWY8DE",
     /** Or a direct MP4 address, e.g. "/pitch/demo.mp4" in `public/pitch/`. */
     mp4: "",
     /** The still shown before playing. Defaults to the till screenshot. */

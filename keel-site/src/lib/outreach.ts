@@ -267,7 +267,7 @@ Qanday ko'rinishini ko'rsataymi?`,
 
 {note}
 
-iiko'dan 33–63% arzon, oyiga 450 000 so'mdan, 14 kun bepul.
+Kassa, zal, oshxona, ombor, sayt va yetkazish — bitta tizimda, oyiga 450 000 so'mdan, 14 kun bepul.
 
 Ochilishga kassa kerak bo'lsa yozing — ulguramiz.`,
 
@@ -333,7 +333,7 @@ Boshlaymizmi?`,
 
 {note}
 
-На 33–63% дешевле iiko, от 450 000 сум в месяц, 14 дней бесплатно.
+Касса, зал, кухня, склад, сайт и доставка — в одной системе, от 450 000 сум в месяц, 14 дней бесплатно.
 
 Если к открытию нужна касса — напишите, успеваем.`,
 

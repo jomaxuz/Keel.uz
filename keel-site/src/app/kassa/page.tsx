@@ -406,14 +406,15 @@ export default async function KassaPage() {
           </div>
         </div>
       </Section>
-      {/* ---- Rivals ----
+      {/* ---- What the price buys ----
 
-          ⚠️ Named competitors with their own published numbers, and the honest
-          note that one of them is cheaper than us. The owner is going to open
-          both tabs anyway; a page that makes them do it themselves loses the
-          one moment where the comparison can be framed — and a table that
-          quietly omitted the cheap flat-rate option would be discredited by the
-          first owner who found it, along with everything else on this page. */}
+          ⚠️ **No competitor's name and no competitor's price.** This section
+          used to set us against one POS vendor, line by line — and Keel is not
+          a POS to be priced against one: the till is one part of a system that
+          also runs the floor, the kitchen, the stock, the customers, the
+          website and delivery. A table of tills invited exactly the wrong
+          comparison. What is left is our own published price and the one fact
+          about its shape that matters: per branch, not per register. */}
       <Section
         id="rivals"
         eyebrow={t.rivals.eyebrow}
@@ -422,14 +423,12 @@ export default async function KassaPage() {
         tone="raised"
       >
         <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-          <table className="w-full min-w-[42rem] text-left text-sm">
+          <table className="w-full min-w-[30rem] text-left text-sm">
             <thead className="border-b border-line text-xs uppercase tracking-wider text-ink-muted">
               <tr>
                 <th className="px-5 py-4 font-medium">{t.rivals.thOrders}</th>
                 <th className="px-5 py-4 text-right font-medium text-ink">{t.rivals.thKeel}</th>
-                <th className="px-5 py-4 text-right font-medium">{t.rivals.thPerOrder}</th>
-                <th className="px-5 py-4 text-right font-medium">{t.rivals.thSubscription}</th>
-                <th className="px-5 py-4 text-right font-medium">{t.rivals.thDiff}</th>
+                <th className="px-5 py-4 text-right font-medium">{t.rivals.thPerRegister}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -439,18 +438,10 @@ export default async function KassaPage() {
                     <span className="font-semibold text-ink">{row.c}</span>{" "}
                     <span className="text-xs text-ink-muted">{row.perDay}</span>
                   </td>
-                  {/* Ours is the only column with weight on it. Four columns of
-                      equal-looking numbers is a table nobody reads to the end. */}
                   <td className="px-5 py-4 text-right font-display font-semibold tabular-nums text-ink">
                     {row.keel}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.perOrder}</td>
-                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.subscription}</td>
-                  <td className="px-5 py-4 text-right">
-                    <span className="rounded-lg bg-signal-500/15 px-2 py-1 text-xs font-semibold tabular-nums text-signal-600 dark:text-signal-400">
-                      {row.diff}
-                    </span>
-                  </td>
+                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.perRegister}</td>
                 </tr>
               ))}
             </tbody>
