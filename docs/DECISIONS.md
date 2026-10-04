@@ -9546,3 +9546,86 @@ fayldan olingan nom allaqachon jonli saytdagi rasmning ustiga yozardi.
 10 MB shift — bu har bir mijoz bo'lishadigan diskka tushadi; undan kattasi
 kimdir kichraytirishni unutgan fayl, va sayt uni har bir telefondagi
 mehmonga uzatadi.
+
+### Shubhali operatsiyalar: yetkazish navbati (Telegram + ega ilovasi)
+
+Restoran «ba'zi shubhali operatsiyalar Telegramga ham, ega ilovasiga ham
+kelmayapti» dedi — va bu to'g'ri edi. Bitta sabab emas, besh sabab bor edi,
+har biri jim:
+
+1. **Kunlik limit tashlab yuborardi.** `dailyMax` (standart **8**) dan keyin
+   alert yozilardi, lekin hech qachon yuborilmasdi. Endi limitdan oshgani
+   `heldAt` bilan **ushlab turiladi** va har 15 daqiqada bitta **umumiy
+   xabar** (digest) bo'lib ketadi. Buzzing cheklangan, ma'lumot cheklanmagan.
+   ⚠️ Digest limitga **sanalmaydi** (`digest: true`), aks holda bitta digest
+   ertangi kunni ham to'sib qo'yardi.
+2. **Telegram 429.** Bekor qilingan chekdagi uchta pishgan taom bir
+   millisekundda to'rtta alert ko'taradi; guruhning flood control'i oxirgi
+   ikkitasini rad etardi. Endi barcha alertlar bitta navbatda (`alertSendMu`)
+   va `SendMessage` 429 ning `retry_after` ini (≤30 s) kutib qayta yuboradi.
+3. **Bitta urinish.** Tarmoq uzilishi yoki deploy paytida yuborilayotgan alert
+   abadiy yo'qolardi. Endi **yozuvning o'zi navbat**: `StartAlertRetry` har
+   daqiqada yuborilmaganlarni (oxirgi 12 soat, 8 tagacha urinish,
+   `alertBackoff`) qayta yuboradi. `claimUntil` — tirik yo'l bilan sweeper bir
+   yozuvni ikki marta yubormasligi uchun.
+4. **Ega ilovasida ikkinchi alert birinchisini o'chirardi.** Bildirishnoma
+   `data["tag"] ?: title` bilan kalitlanardi, server esa `tag` yubormasdi —
+   sarlavha esa alert **turi** ("Katta chegirma"). Endi har alert
+   `tag: alert-<id>`, ilova esa zaxira sifatida FCM `messageId` ni oladi.
+   Push **bir marta** (`pushedAt`) — Telegram qayta urinishi telefonni qayta
+   jiringlatmaydi.
+5. **Ikki trigger yo'q edi.** Kassadan smena yopilganda (`StaffCloseCashShift`)
+   kamomad alerti umuman yo'q edi — faqat paneldagi yopishda bor edi; endi
+   ikkalasi `alertOnCashShort` ni chaqiradi. Bekor qilingan chekda o'chirilgan
+   pishgan taomlar hech qaysi alertga tushmasdi («taomlarni birma-bir o'chir,
+   keyin qolganini bekor qil»); endi bekor qilish yo'li ham
+   `alertOnVoidsAfterPrecheck` ni chaqiradi.
+
+⚠️ Muted tur `quiet: true` bilan yoziladi — sweeper uni ham yubormaydi, va
+yuborish paytida sozlama qayta o'qiladi (keyin o'chirilgan tur ham).
+Testlar: `TestTheCeilingHoldsRatherThanDrops`, `TestBothShiftClosesAlertOnAShortfall`,
+`TestACancelledCheckRaisesItsVoids`, `TestAHeldAlertGoesToTheDigest` (jonli Mongo).
+
+### Kassa: 2026-10-04 tuzatishlari (kassir so'ragan 11 narsa)
+
+- **Peshtaxta raqami** — `check.counterNo`, ochilganda serverda **eng kichik
+  bo'sh** raqam (`freeCounterNo`). Ilgari `#{i + 1}` edi: #2 yopilsa #3 #2 ga
+  aylanardi, mehmon esa eski raqamni kutib turardi. Slotsiz chek (oflayn,
+  eski) — band slotlardan yuqori raqam oladi (`counterSlots`).
+- **Chap paneldagi «Menyu» yo'q** (do'kondan tashqari): u stol/peshtaxta
+  ochilganda chiqadi. Faqat peshtaxtali restoranda (stol xaritasi yo'q, do'kon
+  emas) birinchi band «Peshtaxta» nomi bilan qoladi — aks holda cheklarga yo'l
+  qolmaydi.
+- **Kurs tugmalari** «— I II III» yorliqsiz edi va «ishlamaydi» deb
+  topildi (ular *keyingi* taomni o'zgartiradi, ko'rinadigan narsa emas). Endi
+  «Kurs: Birga 1 2 3» va tanlanganda tagida jumla (`CourseNote`).
+- **Sevimlilar va «Ko'p ishlatilgan»** — kategoriyalardan oldin ikki chip.
+  ⚠️ **Odamniki, qurilmaniki emas** (`staff.menuFavorites`): ofitsiant bir
+  kechada uch planshet almashtiradi. «Ko'p ishlatilgan» — oxirgi 30 kunda
+  `check.serverId` yoki `check.closedById` shu odam bo'lgan cheklardan
+  (qatorda kim qo'shgani yozilmaydi). `/staff/menu/mine`, `PUT /staff/menu/favorites`
+  — butun ro'yxat, toggle emas.
+- **Qarz qaytarish** — to'lov turi bosilganda endi tasdiq so'raladi (summa va
+  tur bilan); ilgari bir bosish qarzni yopardi.
+- **Kirim-chiqim** — ishchilar ro'yxati faqat «Maosh/Ish haqi» tanlanganda.
+  ⚠️ Va tanlangan odam **umuman yuborilmas edi** (`personKind/personId`
+  komponentdan chiqmasdi) — kassa to'g'ri, payroll esa butun oyni qarzdor deb
+  turardi. Tuzatildi.
+- **Bekor qilingan chek sababi** — `checkView.cancelReason`, ro'yxatda va
+  kartada; o'chirilgan qatorning sababi ham.
+- **Pagination** — `components/till/Pager.tsx` (`usePaged` + `TillPager`),
+  klient tomonida: yopilgan smenalar, kirim-chiqim, cheklar, onlayn, stop-list,
+  bozorlik (tanlash va yuborilganlar — ilgari 20 tadan keyin **kesilardi**),
+  qarzlar, fiskal. Qidiruv yoki tab o'zgarsa birinchi sahifaga qaytadi.
+- **Ekran klaviaturasi** pastdagi maydonni ko'tara olmasdi: `scrollableAncestor`
+  faqat *allaqachon to'lgan* panelni topardi (qisqa ro'yxatda yo'q), va panel
+  oxirida bo'lsa scroll qilishga joy yo'q edi. Endi panel `overflow` bo'yicha
+  topiladi va yetmagan joy vaqtincha `padding-bottom` bilan qo'shiladi.
+  Alomati — «bozorlikda ba'zi masalliqlarga yozib bo'lmaydi».
+- **Saboy (ro'yxat zonasi) stollari** — vaqt va summa slotning **ichida**.
+- **Setup ekrani** — qolgan uchta matn va Go tomonidagi xatolar (o'zbekcha
+  keladi) endi tarjima qilinadi (`setupError`, birinchi so'zlar bo'yicha).
+- **Sozlamalar → «Yangilash»** — `App.UpdateNow()`: avtomatik yangilanish bilan
+  bir yo'l (manifest, checksum, scheduled task), faqat hozir. Yangi versiya
+  bo'lmasa — «Yangilanish hozircha yo'q». ⚠️ Eski shell'da metod yo'q — tugma
+  chizilmaydi.

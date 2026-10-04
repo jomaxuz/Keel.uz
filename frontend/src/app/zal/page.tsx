@@ -38,7 +38,8 @@ import TillChrome from "@/components/till/TillChrome";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import ClockGate, { useClockRefusal } from "@/components/till/ClockGate";
 import TablesScreen from "@/components/till/TablesScreen";
-import CourseTabs from "@/components/till/CourseTabs";
+import CourseTabs, { CourseNote } from "@/components/till/CourseTabs";
+import { minePool, useMenuMine } from "@/components/till/MenuMine";
 import MenuGrid from "@/components/till/MenuGrid";
 // One icon at a time (`react-icons/lu`): the top-level entry point is an index
 // of several thousand.
@@ -342,17 +343,21 @@ export default function FloorPage() {
     return tables.filter((tb) => tb.isActive && !taken.has(tb.id)).length;
   }, [tables, checks]);
 
+  // The waiter's own pinned and most-rung dishes — see components/till/MenuMine.
+  const { mine: menuMine, toggle: toggleFavorite } = useMenuMine(person?.id ?? staff?.id ?? "");
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
     const pool: MenuItem[] = q
       ? menu.flatMap((g) => g.items)
-      : (menu.find((g) => g.category.id === catID)?.items ?? []);
+      : (minePool(menu, catID, menuMine) ??
+        menu.find((g) => g.category.id === catID)?.items ??
+        []);
     const visible = pool.filter((it) => it.isAvailable);
     if (!q) return visible;
     return visible.filter((it) =>
       contentName(it, lang).toLowerCase().includes(q),
     );
-  }, [menu, catID, query, lang]);
+  }, [menu, catID, query, lang, menuMine]);
 
   async function openCheck(tableId: string) {
     try {
@@ -633,6 +638,7 @@ export default function FloorPage() {
                     where the next tap already is. */}
                 <CourseTabs value={course} onPick={setCourse} />
               </div>
+              <CourseNote value={course} />
               <MenuGrid
                 menu={menu}
                 items={items}
@@ -659,6 +665,8 @@ export default function FloorPage() {
                   }
                   void addDish(it);
                 }}
+                mine={menuMine}
+                onToggleFavorite={toggleFavorite}
               />
             </>
           ) : (

@@ -4970,6 +4970,18 @@ export const api = {
       bearer: tillBearer(),
       cache: "no-store",
     }),
+  /** This person's pinned dishes and the ones they ring most. */
+  tillMenuMine: () =>
+    request<{ favorites: string[]; top: string[] }>("/staff/menu/mine", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  tillSaveFavorites: (favorites: string[]) =>
+    request<{ favorites: string[] }>("/staff/menu/favorites", {
+      method: "PUT",
+      bearer: tillBearer(),
+      body: { favorites },
+    }),
   /** The last few closed shifts. ⚠️ Short on purpose: this answers "print
    *  yesterday's again", not "how did March go" — that belongs to the panel. */
   tillClosedShifts: () =>

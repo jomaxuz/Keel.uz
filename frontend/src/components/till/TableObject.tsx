@@ -62,6 +62,22 @@ export default function TableObject({
   const state = tableState(check);
   const open = !!check;
 
+  // The time chip's colours, shared by both places it can be drawn.
+  const chip = {
+    background:
+      state === "late"
+        ? "rgb(var(--till-late) / 0.12)"
+        : state === "billed"
+          ? "rgb(var(--till-info) / 0.12)"
+          : "rgb(var(--till-accent) / 0.18)",
+    color:
+      state === "late"
+        ? "rgb(var(--till-late))"
+        : state === "billed"
+          ? "rgb(var(--till-info))"
+          : "rgb(var(--till-accent-ink))",
+  };
+
   const word =
     state === "billed"
       ? t.till.billed
@@ -90,7 +106,7 @@ export default function TableObject({
         {/* ---- The table itself ---- */}
         <span
           className={`relative flex w-full items-center justify-center rounded-[14px] border-2 transition-colors group-hover:border-[rgb(var(--till-accent))] ${
-            compact ? "h-[4.4rem]" : "h-[5.6rem]"
+            compact ? "h-[5.4rem] flex-col gap-1" : "h-[5.6rem]"
           }`}
           style={{ background: stateTint(state), borderColor: stateLine(state) }}
         >
@@ -100,7 +116,11 @@ export default function TableObject({
               carries colour at full strength; a taken one has three other
               things to say and needs its middle left legible. */}
           <span
-            className="flex h-[2.9rem] w-[2.9rem] items-center justify-center rounded-full border-2 text-[15px] font-bold leading-none tracking-tight"
+            className={`flex items-center justify-center rounded-full border-2 font-bold leading-none tracking-tight ${
+              compact && open
+                ? "h-[2.1rem] w-[2.1rem] text-[13px]"
+                : "h-[2.9rem] w-[2.9rem] text-[15px]"
+            }`}
             style={
               open
                 ? {
@@ -117,6 +137,26 @@ export default function TableObject({
           >
             {label}
           </span>
+
+          {/* ⚠️ **Inside the slot, on a takeaway counter.** The time and the
+              sum used to hang below every tile, as on a dining table — but a
+              counter slot is drawn small and packed tight, so the line under
+              one tile sat closer to the next tile than to its own, and a row of
+              numbers floated between the slots belonging to none of them.
+              Inside the box there is no doubt whose they are. */}
+          {compact && open && (
+            <span className="flex max-w-full items-center gap-1 px-1">
+              <span
+                className="till-num shrink-0 rounded-full px-1.5 py-[0.1rem] text-[10px] font-bold"
+                style={chip}
+              >
+                {check!.openMin} {t.till.minShort}
+              </span>
+              <span className="till-num truncate text-[12px] font-bold text-ink">
+                {formatPrice(check!.total, currency, lang)}
+              </span>
+            </span>
+          )}
 
           {/* ⚠️ The one thing that goes quietly wrong: a line nobody has sent
               to the kitchen. It sits on the table's own corner rather than in
@@ -149,7 +189,13 @@ export default function TableObject({
               broken till; a table wearing a colleague's name reads as a
               colleague. It clears itself when the hold goes stale. */}
           {open && check!.heldBy && (
-            <span className="till-chip till-chip-info absolute bottom-1.5 left-1.5 max-w-[85%] truncate">
+            // On a counter slot the bottom of the box is the sum's, so the
+            // name sits on the border instead of over the figure.
+            <span
+              className={`till-chip till-chip-info absolute max-w-[85%] truncate ${
+                compact ? "-bottom-2.5 left-1/2 -translate-x-1/2" : "bottom-1.5 left-1.5"
+              }`}
+            >
               {check!.heldBy}
             </span>
           )}
@@ -171,25 +217,13 @@ export default function TableObject({
           carries no row at all: a room where every tile has a badge on it is a
           room with no badges in it, and "free" under a green circle is the
           same fact twice. */}
+      {!compact && (
       <span className="flex h-[1.35rem] items-center gap-1.5">
         {open ? (
           <>
             <span
               className="till-num flex items-center gap-1 rounded-full px-2 py-[0.15rem] text-[11px] font-bold"
-              style={{
-                background:
-                  state === "late"
-                    ? "rgb(var(--till-late) / 0.12)"
-                    : state === "billed"
-                      ? "rgb(var(--till-info) / 0.12)"
-                      : "rgb(var(--till-accent) / 0.18)",
-                color:
-                  state === "late"
-                    ? "rgb(var(--till-late))"
-                    : state === "billed"
-                      ? "rgb(var(--till-info))"
-                      : "rgb(var(--till-accent-ink))",
-              }}
+              style={chip}
             >
               {check!.openMin} {t.till.minShort}
             </span>
@@ -199,6 +233,7 @@ export default function TableObject({
           </>
         ) : null}
       </span>
+      )}
     </button>
   );
 }

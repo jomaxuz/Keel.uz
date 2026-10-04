@@ -153,6 +153,9 @@ func (h *Handler) StaffCloseCashShift(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.alertOnCashShort(r.Context(), shift, figures.Expected-req.Counted,
+		req.VarianceNote, shiftActorName(who))
+
 	fiscalNote := ""
 	if _, ferr := h.requestCloseDay(r.Context(), s.BranchID,
 		shiftActorName(who), shift.ID); ferr != nil {

@@ -18,6 +18,7 @@ import type {
   ShoppingOrder,
   ShoppingSource,
 } from "@/lib/types";
+import { TillPager, usePaged } from "./Pager";
 
 // The shopping list, written where the news arrives.
 //
@@ -169,6 +170,11 @@ export default function ZakupScreen({
       .map((c) => ({ ...c, qty: 0, onHand: 0 }) as ShoppingDraftRow);
     return [...short, ...rest];
   }, [suggested, catalog, query]);
+  // ⚠️ Paged, not capped — "nothing is capped" above still holds: every row
+  // is reachable, a page at a time, and a search goes back to its first page.
+  const pickPage = usePaged(shown, 20);
+  const { setPage: setPickPage } = pickPage;
+  useEffect(() => setPickPage(0), [query, setPickPage]);
 
   /** Whether what was typed names nothing the store knows about.
    *
@@ -408,7 +414,7 @@ export default function ZakupScreen({
                       {/* Two to a row on a monoblock: the names are short and a
                         single column made the shortage list four screens long. */}
                       <ul className="grid gap-2 sm:grid-cols-2">
-                        {shown.map((row) => {
+                        {pickPage.shown.map((row) => {
                           const on = chosen.has(row.ingredientId);
                           return (
                             <li key={row.ingredientId}>
@@ -466,6 +472,7 @@ export default function ZakupScreen({
                           </li>
                         )}
                       </ul>
+                      <TillPager page={pickPage.page} pages={pickPage.pages} onPage={pickPage.setPage} />
                     </>
                   )}
                 </>
@@ -685,14 +692,19 @@ function SentList({
   t: ReturnType<typeof useAdminT>;
   onAccept: (o: ShoppingOrder) => void;
 }) {
+  // ⚠️ Pages, where it used to cut at twenty: the twenty-first list was
+  // simply not on the screen, and "what happened to what I asked for" had no
+  // answer for anything older than a fortnight.
+  const paged = usePaged(orders, 10);
   if (orders.length === 0) {
     return (
       <p className="p-6 text-center text-sm text-ink-muted">{t.zakup.noSent}</p>
     );
   }
   return (
-    <ul className="mx-auto min-h-0 w-full max-w-3xl flex-1 space-y-2 overflow-y-auto p-3">
-      {orders.slice(0, 20).map((o) => (
+    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+    <ul className="min-h-0 w-full flex-1 space-y-2 overflow-y-auto p-3">
+      {paged.shown.map((o) => (
         <li
           key={o.id}
           className="rounded-[14px] border border-line bg-surface p-3 text-[14px]"
@@ -743,6 +755,8 @@ function SentList({
         </li>
       ))}
     </ul>
+    <TillPager page={paged.page} pages={paged.pages} onPage={paged.setPage} />
+    </div>
   );
 }
 

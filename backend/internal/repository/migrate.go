@@ -451,6 +451,10 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// The endpoint's own unique index is created separately, below, for the
 		// same reason pos_settings.branchId is: different options, same keys.
 		{s.PushSubscriptions, bson.D{{Key: "userId", Value: 1}}},
+		// The alert sweeper's minute: "what is still unsent". Also the
+		// ceiling's count of what was sent to a branch today.
+		{s.LossAlerts, bson.D{{Key: "sentAt", Value: 1}, {Key: "at", Value: 1}}},
+		{s.LossAlerts, bson.D{{Key: "branchId", Value: 1}, {Key: "sentAt", Value: 1}}},
 		// pos_settings.branchId is deliberately absent here: it is created
 		// further down as a *unique* index. Listing it here too would ask Mongo
 		// for the same keys with different options, which it refuses.

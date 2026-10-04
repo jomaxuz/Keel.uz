@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { printReceipt, type PrintOutcome } from "@/lib/print";
 import PrintResultDialog from "./PrintResultDialog";
 import type { Check } from "@/lib/types";
+import { TillPager, usePaged } from "./Pager";
 
 /**
  * The sales list, on the till.
@@ -87,6 +88,10 @@ export default function ChecksScreen({
         (c.serverName ?? "").toLowerCase().includes(q),
     );
   }, [tab, open, closed, query]);
+  const paged = usePaged(rows);
+  // A new tab or a new search starts at its first page.
+  const { setPage } = paged;
+  useEffect(() => setPage(0), [tab, query, setPage]);
 
   async function reprint(check: Check) {
     setBusy(true);
@@ -175,7 +180,7 @@ export default function ChecksScreen({
           </p>
         )}
         <div className="mx-auto max-w-3xl space-y-2">
-          {rows.map((c) => {
+          {paged.shown.map((c) => {
             const cancelled = c.status === "cancelled";
             const refunded = !!c.refund;
             return (
@@ -211,6 +216,15 @@ export default function ChecksScreen({
                       </span>
                     )}
                   </div>
+                  {/* ⚠️ The reason on the row itself: a list of red
+                      "cancelled" badges with nothing beside them is the list
+                      somebody has to open one by one to find the odd one. */}
+                  {cancelled && (
+                    <div className="truncate text-xs text-danger">
+                      {t.till.cancelReasonLabel}:{" "}
+                      {c.cancelReason?.trim() || t.till.noReason}
+                    </div>
+                  )}
                   <div className="text-xs text-ink-muted">
                     {tab === "open"
                       ? [c.serverName, t.till.minutes(c.openMin)]
@@ -239,6 +253,7 @@ export default function ChecksScreen({
             );
           })}
         </div>
+        <TillPager page={paged.page} pages={paged.pages} onPage={paged.setPage} />
       </div>
 
       {/* ---- One closed sale ----
@@ -280,13 +295,24 @@ export default function ChecksScreen({
                 <div
                   key={l.lineId}
                   className={`flex justify-between gap-2 ${
-                    l.void ? "text-ink-muted line-through" : ""
+                    l.void ? "text-ink-muted" : ""
                   }`}
                 >
                   <span className="min-w-0">
-                    {l.qty} × {l.name}
+                    <span className={l.void ? "line-through" : ""}>
+                      {l.qty} × {l.name}
+                    </span>
+                    {/* A removed line says why, the same way the check does —
+                        and not struck through, or the reason reads as deleted
+                        too. */}
+                    {l.void?.reason && (
+                      <span className="block text-xs">
+                        {l.void.reason}
+                        {l.void.by ? ` · ${l.void.by}` : ""}
+                      </span>
+                    )}
                   </span>
-                  <span className="tabular-nums">
+                  <span className={`tabular-nums ${l.void ? "line-through" : ""}`}>
                     {formatPrice(l.sum, currency, lang)}
                   </span>
                 </div>
@@ -302,6 +328,26 @@ export default function ChecksScreen({
             {/* ⚠️ The reason, not just the amount: "refunded 240 000" with no
                 sentence beside it is the line every argument about a shift
                 starts from, and the person who could answer has gone home. */}
+            {/* ⚠️ The cancellation's own sentence, and who wrote it. The reason
+                was required on the way in and then never shown again — a red
+                "cancelled" and a struck-through total were all the till could
+                say about the one kind of check every evening's questions start
+                from. */}
+            {picked.status === "cancelled" && (
+              <div className="mt-3 rounded-[12px] border border-danger/30 bg-danger/[0.06] px-3 py-2 text-sm">
+                <p className="font-semibold text-danger">{t.till.cancelledBadge}</p>
+                <p className="mt-0.5">
+                  <span className="text-ink-muted">{t.till.cancelReasonLabel}: </span>
+                  {picked.cancelReason?.trim() || t.till.noReason}
+                </p>
+                {picked.closedBy && (
+                  <p className="mt-0.5">
+                    <span className="text-ink-muted">{t.till.cancelledBy}: </span>
+                    {picked.closedBy}
+                  </p>
+                )}
+              </div>
+            )}
             {picked.refund && (
               <p className="mt-2 text-sm text-danger">
                 {t.till.refundedBadge}: {picked.refund.reason} ·{" "}

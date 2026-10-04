@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
+import { useAsk } from "@/components/ui/Ask";
+import { TillPager, usePaged } from "@/components/till/Pager";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice, formatDateTime } from "@/lib/format";
@@ -45,6 +47,8 @@ export default function DebtsPanel({
   } | null>(null);
   const [busy, setBusy] = useState("");
   const [searched, setSearched] = useState(false);
+  const { ask } = useAsk();
+  const paged = usePaged(found?.debts ?? [], 6);
 
   async function search() {
     setBusy("search");
@@ -59,7 +63,32 @@ export default function DebtsPanel({
     }
   }
 
+  function methodName(m: TillPaymentMethod) {
+    return m === "cash"
+      ? t.till.methodCash
+      : m === "card"
+        ? t.till.methodCard
+        : t.till.methodTransfer;
+  }
+
   async function settle(debt: TillDebt, method: TillPaymentMethod) {
+    // ⚠️ **Asked before anything is written.** A tap on the method used to
+    // close the debt there and then — and the method buttons sit right under
+    // the debt a cashier has just found, so a thumb looking for the guest's
+    // name closed a debt nobody had paid, and the drawer was short by exactly
+    // that much at the end of the night. The question names the sum and the
+    // method, because those are the two things being sworn to.
+    const yes = await ask({
+      title: t.till.debtConfirmTitle,
+      body: t.till.debtConfirmBody(
+        debt.number,
+        formatPrice(debt.total, currency, lang),
+        methodName(method),
+      ),
+      confirmLabel: t.till.debtConfirmYes,
+      cancelLabel: t.till.debtConfirmNo,
+    });
+    if (!yes) return;
     setBusy(debt.orderId);
     try {
       await api.tillPayDebt(debt.orderId, method);
@@ -111,7 +140,7 @@ export default function DebtsPanel({
               {formatPrice(found.total, currency, lang)}
             </span>
           </div>
-          {found.debts.map((d) => (
+          {paged.shown.map((d) => (
             <div key={d.orderId} className="rounded-xl bg-ink/[0.03] p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm">
@@ -139,16 +168,13 @@ export default function DebtsPanel({
                     disabled={busy !== ""}
                     onClick={() => void settle(d, m)}
                   >
-                    {m === "cash"
-                      ? t.till.methodCash
-                      : m === "card"
-                        ? t.till.methodCard
-                        : t.till.methodTransfer}
+                    {methodName(m)}
                   </button>
                 ))}
               </div>
             </div>
           ))}
+          <TillPager page={paged.page} pages={paged.pages} onPage={paged.setPage} />
         </div>
       )}
     </div>

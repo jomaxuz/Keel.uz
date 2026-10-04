@@ -37,6 +37,7 @@ import { formatPrice, formatTime } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAsk } from "@/components/ui/Ask";
 import type { OnlineOrder, Order } from "@/lib/types";
+import { TillPager, usePaged } from "./Pager";
 
 /** What each answer looks like. ⚠️ "Nothing to do" is deliberately the quiet
  *  one — it is the commonest row and a cashier has to be able to skip it
@@ -119,6 +120,9 @@ export default function OnlineScreen({
         .includes(needle),
     );
   }, [rows, tab, q]);
+  const paged = usePaged(shown);
+  const { setPage } = paged;
+  useEffect(() => setPage(0), [tab, q, setPage]);
 
   const liveCount = (rows ?? []).filter(isLive).length;
   const doneCount = (rows ?? []).length - liveCount;
@@ -209,8 +213,9 @@ export default function OnlineScreen({
               : t.online.emptyDone}
         </p>
       ) : (
+        <>
         <ul className="flex-1 divide-y divide-line overflow-y-auto">
-          {shown.map((o) => {
+          {paged.shown.map((o) => {
             const look = LOOK[o.settle] ?? LOOK.nothing;
             return (
               <li key={o.id}>
@@ -258,6 +263,8 @@ export default function OnlineScreen({
             );
           })}
         </ul>
+        <TillPager className="border-t border-line" page={paged.page} pages={paged.pages} onPage={paged.setPage} />
+        </>
       )}
 
       {open && (

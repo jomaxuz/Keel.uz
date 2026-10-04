@@ -17,8 +17,10 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"restaurant-backend/internal/httpx"
@@ -73,9 +75,13 @@ func (h *Handler) alertSettingsOf(
 // a Telegram message takes a network round trip to another country. The context
 // is deliberately not the request's: cancelling the response must not cancel
 // the record.
+//
+// ⚠️ A minute, not thirty seconds: sends now queue behind one another (see
+// alertSendMu) and wait out Telegram's flood control. Whatever does not finish
+// in time is not lost — the record stays unsent and the sweeper retries it.
 func (h *Handler) raiseAlert(a models.LossAlert) {
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 		h.raiseAlertSync(ctx, a)
 	}()
@@ -98,30 +104,92 @@ func (h *Handler) deliverAlert(ctx context.Context, a models.LossAlert, force bo
 	if a.At.IsZero() {
 		a.At = time.Now()
 	}
+	// ⚠️ **After the record, before the buzzing.** A muted kind still lands in
+	// the list the panel and the owner app read; only the phone and the chat
+	// stay quiet. Marked on the record, so the retry sweeper does not send it
+	// either.
+	a.Quiet = !force && set.IsMuted(a.Kind)
 	res, err := h.Store.LossAlerts.InsertOne(ctx, a)
 	if err != nil {
 		return
 	}
 	a.ID = oidOf(res.InsertedID)
-
-	// ⚠️ **After the record, before the buzzing.** A muted kind still lands in
-	// the list the panel and the owner app read; only the phone and the chat
-	// stay quiet. Checked before the ceiling too, so a muted kind never uses up
-	// a message another kind would have needed.
-	if !force && set.IsMuted(a.Kind) {
+	if a.Quiet {
 		return
 	}
+	h.sendAlert(ctx, a, set)
+}
+
+// alertSendMu puts every alert message in one line.
+//
+// ⚠️ **One sender at a time, on purpose.** Each alert used to race to Telegram
+// in its own goroutine; a check cancelled with four cooked lines on it sent
+// five messages in the same millisecond, and the group's flood control refused
+// the last ones. In a line, the 429's "wait a second" is waited out instead.
+var alertSendMu sync.Mutex
+
+// alertMaxAttempts is how many times one record is tried before the sweeper
+// gives up on it. ⚠️ Spread over about two hours (alertBackoff): long enough to
+// outlast a Telegram outage or a bot removed and re-added, short enough that a
+// message does not arrive the next day about a shift long finished.
+const alertMaxAttempts = 8
+
+func alertBackoff(attempts int) time.Duration {
+	steps := []time.Duration{
+		30 * time.Second, time.Minute, 2 * time.Minute, 5 * time.Minute,
+		10 * time.Minute, 20 * time.Minute, 30 * time.Minute, time.Hour,
+	}
+	if attempts < 1 {
+		attempts = 1
+	}
+	if attempts > len(steps) {
+		return steps[len(steps)-1]
+	}
+	return steps[attempts-1]
+}
+
+// claimAlert takes one unsent record for this sender, for two minutes.
+func (h *Handler) claimAlert(ctx context.Context, id primitive.ObjectID) bool {
+	now := time.Now()
+	res, err := h.Store.LossAlerts.UpdateOne(ctx, bson.M{
+		"_id":    id,
+		"sentAt": nil,
+		"$or": []bson.M{
+			{"claimUntil": nil},
+			{"claimUntil": bson.M{"$lt": now}},
+		},
+	}, bson.M{"$set": bson.M{"claimUntil": now.Add(2 * time.Minute)}})
+	return err == nil && res.ModifiedCount == 1
+}
+
+// sendAlert makes one attempt at one recorded alert: the phone, then the chat.
+func (h *Handler) sendAlert(ctx context.Context, a models.LossAlert, set models.AlertSettings) {
+	if !h.claimAlert(ctx, a.ID) {
+		return
+	}
+	release := bson.M{"claimUntil": ""}
 
 	// ⚠️ **The ceiling is counted over what was *sent*, not what was
 	// recorded.** A bad night keeps producing records — that is the point of
-	// them — and only the buzzing stops. Counting records instead would make
-	// the panel's list stop growing too, which is the one thing that must not
-	// happen on the night it matters.
+	// them. ⚠️ And past it the alert is *held*, not dropped: it used to stop
+	// here for good, with the ceiling at eight, so a busy evening's ninth
+	// suspicious operation reached neither the group nor the phone. Held ones
+	// go out together in one digest (sweepAlerts) — the buzzing is limited, the
+	// information is not.
 	sent, err := h.Store.LossAlerts.CountDocuments(ctx, bson.M{
 		"branchId": a.BranchID,
 		"sentAt":   bson.M{"$gte": time.Now().Add(-24 * time.Hour)},
+		"digest":   bson.M{"$ne": true},
 	})
-	if err != nil || sent >= int64(set.DailyMax) {
+	if err != nil {
+		_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID, bson.M{"$unset": release})
+		return
+	}
+	if sent >= int64(set.DailyMax) {
+		now := time.Now()
+		_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID, bson.M{
+			"$set": bson.M{"heldAt": now}, "$unset": release,
+		})
 		return
 	}
 
@@ -136,19 +204,246 @@ func (h *Handler) deliverAlert(ctx context.Context, a models.LossAlert, force bo
 	//
 	// ⚠️ Owners only, the same rule `sendToOwners` applies: a manager is one of
 	// the people these messages are about.
-	h.notifyAdmins(a.BranchID, true, func(lang string) (string, string) {
-		return alertTitle(a, lang), alertText(a, name, lang)
-	}, map[string]any{"type": "alert", "kind": string(a.Kind)})
+	//
+	// ⚠️ Once: a Telegram retry must not buzz the phone a second time.
+	if a.PushedAt == nil {
+		h.notifyAdmins(a.BranchID, true, func(lang string) (string, string) {
+			return alertTitle(a, lang), alertText(a, name, lang)
+		}, map[string]any{
+			"type": "alert", "kind": string(a.Kind), "tab": "alerts",
+			// ⚠️ **Each alert its own notification.** The owner app keyed what
+			// it drew on the title, and the title is the kind — so a second
+			// large discount replaced the first on the phone, and the owner
+			// only ever saw the last one of each kind.
+			"tag": "alert-" + a.ID.Hex(),
+		})
+		now := time.Now()
+		_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID, bson.M{"$set": bson.M{"pushedAt": now}})
+	}
 
 	text := alertText(a, name, h.notifyLang(ctx))
-	if err := h.sendToOwners(ctx, a.BranchID, text); err != nil {
-		_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID,
-			bson.M{"$set": bson.M{"sendErr": err.Error()}})
+	alertSendMu.Lock()
+	err = h.sendToOwners(ctx, a.BranchID, text)
+	alertSendMu.Unlock()
+	if err != nil {
+		h.alertFailed(ctx, a, err)
 		return
 	}
 	now := time.Now()
-	_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID,
-		bson.M{"$set": bson.M{"sentAt": now}})
+	_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID, bson.M{
+		"$set":   bson.M{"sentAt": now},
+		"$unset": bson.M{"claimUntil": "", "sendErr": "", "nextTryAt": ""},
+	})
+}
+
+// alertFailed records why a send failed and when to try again.
+func (h *Handler) alertFailed(ctx context.Context, a models.LossAlert, err error) {
+	attempts := a.Attempts + 1
+	next := time.Now().Add(alertBackoff(attempts))
+	var wait *telegram.RetryAfterError
+	if errors.As(err, &wait) && time.Now().Add(wait.After).After(next) {
+		next = time.Now().Add(wait.After)
+	}
+	_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID, bson.M{
+		"$set": bson.M{
+			"sendErr": err.Error(), "attempts": attempts, "nextTryAt": next,
+		},
+		"$unset": bson.M{"claimUntil": ""},
+	})
+}
+
+// ---- The retry sweeper ----
+
+const (
+	alertSweepEvery = time.Minute
+	// How far back the sweeper looks. ⚠️ Not forever: a message about a check
+	// cancelled yesterday afternoon, arriving because the bot was fixed this
+	// morning, is noise about something already discussed.
+	alertSweepWindow = 12 * time.Hour
+	// How long a held alert waits for company before the digest goes. ⚠️ This
+	// is what keeps the ceiling meaning anything: at most one digest per branch
+	// in this window, however bad the night.
+	alertDigestAfter = 15 * time.Minute
+	// Telegram's limit is 4096 characters; the rest is margin for the heading.
+	alertDigestChars = 3800
+)
+
+// StartAlertRetry runs the sweeper: unsent alerts are retried, held ones are
+// sent as a digest.
+func (h *Handler) StartAlertRetry(ctx context.Context) {
+	go func() {
+		timer := time.NewTimer(45 * time.Second)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return
+		case <-timer.C:
+		}
+		ticker := time.NewTicker(alertSweepEvery)
+		defer ticker.Stop()
+		for {
+			h.sweepAlerts(ctx)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
+}
+
+func (h *Handler) sweepAlerts(parent context.Context) {
+	ctx, cancel := context.WithTimeout(parent, 50*time.Second)
+	defer cancel()
+	now := time.Now()
+	cur, err := h.Store.LossAlerts.Find(ctx, bson.M{
+		"sentAt":   nil,
+		"quiet":    bson.M{"$ne": true},
+		"at":       bson.M{"$gte": now.Add(-alertSweepWindow)},
+		"attempts": bson.M{"$not": bson.M{"$gte": alertMaxAttempts}},
+		"$and": []bson.M{
+			{"$or": []bson.M{{"nextTryAt": nil}, {"nextTryAt": bson.M{"$lte": now}}}},
+			{"$or": []bson.M{{"claimUntil": nil}, {"claimUntil": bson.M{"$lt": now}}}},
+		},
+	}, options.Find().SetSort(bson.D{{Key: "at", Value: 1}}).SetLimit(300))
+	if err != nil {
+		return
+	}
+	var pending []models.LossAlert
+	if err := cur.All(ctx, &pending); err != nil {
+		return
+	}
+
+	// Per branch, in the order they happened.
+	var order []primitive.ObjectID
+	byBranch := map[primitive.ObjectID][]models.LossAlert{}
+	for _, a := range pending {
+		if _, ok := byBranch[a.BranchID]; !ok {
+			order = append(order, a.BranchID)
+		}
+		byBranch[a.BranchID] = append(byBranch[a.BranchID], a)
+	}
+	for _, branch := range order {
+		set := h.alertSettingsOf(ctx, branch)
+		if !set.Enabled {
+			continue
+		}
+		var held []models.LossAlert
+		for _, a := range byBranch[branch] {
+			// ⚠️ Read again at send time: an owner who muted a kind since it
+			// was raised does not want its retries either.
+			if set.IsMuted(a.Kind) {
+				continue
+			}
+			if a.HeldAt != nil {
+				held = append(held, a)
+				continue
+			}
+			// ⚠️ A fresh record belongs to the goroutine that raised it; the
+			// sweeper is for the ones that goroutine could not finish.
+			if a.Attempts == 0 && now.Sub(a.At) < 2*time.Minute {
+				continue
+			}
+			h.sendAlert(ctx, a, set)
+		}
+		if len(held) > 0 && now.Sub(held[0].At) >= alertDigestAfter {
+			h.sendDigest(ctx, branch, held)
+		}
+	}
+}
+
+// sendDigest delivers everything the ceiling held back, as one message.
+func (h *Handler) sendDigest(ctx context.Context, branch primitive.ObjectID, held []models.LossAlert) {
+	var mine []models.LossAlert
+	for _, a := range held {
+		if h.claimAlert(ctx, a.ID) {
+			mine = append(mine, a)
+		}
+	}
+	if len(mine) == 0 {
+		return
+	}
+	name := h.restaurantName(ctx)
+	lang := h.notifyLang(ctx)
+
+	// ⚠️ **Split at Telegram's length limit, never truncated.** Twenty held
+	// alerts do not fit in one message, and cutting the list would be the
+	// silent loss this whole queue exists to stop.
+	var chunks [][]models.LossAlert
+	size := 0
+	for _, a := range mine {
+		n := len(alertText(a, "", lang)) + 2
+		if len(chunks) == 0 || size+n > alertDigestChars {
+			chunks = append(chunks, nil)
+			size = 0
+		}
+		chunks[len(chunks)-1] = append(chunks[len(chunks)-1], a)
+		size += n
+	}
+
+	ids := func(list []models.LossAlert) []primitive.ObjectID {
+		out := make([]primitive.ObjectID, 0, len(list))
+		for _, a := range list {
+			out = append(out, a.ID)
+		}
+		return out
+	}
+
+	// The phone: one buzz for the whole digest.
+	h.notifyAdmins(branch, true, func(l string) (string, string) {
+		w := notifyWordsFor(l)
+		head := fmt.Sprintf(w.Digest, len(mine))
+		body := ""
+		for i, a := range mine {
+			if i == 6 {
+				body += "…"
+				break
+			}
+			if body != "" {
+				body += "\n"
+			}
+			line := alertTitle(a, l)
+			if a.Amount != 0 && a.Kind != models.AlertShiftOverdue {
+				line += " · " + formatSom(a.Amount) + " " + w.Currency
+			}
+			body += line
+		}
+		return head, body
+	}, map[string]any{
+		"type": "alert", "kind": "digest", "tab": "alerts",
+		"tag": "alert-digest-" + mine[0].ID.Hex(),
+	})
+	pushed := time.Now()
+	_, _ = h.Store.LossAlerts.UpdateMany(ctx,
+		bson.M{"_id": bson.M{"$in": ids(mine)}},
+		bson.M{"$set": bson.M{"pushedAt": pushed}})
+
+	w := notifyWordsFor(lang)
+	for _, chunk := range chunks {
+		text := "⚠️ " + fmt.Sprintf(w.Digest, len(chunk))
+		if name != "" {
+			text += " · " + name
+		}
+		for _, a := range chunk {
+			text += "\n\n" + alertText(a, "", lang)
+		}
+		alertSendMu.Lock()
+		err := h.sendToOwners(ctx, branch, text)
+		alertSendMu.Unlock()
+		if err != nil {
+			for _, a := range chunk {
+				h.alertFailed(ctx, a, err)
+			}
+			continue
+		}
+		now := time.Now()
+		_, _ = h.Store.LossAlerts.UpdateMany(ctx,
+			bson.M{"_id": bson.M{"$in": ids(chunk)}},
+			bson.M{
+				"$set":   bson.M{"sentAt": now, "digest": true},
+				"$unset": bson.M{"claimUntil": "", "sendErr": "", "nextTryAt": ""},
+			})
+	}
 }
 
 // sendToOwners delivers to every owner who has linked a chat.

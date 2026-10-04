@@ -68,6 +68,15 @@ type OrderCheck struct {
 	// average-per-guest are the two numbers a dining room is actually run on,
 	// and neither can be recovered later from anything else on the order.
 	Guests int `bson:"guests,omitempty" json:"guests,omitempty"`
+	// The counter slot a check with no table was given when it opened — "2"
+	// for the second takeaway at the counter.
+	//
+	// ⚠️ **Given once and kept**, not counted from the list. The till numbered
+	// counter checks by their position among the open ones, so closing #2 made
+	// #3 become #2 and #4 become #3 — while the guests holding those numbers
+	// were still waiting, and the kitchen's ticket still said the old one. The
+	// next check takes the smallest free number, so the slots stay short.
+	CounterNo int `bson:"counterNo,omitempty" json:"counterNo,omitempty"`
 
 	// When the bill was printed for the table.
 	//

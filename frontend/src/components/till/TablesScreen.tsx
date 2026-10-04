@@ -91,6 +91,7 @@ export default function TablesScreen({
     if (c.tableId) byTable.set(c.tableId, c);
     else counter.push(c);
   }
+  const slots = counterSlots(counter);
 
   const activeAll = useMemo(() => tables.filter((tb) => tb.isActive), [tables]);
 
@@ -319,14 +320,16 @@ export default function TablesScreen({
           else it can go. */}
       {counter.length > 0 && (
         <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-line px-3 py-2">
-          {counter.map((c, i) => (
+          {[...counter]
+            .sort((a, b) => (slots.get(a.id) ?? 0) - (slots.get(b.id) ?? 0))
+            .map((c) => (
             <button
               key={c.id}
               onClick={() => onOpenCheck(c)}
               className="till-tile min-w-[9rem] shrink-0 justify-between p-2.5"
             >
               <span className="flex items-baseline justify-between gap-2">
-                <span className="text-[15px] font-bold">#{i + 1}</span>
+                <span className="text-[15px] font-bold">#{slots.get(c.id)}</span>
                 <span className="till-num text-[11px] text-[rgb(var(--till-dim))]">
                   {c.openMin} {t.till.minShort}
                 </span>
@@ -684,4 +687,29 @@ function TableSearch({
       </button>
     </span>
   );
+}
+
+/** Each counter check's number on the strip.
+ *
+ *  ⚠️ **The server's slot, never the position in the list.** It used to be
+ *  `i + 1`, so closing #2 renumbered every check after it while the guests
+ *  holding those numbers were still waiting. A check the server gave no slot
+ *  (one opened offline, or before slots existed) takes the next number above
+ *  every slot in use, in the order the checks were opened — so it cannot
+ *  collide with one that has a slot.
+ */
+export function counterSlots(counter: Check[]): Map<string, number> {
+  const out = new Map<string, number>();
+  let top = 0;
+  for (const c of counter) {
+    if (c.counterNo && c.counterNo > 0) {
+      out.set(c.id, c.counterNo);
+      top = Math.max(top, c.counterNo);
+    }
+  }
+  const rest = counter
+    .filter((c) => !out.has(c.id))
+    .sort((a, b) => (a.openedAt ?? "").localeCompare(b.openedAt ?? ""));
+  for (const c of rest) out.set(c.id, ++top);
+  return out;
 }

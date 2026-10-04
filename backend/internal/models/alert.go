@@ -196,6 +196,34 @@ type LossAlert struct {
 	SendErr  string             `bson:"sendErr,omitempty" json:"sendErr,omitempty"`
 	SeenAt   *time.Time         `bson:"seenAt,omitempty" json:"seenAt,omitempty"`
 	SeenByID primitive.ObjectID `bson:"seenById,omitempty" json:"-"`
+
+	// ---- The delivery queue ----
+	//
+	// ⚠️ **The stored record is the queue.** Delivery used to be one attempt
+	// in a goroutine: a Telegram 429 from a burst (one alert per voided line,
+	// all sent at once), a network blip or a deploy mid-send lost the message
+	// for good, and every alert past the daily ceiling was never sent at all.
+	// The restaurant saw "some of them do not arrive" — which was exactly
+	// right. Now an unsent record is retried by `StartAlertRetry`, and what the
+	// ceiling holds back goes out as one digest instead of nowhere.
+
+	// Muted when it was raised: recorded for the panel, never sent.
+	Quiet bool `bson:"quiet,omitempty" json:"-"`
+	// Held back by the daily ceiling; the sweeper sends it in a digest.
+	HeldAt *time.Time `bson:"heldAt,omitempty" json:"-"`
+	// Sent inside a digest rather than on its own. ⚠️ Not counted against the
+	// ceiling, or one digest would hold back the next morning too.
+	Digest bool `bson:"digest,omitempty" json:"-"`
+	// Failed attempts, and when the next one is due.
+	Attempts  int        `bson:"attempts,omitempty" json:"-"`
+	NextTryAt *time.Time `bson:"nextTryAt,omitempty" json:"-"`
+	// A sender holding this record until then. ⚠️ The live path and the
+	// sweeper can both reach one record; without the claim the group gets it
+	// twice.
+	ClaimUntil *time.Time `bson:"claimUntil,omitempty" json:"-"`
+	// The owner's phone was told. Separate from SentAt because the push goes
+	// once — a Telegram retry must not buzz the phone again.
+	PushedAt *time.Time `bson:"pushedAt,omitempty" json:"-"`
 }
 
 // AlertSettings is where a restaurant says what counts as unusual.

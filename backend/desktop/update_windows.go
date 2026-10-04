@@ -45,6 +45,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -143,6 +144,8 @@ func (a *App) startUpdater(ctx context.Context) {
 
 // checkForUpdate asks what the current build is and stages it if it is newer.
 func (a *App) checkForUpdate(ctx context.Context) error {
+	updateMu.Lock()
+	defer updateMu.Unlock()
 	rel, err := fetchManifest(ctx)
 	if err != nil {
 		return err
@@ -410,4 +413,67 @@ func installedExe() string {
 		return ""
 	}
 	return p
+}
+
+// updateMu keeps the background poller and the settings button from writing
+// the same `.part` file at once.
+var updateMu sync.Mutex
+
+// UpdateResult is what the settings button is told.
+//
+// ⚠️ A status word, not a sentence: the screen says it in the language it is
+// in, and Go here has no dictionary.
+type UpdateResult struct {
+	// "latest" — nothing newer exists; "installing" — the installer has been
+	// started and will close and reopen the till; "staged" — downloaded, and
+	// it will be installed the next time the till starts.
+	Status  string `json:"status"`
+	Current string `json:"current"`
+	Latest  string `json:"latest"`
+}
+
+// UpdateNow is the settings screen's "Update" button: check, download if
+// needed, and install right away.
+//
+// ⚠️ **The same path as the automatic one, only sooner.** Same manifest, same
+// checksum, same scheduled task — so a button that works is proof the
+// overnight update works too, and there is no second installer path to keep
+// honest. The automatic one waits for a boot because a till mid-service must
+// not close itself; here the person asking is standing at it and chose to.
+func (a *App) UpdateNow() (UpdateResult, error) {
+	out := UpdateResult{Current: Version}
+	updateMu.Lock()
+	defer updateMu.Unlock()
+
+	ctx, cancel := context.WithTimeout(a.ctx, 30*time.Minute)
+	defer cancel()
+	rel, err := fetchManifest(ctx)
+	if err != nil {
+		return out, err
+	}
+	out.Latest = rel.Version
+	if !newerVersion(Version, rel.Version) {
+		out.Status = "latest"
+		return out, nil
+	}
+	cur, err := readStaged()
+	if err != nil || cur.Version != rel.Version || verifyStaged(cur) != nil {
+		if err := download(ctx, rel); err != nil {
+			return out, err
+		}
+	} else if cur.Attempts > 0 {
+		// ⚠️ A person pressing the button is a fresh try: the boot-time limit
+		// of two attempts is there to stop a loop nobody is watching.
+		cur.Attempts = 0
+		writeStaged(cur)
+	}
+	if err := runUpdateTask(); err != nil {
+		// Not a failure to report as one: the installer is on disk and checked,
+		// and the next start applies it.
+		log.Printf("update: %v", err)
+		out.Status = "staged"
+		return out, nil
+	}
+	out.Status = "installing"
+	return out, nil
 }

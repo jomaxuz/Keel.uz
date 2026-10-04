@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { formatPrice, formatDateTime } from "@/lib/format";
 import { runFiscalJob } from "@/lib/fiscal";
 import type { Check } from "@/lib/types";
+import { TillPager, usePaged } from "@/components/till/Pager";
 
 /**
  * Sales that took money and have no tax receipt.
@@ -44,6 +45,7 @@ export default function UnfiledPanel({
   const [checks, setChecks] = useState<Check[]>([]);
   const [busy, setBusy] = useState("");
   const [open, setOpen] = useState(false);
+  const paged = usePaged(checks, 8);
 
   const refresh = useCallback(async () => {
     try {
@@ -123,7 +125,7 @@ export default function UnfiledPanel({
       {open && (
         <>
           <ul className="mt-3 space-y-2">
-            {checks.map((c) => (
+            {paged.shown.map((c) => (
               <li
                 key={c.id}
                 className="flex items-center justify-between gap-2 rounded-xl bg-surface px-3 py-2"
@@ -162,6 +164,7 @@ export default function UnfiledPanel({
               </li>
             ))}
           </ul>
+          <TillPager page={paged.page} pages={paged.pages} onPage={paged.setPage} />
           <button
             className="till-btn-primary mt-2.5 w-full"
             disabled={busy !== ""}

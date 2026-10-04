@@ -202,6 +202,11 @@ func main() {
 	// only rings for somebody who already has it open; this is for the hours
 	// when nobody does. See handlers/queuewatch.go.
 	h.StartQueueWatch(syncCtx)
+	// Retries alerts whose Telegram send failed and sends the ones the daily
+	// ceiling held back as one digest. ⚠️ Without it an alert had one attempt:
+	// a 429, a network blip or a deploy mid-send lost it for good. See
+	// handlers/alerts.go.
+	h.StartAlertRetry(syncCtx)
 	// ---- Advertising ----
 	//
 	// Pulls what each campaign cost and brought back into a daily snapshot,

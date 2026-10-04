@@ -126,6 +126,18 @@ type Bridge = {
   /** Choose which screen this machine opens. The screen reloads afterwards —
    *  see the note on the Go side. */
   SetMode: (mode: string) => Promise<void>;
+  /** The settings screen's "Update" button: check, download if needed, and
+   *  install now. ⚠️ Optional — a shell older than the button has no such
+   *  method, and the screen then simply does not draw it. */
+  UpdateNow?: () => Promise<UpdateResult>;
+};
+
+export type UpdateResult = {
+  /** latest — nothing newer; installing — the installer is running and will
+   *  close and reopen the till; staged — downloaded, installed on next start. */
+  status: "latest" | "installing" | "staged";
+  current: string;
+  latest: string;
 };
 
 declare global {

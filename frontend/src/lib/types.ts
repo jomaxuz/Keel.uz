@@ -3811,6 +3811,11 @@ export interface Check {
    *  paid — and a row saying "payme" while the guests are still eating is a row
    *  somebody reads as settled. */
   closedBy?: string;
+  /** Why a cancelled check was cancelled — present only on those. */
+  cancelReason?: string;
+  /** The counter slot of a check with no table — given when it opened and
+   *  kept, so closing #2 does not renumber #3. */
+  counterNo?: number;
   paymentMethod?: TillPaymentMethod;
   paymentStatus?: string;
   refund?: {

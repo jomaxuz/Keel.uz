@@ -73,12 +73,20 @@ const SKIP_TYPES = new Set([
  *  ⚠️ Checked against `scrollHeight`, not only the overflow style: a panel
  *  declared `overflow-y: auto` whose content fits scrolls by nothing, and
  *  stopping at it means the field never moves. */
-function scrollableAncestor(el: Element): Element | null {
+function scrollableAncestor(el: Element): HTMLElement | null {
+  // ⚠️ **A panel that *can* scroll, not only one that already does.** This
+  // used to require the content to overflow already — so a short list (four
+  // lines on the shopping list's quantity step) had no scroller at all, the
+  // lift fell through to `window.scrollBy`, which moves nothing on a till that
+  // is exactly one screen tall, and the lower rows stayed under the pad. From
+  // the counter it read as "some ingredients cannot be typed into": the ones
+  // that happened to sit in the bottom half of the screen.
   let node: Element | null = el.parentElement;
   while (node && node !== document.body) {
     const style = getComputedStyle(node);
-    const scrolls = /auto|scroll|overlay/.test(style.overflowY);
-    if (scrolls && node.scrollHeight > node.clientHeight + 1) return node;
+    if (node instanceof HTMLElement && /auto|scroll|overlay/.test(style.overflowY)) {
+      return node;
+    }
     node = node.parentElement;
   }
   return null;
@@ -307,18 +315,38 @@ export default function OnScreenKeyboard() {
   // exactly the overlap plus a little air, and scroll the nearest scrollable
   // ancestor rather than the window — on this screen the thing that scrolls is
   // usually a panel, and scrolling the window would move nothing at all.
+  //
+  // ⚠️ **And when the panel has nothing left to scroll, room is made.** A
+  // field in the last rows of a list sits at the bottom of a panel already
+  // scrolled to its end: `scrollBy` has nowhere to go, and the field stays
+  // behind the pad. So the shortfall is added as bottom padding for as long
+  // as the pad is up, and taken off again when it goes.
   useEffect(() => {
     if (!target) return;
+    let grown: { el: HTMLElement; prev: string } | null = null;
     const id = window.setTimeout(() => {
       const pad = board.current?.getBoundingClientRect().top ?? window.innerHeight;
       const box = target.getBoundingClientRect();
       const overlap = box.bottom - pad + 12;
       if (overlap <= 0) return;
       const scroller = scrollableAncestor(target);
-      if (scroller) scroller.scrollBy({ top: overlap, behavior: "smooth" });
-      else window.scrollBy({ top: overlap, behavior: "smooth" });
+      if (!scroller) {
+        window.scrollBy({ top: overlap, behavior: "smooth" });
+        return;
+      }
+      const left = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
+      if (left < overlap) {
+        const prev = scroller.style.paddingBottom;
+        const base = parseFloat(getComputedStyle(scroller).paddingBottom) || 0;
+        scroller.style.paddingBottom = `${base + (overlap - left)}px`;
+        grown = { el: scroller, prev };
+      }
+      scroller.scrollBy({ top: overlap, behavior: "smooth" });
     }, 60);
-    return () => window.clearTimeout(id);
+    return () => {
+      window.clearTimeout(id);
+      if (grown) grown.el.style.paddingBottom = grown.prev;
+    };
   }, [target]);
 
   // ---- The keys ----

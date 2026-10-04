@@ -245,19 +245,7 @@ func (h *Handler) AdminCloseCashShift(w http.ResponseWriter, r *http.Request) {
 	// not given, and it is worth looking at — but it is not worth a phone
 	// buzzing in the evening, and mixing the two is how the useful message
 	// becomes one of the two the owner scrolls past.
-	if short := figures.Expected - req.Counted; short > 0 {
-		if aset := h.alertSettingsOf(r.Context(), shift.BranchID); aset.Enabled &&
-			short >= aset.CashShortFrom {
-			h.raiseAlert(models.LossAlert{
-				BranchID: shift.BranchID,
-				Kind:     models.AlertCashShort,
-				By:       name,
-				Amount:   short,
-				Reason:   clampText(req.VarianceNote, 200),
-				RefID:    shift.ID,
-			})
-		}
-	}
+	h.alertOnCashShort(r.Context(), shift, figures.Expected-req.Counted, req.VarianceNote, name)
 
 	// ⚠️ **The register's day is asked to end, not ended here.** The two shifts
 	// are not the same shift — ours can turn over twice a day when staff change,
@@ -841,4 +829,36 @@ func cashOutRefusal(amount, inDrawer int) string {
 		return ""
 	}
 	return fmt.Sprintf("kassada buncha pul yo'q — hozir %d so'm bor", inDrawer)
+}
+
+// alertOnCashShort tells the owner a drawer was counted short.
+//
+// ⚠️ **Only a shortfall, never a surplus.** A drawer with more in it than
+// expected is usually a sale rung on the wrong tender or change that was not
+// given, and it is worth looking at — but it is not worth a phone buzzing in
+// the evening, and mixing the two is how the useful message becomes one of the
+// two the owner scrolls past.
+//
+// ⚠️ **One function, called from both doors.** It used to live inline in the
+// panel's close — and the till's own "close shift" button, which is the one a
+// cashier actually presses every evening, closed the drawer through a second
+// handler with no alert in it. A till counted short never reached the owner.
+func (h *Handler) alertOnCashShort(
+	ctx context.Context, shift *models.CashShift, short int, note, by string,
+) {
+	if shift == nil || short <= 0 {
+		return
+	}
+	aset := h.alertSettingsOf(ctx, shift.BranchID)
+	if !aset.Enabled || short < aset.CashShortFrom {
+		return
+	}
+	h.raiseAlert(models.LossAlert{
+		BranchID: shift.BranchID,
+		Kind:     models.AlertCashShort,
+		By:       by,
+		Amount:   short,
+		Reason:   clampText(note, 200),
+		RefID:    shift.ID,
+	})
 }
