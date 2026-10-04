@@ -24,7 +24,7 @@ export const PITCH_CONFIG = {
   video: {
     /** A YouTube video id (the part after `watch?v=`). Preferred: it streams
      *  from YouTube, so a 3-minute demo costs keel.uz nothing. */
-    youtubeId: "",
+    youtubeId: "0XiQEopWj8k",
     /** Or a direct MP4 address, e.g. "/pitch/demo.mp4" in `public/pitch/`. */
     mp4: "",
     /** The still shown before playing. Defaults to the till screenshot. */
@@ -220,8 +220,8 @@ export const PITCH = {
   live: {
     eyebrow: "04 · Ishlayotgan mahsulot",
     title: "KEEL — *ishlayotgan mahsulot*.",
-    lead: "Bu konsepsiya yoki maket emas. Platforma ishlab chiqarish serverida ishlaydi: har yangi restoran alohida server va domen bilan ochiladi, kassa dasturi yuklab olinadi, platforma holati ochiq sahifada kuzatiladi.",
-    stages: ["G'oya", "Prototip", "MVP", "Ishga tushirilgan"],
+    lead: "Bu konsepsiya yoki maket emas. Platforma ishlab chiqarish serverida ishlaydi va restoranlar undan foydalanmoqda: har yangi restoran alohida server va domen bilan ochiladi, kassa dasturi yuklab olinadi, platforma holati ochiq sahifada kuzatiladi.",
+    stages: ["G'oya", "Prototip", "MVP", "Ishga tushirilgan", "Birinchi mijozlar"],
     links: [
       { href: "/", label: "keel.uz", desc: "Mahsulot sayti va narxlar" },
       { href: "/kassa", label: "Kassa", desc: "Kassa, zal va oshxona ekrani" },
@@ -287,22 +287,41 @@ export const PITCH = {
 
   roadmap: {
     eyebrow: "07 · Yo'l xaritasi",
-    title: "Dasturiy ta'minot tayyor. *Keyingi qadam — bozor*",
+    title: "Mahsulot tayyor, mijozlar bor. *Keyingi qadam — o'sish*",
     lead: "Sanalar ko'rsatilmagan — faqat qaysi bosqich bajarilgan va qaysi biri hozir ketayotgani.",
     stages: [
       { name: "G'oya", state: "done", desc: "Restoran jarayonlari bo'laklarga bo'linib ketgani — muammo aniqlandi." },
       { name: "Prototip", state: "done", desc: "Sayt, menyu va buyurtma oqimi — birinchi ishlaydigan versiya." },
       { name: "MVP", state: "done", desc: "Kassa, zal, oshxona ekrani, yetkazish va admin panel bitta tizimda." },
       { name: "Ishga tushirilgan", state: "done", desc: "Ko'p tenantli platforma: har restoran o'z serverida va domenida, Windows kassa dasturi, Android ilovalar." },
-      { name: "Bozorda sinov va birinchi mijozlar", state: "current", desc: "Restoranlarni ulash, ularning fikri bilan mahsulotni tuzatish, onboarding'ni tezlashtirish." },
-      { name: "O'sish", state: "next", desc: "Sotuv kanallari va hamkorlar, mijozning o'zi ro'yxatdan o'tishi va sinov muddati." },
+      { name: "Bozorda sinov va birinchi mijozlar", state: "done", desc: "Mahsulot real restoranlarda sinovdan o'tdi; birinchi to'lovchi mijozlar ishlamoqda." },
+      { name: "O'sish", state: "current", desc: "Mijozlar hali kam — endi vazifa ularni ko'paytirish: sotuv jamoasi, marketing va tez ulanish. Investitsiya aynan shu bosqich uchun." },
       { name: "Kengayish", state: "next", desc: "Filial tarmoqlari va do'konlar uchun chuqurroq imkoniyatlar, yangi integratsiyalar." },
     ],
     stateLabel: { done: "Bajarildi", current: "Hozir", next: "Keyingi" },
   },
 
+  /** The ask. ⚠️ The amount and the share are the founder's own figures; the
+   *  split of the money is the founder's plan and must be kept in step with
+   *  what is said on stage. */
+  invest: {
+    eyebrow: "08 · Investitsiya",
+    title: "$100 000 — *10% ulush evaziga*",
+    lead: "Mahsulot qurilgan va mijozlarda ishlayapti — buning uchun investitsiya kerak emas edi. Pul faqat bitta narsaga kerak: o'sishga. Mijozlar hali kam, va bu raqam ularni ko'paytirish uchun.",
+    ask: { amount: "$100 000", share: "10%", label: "ulush evaziga" },
+    useTitle: "Pul nimaga sarflanadi",
+    use: [
+      { pct: 40, amount: "$40 000", title: "Sotuv va marketing", desc: "Restoranlarga to'g'ridan-to'g'ri sotuv, reklama, ko'rgazmalar va hamkorlar (POS sotuvchilari, buxgalterlar) orqali kanal." },
+      { pct: 30, amount: "$30 000", title: "Jamoa", desc: "Sotuv menejeri, mijozlarni ulash va qo'llab-quvvatlash bo'yicha mutaxassis, yordamchi dasturchi." },
+      { pct: 15, amount: "$15 000", title: "Tez ulanish (onboarding)", desc: "Restoranni bir kunda ishga tushirish: menyuni import qilish, xodimlarni o'qitish, sinov uchun uskunalar to'plami." },
+      { pct: 10, amount: "$10 000", title: "Infratuzilma va ishonchlilik", desc: "Serverlar, zaxira nusxa, monitoring va xavfsizlik — mijozlar soni oshganda ham barqaror ishlash uchun." },
+      { pct: 5, amount: "$5 000", title: "Zaxira", desc: "Kutilmagan xarajatlar uchun." },
+    ],
+    note: "Investitsiya mahsulotni noldan qurishga emas — tayyor va ishlayotgan mahsulotni bozorga olib chiqishga ketadi.",
+  },
+
   tech: {
-    eyebrow: "08 · Amalga oshirish",
+    eyebrow: "09 · Amalga oshirish",
     title: "Qanday *qurilgan*",
     lead: "Har bir restoran alohida server konteyneri va alohida ma'lumotlar bazasida ishlaydi: bir mijozdagi nosozlik yoki yuklama boshqasiga o'tmaydi.",
     archTitle: "Arxitektura",
@@ -359,7 +378,7 @@ export const PITCH = {
   },
 
   integrations: {
-    eyebrow: "09 · Integratsiyalar",
+    eyebrow: "10 · Integratsiyalar",
     title: "Mahalliy bozor bilan *ulangan*",
     lead: "Bular rasmiy hamkorlik emas — ushbu xizmatlarning ochiq API'lari uchun KEEL tomonidan yozilgan ulagichlar.",
     groups: [
@@ -396,7 +415,7 @@ export const PITCH = {
   },
 
   demo: {
-    eyebrow: "10 · Demo",
+    eyebrow: "11 · Demo",
     title: "Demo video",
     placeholderTitle: "Demo video shu yerga joylanadi",
     placeholderLead: "Yakuniy video (1–5 daqiqa) tayyorlanmoqda.",
@@ -416,7 +435,7 @@ export const PITCH = {
   },
 
   liveCta: {
-    eyebrow: "11 · Mahsulot",
+    eyebrow: "12 · Mahsulot",
     title: "Ishlayotgan KEEL mahsulotini ko'rish",
     lead: "keel.uz — mahsulot sayti; u yerdan kassa, qo'llanma va platforma holatiga o'tish mumkin.",
     button: "Ishlayotgan KEEL mahsulotini ko'rish →",

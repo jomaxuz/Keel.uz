@@ -10,6 +10,7 @@ import {
   DevStages,
   Flow,
   Integrations,
+  Investment,
   LiveLinks,
   Modules,
   Pains,
@@ -234,8 +235,13 @@ export default function PitchPage() {
           <Roadmap />
         </Section>
 
-        {/* ── 08 · Implementation ── */}
-        <Section id="tech" tone="raised" eyebrow={P.tech.eyebrow} title={P.tech.title} lead={P.tech.lead}>
+        {/* ── 08 · Investment ── */}
+        <Section id="invest" tone="raised" eyebrow={P.invest.eyebrow} title={P.invest.title} lead={P.invest.lead}>
+          <Investment />
+        </Section>
+
+        {/* ── 09 · Implementation ── */}
+        <Section id="tech" eyebrow={P.tech.eyebrow} title={P.tech.title} lead={P.tech.lead}>
           <div className="space-y-14">
             <div>
               <h3 className="mb-5 font-display text-xl font-semibold text-ink">{P.tech.archTitle}</h3>
@@ -254,12 +260,12 @@ export default function PitchPage() {
         </Section>
 
         {/* ── 09 · Integrations ── */}
-        <Section id="integrations" eyebrow={P.integrations.eyebrow} title={P.integrations.title} lead={P.integrations.lead}>
+        <Section id="integrations" tone="raised" eyebrow={P.integrations.eyebrow} title={P.integrations.title} lead={P.integrations.lead}>
           <Integrations />
         </Section>
 
         {/* ── 10 · Demo video ── */}
-        <Section id="demo" tone="raised" eyebrow={P.demo.eyebrow} title={P.demo.title}>
+        <Section id="demo" eyebrow={P.demo.eyebrow} title={P.demo.title}>
           <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
             <PitchVideo
               youtubeId={video.youtubeId}

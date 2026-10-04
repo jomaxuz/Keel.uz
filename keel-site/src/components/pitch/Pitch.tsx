@@ -360,6 +360,52 @@ export function Roadmap() {
   );
 }
 
+// ───────────────────────────── Investment
+
+/** The ask, and where the money goes — one figure, one bar, five rows. */
+export function Investment() {
+  const v = PITCH.invest;
+  // Each share its own shade of the accent, strongest first, so the bar reads
+  // as one decision split five ways rather than five unrelated colours.
+  const shades = ["bg-signal-500", "bg-signal-600", "bg-signal-400", "bg-hull-600", "bg-ink-muted"];
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,320px)_1fr] lg:gap-12">
+      <div className="rounded-3xl border border-signal-500/50 bg-signal-500/5 p-6 sm:p-8">
+        <p className="eyebrow">Biz so'rayapmiz</p>
+        <p className="mt-3 font-display text-5xl font-bold tracking-tight text-ink tabular-nums">{v.ask.amount}</p>
+        <p className="mt-2 text-lg text-ink-soft">
+          <span className="font-semibold text-ink">{v.ask.share}</span> {v.ask.label}
+        </p>
+        <p className="mt-6 text-sm text-ink-muted">{v.note}</p>
+      </div>
+      <div>
+        <h3 className="font-display text-lg font-semibold text-ink">{v.useTitle}</h3>
+        <div className="mt-4 flex h-3 w-full overflow-hidden rounded-full bg-raised" aria-hidden>
+          {v.use.map((u, i) => (
+            <span key={u.title} className={shades[i % shades.length]} style={{ width: `${u.pct}%` }} />
+          ))}
+        </div>
+        <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+          {v.use.map((u, i) => (
+            <li key={u.title} className="rounded-2xl border border-line bg-surface p-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="flex items-center gap-2 font-semibold text-ink">
+                  <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${shades[i % shades.length]}`} />
+                  {u.title}
+                </span>
+                <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-ink">
+                  {u.amount} <span className="text-ink-muted">· {u.pct}%</span>
+                </span>
+              </div>
+              <p className="mt-1.5 text-sm text-ink-soft">{u.desc}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 // ───────────────────────────── Architecture
 
 export function Architecture() {
